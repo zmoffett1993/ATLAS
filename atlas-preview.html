@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07182a">
+<title>ATLAS — Warehouse SKU Finder</title>
+<style>
+:root{
+  --navy:#07182a;--navy2:#0c2946;--blue:#0759d6;--blue2:#0b45a8;
+  --ink:#0c1830;--muted:#68758a;--line:#dde4ec;--soft:#f4f7fb;--white:#fff;
+  --shadow:0 18px 50px rgba(7,24,42,.13);--radius:18px;
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:#edf2f7}button,input{font:inherit}.hidden{display:none!important}
+.app{min-height:100vh;background:linear-gradient(145deg,#eef3f8,#f9fbfd)}
+.shell{max-width:1180px;margin:0 auto;min-height:100vh;display:grid;grid-template-columns:260px 1fr;box-shadow:0 0 50px rgba(7,24,42,.1)}
+.brand-rail{background:linear-gradient(180deg,#07182a 0%,#081b30 62%,#061421 100%);color:#fff;padding:34px 28px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.brand-rail:after{content:"";position:absolute;width:290px;height:290px;border:1px solid rgba(255,255,255,.035);border-radius:50%;bottom:-135px;left:-90px}
+.company-logo{width:190px;max-width:100%;filter:brightness(0) invert(1);margin-bottom:52px}.atlas-word{font-size:47px;font-weight:800;letter-spacing:.08em;line-height:1}.atlas-sub{font-size:13px;letter-spacing:.12em;margin-top:10px}.tagline{color:#1280ff;font-size:18px;margin:34px 0 34px}
+.brand-points{display:grid;gap:28px}.brand-point{display:grid;grid-template-columns:38px 1fr;gap:14px}.brand-point svg{width:34px;color:#1280ff}.brand-point strong{display:block;font-size:13px;letter-spacing:.04em}.brand-point span{font-size:12px;line-height:1.5;color:#d2dce7}.purpose{margin-top:auto;padding-top:40px;font-size:10px;letter-spacing:.3em;color:#d5deea}
+.main-panel{background:#fff;min-width:0;position:relative;padding-bottom:78px}.topbar{height:84px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);z-index:20}.icon-button{border:0;background:transparent;width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:var(--ink);cursor:pointer}.icon-button:hover{background:var(--soft)}.icon-button svg{width:25px}.top-brand{text-align:center}.top-brand img{width:130px;height:auto;display:block;margin:0 auto 3px}.top-brand .name{font-size:30px;font-weight:800;letter-spacing:.08em;line-height:1}.top-brand .sub{font-size:10px;font-weight:700;letter-spacing:.08em;margin-top:5px}.live-pill{font-size:11px;font-weight:800;padding:7px 10px;border-radius:999px;background:#e7f7ee;color:#167347}.live-pill.error{background:#fee9e7;color:#b42318}
+.content{max-width:780px;margin:0 auto;padding:34px 26px 28px}.hero{text-align:center;margin-bottom:28px}.hero h1{font-size:22px;margin:0 0 8px}.hero p{margin:0;color:var(--blue);font-weight:700}
+.search-wrap{position:relative}.search-box{width:100%;height:58px;border:1px solid var(--line);border-radius:15px;padding:0 50px 0 48px;font-size:16px;outline:none;box-shadow:0 7px 22px rgba(7,24,42,.08);transition:.2s}.search-box:focus{border-color:#86aff3;box-shadow:0 0 0 4px rgba(7,89,214,.1),0 10px 28px rgba(7,24,42,.11)}.search-icon{position:absolute;left:17px;top:17px;width:24px;color:#66758c}.clear-btn{position:absolute;right:12px;top:12px;width:34px;height:34px;border:0;border-radius:10px;background:var(--soft);cursor:pointer;color:#56657a}.suggestions{position:absolute;left:0;right:0;top:66px;background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow:hidden;z-index:35;max-height:330px;overflow-y:auto}.suggestion{padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer}.suggestion:last-child{border-bottom:0}.suggestion:hover{background:#f4f8ff}.suggestion strong{display:block;font-size:14px}.suggestion span{font-size:12px;color:var(--muted)}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:32px 0 13px}.section-title h2{font-size:13px;letter-spacing:.05em;margin:0}.section-title button{border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer}.recent-list{display:grid;gap:11px}.recent-item{border:1px solid var(--line);background:#fff;border-radius:14px;padding:14px 15px;display:grid;grid-template-columns:34px 1fr 24px;align-items:center;gap:10px;cursor:pointer;box-shadow:0 6px 18px rgba(7,24,42,.045);text-align:left}.recent-item:hover{border-color:#abc4ea;transform:translateY(-1px)}.recent-item svg{width:22px;color:#64748b}.recent-sku{font-weight:800;font-size:14px;overflow-wrap:anywhere}.recent-time{font-size:12px;color:var(--muted);margin-top:3px}.empty-recent{border:1px dashed #cbd6e2;border-radius:14px;padding:24px;text-align:center;color:var(--muted)}
+.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:72px;border-top:1px solid var(--line);background:#fff;display:grid;grid-template-columns:1fr 1fr}.nav-btn{border:0;background:#fff;color:#5f6e82;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:700;cursor:pointer}.nav-btn svg{width:23px}.nav-btn.active{color:var(--blue)}
+.view-head{text-align:center;margin-bottom:23px}.view-head h1{font-size:22px;margin:0 0 5px}.view-head p{font-size:13px;color:var(--muted);margin:0}.aisle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.aisle-btn{height:64px;border:1px solid var(--line);background:#fff;border-radius:13px;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(7,24,42,.045)}.aisle-btn:hover,.aisle-btn.active{background:linear-gradient(135deg,var(--blue),var(--blue2));border-color:transparent;color:#fff}
+.back-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.back-row button{border:0;background:none;display:flex;align-items:center;gap:7px;font-weight:700;cursor:pointer}.back-row svg{width:20px}.map-title{text-align:center}.map-title h1{margin:0;font-size:24px}.map-title span{font-size:11px;font-weight:700}.level-note{text-align:center;color:#4d5c70;font-size:13px;margin:18px 0}.aisle-map{max-width:390px;margin:0 auto;display:grid;grid-template-columns:1fr 66px;gap:17px}.map-stack{border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}.map-section{height:86px;display:grid;place-items:center;background:#fff;font-size:22px;font-weight:800;border-bottom:1px solid var(--line)}.map-section.active{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}.driveway{height:43px;background:#6d7683;color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;letter-spacing:.02em}.driveway.main{background:#061a31}.direction{display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;font-size:11px;font-weight:700}.direction-line{height:310px;width:2px;background:#1d3557;position:relative}.direction-line:before,.direction-line:after{content:"";position:absolute;left:-4px;width:8px;height:8px;border-radius:50%;background:var(--blue)}.direction-line:before{top:28%}.direction-line:after{top:70%}
+.result-shell{border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}.result-header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:15px}.result-header h1{font-size:21px;margin:0;overflow-wrap:anywhere}.result-header span{font-size:12px;font-weight:700;color:var(--muted)}.result-body{display:grid;grid-template-columns:1fr 250px;gap:22px;padding:22px}.location-list{display:grid;gap:10px}.location-row{border:1px solid var(--line);border-radius:13px;padding:13px;display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:center}.loc-badge{height:54px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;display:grid;place-items:center;font-size:20px;font-weight:800}.location-row h3{font-size:14px;margin:0 0 4px}.location-row p{font-size:12px;color:var(--muted);margin:0 0 3px}.location-row strong{font-size:12px;color:var(--blue)}.mini-map{border-left:1px solid var(--line);padding-left:22px}.mini-map .map-section{height:55px;font-size:17px}.mini-map .driveway{height:31px;font-size:9px}.no-result{border:1px dashed #cbd6e2;border-radius:16px;padding:38px;text-align:center;color:var(--muted)}
+.drawer-backdrop{position:fixed;inset:0;background:rgba(2,12,24,.45);z-index:60;opacity:0;pointer-events:none;transition:.2s}.drawer-backdrop.open{opacity:1;pointer-events:auto}.drawer{position:fixed;top:0;bottom:0;left:0;width:min(360px,88vw);background:linear-gradient(180deg,#0a223b,#07182a);color:#fff;z-index:70;padding:28px;transform:translateX(-100%);transition:.25s;box-shadow:20px 0 50px rgba(0,0,0,.25)}.drawer.open{transform:translateX(0)}.drawer-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:23px}.drawer-head img{width:180px;filter:brightness(0) invert(1)}.drawer-close{border:0;background:none;color:#fff;font-size:30px;cursor:pointer}.drawer-nav{display:grid;margin-top:14px}.drawer-link{border:0;background:none;color:#fff;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;text-align:left;cursor:pointer}.drawer-link span{display:flex;align-items:center;gap:12px}.drawer-link svg{width:22px}.drawer-foot{position:absolute;bottom:28px;left:28px;right:28px;text-align:center;color:#b7c5d4;font-size:12px}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.brand-rail{display:none}.main-panel{min-height:100vh}.topbar{height:78px}.top-brand img{width:112px}.top-brand .name{font-size:26px}.content{padding:28px 18px 25px}.result-body{grid-template-columns:1fr}.mini-map{border-left:0;border-top:1px solid var(--line);padding:20px 0 0}.live-pill{font-size:10px}}
+@media(max-width:520px){.topbar{padding:0 12px}.top-brand .sub{font-size:9px}.live-pill{padding:6px 7px}.hero h1{font-size:19px}.aisle-grid{gap:9px}.aisle-btn{height:58px}.result-header{display:block}.result-header span{display:block;margin-top:6px}.result-body{padding:15px}.content{padding-left:14px;padding-right:14px}.map-stack{min-width:0}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="shell">
+    <aside class="brand-rail">
+      <img class="company-logo" src="assets/chubby-gorilla-logo.png" alt="Chubby Gorilla">
+      <div class="atlas-word">ATLAS</div>
+      <div class="atlas-sub">WAREHOUSE SKU FINDER</div>
+      <div class="tagline">Find any SKU in seconds.</div>
+      <div class="brand-points">
+        <div class="brand-point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><div><strong>FAST</strong><span>Find SKUs in seconds with focused search.</span></div></div>
+        <div class="brand-point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6l5-2 8 3 5-2v13l-5 2-8-3-5 2z"/><path d="M8 4v13M16 7v13"/></svg><div><strong>ACCURATE</strong><span>Exact warehouse locations with clear navigation.</span></div></div>
+        <div class="brand-point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.3 8-8 9-4.7-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><div><strong>ENGINEERED</strong><span>Built for our team. Engineered for a purpose.</span></div></div>
+      </div>
+      <div class="purpose">ENGINEERED FOR A PURPOSE™</div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <button id="menuBtn" class="icon-button" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div class="top-brand"><img src="assets/chubby-gorilla-logo.png" alt="Chubby Gorilla"><div class="name">ATLAS</div><div class="sub">WAREHOUSE SKU FINDER</div></div>
+        <div id="status" class="live-pill">CONNECTING</div>
+      </header>
+
+      <div class="content">
+        <section id="homeView">
+          <div class="hero"><h1>Warehouse SKU Finder</h1><p>Find any SKU in seconds.</p></div>
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" class="search-box" autocomplete="off" placeholder="Search SKU…" aria-label="Search SKU">
+            <button id="clearSearch" class="clear-btn hidden" aria-label="Clear search">×</button>
+            <div id="suggestions" class="suggestions hidden"></div>
+          </div>
+          <div class="section-title"><h2>RECENT SEARCHES</h2><button id="clearRecent" type="button">Clear</button></div>
+          <div id="recentList" class="recent-list"></div>
+        </section>
+
+        <section id="browseView" class="hidden">
+          <div class="view-head"><h1>BROWSE AISLES</h1><p>Select an aisle to view its layout</p></div>
+          <div id="aisleGrid" class="aisle-grid"></div>
+        </section>
+
+        <section id="mapView" class="hidden">
+          <div class="back-row"><button id="mapBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Browse Aisles</button><span></span></div>
+          <div class="map-title"><h1 id="mapAisleTitle">AISLE 8</h1><span>WAREHOUSE LAYOUT</span></div>
+          <div class="level-note">ⓘ All levels (A1 – A4)</div>
+          <div id="fullMap"></div>
+        </section>
+
+        <section id="resultView" class="hidden">
+          <div class="back-row"><button id="resultBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Home</button><span></span></div>
+          <div id="resultContent"></div>
+        </section>
+      </div>
+
+      <nav class="bottom-nav" aria-label="Primary navigation">
+        <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span>Home</span></button>
+        <button class="nav-btn" data-view="browse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg><span>Browse Aisles</span></button>
+      </nav>
+    </main>
+  </div>
+</div>
+<div id="backdrop" class="drawer-backdrop"></div>
+<aside id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-head"><img src="assets/chubby-gorilla-logo.png" alt="Chubby Gorilla"><button id="closeDrawer" class="drawer-close" aria-label="Close menu">×</button></div>
+  <div class="drawer-nav">
+    <button class="drawer-link" data-drawer-view="home"><span>⌂ Home</span><b>›</b></button>
+    <button class="drawer-link" data-drawer-view="browse"><span>▦ Browse Aisles</span><b>›</b></button>
+    <button class="drawer-link" id="supervisorBtn"><span>▣ Supervisor Login</span><b>›</b></button>
+    <button class="drawer-link" id="aboutBtn"><span>ⓘ About Atlas</span><b>›</b></button>
+    <button class="drawer-link" id="databaseBtn"><span>▤ Database Status</span><b>›</b></button>
+  </div>
+  <div class="drawer-foot">ATLAS v2.0 Preview<br>Chubby Gorilla®</div>
+</aside>
+<script>
+'use strict';
+const SUPABASE_URL='https://dwrrbpiprcmajfyronlf.supabase.co';
+const SUPABASE_KEY='sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa';
+const headers={apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
+const $=id=>document.getElementById(id);
+let skuData=[],locationRows=[],selectedAisle=8;
+const views={home:$('homeView'),browse:$('browseView'),map:$('mapView'),result:$('resultView')};
+const normalize=v=>String(v??'').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function strictMatch(sku,q){return normalize(sku).includes(normalize(q));}
+async function fetchAll(table,select='*'){let all=[],offset=0;while(true){const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}&order=created_at.asc&limit=1000&offset=${offset}`,{headers});if(!r.ok)throw new Error(`${table} ${r.status}`);const p=await r.json();all=all.concat(p);if(p.length<1000)return all;offset+=1000;}}
+async function loadData(){try{const [skus,locs]=await Promise.all([fetchAll('skus','id,sku,description,active'),fetchAll('locations','id,sku_id,aisle,section,level_info,notes,verified')]);const byId=new Map(skus.filter(x=>x.active!==false).map(x=>[x.id,x]));locationRows=locs.filter(x=>byId.has(x.sku_id)).map(x=>({...x,sku:byId.get(x.sku_id).sku}));skuData=[...byId.values()].map(x=>({...x,locations:locationRows.filter(l=>l.sku_id===x.id).sort((a,b)=>Number(a.aisle)-Number(b.aisle)||String(a.section).localeCompare(String(b.section)))})).sort((a,b)=>a.sku.localeCompare(b.sku));$('status').textContent='LIVE';renderAisles();renderRecent();}catch(e){console.error(e);$('status').textContent='OFFLINE';$('status').classList.add('error');}}
+function showView(name){Object.entries(views).forEach(([k,v])=>v.classList.toggle('hidden',k!==name));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===name||(name==='map'&&b.dataset.view==='browse')||(name==='result'&&b.dataset.view==='home')));window.scrollTo({top:0,behavior:'smooth'});}
+function recentItems(){try{return JSON.parse(localStorage.getItem('atlasRecent')||'[]')}catch{return[]}}
+function saveRecent(sku){const now=Date.now();const next=[{sku,time:now},...recentItems().filter(x=>x.sku!==sku)].slice(0,6);localStorage.setItem('atlasRecent',JSON.stringify(next));renderRecent();}
+function relativeTime(ts){const d=Date.now()-ts,m=Math.floor(d/60000),h=Math.floor(m/60),days=Math.floor(h/24);if(m<1)return 'Just now';if(m<60)return `${m} min ago`;if(h<24)return `${h} hr${h===1?'':'s'} ago`;if(days===1)return 'Yesterday';return `${days} days ago`;}
+function renderRecent(){const list=recentItems();$('clearRecent').style.visibility=list.length?'visible':'hidden';$('recentList').innerHTML=list.length?list.map(x=>`<button class="recent-item" data-sku="${esc(x.sku)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span><div class="recent-sku">${esc(x.sku)}</div><div class="recent-time">${esc(relativeTime(x.time))}</div></span><b>›</b></button>`).join(''):'<div class="empty-recent">Your recent SKU searches will appear here.</div>';document.querySelectorAll('.recent-item').forEach(b=>b.addEventListener('click',()=>selectSku(b.dataset.sku)));}
+function showSuggestions(q){const box=$('suggestions');if(!normalize(q)){box.classList.add('hidden');return;}const matches=skuData.filter(x=>strictMatch(x.sku,q)).slice(0,10);box.innerHTML=matches.map(x=>`<div class="suggestion" data-sku="${esc(x.sku)}"><strong>${esc(x.sku)}</strong><span>${x.locations.length} location${x.locations.length===1?'':'s'}</span></div>`).join('');box.classList.toggle('hidden',!matches.length);box.querySelectorAll('.suggestion').forEach(s=>s.addEventListener('click',()=>selectSku(s.dataset.sku)));}
+function mapMarkup(active=''){return `<div class="aisle-map"><div class="map-stack"><div class="map-section ${active==='A'?'active':''}">A</div><div class="driveway main">MAIN FORKLIFT DRIVEWAY</div><div class="map-section ${active==='B'?'active':''}">B</div><div class="driveway">FORKLIFT DRIVEWAY 2</div><div class="map-section ${active==='C'?'active':''}">C</div><div class="driveway">FORKLIFT DRIVEWAY 3</div><div class="map-section ${active==='D'?'active':''}">D</div></div><div class="direction"><span>Front<br>of Aisle</span><div class="direction-line"></div><span>Back<br>of Aisle</span></div></div>`;}
+function selectSku(sku){const item=skuData.find(x=>x.sku===sku);if(!item)return;saveRecent(sku);$('searchInput').value=sku;$('suggestions').classList.add('hidden');$('clearSearch').classList.remove('hidden');renderResult(item);showView('result');}
+function renderResult(item){const locs=item.locations||[];if(!locs.length){$('resultContent').innerHTML=`<div class="no-result"><strong>${esc(item.sku)}</strong><br>No warehouse location is assigned.</div>`;return;}const primary=locs[0],active=String(primary.section||'').toUpperCase();$('resultContent').innerHTML=`<div class="result-shell"><div class="result-header"><h1>${esc(item.sku)}</h1><span>${locs.length} LOCATION${locs.length===1?'':'S'} FOUND</span></div><div class="result-body"><div class="location-list">${locs.map(l=>`<div class="location-row"><div class="loc-badge">${esc(l.aisle)}${esc(l.section)}</div><div><h3>Aisle ${esc(l.aisle)} · Section ${esc(l.section)} · ${esc(l.level_info||'All Levels')}</h3><p>${locationDescription(l.section)}</p><strong>${l.verified?'Verified location':'Location pending verification'}</strong></div></div>`).join('')}</div><div class="mini-map">${mapMarkup(active)}</div></div></div>`;}
+function locationDescription(section){return {A:'South of Main Forklift Driveway',B:'After Main Forklift Driveway',C:'After Forklift Driveway 2',D:'Back Section'}[String(section).toUpperCase()]||'Warehouse location';}
+function renderAisles(){const aisles=[...new Set(locationRows.map(x=>Number(x.aisle)).filter(Number.isFinite))].sort((a,b)=>a-b);$('aisleGrid').innerHTML=aisles.map(a=>`<button class="aisle-btn" data-aisle="${a}">${a}</button>`).join('');document.querySelectorAll('.aisle-btn').forEach(b=>b.addEventListener('click',()=>openAisle(Number(b.dataset.aisle))));}
+function openAisle(a){selectedAisle=a;$('mapAisleTitle').textContent=`AISLE ${a}`;$('fullMap').innerHTML=mapMarkup('');showView('map');}
+function openDrawer(){ $('drawer').classList.add('open');$('backdrop').classList.add('open');$('drawer').setAttribute('aria-hidden','false'); }
+function closeDrawer(){ $('drawer').classList.remove('open');$('backdrop').classList.remove('open');$('drawer').setAttribute('aria-hidden','true'); }
+$('searchInput').addEventListener('input',e=>{const q=e.target.value;$('clearSearch').classList.toggle('hidden',!q);showSuggestions(q)});
+$('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){const m=skuData.find(x=>strictMatch(x.sku,e.target.value));if(m)selectSku(m.sku)}});
+$('clearSearch').addEventListener('click',()=>{$('searchInput').value='';$('clearSearch').classList.add('hidden');$('suggestions').classList.add('hidden');$('searchInput').focus()});
+$('clearRecent').addEventListener('click',()=>{localStorage.removeItem('atlasRecent');renderRecent()});
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+$('mapBack').addEventListener('click',()=>showView('browse'));$('resultBack').addEventListener('click',()=>showView('home'));
+$('menuBtn').addEventListener('click',openDrawer);$('closeDrawer').addEventListener('click',closeDrawer);$('backdrop').addEventListener('click',closeDrawer);
+document.querySelectorAll('[data-drawer-view]').forEach(b=>b.addEventListener('click',()=>{showView(b.dataset.drawerView);closeDrawer()}));
+$('supervisorBtn').addEventListener('click',()=>alert('Supervisor tools are reserved for a future Atlas release.'));
+$('aboutBtn').addEventListener('click',()=>alert('ATLAS is a focused warehouse navigation tool designed to help pickers find every SKU quickly and confidently.'));
+$('databaseBtn').addEventListener('click',()=>alert(`Database status: ${$('status').textContent}\nSKUs loaded: ${skuData.length}\nLocations loaded: ${locationRows.length}`));
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))$('suggestions').classList.add('hidden')});
+loadData();
+</script>
+</body>
+</html>
