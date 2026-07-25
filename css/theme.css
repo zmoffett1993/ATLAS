@@ -1,0 +1,13 @@
+/* ATLAS Design System 1.0
+   Official design tokens and global foundations. */
+:root{
+  --brand-navy:#071b34;--brand-navy-2:#0b2948;--atlas-blue:#0d47a1;--atlas-blue-2:#125bd4;
+  --workspace:#f7f8fa;--surface:#ffffff;--nav:#eef1f5;--ink:#0f172a;--muted:#5f6b7a;
+  --line:#e2e7ed;--lane:#4b5563;--danger:#b42318;--success:#16794b;
+  --radius:18px;--shadow:0 8px 24px rgba(15,23,42,.08);--shadow-soft:0 3px 12px rgba(15,23,42,.07);
+}
+*{box-sizing:border-box}
+html{background:var(--workspace);scroll-behavior:smooth}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--workspace)}
+button,input{font:inherit}
+.hidden{display:none!important}
