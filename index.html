@@ -1,86 +1,135 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#06182b">
-  <meta name="description" content="ATLAS — Chubby Gorilla warehouse SKU finder and navigation tool.">
-  <title>ATLAS — Warehouse SKU Finder</title>
-  <link rel="stylesheet" href="css/atlas.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#163b5c">
+<meta name="description" content="ATLAS warehouse SKU location system for fast, accurate order picking.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ATLAS">
+<title>ATLAS · Warehouse Location System</title>
+<style>
+:root{--bg:#eef3f7;--panel:#fff;--ink:#102438;--muted:#607387;--brand:#163b5c;--brand2:#246c9d;--accent:#f3b33d;--green:#18864b;--red:#b42318;--line:#d8e1e8;--shadow:0 12px 30px rgba(20,45,70,.12)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}button,input{font:inherit}.app{min-height:100vh}.hidden{display:none!important}
+.topbar{background:linear-gradient(135deg,var(--brand),#0d2941);color:#fff;padding:18px 18px 22px;position:sticky;top:0;z-index:10;box-shadow:0 8px 20px rgba(0,0,0,.18)}.brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:980px;margin:auto}.brand{display:flex;align-items:center;gap:12px}.atlas-mark{width:46px;height:46px;border-radius:13px;background:#fff;color:var(--brand);display:grid;place-items:center;font-size:12px;font-weight:1000;letter-spacing:.8px;box-shadow:0 8px 20px rgba(0,0,0,.2)}.brand-copy h1{font-size:22px;margin:0;letter-spacing:.6px}.brand-copy p{margin:4px 0 0;color:#cfe3f4;font-size:13px}.status{border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900;background:#dce7ef;color:#24445f}.status.live{background:#d9f4e3;color:#126638}.status.error{background:#fee4e2;color:var(--red)}
+.search-wrap{max-width:980px;margin:16px auto 0;position:relative}.search{width:100%;border:0;border-radius:14px;padding:16px 48px 16px 16px;font-size:17px;outline:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4),0 5px 15px rgba(0,0,0,.15)}.clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:#e7eef4;color:#24445f;width:30px;height:30px;border-radius:50%;cursor:pointer;display:none}.suggestions{position:absolute;left:0;right:0;top:58px;background:#fff;color:var(--ink);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;max-height:310px;overflow-y:auto;display:none;z-index:20}.suggestion{padding:13px 15px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:800}.suggestion small{display:block;color:var(--muted);font-weight:500;margin-top:3px}.suggestion:hover{background:#edf6fc}
+.tabs{max-width:980px;margin:18px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px}.tab{border:0;background:#dce7ef;color:#24445f;padding:12px;border-radius:11px;font-weight:800;cursor:pointer}.tab.active{background:var(--brand2);color:#fff}main{max-width:980px;margin:auto;padding:16px 16px 36px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.stat{background:var(--panel);border-radius:14px;padding:14px;box-shadow:var(--shadow);text-align:center}.stat strong{display:block;font-size:22px;color:var(--brand)}.stat span{font-size:12px;color:var(--muted)}
+.empty{background:var(--panel);border:2px dashed #c6d4df;border-radius:18px;padding:38px 22px;text-align:center;color:var(--muted)}.empty .icon{font-size:36px;margin-bottom:8px}.result-card{background:var(--panel);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}.result-head{background:linear-gradient(135deg,#f7fafc,#e7f1f7);padding:18px;border-bottom:1px solid var(--line)}.result-head .sku{font-size:21px;font-weight:900;word-break:break-word}.result-head .count{color:var(--muted);font-size:13px;margin-top:5px}.location-card{padding:18px;display:grid;grid-template-columns:86px 1fr;gap:16px;align-items:center}.pin{width:82px;height:82px;border-radius:22px;background:var(--brand2);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 9px 20px rgba(36,108,157,.25)}.pin .star{font-size:22px;line-height:1}.pin .loc{font-size:25px;font-weight:900}.location-info h3{margin:0 0 5px;font-size:17px}.location-info p{margin:3px 0;color:var(--muted);font-size:14px}.coverage{display:inline-block;margin-top:7px;background:#e6f6ec;color:var(--green);font-weight:800;font-size:12px;border-radius:999px;padding:5px 9px}.notes{margin-top:8px;font-size:13px;color:var(--muted)}.overflow-title{padding:13px 18px;background:#f7f9fb;border-top:1px solid var(--line);font-weight:900}.overflow-list{padding:0 18px 18px}.overflow-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.overflow-item:last-child{border-bottom:0}.small-loc{background:#eaf2f8;color:var(--brand);font-weight:900;border-radius:9px;padding:7px 10px;white-space:nowrap}
+.aisle-tab-bar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}.aisle-select-tab{border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer;min-width:76px}.aisle-select-tab.active{background:var(--brand);border-color:var(--brand);color:#fff}.aisle-card{background:var(--panel);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}.aisle-title{background:var(--brand);color:#fff;padding:13px 15px;font-weight:900;display:flex;justify-content:space-between}.section{padding:12px 15px;border-bottom:1px solid var(--line)}.section:last-child{border-bottom:0}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.section-loc{font-size:18px;font-weight:900;color:var(--brand2)}.section-count{font-size:12px;color:var(--muted)}.sku-chip{display:block;width:100%;border:0;text-align:left;background:#f4f7f9;border-radius:8px;padding:9px 10px;margin:6px 0;font-size:12px;font-weight:750;word-break:break-word;cursor:pointer}.sku-chip:hover{background:#e7f1f7}
+.aisle-guide{padding:18px;border-top:1px solid var(--line);background:#fbfcfd}.aisle-guide-title{display:flex;justify-content:space-between;margin-bottom:12px}.aisle-diagram{max-width:360px;margin:0 auto}.aisle-section-marker{display:flex;align-items:center;justify-content:space-between;min-height:48px;border:2px solid #b9c9d6;background:#e9f2f7;border-radius:11px;padding:8px 12px;font-weight:900;color:#24445f}.aisle-section-marker.active{background:var(--brand2);border-color:var(--brand2);color:#fff;box-shadow:0 7px 16px rgba(36,108,157,.22)}.distance-label{display:block;font-size:11px;font-weight:600;opacity:.78}.map-star{font-size:21px;color:#ffd166}.drive-lane{display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.7px}.drive-lane:before,.drive-lane:after{content:"";height:3px;flex:1;background:repeating-linear-gradient(90deg,var(--muted) 0 12px,transparent 12px 18px);opacity:.55}.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
+@media(max-width:620px){.brand-copy h1{font-size:19px}.atlas-mark{width:42px;height:42px}.summary{grid-template-columns:repeat(3,1fr)}.stat{padding:10px 5px}.stat strong{font-size:18px}.location-card{grid-template-columns:74px 1fr}.pin{width:70px;height:70px}.pin .loc{font-size:22px}}
+</style>
 </head>
 <body>
 <div class="app">
-  <div class="shell">
-    <aside class="brand-rail">
-      <img class="company-logo" src="assets/chubby-gorilla-logo.png" alt="Chubby Gorilla">
-      <div class="atlas-word">ATLAS</div>
-      <div class="atlas-sub">WAREHOUSE SKU FINDER</div>
-      <div class="tagline">Find any SKU in seconds.</div>
-      <div class="brand-points">
-        <div class="brand-point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><div><strong>FAST</strong><span>Find SKUs in seconds with focused search.</span></div></div>
-        <div class="brand-point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6l5-2 8 3 5-2v13l-5 2-8-3-5 2z"/><path d="M8 4v13M16 7v13"/></svg><div><strong>ACCURATE</strong><span>Exact warehouse locations with clear navigation.</span></div></div>
-        <div class="brand-point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.3 8-8 9-4.7-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><div><strong>ENGINEERED</strong><span>Built for our team. Engineered for a purpose.</span></div></div>
-      </div>
-      <div class="purpose">ENGINEERED FOR A PURPOSE™</div>
-    </aside>
-
-    <main class="main-panel">
-      <header class="topbar">
-        <button id="menuBtn" class="icon-button" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-        <div class="top-brand"><img src="assets/chubby-gorilla-logo.png" alt="Chubby Gorilla"><div class="name">ATLAS</div><div class="sub">WAREHOUSE SKU FINDER</div></div>
-        <div id="status" class="live-pill">CONNECTING</div>
-      </header>
-
-      <div class="content">
-        <section id="homeView">
-          <div class="hero"><h1>Warehouse SKU Finder</h1><p>Find any SKU in seconds.</p></div>
-          <div class="search-wrap">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-            <input id="searchInput" class="search-box" autocomplete="off" placeholder="Search SKU…" aria-label="Search SKU">
-            <button id="clearSearch" class="clear-btn hidden" aria-label="Clear search">×</button>
-            <div id="suggestions" class="suggestions hidden"></div>
-          </div>
-          <div class="section-title"><h2>RECENT SEARCHES</h2><button id="clearRecent" type="button">Clear</button></div>
-          <div id="recentList" class="recent-list"></div>
-        </section>
-
-        <section id="browseView" class="hidden">
-          <div class="view-head"><h1>BROWSE AISLES</h1><p>Select an aisle to view its layout</p></div>
-          <div id="aisleGrid" class="aisle-grid"></div>
-        </section>
-
-        <section id="mapView" class="hidden">
-          <div class="back-row"><button id="mapBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Browse Aisles</button><span></span></div>
-          <div class="map-title"><h1 id="mapAisleTitle">AISLE 8</h1><span>WAREHOUSE LAYOUT</span></div>
-          <div class="level-note">ⓘ All levels (A1 – A4)</div>
-          <div id="fullMap"></div>
-        </section>
-
-        <section id="resultView" class="hidden">
-          <div class="back-row"><button id="resultBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Home</button><span></span></div>
-          <div id="resultContent"></div>
-        </section>
-      </div>
-
-      <nav class="bottom-nav" aria-label="Primary navigation">
-        <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span>Home</span></button>
-        <button class="nav-btn" data-view="browse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg><span>Browse Aisles</span></button>
-      </nav>
-    </main>
-  </div>
+<header class="topbar">
+  <div class="brand-row"><div class="brand"><div class="atlas-mark" aria-hidden="true">ATLAS</div><div class="brand-copy"><h1>ATLAS</h1><p>Warehouse Location System · Sprint 1 Foundation</p></div></div><div id="connectionStatus" class="status" role="status" aria-live="polite">CONNECTING…</div></div>
+  <div class="search-wrap"><input id="search" class="search" autocomplete="off" placeholder="Start typing a SKU…" aria-label="Search warehouse SKU" inputmode="search" spellcheck="false"><button id="clear" class="clear" type="button" aria-label="Clear search">×</button><div id="suggestions" class="suggestions"></div></div>
+</header>
+<div class="tabs"><button class="tab active" type="button" data-view="searchView" aria-controls="searchView">SKU Search</button><button class="tab" type="button" data-view="aisleView" aria-controls="aisleView">Browse Aisles</button></div>
+<main>
+  <div class="summary"><div class="stat"><strong id="skuCount">—</strong><span>Unique SKUs</span></div><div class="stat"><strong id="locationCount">—</strong><span>SKU Locations</span></div><div class="stat"><strong id="aisleCount">—</strong><span>Aisles Loaded</span></div></div>
+  <section id="searchView" aria-label="SKU search results"><div id="emptyState" class="empty"><div class="icon">🔎</div><strong>Search for a product SKU</strong><div>Results show every known warehouse location.</div></div><div id="results"></div></section>
+  <section id="aisleView" class="hidden" aria-label="Browse warehouse aisles"><div id="aisles"></div></section>
+  <div class="footer-note">ATLAS · Sprint 1 Foundation · Live Supabase database · Simplified A–D layout</div>
+</main>
 </div>
-<div id="backdrop" class="drawer-backdrop"></div>
-<aside id="drawer" class="drawer" aria-hidden="true">
-  <div class="drawer-head"><img src="assets/chubby-gorilla-logo.png" alt="Chubby Gorilla"><button id="closeDrawer" class="drawer-close" aria-label="Close menu">×</button></div>
-  <div class="drawer-nav">
-    <button class="drawer-link" data-drawer-view="home"><span>⌂ Home</span><b>›</b></button>
-    <button class="drawer-link" data-drawer-view="browse"><span>▦ Browse Aisles</span><b>›</b></button>
-    <button class="drawer-link" id="supervisorBtn"><span>▣ Supervisor Login</span><b>›</b></button>
-    <button class="drawer-link" id="aboutBtn"><span>ⓘ About Atlas</span><b>›</b></button>
-    <button class="drawer-link" id="databaseBtn"><span>▤ Database Status</span><b>›</b></button>
-  </div>
-  <div class="drawer-foot">ATLAS v2.0.0<br>Chubby Gorilla®</div>
-</aside>
-<script src="js/app.js" defer></script>
+<script>
+'use strict';
+const SUPABASE_URL='https://dwrrbpiprcmajfyronlf.supabase.co';
+const SUPABASE_KEY='sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa';
+const headers={apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
+let skuData=[];
+let locationRows=[];
+
+const $=id=>document.getElementById(id);
+const search=$('search'), clearBtn=$('clear'), suggestions=$('suggestions'), results=$('results'), emptyState=$('emptyState');
+const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const normalize=value=>String(value??'').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
+function strictSkuMatch(sku,query){const source=normalize(sku),q=normalize(query);if(!q)return false;let start=0;while(true){const index=source.indexOf(q,start);if(index===-1)return false;const before=index>0?source[index-1]:'';const after=index+q.length<source.length?source[index+q.length]:'';const validStart=!/^\d/.test(q)||!/[0-9]/.test(before);const validEnd=!/^\d+$/.test(q)||!/[0-9]/.test(after);if(validStart&&validEnd)return true;start=index+1;}}
+
+async function fetchAll(table,select='*'){
+  const pageSize=1000;let offset=0,all=[];
+  while(true){
+    const url=`${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}&order=created_at.asc&limit=${pageSize}&offset=${offset}`;
+    const response=await fetch(url,{headers});
+    if(!response.ok)throw new Error(`${table}: ${response.status} ${await response.text()}`);
+    const page=await response.json();all=all.concat(page);if(page.length<pageSize)return all;offset+=pageSize;
+  }
+}
+
+async function loadData(){
+  try{
+    $('connectionStatus').textContent='CONNECTING…';$('connectionStatus').className='status';
+    const [skus,locations]=await Promise.all([fetchAll('skus','id,sku,description,active'),fetchAll('locations','id,sku_id,aisle,section,level_info,notes,verified')]);
+    const skuById=new Map(skus.filter(s=>s.active!==false).map(s=>[s.id,s]));
+    locationRows=locations.filter(l=>skuById.has(l.sku_id)).map(l=>({...l,sku:skuById.get(l.sku_id).sku}));
+    skuData=[...skuById.values()].map(s=>({id:s.id,sku:s.sku,description:s.description||'',locations:locationRows.filter(l=>l.sku_id===s.id).sort((a,b)=>a.aisle-b.aisle||a.section.localeCompare(b.section))})).sort((a,b)=>a.sku.localeCompare(b.sku));
+    $('skuCount').textContent=skuData.length;
+    $('locationCount').textContent=locationRows.length;
+    $('aisleCount').textContent=new Set(locationRows.map(l=>l.aisle)).size;
+    $('connectionStatus').textContent='LIVE';$('connectionStatus').className='status live';
+    renderAisles();
+  }catch(error){
+    console.error(error);$('connectionStatus').textContent='CONNECTION ERROR';$('connectionStatus').className='status error';
+    emptyState.innerHTML=`<div class="icon">⚠️</div><strong>Could not load warehouse data</strong><div style="margin-top:8px">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function showSuggestions(query){
+  if(!normalize(query)){suggestions.style.display='none';suggestions.innerHTML='';return;}
+  const matches=skuData.filter(item=>strictSkuMatch(item.sku,query)).slice(0,12);
+  suggestions.innerHTML=matches.map(item=>`<div class="suggestion" data-sku="${escapeHtml(item.sku)}">${escapeHtml(item.sku)}<small>${item.locations.length} location${item.locations.length===1?'':'s'}${item.locations[0]?` · ${item.locations[0].aisle}${item.locations[0].section}`:''}</small></div>`).join('');
+  suggestions.style.display=matches.length?'block':'none';
+  suggestions.querySelectorAll('.suggestion').forEach(el=>el.addEventListener('click',()=>selectSku(el.dataset.sku)));
+}
+
+function isBackWall(section){return ['BACK WALL STORAGE','BACK WALL','BWS','REAR WALL STORAGE','REAR WALL','RWS'].includes(String(section??'').toUpperCase());}
+function locationLabel(location){return isBackWall(location.section)?'BACK WALL':`${location.aisle}${location.section}`;}
+function locationTitle(location){return isBackWall(location.section)?`Aisle ${location.aisle} · Back Wall Storage`:`Aisle ${location.aisle} · Section ${location.section}`;}
+function locationDescription(location){const labels={A:'South of Main Driveway',B:'North of Main Driveway',C:'After Forklift Driveway 2',D:'Back Section'};return isBackWall(location.section)?'':(labels[String(location.section??'').toUpperCase()]||'');}
+function buildAisleGuide(location){
+  const labels={A:'South of Main Driveway',B:'North of Main Driveway',C:'After Forklift Driveway 2',D:'Back Section'};
+  return `<div class="aisle-guide"><div class="aisle-guide-title"><strong>Aisle ${escapeHtml(location.aisle)} overview</strong><span>Section ${escapeHtml(location.section)}</span></div><div class="aisle-diagram">
+  ${['A','B','C','D'].map((letter,index)=>`${index?`<div class="drive-lane">${index===1?'MAIN FORKLIFT DRIVEWAY':`FORKLIFT DRIVEWAY ${index}`}</div>`:''}<div class="aisle-section-marker ${letter===location.section?'active':''}"><div><span>SECTION ${letter}</span><span class="distance-label">${labels[letter]}</span></div>${letter===location.section?'<span class="map-star">★</span>':''}</div>`).join('')}
+  <div class="drive-lane">FORKLIFT DRIVEWAY 4</div>
+  <div class="aisle-section-marker ${isBackWall(location.section)?'active':''}"><div><span>BACK WALL STORAGE</span></div>${isBackWall(location.section)?'<span class="map-star">★</span>':''}</div>
+  </div></div>`;
+}
+
+function renderResult(item){
+  if(!item){emptyState.classList.remove('hidden');results.innerHTML='';return;}
+  emptyState.classList.add('hidden');
+  if(!item.locations.length){results.innerHTML=`<article class="result-card"><div class="result-head"><div class="sku">${escapeHtml(item.sku)}</div><div class="count">SKU found, but no location is assigned.</div></div></article>`;return;}
+  const [primary,...overflow]=item.locations;
+  results.innerHTML=`<article class="result-card"><div class="result-head"><div class="sku">${escapeHtml(item.sku)}</div><div class="count">${item.locations.length} warehouse location${item.locations.length===1?'':'s'} found</div></div>
+  <div class="location-card"><div class="pin"><span class="star">★</span><span class="loc">${escapeHtml(locationLabel(primary))}</span></div><div class="location-info"><h3>${escapeHtml(locationTitle(primary))}</h3><p>${escapeHtml(locationDescription(primary))}</p><p>${escapeHtml(primary.verified?'Verified location':'Needs verification')}</p><span class="coverage">${escapeHtml(primary.level_info||'Multiple Levels')}</span>${primary.notes?`<div class="notes">${escapeHtml(primary.notes)}</div>`:''}</div></div>
+  ${buildAisleGuide(primary)}
+  ${overflow.length?`<div class="overflow-title">Additional locations</div><div class="overflow-list">${overflow.map(loc=>`<div class="overflow-item"><div><strong>${escapeHtml(locationTitle(loc))}</strong><div class="notes">${escapeHtml(loc.level_info||'Multiple Levels')}</div></div><span class="small-loc">${escapeHtml(locationLabel(loc))}</span></div>`).join('')}</div>`:''}</article>`;
+}
+
+function selectSku(sku){const item=skuData.find(x=>x.sku===sku);if(!item)return;search.value=sku;clearBtn.style.display='block';suggestions.style.display='none';renderResult(item);document.querySelector('[data-view="searchView"]').click();window.scrollTo({top:0,behavior:'smooth'});}
+function runSearch(){const q=search.value;clearBtn.style.display=q?'block':'none';showSuggestions(q);const exact=skuData.find(x=>normalize(x.sku)===normalize(q));if(exact)renderResult(exact);else if(!q)renderResult(null);}
+
+function renderAisles(){
+  const aisleNumbers=[...new Set(locationRows.map(l=>Number(l.aisle)))].sort((a,b)=>a-b);
+  const container=$('aisles');
+  if(!aisleNumbers.length){container.innerHTML='<div class="empty">No locations loaded.</div>';return;}
+  container.innerHTML=`<div class="aisle-tab-bar">${aisleNumbers.map((a,i)=>`<button class="aisle-select-tab ${i===0?'active':''}" data-aisle="${a}">Aisle ${a}</button>`).join('')}</div><div id="aisleContent"></div>`;
+  const showAisle=aisle=>{
+    container.querySelectorAll('.aisle-select-tab').forEach(b=>b.classList.toggle('active',Number(b.dataset.aisle)===aisle));
+    const bySection={A:[],B:[],C:[],D:[]};locationRows.filter(l=>Number(l.aisle)===aisle).forEach(l=>bySection[l.section]?.push(l));
+    $('aisleContent').innerHTML=`<div class="aisle-card"><div class="aisle-title"><span>AISLE ${aisle}</span><span>Sections A–D</span></div>${['A','B','C','D'].map(section=>{const rows=bySection[section].sort((a,b)=>a.sku.localeCompare(b.sku));return `<div class="section"><div class="section-head"><span class="section-loc">Section ${section}</span><span class="section-count">${rows.length} SKU${rows.length===1?'':'s'}</span></div>${rows.length?rows.map(r=>`<button class="sku-chip" data-sku="${escapeHtml(r.sku)}">${escapeHtml(r.sku)}</button>`).join(''):'<div class="notes">No SKUs assigned</div>'}</div>`}).join('')}</div>`;
+    $('aisleContent').querySelectorAll('.sku-chip').forEach(btn=>btn.addEventListener('click',()=>selectSku(btn.dataset.sku)));
+  };
+  container.querySelectorAll('.aisle-select-tab').forEach(btn=>btn.addEventListener('click',()=>showAisle(Number(btn.dataset.aisle))));showAisle(aisleNumbers[0]);
+}
+
+search.addEventListener('input',runSearch);
+search.addEventListener('focus',()=>{if(search.value)showSuggestions(search.value);});search.addEventListener('keydown',event=>{if(event.key==='Enter'){const first=skuData.find(x=>strictSkuMatch(x.sku,search.value));if(first)selectSku(first.sku);}});clearBtn.addEventListener('click',()=>{search.value='';clearBtn.style.display='none';suggestions.style.display='none';renderResult(null);search.focus();});document.addEventListener('click',event=>{if(!event.target.closest('.search-wrap'))suggestions.style.display='none';});
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');['searchView','aisleView'].forEach(id=>$(id).classList.toggle('hidden',id!==tab.dataset.view));}));
+loadData();
+</script>
 </body>
 </html>
