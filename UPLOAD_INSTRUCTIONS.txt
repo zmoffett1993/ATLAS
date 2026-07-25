@@ -1,0 +1,18 @@
+ATLAS SPRINT 1 UPLOAD INSTRUCTIONS
+
+1. Unzip this package on your computer.
+2. Open the unzipped ATLAS_Sprint_1_Design_System folder.
+3. In GitHub, open the ATLAS repository.
+4. Choose Add file > Upload files.
+5. Drag EVERYTHING inside this folder into the upload area at the same time.
+   This includes the assets, css, docs, and js folders.
+6. GitHub should show paths such as:
+   assets/chubby-gorilla-logo.png
+   css/atlas.css
+   js/app.js
+   docs/ATLAS_DESIGN_SYSTEM.md
+7. Commit with:
+   ATLAS v2.0.1 — Sprint 1 Design System
+8. After deployment, hard refresh the live site with Ctrl + Shift + R.
+
+Do not delete index.html. The new index.html replaces the existing one during upload.
