@@ -1,0 +1,36 @@
+# ATLAS
+
+**Warehouse SKU Finder**
+
+ATLAS is a focused internal warehouse navigation tool designed to help employees locate SKUs quickly, accurately, and confidently.
+
+## Foundation release: v2.0.0
+
+- Premium Chubby Gorilla-aligned interface
+- Live Supabase SKU search and autocomplete
+- Timestamped recent searches stored on the device
+- Browse Aisles grid
+- Simplified A–D aisle maps
+- Home and Browse Aisles bottom navigation
+- Supervisor access reserved inside the menu
+- Responsive phone, tablet, and desktop layout
+
+## Project structure
+
+```text
+index.html
+assets/
+  chubby-gorilla-logo.png
+css/
+  atlas.css
+js/
+  app.js
+```
+
+## GitHub Pages
+
+In the repository, open **Settings → Pages**, select **Deploy from a branch**, choose the `main` branch and `/ (root)`, then save.
+
+## Product principle
+
+Every feature must make a picker faster, more accurate, or more confident.
