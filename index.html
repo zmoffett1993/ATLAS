@@ -932,6 +932,195 @@ body.atlas-overlay-open{overflow:hidden}
     border-radius:24px
   }
 }
+
+/* July 29, 2026 — approved white-and-blue ATLAS navigation */
+.premium-drawer-backdrop{
+  background:rgba(8,24,47,.50);
+  backdrop-filter:blur(3px)
+}
+.premium-drawer{
+  width:min(94vw,430px);
+  color:#071a3b;
+  background:
+    linear-gradient(145deg,transparent 69%,rgba(10,91,214,.035) 69.2%,transparent 69.5%),
+    linear-gradient(35deg,transparent 78%,rgba(10,91,214,.035) 78.2%,transparent 78.5%),
+    #f8fbff;
+  border-right:1px solid #dbe6f1;
+  padding:0 0 0 50px;
+  box-shadow:24px 0 70px rgba(3,25,60,.28);
+  overflow:hidden
+}
+.premium-drawer:before{
+  content:"";
+  width:50px;
+  background:linear-gradient(180deg,#0874ff,#0563e9);
+  position:absolute;
+  inset:0 auto 0 0;
+  box-shadow:5px 0 16px rgba(0,91,214,.20)
+}
+.premium-drawer-rail-mark{
+  width:34px;
+  height:44px;
+  color:#fff;
+  position:absolute;
+  z-index:2;
+  top:31px;
+  left:8px
+}
+.premium-drawer-rail-mark svg{width:100%;height:100%;display:block}
+.premium-drawer-head{
+  min-height:116px;
+  color:#071a3b;
+  background:rgba(255,255,255,.94);
+  border:0;
+  border-bottom:1px solid #dce6f0;
+  border-radius:0;
+  align-items:center;
+  gap:14px;
+  padding:18px 22px;
+  margin:0;
+  box-shadow:0 5px 16px rgba(4,35,77,.06)
+}
+.premium-drawer-brand{
+  width:min(100%,310px);
+  height:78px;
+  display:flex;
+  align-items:center
+}
+.premium-drawer-brand svg{
+  width:100%;
+  height:auto;
+  overflow:visible;
+  display:block
+}
+.premium-drawer-logo{display:none}
+.premium-drawer-close{
+  width:43px;
+  height:43px;
+  color:#fff;
+  background:#071b40;
+  border-radius:50%;
+  flex:0 0 auto;
+  font-size:27px;
+  font-weight:300;
+  box-shadow:0 7px 18px rgba(3,25,60,.20)
+}
+.premium-drawer-close:hover{background:#0a63e8}
+.premium-drawer-label{
+  color:#66758b;
+  letter-spacing:.25em;
+  padding:48px 26px 15px;
+  font-size:11px;
+  font-weight:900
+}
+.premium-drawer-nav{
+  gap:15px;
+  padding:0 22px;
+  display:grid
+}
+.premium-drawer-link{
+  width:100%;
+  min-height:82px;
+  color:#071a3b;
+  background:rgba(255,255,255,.93);
+  border:1px solid #d5e0ec;
+  border-radius:14px;
+  grid-template-columns:56px 1fr 22px;
+  gap:13px;
+  padding:12px 17px;
+  font-size:18px;
+  font-weight:750;
+  box-shadow:0 9px 22px rgba(4,35,77,.09);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease
+}
+.premium-drawer-link:hover{
+  color:#071a3b;
+  border-color:#9dc4f4;
+  transform:translateY(-1px);
+  box-shadow:0 12px 25px rgba(4,35,77,.13)
+}
+.premium-drawer-link:first-child{
+  color:#fff;
+  background:linear-gradient(120deg,#062b5d,#001a3d);
+  border-color:#062b5d;
+  border-left:5px solid #0874ff;
+  padding-left:13px;
+  box-shadow:0 13px 27px rgba(0,30,72,.22)
+}
+.premium-drawer-link>svg{
+  width:46px;
+  height:46px;
+  color:#09234a;
+  background:#edf5ff;
+  border:1px solid #d9e9fb;
+  border-radius:11px;
+  padding:10px;
+  stroke:currentColor;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9)
+}
+.premium-drawer-link:first-child>svg{
+  color:#fff;
+  background:linear-gradient(145deg,#1d5d9f,#0c3b72);
+  border-color:rgba(255,255,255,.10)
+}
+.premium-drawer-link svg .nav-panel,
+.premium-drawer-link svg .nav-panel-accent{
+  fill:transparent;
+  stroke:currentColor
+}
+.premium-drawer-link svg .nav-box-fill,
+.premium-drawer-link svg .nav-box-tape{
+  fill:transparent;
+  stroke:currentColor
+}
+.premium-drawer-link .drawer-chevron{
+  color:#0874ff;
+  font-size:30px;
+  font-weight:400
+}
+.premium-drawer-footer{
+  color:#68778d;
+  text-align:center;
+  padding:0 18px 25px;
+  font-size:11px;
+  line-height:1.7;
+  position:absolute;
+  right:0;
+  bottom:calc(12px + env(safe-area-inset-bottom));
+  left:50px
+}
+.premium-drawer-footer strong{
+  color:#071a3b;
+  letter-spacing:.02em;
+  font-size:12px
+}
+.premium-drawer-footer span{display:block}
+@media(max-height:720px){
+  .premium-drawer-label{padding-top:24px}
+  .premium-drawer-nav{gap:10px}
+  .premium-drawer-link{min-height:68px}
+  .premium-drawer-footer{position:static;margin-top:20px}
+  .premium-drawer{overflow-y:auto}
+}
+@media(max-width:430px){
+  .premium-drawer{padding-left:42px}
+  .premium-drawer:before{width:42px}
+  .premium-drawer-rail-mark{width:29px;left:6px}
+  .premium-drawer-head{min-height:101px;padding:14px 14px}
+  .premium-drawer-brand{height:68px}
+  .premium-drawer-close{width:39px;height:39px}
+  .premium-drawer-label{padding:35px 17px 13px}
+  .premium-drawer-nav{gap:12px;padding:0 15px}
+  .premium-drawer-link{
+    min-height:74px;
+    grid-template-columns:49px 1fr 18px;
+    padding:10px 13px;
+    font-size:16px
+  }
+  .premium-drawer-link:first-child{padding-left:9px}
+  .premium-drawer-link>svg{width:43px;height:43px}
+  .premium-drawer-footer{left:42px}
+}
 </style>
 <script type="module">
 const premiumIcon = {
@@ -1246,7 +1435,7 @@ const openCorrectLocation = async ({sku,clickedLocationCode}) => {
 const ensureUpdatedAtlasBranding = () => {
   const image=document.querySelector('.atlas-logo-window img');
   if(!image||image.dataset.atlasWarehouseManagement==='true')return;
-  image.src='./assets/atlas-warehouse-management.png';
+  image.src='./atlas-warehouse-management.png';
   image.alt='ATLAS Warehouse Management — Find, Manage, Deliver';
   image.dataset.atlasWarehouseManagement='true';
 };
@@ -1269,17 +1458,40 @@ const ensurePremiumChrome = () => {
   backdrop.className='premium-drawer-backdrop';
   backdrop.innerHTML=`
     <aside class="premium-drawer" aria-label="ATLAS menu">
+      <div class="premium-drawer-rail-mark" aria-hidden="true">
+        <svg viewBox="0 0 44 54"><path fill="currentColor" d="M2 50 19 7h12L14 50H2Zm21-17L32 10l10 40H30l-5-17h-2Z"/><path fill="#9ed0ff" d="m20 50 6-14 6 14H20Z"/></svg>
+      </div>
       <div class="premium-drawer-head">
-        <div class="premium-drawer-logo" role="img" aria-label="Chubby Gorilla"></div>
+        <div class="premium-drawer-brand" role="img" aria-label="ATLAS Warehouse Management">
+          <svg viewBox="0 0 390 94" aria-hidden="true">
+            <g transform="translate(1 10)">
+              <path fill="#071a3b" d="M0 69 27 4h18L18 69H0Zm36-49L48 4l25 65H54L42 37 30 69H19l17-49Z"/>
+              <path fill="#0874ff" d="m28 69 11-25 10 25H28Z"/>
+            </g>
+            <g fill="#071a3b" transform="translate(82 18) scale(.46)">
+              <g transform="translate(16 0) skewX(-8)">
+                <path fill-rule="evenodd" d="M0 110 39 10h36l39 100H82l-8-22H34l-7 22H0Zm46-46h21L56 34 46 64Z"/>
+                <path d="M119 10h116l-7 28h-37l-13 72h-33l13-72h-46l7-28Z"/>
+                <path d="M247 10h33v72h70l-7 28h-96V10Z"/>
+                <path fill-rule="evenodd" d="M359 110 398 10h36l39 100h-32l-8-22h-40l-7 22h-27Zm46-46h21l-11-30-10 30Z"/>
+                <path d="M492 10h112l-7 27h-71c-7 0-11 2-12 7-1 5 3 7 11 7h41c24 0 35 10 31 30-4 20-21 29-50 29h-91l8-28h84c9 0 14-2 15-7 1-5-3-7-12-7h-39c-24 0-35-10-31-30 4-19 20-28 48-28h-37Z"/>
+              </g>
+            </g>
+            <line x1="87" y1="82" x2="117" y2="82" stroke="#0874ff" stroke-width="2"/>
+            <text x="126" y="86" fill="#071a3b" font-size="10" font-family="Arial,sans-serif" font-weight="800" letter-spacing="2.1">WAREHOUSE MANAGEMENT</text>
+            <line x1="352" y1="82" x2="382" y2="82" stroke="#0874ff" stroke-width="2"/>
+          </svg>
+        </div>
         <button class="premium-drawer-close" type="button" aria-label="Close menu">×</button>
       </div>
+      <div class="premium-drawer-label">NAVIGATION</div>
       <nav class="premium-drawer-nav">
         <button class="premium-drawer-link" type="button" data-nav="Home">${premiumIcon.home}<span>Home</span><span class="drawer-chevron">›</span></button>
         <button class="premium-drawer-link" type="button" data-nav="Browse Aisles">${premiumIcon.grid}<span>Browse Aisles</span><span class="drawer-chevron">›</span></button>
         <button class="premium-drawer-link" type="button" data-nav="Inventory">${premiumIcon.inventory}<span>Inventory</span><span class="drawer-chevron">›</span></button>
         <button class="premium-drawer-link" type="button" data-action="about">${premiumIcon.info}<span>About ATLAS</span><span class="drawer-chevron">›</span></button>
       </nav>
-      <div class="premium-drawer-footer">ATLAS v2.1.0 · PWA<br>© 2026 Chubby Gorilla, Inc.</div>
+      <div class="premium-drawer-footer"><strong>ATLAS v2.1.0</strong><span>Warehouse Management System</span><span>© 2026 Chubby Gorilla, Inc.</span></div>
     </aside>`;
   document.body.appendChild(backdrop);
   const close=()=>backdrop.classList.remove('open');
