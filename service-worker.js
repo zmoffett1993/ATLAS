@@ -1,4 +1,4 @@
-const VERSION = 'atlas-pwa-v5';
+const VERSION = 'atlas-pwa-v6';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -10,6 +10,7 @@ const APP_SHELL = [
   './atlas-512.png',
   './atlas-maskable-512.png',
   './apple-touch-icon.png',
+  './favicon-32.png',
   './atlas-warehouse-management.png'
 ];
 
