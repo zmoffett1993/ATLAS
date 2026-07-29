@@ -1,4 +1,4 @@
-const VERSION = 'atlas-pwa-v1';
+const VERSION = 'atlas-pwa-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,10 +6,10 @@ const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icons/atlas-192.png',
-  './icons/atlas-512.png',
-  './icons/atlas-maskable-512.png',
-  './icons/apple-touch-icon.png'
+  './atlas-192.png',
+  './atlas-512.png',
+  './atlas-maskable-512.png',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
@@ -87,3 +87,4 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
