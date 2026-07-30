@@ -21642,19 +21642,6 @@ Error generating stack: ` +
         width: 20px;
         top: 8px;
       }
-      .premium-menu-button.menu-open span {
-        background: transparent;
-      }
-      .premium-menu-button.menu-open span:before {
-        width: 25px;
-        top: 0;
-        transform: rotate(45deg);
-      }
-      .premium-menu-button.menu-open span:after {
-        width: 25px;
-        top: 0;
-        transform: rotate(-45deg);
-      }
       @media (prefers-reduced-motion: reduce) {
         .premium-menu-button,
         .premium-menu-button span,
@@ -22266,9 +22253,7 @@ Error generating stack: ` +
               ".premium-drawer-backdrop",
             );
             drawerBackdrop?.classList.add("open");
-            button.classList.add("menu-open");
             button.setAttribute("aria-expanded", "true");
-            button.setAttribute("aria-label", "Close ATLAS menu");
           });
           top.prepend(button);
         }
@@ -22328,7 +22313,6 @@ Error generating stack: ` +
         const launcher = document.querySelector(".premium-menu-button");
         const close = () => {
           backdrop.classList.remove("open");
-          launcher?.classList.remove("menu-open");
           launcher?.setAttribute("aria-expanded", "false");
           launcher?.setAttribute("aria-label", "Open ATLAS menu");
         };

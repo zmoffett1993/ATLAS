@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v12-refined-menu-button";
+const VERSION = "atlas-pwa-v13-static-hamburger";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
