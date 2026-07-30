@@ -21726,6 +21726,27 @@ Error generating stack: ` +
       .premium-drawer-head .premium-drawer-brand svg {
         display: none;
       }
+      /* Stable Chubby Gorilla lockup for the home-screen header. */
+      .brand-top .cg-lockup {
+        width: 202px;
+        height: 53px;
+        flex: none;
+        display: block;
+        background-color: transparent;
+        background-image: url("./chubby-gorilla-header-v2.png");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+        opacity: 1;
+        filter: none;
+        mix-blend-mode: normal;
+      }
+      @media (max-width: 430px) {
+        .brand-top .cg-lockup {
+          width: 166px;
+          height: 46px;
+        }
+      }
     </style>
     <script type="module">
       const premiumIcon = {
