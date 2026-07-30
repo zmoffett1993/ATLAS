@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v18-stable-header-branding";
+const VERSION = "atlas-pwa-v19-about-gorilla-restore";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -16,6 +16,7 @@ const APP_SHELL = [
   "./atlas-home-lockup-v3.png",
   "./atlas-command-center-menu.jpeg",
   "./chubby-gorilla-black.jpeg",
+  "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-lockup.png",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",
