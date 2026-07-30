@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v7-command-center-glitch-fixes";
+const VERSION = "atlas-pwa-v8-exact-command-center-menu";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -12,6 +12,7 @@ const APP_SHELL = [
   "./apple-touch-icon.png",
   "./favicon-32.png",
   "./atlas-warehouse-management.png",
+  "./atlas-command-center-menu.jpeg",
 ];
 
 self.addEventListener("install", (event) => {

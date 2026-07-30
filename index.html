@@ -21017,6 +21017,152 @@ Error generating stack: ` +
           margin: 27px 24px 0;
         }
       }
+
+      /* Exact approved-menu proportions and approved warehouse header artwork. */
+      .premium-drawer-head {
+        width: 100%;
+        min-height: 0;
+        height: auto;
+        aspect-ratio: 711 / 484;
+        padding: 0;
+        background: #001532;
+        border: 0;
+        box-shadow: none;
+        filter: none;
+        clip-path: none;
+        overflow: hidden;
+      }
+      .premium-drawer-head:before,
+      .premium-drawer-head:after {
+        display: none;
+      }
+      .premium-drawer-reference-head {
+        width: 100%;
+        max-width: none;
+        height: auto;
+        display: block;
+        position: absolute;
+        z-index: 1;
+        top: 0;
+        left: 0;
+        transform: translateY(-7.1615%);
+        pointer-events: none;
+        user-select: none;
+      }
+      .premium-drawer-brand,
+      .premium-drawer-hero-copy {
+        display: none;
+      }
+      .premium-drawer-close {
+        width: clamp(34px, 8.6vw, 41px);
+        height: clamp(34px, 8.6vw, 41px);
+        color: transparent;
+        background: transparent;
+        border: 0;
+        border-radius: 50%;
+        box-shadow: none;
+        top: clamp(6px, 1.55vw, 8px);
+        right: clamp(17px, 4.2vw, 20px);
+        z-index: 3;
+      }
+      .premium-drawer-close:hover {
+        color: transparent;
+        background: rgba(8, 116, 255, 0.08);
+      }
+      .premium-drawer-nav {
+        gap: clamp(11px, 2.8vw, 13px);
+        padding: clamp(30px, 7.7vw, 37px) 8.72% 0;
+      }
+      .premium-drawer-link,
+      .premium-drawer-link:first-child,
+      .premium-drawer-link:nth-child(3) {
+        min-height: clamp(76px, 19.4vw, 93px);
+        grid-template-columns:
+          clamp(50px, 13.2vw, 63px) 1fr
+          clamp(24px, 6.1vw, 29px);
+        gap: clamp(13px, 3.4vw, 16px);
+        padding: clamp(10px, 2.65vw, 13px) clamp(13px, 3.4vw, 16px);
+        border-radius: clamp(12px, 2.8vw, 14px);
+        font-size: clamp(17px, 4.35vw, 21px);
+      }
+      .premium-drawer-link:first-child {
+        padding-left: clamp(12px, 3.15vw, 15px);
+      }
+      .premium-drawer-link > svg,
+      .premium-drawer-link:first-child > svg {
+        width: clamp(50px, 13.2vw, 63px);
+        height: clamp(50px, 13.2vw, 63px);
+        padding: clamp(10px, 2.6vw, 12px);
+      }
+      .premium-drawer-link .drawer-chevron {
+        width: clamp(24px, 6.1vw, 29px);
+        height: clamp(24px, 6.1vw, 29px);
+        font-size: clamp(22px, 5.7vw, 27px);
+        line-height: 1;
+      }
+      .premium-drawer-status {
+        min-height: clamp(35px, 9vw, 43px);
+        margin: clamp(38px, 9.8vw, 47px) 8.72% 0;
+        padding: 7px clamp(12px, 3.4vw, 16px);
+        border-radius: clamp(12px, 2.8vw, 14px);
+        font-size: clamp(9px, 2.35vw, 11px);
+      }
+      .premium-drawer-footer {
+        padding: clamp(38px, 9.7vw, 47px) 20px
+          calc(25px + env(safe-area-inset-bottom));
+        font-size: clamp(10px, 2.5vw, 12px);
+      }
+      @media (max-height: 760px) {
+        .premium-drawer-head {
+          min-height: 0;
+          height: auto;
+          padding: 0;
+        }
+        .premium-drawer-close {
+          top: clamp(6px, 1.55vw, 8px);
+        }
+        .premium-drawer-nav {
+          padding-top: clamp(30px, 7.7vw, 37px);
+        }
+      }
+      @media (max-width: 430px) {
+        .premium-drawer-head {
+          min-height: 0;
+          height: auto;
+          padding: 0;
+        }
+        .premium-drawer-close {
+          width: clamp(34px, 8.6vw, 41px);
+          height: clamp(34px, 8.6vw, 41px);
+          top: clamp(6px, 1.55vw, 8px);
+          right: clamp(17px, 4.2vw, 20px);
+        }
+        .premium-drawer-nav {
+          gap: clamp(11px, 2.8vw, 13px);
+          padding: clamp(30px, 7.7vw, 37px) 8.72% 0;
+        }
+        .premium-drawer-link,
+        .premium-drawer-link:first-child,
+        .premium-drawer-link:nth-child(3) {
+          min-height: clamp(76px, 19.4vw, 93px);
+          grid-template-columns:
+            clamp(50px, 13.2vw, 63px) 1fr
+            clamp(24px, 6.1vw, 29px);
+          padding: clamp(10px, 2.65vw, 13px) clamp(13px, 3.4vw, 16px);
+          font-size: clamp(17px, 4.35vw, 21px);
+        }
+        .premium-drawer-link:first-child {
+          padding-left: clamp(12px, 3.15vw, 15px);
+        }
+        .premium-drawer-link > svg,
+        .premium-drawer-link:first-child > svg {
+          width: clamp(50px, 13.2vw, 63px);
+          height: clamp(50px, 13.2vw, 63px);
+        }
+        .premium-drawer-status {
+          margin: clamp(38px, 9.8vw, 47px) 8.72% 0;
+        }
+      }
     </style>
     <script type="module">
       const premiumIcon = {
@@ -21540,6 +21686,7 @@ Error generating stack: ` +
         <svg viewBox="0 0 44 54"><path fill="currentColor" d="M2 50 19 7h12L14 50H2Zm21-17L32 10l10 40H30l-5-17h-2Z"/><path fill="#9ed0ff" d="m20 50 6-14 6 14H20Z"/></svg>
       </div>
       <div class="premium-drawer-head">
+        <img class="premium-drawer-reference-head" src="./atlas-command-center-menu.jpeg" alt="" aria-hidden="true">
         <div class="premium-drawer-brand" role="img" aria-label="ATLAS Warehouse Management">
           <svg viewBox="0 0 390 94" aria-hidden="true">
             <g transform="translate(1 10)">
