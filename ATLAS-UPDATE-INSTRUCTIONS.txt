@@ -1,0 +1,67 @@
+ATLAS FINAL COMBINED UPDATE
+Command Center menu + three glitch fixes
+
+IMPORTANT
+Do both parts below. The GitHub upload updates the app, while the Supabase SQL
+fixes the warehouse data and installs the corrected location-saving function.
+
+PART 1 — RUN THE SUPABASE FIX
+
+1. Sign in to Supabase and open the ATLAS project.
+2. Open SQL Editor.
+3. Choose New query.
+4. Open ATLAS-SUPABASE-GLITCH-FIX.sql from this package.
+5. Copy the entire file into the SQL Editor.
+6. Click Run.
+7. The final verification result should show zero rows.
+
+If an earlier copy showed a locations_section_valid error, simply run the
+updated SQL file from the beginning. The failed transaction did not partially
+apply the previous changes.
+
+This step:
+- Converts Aisle 22 LEFT/MIDDLE/RIGHT records to Section A/B/C.
+- Replaces the old Aisle 22 section constraint with the A/B/C warehouse rule.
+- Installs correct_inventory_location without the ambiguous pick_first error.
+- Preserves Pick First when a bad duplicate location is removed.
+
+PART 2 — UPLOAD THE WEBSITE TO GITHUB
+
+1. Unzip ATLAS-FINAL-COMBINED-UPDATE.zip on your laptop.
+2. Open https://github.com/zmoffett1993/ATLAS
+3. Make sure the branch selector says main.
+4. Click Add file, then Upload files.
+5. Open the unzipped folder and drag these THREE files onto the GitHub upload
+   page:
+   - index.html
+   - service-worker.js
+   - atlas-command-center-menu.jpeg
+   Do not upload the ZIP itself.
+6. GitHub will show index.html and service-worker.js being replaced and the
+   approved menu artwork being added.
+7. Use this commit message:
+   Install Command Center menu and ATLAS glitch fixes
+8. Commit directly to the main branch.
+9. Wait about two minutes for GitHub Pages to redeploy.
+
+PART 3 — LOAD THE NEW VERSION
+
+1. Close every open ATLAS tab or installed ATLAS app window.
+2. Reopen ATLAS and refresh once.
+3. If the old menu still appears, delete the installed ATLAS shortcut/app and
+   add it to the Home Screen again. The service-worker version was changed so
+   the new files replace the old cached version.
+
+VERIFY
+
+- Menu: dark Command Center header and four full-width horizontal menu rows.
+- Aisle 22: Section A · Left, Section B · Middle, Section C · Right.
+- Product Is Missing: saving a correction succeeds without the pick_first error.
+- Camera search: test both a stacked pallet label and a one-line box label.
+
+FILES CHANGED
+
+- index.html
+- service-worker.js
+- atlas-command-center-menu.jpeg
+- ATLAS-SUPABASE-GLITCH-FIX.sql

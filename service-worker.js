@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v8-exact-command-center-menu";
+const VERSION = "atlas-pwa-v9-premium-about-page";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -13,6 +13,7 @@ const APP_SHELL = [
   "./favicon-32.png",
   "./atlas-warehouse-management.png",
   "./atlas-command-center-menu.jpeg",
+  "./chubby-gorilla-black.jpeg",
 ];
 
 self.addEventListener("install", (event) => {

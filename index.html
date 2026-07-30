@@ -19823,6 +19823,35 @@ Error generating stack: ` +
         padding: 22px 22px 20px;
         display: flex;
       }
+      .atlas-info-card {
+        max-height: min(92vh, 900px);
+        border-radius: 26px;
+        scrollbar-width: thin;
+        scrollbar-color: #bfd3ea transparent;
+      }
+      .atlas-info-head {
+        position: relative;
+        overflow: hidden;
+        padding: 24px 22px 23px;
+        background:
+          radial-gradient(circle at 88% 8%, rgba(15, 111, 255, 0.26), transparent 34%),
+          linear-gradient(135deg, #061a33 0%, #073872 58%, #0854b5 100%);
+      }
+      .atlas-info-brand {
+        display: grid;
+        grid-template-columns: 38px 1fr;
+        align-items: center;
+        column-gap: 11px;
+      }
+      .atlas-info-mark {
+        width: 36px;
+        height: 36px;
+        color: #3993ff;
+        display: block;
+      }
+      .atlas-info-brand-copy {
+        min-width: 0;
+      }
       .atlas-info-head span,
       .atlas-correction-head span {
         color: #79afff;
@@ -19837,6 +19866,19 @@ Error generating stack: ` +
         font-size: 25px;
         font-weight: 950;
       }
+      .atlas-info-head h2 {
+        grid-column: 1 / -1;
+        margin-top: 11px;
+        font-size: clamp(27px, 7vw, 35px);
+        letter-spacing: -0.025em;
+      }
+      .atlas-info-positioning {
+        grid-column: 1 / -1;
+        margin: 8px 0 0;
+        color: #d7e8ff;
+        font-size: 13px;
+        line-height: 1.45;
+      }
       .atlas-info-close,
       .atlas-correction-close {
         width: 39px;
@@ -19850,28 +19892,158 @@ Error generating stack: ` +
         line-height: 1;
       }
       .atlas-info-body {
-        padding: 24px 22px 26px;
+        padding: 24px 22px 25px;
       }
-      .atlas-info-body p {
+      .atlas-info-lead {
+        margin: 0;
+        color: #10243e;
+        font-size: clamp(18px, 4.7vw, 22px);
+        font-weight: 900;
+        line-height: 1.42;
+        letter-spacing: -0.02em;
+      }
+      .atlas-info-accent {
+        width: 42px;
+        height: 4px;
+        margin: 16px 0 19px;
+        background: #0b6ef3;
+        border-radius: 99px;
+      }
+      .atlas-capability-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+        margin-bottom: 22px;
+      }
+      .atlas-capability {
+        min-width: 0;
+        padding: 14px 8px 13px;
+        text-align: center;
+        background: linear-gradient(180deg, #ffffff, #f8fbff);
+        border: 1px solid #d5e2f0;
+        border-radius: 15px;
+      }
+      .atlas-capability svg {
+        width: 34px;
+        height: 34px;
+        margin: 0 auto 9px;
+        color: #0869ec;
+        stroke: currentColor;
+        display: block;
+      }
+      .atlas-capability strong {
+        min-height: 34px;
+        color: #10243e;
+        font-size: 12px;
+        line-height: 1.25;
+        display: grid;
+        place-items: center;
+      }
+      .atlas-capability p {
+        margin: 8px 0 0;
+        color: #52657b;
+        font-size: 10.5px;
+        line-height: 1.38;
+      }
+      .atlas-info-section {
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        gap: 13px;
+        padding: 20px 0;
+        border-top: 1px solid #e1e9f2;
+      }
+      .atlas-section-icon {
+        width: 42px;
+        height: 42px;
+        color: #164c8b;
+        background: #eaf4ff;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+      }
+      .atlas-section-icon svg {
+        width: 23px;
+        height: 23px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+      }
+      .atlas-info-section h3 {
+        margin: 0 0 7px;
+        color: #10243e;
+        font-size: 17px;
+        line-height: 1.25;
+      }
+      .atlas-info-section p {
+        margin: 0 0 10px;
+        color: #40536a;
+        font-size: 13px;
+        line-height: 1.58;
+      }
+      .atlas-info-section p:last-child {
+        margin-bottom: 0;
+      }
+      .atlas-info-closing {
+        display: grid;
+        grid-template-columns: 66px 1fr;
+        align-items: center;
+        gap: 13px;
+        padding: 16px 16px 15px;
+        background: linear-gradient(135deg, #f2f8ff, #eaf4ff);
+        border: 1px solid #cfe1f4;
+        border-radius: 17px;
+      }
+      .atlas-gorilla-logo {
+        width: 66px;
+        height: 66px;
+        object-fit: contain;
+        mix-blend-mode: multiply;
+        display: block;
+      }
+      .atlas-info-closing strong {
+        color: #10243e;
+        font-size: 14px;
+        line-height: 1.35;
+        display: block;
+      }
+      .atlas-info-signature {
+        grid-column: 2;
+        margin-top: -1px;
+        padding-top: 11px;
+        color: #0862df;
+        border-top: 1px solid #c7dbef;
+        letter-spacing: 0.13em;
+        font-size: 10px;
+        font-weight: 950;
+      }
+      .atlas-info-body > p {
         margin: 0 0 16px;
         color: #40536a;
         font-size: 15px;
         line-height: 1.72;
       }
-      .atlas-info-body p:last-of-type {
-        margin-bottom: 0;
-      }
       .atlas-info-body strong {
         color: #10243e;
       }
-      .atlas-info-signature {
-        color: #0862df;
-        border-top: 1px solid #e4ebf3;
-        margin-top: 22px;
-        padding-top: 18px;
-        letter-spacing: 0.14em;
-        font-size: 11px;
-        font-weight: 950;
+      @media (max-width: 390px) {
+        .atlas-info-backdrop {
+          padding: 10px;
+        }
+        .atlas-info-body {
+          padding: 20px 16px;
+        }
+        .atlas-capability-grid {
+          gap: 6px;
+        }
+        .atlas-capability {
+          padding: 12px 5px;
+        }
+        .atlas-capability strong {
+          font-size: 11px;
+        }
+        .atlas-capability p {
+          font-size: 9.5px;
+        }
       }
       .atlas-correction-page {
         width: min(100%, 620px);
@@ -21289,18 +21461,59 @@ Error generating stack: ` +
         modal.innerHTML = `
     <article class="atlas-info-card">
       <header class="atlas-info-head">
-        <div>
-          <span>WAREHOUSE MANAGEMENT</span>
+        <div class="atlas-info-brand">
+          <svg class="atlas-info-mark" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="currentColor" d="M24 3 3 43h12.1L24 25.9 32.9 43H45L24 3Z"/>
+            <path fill="#061a33" d="M24 17.1 10.4 43h8.4L24 33l5.2 10h8.4L24 17.1Z"/>
+          </svg>
+          <div class="atlas-info-brand-copy">
+            <span>WAREHOUSE MANAGEMENT</span>
+          </div>
           <h2 id="atlas-about-title">About ATLAS</h2>
+          <p class="atlas-info-positioning">Smarter location. Better inventory. Stronger operations.</p>
         </div>
         <button class="atlas-info-close" type="button" aria-label="Close About ATLAS">×</button>
       </header>
       <div class="atlas-info-body">
-        <p><strong>ATLAS is a streamlined warehouse SKU location and inventory management system built to make everyday warehouse operations faster, clearer, and more accurate.</strong></p>
-        <p>Designed specifically for the Chubby Gorilla warehouse team, ATLAS helps employees quickly locate products, browse warehouse aisles, and manage inventory locations through a simple, mobile-friendly interface.</p>
-        <p>By replacing guesswork and manual searching with clear, up-to-date location information, ATLAS helps reduce picking time, improve inventory accuracy, and keep warehouse operations organized.</p>
-        <p>Built with real warehouse workflows in mind, ATLAS is designed to remain practical, dependable, and easy to use as operational needs continue to grow.</p>
-        <div class="atlas-info-signature">FIND · MANAGE · DELIVER</div>
+        <p class="atlas-info-lead">ATLAS is a streamlined warehouse SKU location and inventory management system built to make everyday warehouse operations faster, clearer, and more accurate.</p>
+        <div class="atlas-info-accent" aria-hidden="true"></div>
+        <div class="atlas-capability-grid">
+          <article class="atlas-capability">
+            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="21" cy="21" r="13"/><path d="m31 31 11 11M15 17l6-3 6 3v8l-6 3-6-3v-8Zm0 0 6 3 6-3m-6 3v8"/></svg>
+            <strong>Faster Product Location</strong>
+            <p>Quickly find products and browse aisles.</p>
+          </article>
+          <article class="atlas-capability">
+            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M16 9h16v6H16zM12 12H8v30h32V12h-4M15 23l3 3 6-7m-9 15 3 3 6-7m4-7h7m-7 11h7"/></svg>
+            <strong>Accurate Inventory</strong>
+            <p>Keep inventory locations current and trusted.</p>
+          </article>
+          <article class="atlas-capability">
+            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="19" y="4" width="10" height="7" rx="2"/><rect x="4" y="37" width="10" height="7" rx="2"/><rect x="19" y="37" width="10" height="7" rx="2"/><rect x="34" y="37" width="10" height="7" rx="2"/><path d="M24 11v12M9 37v-8h30v8M24 23v14"/></svg>
+            <strong>Practical Workflows</strong>
+            <p>Simple, mobile-friendly tools for daily work.</p>
+          </article>
+        </div>
+        <section class="atlas-info-section">
+          <div class="atlas-section-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28V11l12-7 12 7v17H4Zm5 0V16h14v12M12 28v-7h8v7"/></svg></div>
+          <div>
+            <h3>Built for the Warehouse Floor</h3>
+            <p>Designed specifically for the Chubby Gorilla warehouse team, ATLAS helps employees quickly locate products, browse warehouse aisles, and manage inventory locations through a simple, mobile-friendly interface.</p>
+            <p>By replacing guesswork and manual searching with clear, up-to-date location information, ATLAS helps reduce picking time, improve inventory accuracy, and keep warehouse operations organized.</p>
+          </div>
+        </section>
+        <section class="atlas-info-section">
+          <div class="atlas-section-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 27h24M7 25v-7h5v7m4 0V13h5v12m4 0V8h4v17M5 14l7-6 5 3 10-8m-5 0h5v5"/></svg></div>
+          <div>
+            <h3>Designed to Grow</h3>
+            <p>Built with real warehouse workflows in mind, ATLAS is designed to remain practical, dependable, and easy to use as operational needs continue to grow.</p>
+          </div>
+        </section>
+        <div class="atlas-info-closing">
+          <img class="atlas-gorilla-logo" src="./chubby-gorilla-black.jpeg" alt="Chubby Gorilla">
+          <strong>Built specifically for the Chubby Gorilla warehouse team</strong>
+          <div class="atlas-info-signature">FIND · MANAGE · DELIVER</div>
+        </div>
       </div>
     </article>`;
         const close = () => {
