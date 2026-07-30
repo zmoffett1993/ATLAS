@@ -1,67 +1,261 @@
-ATLAS FINAL COMBINED UPDATE
-Command Center menu + three glitch fixes
+-- ATLAS combined glitch fix
+-- Run this entire file once in Supabase: SQL Editor -> New query -> Run.
+-- It is safe to run again.
 
-IMPORTANT
-Do both parts below. The GitHub upload updates the app, while the Supabase SQL
-fixes the warehouse data and installs the corrected location-saving function.
+begin;
 
-PART 1 — RUN THE SUPABASE FIX
+-- Replace the older rule that required Aisle 22 to store the literal words
+-- LEFT/MIDDLE/RIGHT. The new ATLAS standard stores A/B/C consistently.
+alter table public.locations
+drop constraint if exists locations_section_valid;
 
-1. Sign in to Supabase and open the ATLAS project.
-2. Open SQL Editor.
-3. Choose New query.
-4. Open ATLAS-SUPABASE-GLITCH-FIX.sql from this package.
-5. Copy the entire file into the SQL Editor.
-6. Click Run.
-7. The final verification result should show zero rows.
+-- Aisle 22 is the overflow floor location:
+-- Left = Section A, Middle = Section B, Right = Section C.
+update public.locations as location
+set
+  section = case upper(trim(location.section))
+    when 'LEFT' then 'A'
+    when 'MIDDLE' then 'B'
+    when 'RIGHT' then 'C'
+    else upper(trim(location.section))
+  end,
+  updated_at = now()
+where
+  location.aisle = 22
+  and upper(trim(location.section)) in ('LEFT', 'MIDDLE', 'RIGHT', 'A', 'B', 'C');
 
-If an earlier copy showed a locations_section_valid error, simply run the
-updated SQL file from the beginning. The failed transaction did not partially
-apply the previous changes.
+alter table public.locations
+add constraint locations_section_valid
+check (
+  case
+    when aisle between 1 and 9
+      then upper(trim(section)) in ('A', 'B', 'C', 'D')
+    when aisle between 10 and 19
+      then upper(trim(section)) in ('B', 'C', 'D')
+    when aisle in (20, 21)
+      then upper(trim(section)) in ('B', 'C')
+    when aisle = 22
+      then upper(trim(section)) in ('A', 'B', 'C')
+    else false
+  end
+);
 
-This step:
-- Converts Aisle 22 LEFT/MIDDLE/RIGHT records to Section A/B/C.
-- Replaces the old Aisle 22 section constraint with the A/B/C warehouse rule.
-- Installs correct_inventory_location without the ambiguous pick_first error.
-- Preserves Pick First when a bad duplicate location is removed.
+-- A dedicated correction function avoids the ambiguous pick_first reference in
+-- the previous database routine. Every column reference below is table-qualified.
+create or replace function public.correct_inventory_location(
+  p_source_location_id uuid,
+  p_destination_location_id uuid default null,
+  p_new_aisle integer default null,
+  p_new_section text default null,
+  p_employee_name text default null,
+  p_reason text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  source_location public.locations%rowtype;
+  destination_location public.locations%rowtype;
+  normalized_section text;
+begin
+  if nullif(trim(coalesce(p_employee_name, '')), '') is null then
+    raise exception 'Employee name or initials are required.';
+  end if;
 
-PART 2 — UPLOAD THE WEBSITE TO GITHUB
+  if nullif(trim(coalesce(p_reason, '')), '') is null then
+    raise exception 'A correction reason is required.';
+  end if;
 
-1. Unzip ATLAS-FINAL-COMBINED-UPDATE.zip on your laptop.
-2. Open https://github.com/zmoffett1993/ATLAS
-3. Make sure the branch selector says main.
-4. Click Add file, then Upload files.
-5. Open the unzipped folder and drag these THREE files onto the GitHub upload
-   page:
-   - index.html
-   - service-worker.js
-   - atlas-command-center-menu.jpeg
-   Do not upload the ZIP itself.
-6. GitHub will show index.html and service-worker.js being replaced and the
-   approved menu artwork being added.
-7. Use this commit message:
-   Install Command Center menu and ATLAS glitch fixes
-8. Commit directly to the main branch.
-9. Wait about two minutes for GitHub Pages to redeploy.
+  select location.*
+  into source_location
+  from public.locations as location
+  where location.id = p_source_location_id
+  for update;
 
-PART 3 — LOAD THE NEW VERSION
+  if not found then
+    raise exception 'The incorrect location no longer exists.';
+  end if;
 
-1. Close every open ATLAS tab or installed ATLAS app window.
-2. Reopen ATLAS and refresh once.
-3. If the old menu still appears, delete the installed ATLAS shortcut/app and
-   add it to the Home Screen again. The service-worker version was changed so
-   the new files replace the old cached version.
+  if not coalesce(source_location.is_active, false) then
+    raise exception 'The incorrect location is already inactive.';
+  end if;
 
-VERIFY
+  if p_destination_location_id is not null then
+    if p_destination_location_id = p_source_location_id then
+      raise exception 'The correct location must be different from the incorrect location.';
+    end if;
 
-- Menu: dark Command Center header and four full-width horizontal menu rows.
-- Aisle 22: Section A · Left, Section B · Middle, Section C · Right.
-- Product Is Missing: saving a correction succeeds without the pick_first error.
-- Camera search: test both a stacked pallet label and a one-line box label.
+    select location.*
+    into destination_location
+    from public.locations as location
+    where location.id = p_destination_location_id
+    for update;
 
-FILES CHANGED
+    if not found then
+      raise exception 'The selected correct location no longer exists.';
+    end if;
 
-- index.html
-- service-worker.js
-- atlas-command-center-menu.jpeg
-- ATLAS-SUPABASE-GLITCH-FIX.sql
+    if destination_location.sku_id <> source_location.sku_id then
+      raise exception 'The selected correct location belongs to a different SKU.';
+    end if;
+
+    if not coalesce(destination_location.is_active, false) then
+      raise exception 'The selected correct location is not active.';
+    end if;
+
+    update public.locations as location
+    set
+      is_active = false,
+      pick_first = false,
+      updated_at = now()
+    where location.id = source_location.id;
+
+    if coalesce(source_location.pick_first, false) then
+      update public.locations as location
+      set
+        pick_first = false,
+        updated_at = now()
+      where
+        location.sku_id = source_location.sku_id
+        and location.is_active = true;
+
+      update public.locations as location
+      set
+        pick_first = true,
+        updated_at = now()
+      where location.id = destination_location.id;
+    end if;
+
+    return jsonb_build_object(
+      'status', 'corrected',
+      'source_location_id', source_location.id,
+      'destination_location_id', destination_location.id,
+      'aisle', destination_location.aisle,
+      'section', destination_location.section
+    );
+  end if;
+
+  if p_new_aisle is null or p_new_section is null then
+    raise exception 'Choose an existing location or enter a new aisle and section.';
+  end if;
+
+  normalized_section := upper(trim(p_new_section));
+  if p_new_aisle = 22 then
+    normalized_section := case normalized_section
+      when 'LEFT' then 'A'
+      when 'MIDDLE' then 'B'
+      when 'RIGHT' then 'C'
+      else normalized_section
+    end;
+  end if;
+
+  if p_new_aisle < 1 or p_new_aisle > 22 then
+    raise exception 'Aisle must be between 1 and 22.';
+  end if;
+
+  if p_new_aisle = 22 and normalized_section not in ('A', 'B', 'C') then
+    raise exception 'Aisle 22 uses Section A (Left), B (Middle), or C (Right).';
+  elsif p_new_aisle in (20, 21) and normalized_section not in ('B', 'C') then
+    raise exception 'Aisles 20 and 21 use Sections B or C.';
+  elsif p_new_aisle between 10 and 19 and normalized_section not in ('B', 'C', 'D') then
+    raise exception 'This aisle uses Sections B, C, or D.';
+  elsif p_new_aisle between 1 and 9 and normalized_section not in ('A', 'B', 'C', 'D') then
+    raise exception 'This aisle uses Sections A, B, C, or D.';
+  end if;
+
+  -- If this SKU already has the requested destination, deactivate only the
+  -- incorrect duplicate and preserve/transfer Pick First safely.
+  select location.*
+  into destination_location
+  from public.locations as location
+  where
+    location.sku_id = source_location.sku_id
+    and location.is_active = true
+    and location.id <> source_location.id
+    and location.aisle = p_new_aisle
+    and upper(trim(location.section)) = normalized_section
+  order by location.created_at asc, location.id asc
+  limit 1
+  for update;
+
+  if found then
+    update public.locations as location
+    set
+      is_active = false,
+      pick_first = false,
+      updated_at = now()
+    where location.id = source_location.id;
+
+    if coalesce(source_location.pick_first, false) then
+      update public.locations as location
+      set
+        pick_first = false,
+        updated_at = now()
+      where
+        location.sku_id = source_location.sku_id
+        and location.is_active = true;
+
+      update public.locations as location
+      set
+        pick_first = true,
+        updated_at = now()
+      where location.id = destination_location.id;
+    end if;
+
+    return jsonb_build_object(
+      'status', 'corrected',
+      'source_location_id', source_location.id,
+      'destination_location_id', destination_location.id,
+      'aisle', destination_location.aisle,
+      'section', destination_location.section
+    );
+  end if;
+
+  update public.locations as location
+  set
+    aisle = p_new_aisle,
+    section = normalized_section,
+    updated_at = now()
+  where location.id = source_location.id;
+
+  return jsonb_build_object(
+    'status', 'moved',
+    'source_location_id', source_location.id,
+    'destination_location_id', source_location.id,
+    'aisle', p_new_aisle,
+    'section', normalized_section
+  );
+end;
+$function$;
+
+revoke all on function public.correct_inventory_location(
+  uuid,
+  uuid,
+  integer,
+  text,
+  text,
+  text
+) from public;
+
+grant execute on function public.correct_inventory_location(
+  uuid,
+  uuid,
+  integer,
+  text,
+  text,
+  text
+) to anon, authenticated;
+
+commit;
+
+-- Verification: this should return zero rows after the update.
+select
+  location.id,
+  location.aisle,
+  location.section
+from public.locations as location
+where
+  location.aisle = 22
+  and upper(trim(location.section)) not in ('A', 'B', 'C');
