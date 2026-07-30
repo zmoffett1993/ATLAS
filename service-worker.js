@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v13-static-hamburger";
+const VERSION = "atlas-pwa-v14-crisp-chubby-gorilla";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -14,6 +14,7 @@ const APP_SHELL = [
   "./atlas-warehouse-management.png",
   "./atlas-command-center-menu.jpeg",
   "./chubby-gorilla-black.jpeg",
+  "./chubby-gorilla-lockup.png",
   "./atlas-menu-brand-lockup.png",
 ];
 
