@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v16-complete-home-lockup";
+const VERSION = "atlas-pwa-v17-complete-menu-lockup";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -18,6 +18,7 @@ const APP_SHELL = [
   "./chubby-gorilla-black.jpeg",
   "./chubby-gorilla-lockup.png",
   "./atlas-menu-brand-lockup.png",
+  "./atlas-menu-lockup-v2.png",
 ];
 
 self.addEventListener("install", (event) => {

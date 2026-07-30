@@ -21707,6 +21707,25 @@ Error generating stack: ` +
           font-size: 8.8px;
         }
       }
+      /* Stable, full-width ATLAS lockup for the premium menu header. */
+      .premium-drawer-head .premium-drawer-brand {
+        width: min(270px, calc(100% - 58px));
+        max-width: 270px;
+        height: 68px;
+        aspect-ratio: auto;
+        margin: 28px 0 0;
+        background-color: transparent;
+        background-image: url("./atlas-menu-lockup-v2.png");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+        border: 0;
+        box-shadow: none;
+        filter: none;
+      }
+      .premium-drawer-head .premium-drawer-brand svg {
+        display: none;
+      }
     </style>
     <script type="module">
       const premiumIcon = {
