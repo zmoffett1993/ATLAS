@@ -21335,6 +21335,311 @@ Error generating stack: ` +
           margin: clamp(38px, 9.8vw, 47px) 8.72% 0;
         }
       }
+
+      /* July 30, 2026 — premium floating ATLAS navigation */
+      .premium-drawer-backdrop {
+        background: rgba(2, 12, 28, 0.58);
+        backdrop-filter: blur(2.5px);
+        transition: opacity 0.24s ease;
+      }
+      .premium-drawer {
+        width: min(84vw, 390px);
+        height: auto;
+        max-height: calc(100vh - 92px - env(safe-area-inset-top));
+        top: calc(72px + env(safe-area-inset-top));
+        left: 8px;
+        color: #071a3b;
+        background: #fbfdff;
+        border: 1px solid rgba(181, 199, 220, 0.9);
+        border-radius: 27px;
+        box-shadow:
+          22px 26px 64px rgba(0, 18, 47, 0.32),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        overflow-y: auto;
+        transform: translate3d(-24px, -8px, 0) scale(0.985);
+        transform-origin: top left;
+        opacity: 0;
+        transition:
+          transform 0.27s cubic-bezier(0.22, 0.9, 0.3, 1),
+          opacity 0.2s ease;
+      }
+      .premium-drawer-backdrop.open .premium-drawer {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 1;
+      }
+      .premium-drawer-head {
+        width: 100%;
+        height: 212px;
+        min-height: 212px;
+        aspect-ratio: auto;
+        color: #fff;
+        padding: 30px 25px 49px;
+        background:
+          linear-gradient(30deg, transparent 47.8%, rgba(25, 109, 226, 0.1) 48%, transparent 48.3%),
+          linear-gradient(150deg, transparent 47.8%, rgba(25, 109, 226, 0.08) 48%, transparent 48.3%),
+          radial-gradient(circle at 56% 100%, rgba(0, 106, 255, 0.55), transparent 42%),
+          linear-gradient(135deg, #03162f 0%, #052958 56%, #0756ba 100%);
+        clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
+        border-radius: 26px 26px 0 0;
+        overflow: hidden;
+        position: relative;
+        filter: drop-shadow(0 2px 0 #0780ff);
+      }
+      .premium-drawer-head:before {
+        content: "";
+        display: block;
+        width: 188px;
+        height: 188px;
+        right: 18px;
+        top: 8px;
+        opacity: 0.055;
+        background: currentColor;
+        clip-path: polygon(50% 0, 100% 100%, 72% 100%, 50% 53%, 28% 100%, 0 100%);
+        position: absolute;
+      }
+      .premium-drawer-head:after {
+        content: "";
+        display: block;
+        width: 100%;
+        height: 1.5px;
+        left: 0;
+        bottom: 17.5%;
+        background: linear-gradient(90deg, #53afff, #0578ff 50%, #53afff);
+        box-shadow: none;
+        position: absolute;
+        transform: skewY(10.2deg);
+        transform-origin: left center;
+      }
+      .premium-drawer-reference-head {
+        display: none;
+      }
+      .premium-drawer-brand {
+        width: calc(100% - 46px);
+        max-width: 292px;
+        height: auto;
+        margin: 27px 0 0;
+        position: relative;
+        z-index: 2;
+        display: block;
+      }
+      .premium-drawer-brand svg {
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        display: block;
+      }
+      .premium-drawer-brand svg path,
+      .premium-drawer-brand svg text {
+        fill: #fff;
+      }
+      .premium-drawer-brand svg path[fill="#0874ff"] {
+        fill: #0874ff;
+      }
+      .premium-drawer-brand svg line {
+        stroke: #1685ff;
+      }
+      .premium-drawer-hero-copy {
+        display: none;
+      }
+      .premium-drawer-close {
+        width: 47px;
+        height: 47px;
+        top: 19px;
+        right: 19px;
+        color: #fff;
+        background: rgba(2, 20, 52, 0.42);
+        border: 1px solid rgba(62, 153, 255, 0.9);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 3px rgba(16, 123, 255, 0.09),
+          0 9px 20px rgba(0, 10, 34, 0.24);
+        font-size: 28px;
+        z-index: 4;
+      }
+      .premium-drawer-close:hover {
+        color: #fff;
+        background: #096fe6;
+      }
+      .premium-drawer-nav {
+        gap: 11px;
+        padding: 31px 20px 0;
+      }
+      .premium-drawer-link,
+      .premium-drawer-link:first-child,
+      .premium-drawer-link:nth-child(3) {
+        min-height: 68px;
+        grid-template-columns: 48px 1fr 31px;
+        gap: 13px;
+        padding: 9px 12px;
+        color: #071a3b;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid #dbe4ee;
+        border-radius: 14px;
+        font-size: 17px;
+        font-weight: 850;
+        box-shadow:
+          0 5px 15px rgba(4, 35, 77, 0.055),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      }
+      .premium-drawer-link:active {
+        transform: scale(0.985);
+      }
+      .premium-drawer-link:first-child {
+        position: relative;
+        color: #071a3b;
+        background: linear-gradient(90deg, #edf6ff, #f8fbff);
+        border: 1px solid #d4e6fb;
+        padding-left: 12px;
+        box-shadow:
+          0 7px 17px rgba(5, 92, 204, 0.1),
+          inset 0 1px 0 #fff;
+      }
+      .premium-drawer-link:first-child:before {
+        content: "";
+        width: 4px;
+        height: calc(100% - 16px);
+        left: 0;
+        top: 8px;
+        background: #0878ff;
+        border-radius: 0 4px 4px 0;
+        position: absolute;
+      }
+      .premium-drawer-link > svg,
+      .premium-drawer-link:first-child > svg {
+        width: 46px;
+        height: 46px;
+        padding: 10px;
+        color: #092650;
+        background: linear-gradient(145deg, #f3f8fe, #e8f0fa);
+        border: 1px solid #e2ebf4;
+        border-radius: 12px;
+        stroke-width: 2.1;
+      }
+      .premium-drawer-link:first-child > svg {
+        color: #0874ff;
+        background: linear-gradient(145deg, #f0f7ff, #e1efff);
+      }
+      .premium-drawer-link .drawer-chevron {
+        width: 29px;
+        height: 29px;
+        color: #0874ff;
+        background: transparent;
+        border: 1.5px solid #0874ff;
+        font-size: 24px;
+        line-height: 1;
+      }
+      .premium-drawer-link:first-child .drawer-chevron {
+        color: #fff;
+        background: #0874ff;
+        border-color: #0874ff;
+        box-shadow: 0 5px 12px rgba(8, 116, 255, 0.23);
+      }
+      .premium-drawer-status {
+        min-height: 41px;
+        margin: 25px 20px 0;
+        padding: 11px 2px;
+        color: #344963;
+        background: transparent;
+        border: 0;
+        border-top: 1px solid #dce5ef;
+        border-bottom: 1px solid #dce5ef;
+        border-radius: 0;
+        justify-content: center;
+        gap: 9px;
+        font-size: 9.5px;
+        box-shadow: none;
+      }
+      .premium-drawer-status-secure {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .premium-drawer-status-secure svg {
+        width: 15px;
+        height: 15px;
+        fill: none;
+        stroke: #0b2c57;
+        stroke-width: 1.8;
+      }
+      .premium-drawer-status-divider {
+        height: 17px;
+      }
+      .premium-drawer-footer {
+        color: #0870eb;
+        padding: 19px 16px calc(21px + env(safe-area-inset-bottom));
+        font-size: 9.5px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+      }
+      .premium-drawer-footer strong,
+      .premium-drawer-footer span:first-of-type {
+        display: none;
+      }
+      .premium-drawer-footer span:last-of-type {
+        display: inline;
+      }
+      .premium-menu-button {
+        width: 43px;
+        height: 43px;
+        color: #fff;
+        background: linear-gradient(145deg, #09264d, #061a34);
+        border: 1px solid rgba(116, 164, 218, 0.48);
+        border-radius: 11px;
+        box-shadow:
+          0 7px 16px rgba(0, 17, 44, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      }
+      .premium-menu-button:hover {
+        background: linear-gradient(145deg, #0a3471, #08224b);
+      }
+      @media (max-width: 430px) {
+        .premium-drawer {
+          width: 84vw;
+          max-width: 390px;
+          left: 6px;
+          top: calc(70px + env(safe-area-inset-top));
+          border-radius: 25px;
+        }
+        .premium-drawer-head {
+          height: 202px;
+          min-height: 202px;
+          padding: 24px 20px 45px;
+        }
+        .premium-drawer-brand {
+          width: calc(100% - 42px);
+          margin-top: 29px;
+        }
+        .premium-drawer-close {
+          width: 43px;
+          height: 43px;
+          top: 17px;
+          right: 16px;
+        }
+        .premium-drawer-nav {
+          padding: 28px 17px 0;
+        }
+        .premium-drawer-link,
+        .premium-drawer-link:first-child,
+        .premium-drawer-link:nth-child(3) {
+          min-height: 64px;
+          grid-template-columns: 44px 1fr 28px;
+          padding: 8px 11px;
+          font-size: 16px;
+        }
+        .premium-drawer-link > svg,
+        .premium-drawer-link:first-child > svg {
+          width: 43px;
+          height: 43px;
+          padding: 9px;
+        }
+        .premium-drawer-status {
+          margin: 23px 17px 0;
+          font-size: 8.7px;
+        }
+        .premium-drawer-footer {
+          font-size: 8.8px;
+        }
+      }
     </style>
     <script type="module">
       const premiumIcon = {
@@ -21932,8 +22237,15 @@ Error generating stack: ` +
         <button class="premium-drawer-link" type="button" data-nav="Inventory">${premiumIcon.inventory}<span>Inventory</span><span class="drawer-chevron">›</span></button>
         <button class="premium-drawer-link" type="button" data-action="about">${premiumIcon.info}<span>About ATLAS</span><span class="drawer-chevron">›</span></button>
       </nav>
-      <div class="premium-drawer-status"><span class="premium-drawer-status-live">SYSTEM LIVE</span><span class="premium-drawer-status-divider" aria-hidden="true"></span><span>ATLAS v2.1.0</span></div>
-      <div class="premium-drawer-footer"><strong>ATLAS v2.1.0</strong><span>Warehouse Management System</span><span>© 2026 Chubby Gorilla, Inc.</span></div>
+      <div class="premium-drawer-status">
+        <span class="premium-drawer-status-live">SYSTEM LIVE</span>
+        <span class="premium-drawer-status-divider" aria-hidden="true"></span>
+        <span class="premium-drawer-status-secure">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v6c0 5-3.2 8-8 10-4.8-2-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
+          SECURE
+        </span>
+      </div>
+      <div class="premium-drawer-footer"><strong>ATLAS</strong><span>Warehouse Management</span><span>FIND · MANAGE · DELIVER</span></div>
     </aside>`;
         document.body.appendChild(backdrop);
         const close = () => backdrop.classList.remove("open");

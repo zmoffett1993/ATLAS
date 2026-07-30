@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v9-premium-about-page";
+const VERSION = "atlas-pwa-v10-premium-floating-menu";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
