@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v15-home-logo-cache-fix";
+const VERSION = "atlas-pwa-v16-complete-home-lockup";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -13,6 +13,7 @@ const APP_SHELL = [
   "./favicon-32.png",
   "./atlas-warehouse-management.png",
   "./atlas-home-logo-v2.png",
+  "./atlas-home-lockup-v3.png",
   "./atlas-command-center-menu.jpeg",
   "./chubby-gorilla-black.jpeg",
   "./chubby-gorilla-lockup.png",

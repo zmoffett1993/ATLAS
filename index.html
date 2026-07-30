@@ -19724,22 +19724,21 @@ Error generating stack: ` +
         position: relative;
         display: block;
         width: min(100%, 430px);
-        aspect-ratio: 1.66/1;
+        aspect-ratio: 1044/702;
         margin: 0 auto;
-        overflow: hidden;
+        overflow: visible;
       }
       .atlas-logo-window img {
-        position: absolute;
-        top: 0;
-        left: 0;
+        position: static;
         display: block;
         width: 100%;
         max-width: none;
-        height: auto;
+        height: 100%;
+        object-fit: contain;
         opacity: 1;
         filter: none;
         mix-blend-mode: normal;
-        transform: translateY(-19.54%);
+        transform: none;
       }
       .brand-title > p[hidden] {
         display: none;
@@ -22240,10 +22239,10 @@ Error generating stack: ` +
       };
       const ensureUpdatedAtlasBranding = () => {
         const image = document.querySelector(".atlas-logo-window img");
-        if (!image || image.dataset.atlasHomeLogoV2 === "true") return;
-        image.src = "./atlas-home-logo-v2.png";
+        if (!image || image.dataset.atlasHomeLockupV3 === "true") return;
+        image.src = "./atlas-home-lockup-v3.png";
         image.alt = "ATLAS Warehouse Management — Find, Manage, Deliver";
-        image.dataset.atlasHomeLogoV2 = "true";
+        image.dataset.atlasHomeLockupV3 = "true";
       };
       const ensurePremiumChrome = () => {
         ensurePremiumBottomNav();
