@@ -22462,6 +22462,460 @@ Error generating stack: ` +
         });
       }
     </script>
+    <style id="atlas-product-image-result-design">
+      /* Product identification and pick-location priority layer */
+      .atlas-product-showcase {
+        display: grid;
+        grid-template-columns: minmax(132px, 42%) minmax(0, 1fr);
+        align-items: center;
+        gap: 18px;
+        margin: 0 0 16px;
+        padding: 15px;
+        overflow: hidden;
+        color: #071a31;
+        background:
+          radial-gradient(circle at 15% 10%, rgba(31, 100, 222, 0.1), transparent 42%),
+          linear-gradient(145deg, #f7faff 0%, #edf3fb 100%);
+        border: 1px solid #d4deeb;
+        border-radius: 15px;
+      }
+      .atlas-product-media {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 160px;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #dfe6ef;
+        border-radius: 12px;
+        box-shadow: 0 7px 18px rgba(3, 30, 66, 0.09);
+      }
+      .atlas-product-media img {
+        display: block;
+        width: 100%;
+        height: 178px;
+        padding: 9px;
+        object-fit: contain;
+        opacity: 0;
+        transform: scale(0.985);
+        transition: opacity 180ms ease, transform 220ms ease;
+      }
+      .atlas-product-showcase.image-ready .atlas-product-media img {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .atlas-product-placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 8px;
+        padding: 18px;
+        color: #5a6b81;
+        text-align: center;
+        background:
+          linear-gradient(100deg, transparent 20%, rgba(255,255,255,.75) 42%, transparent 64%)
+            -220px 0 / 220px 100% no-repeat,
+          #f7f9fc;
+      }
+      .atlas-product-showcase.image-loading .atlas-product-placeholder {
+        animation: atlas-product-loading 1.4s ease-in-out infinite;
+      }
+      .atlas-product-showcase.image-ready .atlas-product-placeholder {
+        display: none;
+      }
+      .atlas-product-placeholder-icon {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        margin: 0 auto;
+        color: #174cae;
+        background: #e6eefc;
+        border-radius: 50%;
+        font-size: 23px;
+        font-style: normal;
+        font-weight: 900;
+      }
+      .atlas-product-placeholder strong {
+        font-size: 11px;
+        letter-spacing: 0.015em;
+      }
+      .atlas-product-copy {
+        min-width: 0;
+      }
+      .atlas-product-eyebrow {
+        display: block;
+        margin-bottom: 7px;
+        color: #1751ba;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+      .atlas-product-title {
+        display: -webkit-box;
+        overflow: hidden;
+        margin: 0;
+        color: #071a31;
+        font-size: clamp(17px, 4.5vw, 24px);
+        font-weight: 950;
+        line-height: 1.1;
+        letter-spacing: -0.025em;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 4;
+      }
+      .atlas-product-match-note {
+        display: block;
+        margin-top: 10px;
+        color: #5c6c80;
+        font-size: 10px;
+        font-weight: 750;
+        line-height: 1.35;
+      }
+      .result-card .sku-copy {
+        margin-bottom: 15px;
+        padding: 4px 1px 11px;
+        border-bottom: 1px solid #e1e7ef;
+      }
+      .result-card .sku-copy::before {
+        content: "SKU";
+        display: block;
+        margin-bottom: 3px;
+        color: #65758a;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.12em;
+      }
+      .result-card .location-list {
+        display: flex;
+        flex-direction: column;
+      }
+      .result-card .location-entry.selected {
+        order: -1;
+        overflow: hidden;
+        padding: 0;
+        border: 1px solid #164eb5;
+        border-radius: 15px;
+        box-shadow: 0 9px 24px rgba(6, 55, 151, 0.14);
+      }
+      .result-card .location-entry.selected > .location-card {
+        display: none;
+      }
+      .atlas-location-hero {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 12px;
+        min-height: 132px;
+        padding: 19px 20px 18px;
+        color: #fff;
+        background:
+          radial-gradient(circle at 92% 12%, rgba(78, 139, 255, 0.5), transparent 40%),
+          linear-gradient(145deg, #0c55ce 0%, #06399f 56%, #042b7c 100%);
+      }
+      .atlas-location-hero::after {
+        content: "";
+        position: absolute;
+        right: -38px;
+        bottom: -67px;
+        width: 165px;
+        height: 165px;
+        border: 22px solid rgba(255,255,255,.055);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      .atlas-location-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #cdddff;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.13em;
+      }
+      .atlas-location-aisle {
+        display: block;
+        font-size: clamp(31px, 9vw, 47px);
+        font-weight: 1000;
+        line-height: 0.95;
+        letter-spacing: -0.045em;
+      }
+      .atlas-location-section {
+        display: inline-flex;
+        align-items: center;
+        min-height: 31px;
+        margin-top: 10px;
+        padding: 0 10px;
+        color: #072d77;
+        background: #fff;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.02em;
+      }
+      .atlas-location-side {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        justify-items: end;
+        gap: 9px;
+      }
+      .atlas-location-code {
+        display: grid;
+        place-items: center;
+        min-width: 59px;
+        height: 59px;
+        padding: 0 8px;
+        color: #06378d;
+        background: #fff;
+        border: 2px solid rgba(255,255,255,.72);
+        border-radius: 12px;
+        box-shadow: 0 8px 18px rgba(0, 15, 55, 0.25);
+        font-size: 21px;
+        font-weight: 1000;
+      }
+      .atlas-pick-first-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 27px;
+        padding: 0 9px;
+        color: #553800;
+        white-space: nowrap;
+        background: #ffd75b;
+        border: 1px solid #ffe694;
+        border-radius: 999px;
+        box-shadow: 0 4px 10px rgba(42, 27, 0, 0.22);
+        font-size: 9px;
+        font-weight: 1000;
+        letter-spacing: 0.035em;
+      }
+      .result-card .location-entry.selected > .missing-button {
+        width: calc(100% - 24px);
+        min-height: 39px;
+        margin: 11px 12px 12px;
+        border-radius: 8px;
+      }
+      .result-card .location-entry:not(.selected) {
+        background: #fff;
+      }
+      .result-card .location-entry:not(.selected) .missing-button {
+        margin-top: 7px;
+      }
+      @keyframes atlas-product-loading {
+        to { background-position: 220px 0, 0 0; }
+      }
+      @media (max-width: 460px) {
+        .result-body {
+          padding: 13px;
+        }
+        .atlas-product-showcase {
+          grid-template-columns: minmax(118px, 43%) minmax(0, 1fr);
+          gap: 12px;
+          padding: 11px;
+        }
+        .atlas-product-media {
+          min-height: 142px;
+        }
+        .atlas-product-media img {
+          height: 151px;
+          padding: 7px;
+        }
+        .atlas-product-title {
+          font-size: 17px;
+          -webkit-line-clamp: 5;
+        }
+        .atlas-product-match-note {
+          font-size: 9px;
+        }
+        .atlas-location-hero {
+          min-height: 124px;
+          padding: 17px 16px;
+        }
+        .atlas-location-code {
+          min-width: 54px;
+          height: 54px;
+          font-size: 19px;
+        }
+      }
+      @media (max-width: 350px) {
+        .atlas-product-showcase {
+          grid-template-columns: 1fr;
+        }
+        .atlas-product-media {
+          min-height: 170px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-product-placeholder {
+          animation: none !important;
+        }
+      }
+    </style>
+    <script id="atlas-product-image-result-behavior">
+      (() => {
+        const PRODUCT_MAP_URL = "./product-images.json?v=20260730";
+        let enhancementQueued = false;
+        const productMapPromise = fetch(PRODUCT_MAP_URL, { cache: "no-cache" })
+          .then((response) => {
+            if (!response.ok) throw new Error("Product image map unavailable");
+            return response.json();
+          })
+          .then((payload) => payload.products || {})
+          .catch(() => ({}));
+
+        const setText = (node, text) => {
+          if (node && node.textContent !== text) node.textContent = text;
+        };
+
+        const ensureShowcase = (resultBody, sku) => {
+          let showcase = resultBody.querySelector(":scope > .atlas-product-showcase");
+          if (!showcase) {
+            showcase = document.createElement("section");
+            showcase.className = "atlas-product-showcase image-loading";
+            showcase.setAttribute("aria-label", "Product identification");
+            showcase.innerHTML = `
+              <div class="atlas-product-media">
+                <div class="atlas-product-placeholder">
+                  <i class="atlas-product-placeholder-icon" aria-hidden="true">⌁</i>
+                  <strong>LOADING PRODUCT IMAGE</strong>
+                </div>
+                <img alt="" decoding="async" />
+              </div>
+              <div class="atlas-product-copy">
+                <span class="atlas-product-eyebrow">Product identification</span>
+                <h2 class="atlas-product-title"></h2>
+                <span class="atlas-product-match-note"></span>
+              </div>`;
+            resultBody.insertBefore(showcase, resultBody.firstChild);
+          }
+          if (showcase.dataset.sku === sku) return;
+          showcase.dataset.sku = sku;
+          showcase.classList.remove("image-ready", "image-unavailable");
+          showcase.classList.add("image-loading");
+          const image = showcase.querySelector("img");
+          image.removeAttribute("src");
+          delete image.dataset.fallbackTried;
+          image.alt = "";
+          setText(showcase.querySelector(".atlas-product-title"), sku);
+          setText(showcase.querySelector(".atlas-product-match-note"), "Matching approved catalog image…");
+          setText(showcase.querySelector(".atlas-product-placeholder strong"), "LOADING PRODUCT IMAGE");
+
+          productMapPromise.then((products) => {
+            if (showcase.dataset.sku !== sku) return;
+            const product = products[sku] || products[sku.toUpperCase()];
+            const placeholderText = showcase.querySelector(".atlas-product-placeholder strong");
+            if (!product?.image_url) {
+              showcase.classList.remove("image-loading");
+              showcase.classList.add("image-unavailable");
+              setText(showcase.querySelector(".atlas-product-title"), sku);
+              setText(showcase.querySelector(".atlas-product-match-note"), "Image held for manual catalog review");
+              setText(placeholderText, "PRODUCT IMAGE PENDING");
+              return;
+            }
+            setText(showcase.querySelector(".atlas-product-title"), product.title || sku);
+            setText(showcase.querySelector(".atlas-product-match-note"), "Approved Chubby Gorilla catalog image");
+            image.onload = () => {
+              if (showcase.dataset.sku !== sku) return;
+              showcase.classList.remove("image-loading", "image-unavailable");
+              showcase.classList.add("image-ready");
+            };
+            image.onerror = () => {
+              if (showcase.dataset.sku !== sku) return;
+              if (!image.dataset.fallbackTried && product.source_image) {
+                image.dataset.fallbackTried = "true";
+                image.src = product.source_image;
+                return;
+              }
+              showcase.classList.remove("image-loading", "image-ready");
+              showcase.classList.add("image-unavailable");
+              setText(placeholderText, "PRODUCT IMAGE UNAVAILABLE");
+              setText(showcase.querySelector(".atlas-product-match-note"), "SKU and pick location are still available");
+            };
+            image.alt = `${product.title || sku} product image`;
+            image.src = product.image_url;
+          });
+        };
+
+        const ensureLocationHero = (resultCard) => {
+          const entries = resultCard.querySelectorAll(".location-entry");
+          entries.forEach((entry) => {
+            if (!entry.classList.contains("selected")) {
+              entry.querySelector(":scope > .atlas-location-hero")?.remove();
+            }
+          });
+          const selected = resultCard.querySelector(".location-entry.selected");
+          if (!selected) return;
+          const original = selected.querySelector(":scope > .location-card");
+          if (!original) return;
+          const locationCode =
+            original.querySelector(".location-badge")?.textContent?.trim() || "";
+          const locationDescription =
+            original.querySelector(".location-copy strong")?.textContent?.trim() || "";
+          const match = locationDescription.match(
+            /Aisle\s+(.+?)\s+·\s+Section\s+([^·]+)/i,
+          );
+          const aisle = match?.[1]?.trim() || locationCode.replace(/\D+.*$/, "") || "—";
+          const section = match?.[2]?.trim() || locationCode.replace(/^\d+/, "") || "—";
+          const isPickFirst = Boolean(original.querySelector(".pick-first-badge"));
+          const signature = [locationCode, aisle, section, isPickFirst].join("|");
+          let hero = selected.querySelector(":scope > .atlas-location-hero");
+          if (!hero) {
+            hero = document.createElement("div");
+            hero.className = "atlas-location-hero";
+            hero.setAttribute("aria-live", "polite");
+            selected.insertBefore(hero, original);
+          }
+          if (hero.dataset.signature === signature) return;
+          hero.dataset.signature = signature;
+          hero.innerHTML = `
+            <div>
+              <span class="atlas-location-label">PICK LOCATION</span>
+              <strong class="atlas-location-aisle"></strong>
+              <span class="atlas-location-section"></span>
+            </div>
+            <div class="atlas-location-side">
+              <strong class="atlas-location-code"></strong>
+            </div>`;
+          setText(hero.querySelector(".atlas-location-aisle"), `AISLE ${aisle}`);
+          setText(hero.querySelector(".atlas-location-section"), `SECTION ${section}`);
+          setText(hero.querySelector(".atlas-location-code"), locationCode);
+          if (isPickFirst) {
+            const chip = document.createElement("span");
+            chip.className = "atlas-pick-first-chip";
+            chip.textContent = "★ PICK FIRST";
+            hero.querySelector(".atlas-location-side").appendChild(chip);
+          }
+        };
+
+        const enhanceResult = () => {
+          enhancementQueued = false;
+          document.querySelectorAll(".result-card").forEach((resultCard) => {
+            const resultBody = resultCard.querySelector(".result-body");
+            const sku = resultCard.querySelector(".sku-copy strong")?.textContent?.trim();
+            if (!resultBody || !sku) return;
+            ensureShowcase(resultBody, sku);
+            ensureLocationHero(resultCard);
+          });
+        };
+
+        const queueEnhancement = () => {
+          if (enhancementQueued) return;
+          enhancementQueued = true;
+          window.requestAnimationFrame(enhanceResult);
+        };
+
+        new MutationObserver(queueEnhancement).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+        window.addEventListener("DOMContentLoaded", queueEnhancement);
+        queueEnhancement();
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

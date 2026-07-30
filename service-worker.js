@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v19-about-gorilla-restore";
+const VERSION = "atlas-pwa-v20-product-images";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,6 +6,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
+  "./product-images.json",
   "./atlas-192.png",
   "./atlas-512.png",
   "./atlas-maskable-512.png",
@@ -15,9 +16,7 @@ const APP_SHELL = [
   "./atlas-home-logo-v2.png",
   "./atlas-home-lockup-v3.png",
   "./atlas-command-center-menu.jpeg",
-  "./chubby-gorilla-black.jpeg",
   "./chubby-gorilla-about-v2.jpeg",
-  "./chubby-gorilla-lockup.png",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",
   "./atlas-menu-lockup-v2.png",
@@ -72,6 +71,11 @@ self.addEventListener("fetch", (event) => {
   const isSupabaseRead =
     url.hostname.endsWith(".supabase.co") &&
     url.pathname.startsWith("/rest/v1/");
+  const isProductImage =
+    url.hostname.endsWith(".supabase.co") &&
+    url.pathname.startsWith(
+      "/storage/v1/object/public/product-images/",
+    );
 
   if (isNavigation) {
     event.respondWith(
@@ -89,6 +93,19 @@ self.addEventListener("fetch", (event) => {
       { status: 503, headers: { "Content-Type": "application/json" } },
     );
     event.respondWith(networkFirst(request, DATA_CACHE, unavailable));
+    return;
+  }
+
+  if (isProductImage) {
+    event.respondWith(
+      caches.open(DATA_CACHE).then(async (cache) => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        const response = await fetch(request);
+        if (response.ok) await cache.put(request, response.clone());
+        return response;
+      }),
+    );
     return;
   }
 
