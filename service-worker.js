@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v28-floor-navigation-stability";
+const VERSION = "atlas-pwa-v29-location-card-reorder";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

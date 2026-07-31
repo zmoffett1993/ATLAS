@@ -24148,7 +24148,65 @@ Error generating stack: ` +
         const reduceMotion = window.matchMedia(
           "(prefers-reduced-motion: reduce)",
         );
+        const pendingLocationMoves = new WeakMap();
         let transitionQueued = false;
+
+        const locationCodeForEntry = (entry) =>
+          entry
+            ?.querySelector(":scope > .location-card .location-badge")
+            ?.textContent?.trim() || "";
+
+        const captureLocationPositions = (resultCard) => {
+          const positions = new Map();
+          resultCard.querySelectorAll(".location-entry").forEach((entry) => {
+            entry.getAnimations?.().forEach((animation) => animation.cancel());
+            const code = locationCodeForEntry(entry);
+            if (!code) return;
+            positions.set(code, entry.getBoundingClientRect().top);
+          });
+          pendingLocationMoves.set(resultCard, positions);
+        };
+
+        const playLocationReorder = (resultCard) => {
+          const positions = pendingLocationMoves.get(resultCard);
+          pendingLocationMoves.delete(resultCard);
+          if (!positions || reduceMotion.matches) return;
+
+          resultCard.querySelectorAll(".location-entry").forEach((entry) => {
+            const code = locationCodeForEntry(entry);
+            const previousTop = positions.get(code);
+            if (previousTop === void 0) return;
+            const currentTop = entry.getBoundingClientRect().top;
+            const offsetY = previousTop - currentTop;
+            if (Math.abs(offsetY) < 2 || typeof entry.animate !== "function")
+              return;
+            const isSelected = entry.classList.contains("selected");
+            entry.animate(
+              [
+                {
+                  transform: `translate3d(0, ${offsetY}px, 0)`,
+                  opacity: isSelected ? 0.78 : 0.88,
+                  filter: isSelected ? `saturate(0.86)` : `none`,
+                },
+                {
+                  transform: `translate3d(0, ${offsetY * -0.025}px, 0)`,
+                  opacity: 1,
+                  filter: `none`,
+                  offset: 0.82,
+                },
+                {
+                  transform: `translate3d(0, 0, 0)`,
+                  opacity: 1,
+                  filter: `none`,
+                },
+              ],
+              {
+                duration: isSelected ? 440 : 400,
+                easing: `cubic-bezier(0.22, 0.8, 0.25, 1)`,
+              },
+            );
+          });
+        };
 
         const replayClass = (node, className, duration = 650) => {
           if (!node || reduceMotion.matches) return;
@@ -24189,6 +24247,7 @@ Error generating stack: ` +
 
               delete resultCard.dataset.atlasPendingLocation;
               delete resultCard.dataset.atlasTransitionAttempts;
+              playLocationReorder(resultCard);
               replayClass(hero, "atlas-location-change");
 
               const mapPanel = resultCard.querySelector(".map-panel");
@@ -24237,6 +24296,7 @@ Error generating stack: ` +
               .querySelector(".location-badge")
               ?.textContent?.trim();
             if (!resultCard || !locationCode) return;
+            captureLocationPositions(resultCard);
             resultCard.dataset.atlasPendingLocation = locationCode;
             resultCard.dataset.atlasTransitionAttempts = "0";
             queueTransitionCheck();
