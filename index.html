@@ -24198,6 +24198,248 @@ Error generating stack: ` +
         });
       })();
     </script>
+    <style id="atlas-overflow-floor-design">
+      /*
+       * Aisle 22 remains the internal database identifier. Picker-facing
+       * screens present it as the physical Overflow Floor Location.
+       */
+      .atlas-overflow-note {
+        color: rgba(255, 255, 255, 0.86);
+        max-width: 330px;
+        margin-top: 10px;
+        font-size: 13px;
+        font-weight: 750;
+        line-height: 1.35;
+      }
+      .atlas-location-hero.atlas-overflow-hero .atlas-location-aisle {
+        max-width: 520px;
+        font-size: clamp(31px, 8vw, 54px);
+        line-height: 0.98;
+      }
+      .atlas-location-hero.atlas-overflow-hero .atlas-location-code {
+        max-width: 150px;
+        padding-inline: 18px;
+        font-size: clamp(17px, 4.5vw, 25px);
+        line-height: 1.05;
+        text-align: center;
+      }
+      .location-card.atlas-overflow-location .location-copy strong {
+        color: var(--brand-navy);
+      }
+      .location-card.atlas-overflow-location .atlas-overflow-card-note {
+        color: var(--muted);
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        font-weight: 750;
+      }
+      .overflow-floor-map {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        min-height: 330px;
+        padding: 14px 0 4px;
+      }
+      .overflow-floor-zone {
+        color: var(--brand-navy);
+        border: 2px solid var(--line);
+        background: #fff;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 18px 7px;
+        font-size: clamp(15px, 4vw, 22px);
+        font-weight: 950;
+        letter-spacing: 0.04em;
+        text-align: center;
+      }
+      .overflow-floor-zone small {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+      }
+      .overflow-floor-zone.active {
+        color: #fff;
+        border-color: var(--atlas-blue);
+        background: linear-gradient(
+          155deg,
+          var(--atlas-blue-2),
+          var(--atlas-blue)
+        );
+        box-shadow: 0 16px 30px rgba(13, 75, 180, 0.23);
+      }
+      .overflow-floor-zone.active small {
+        color: rgba(255, 255, 255, 0.82);
+      }
+      .overflow-floor-orientation {
+        color: var(--muted);
+        margin: 10px 0 2px;
+        font-size: 11px;
+        font-weight: 800;
+        text-align: center;
+      }
+      .aisle-card.atlas-overflow-browse .aisle-card-title span:first-child {
+        font-size: 15px;
+      }
+      @media (max-width: 390px) {
+        .overflow-floor-map {
+          gap: 7px;
+          min-height: 290px;
+        }
+        .overflow-floor-zone {
+          padding-inline: 4px;
+          font-size: 14px;
+        }
+      }
+    </style>
+    <script id="atlas-overflow-floor-behavior">
+      (() => {
+        const positionBySection = {
+          A: "LEFT",
+          B: "MIDDLE",
+          C: "RIGHT",
+        };
+        const sectionByPosition = {
+          LEFT: "A",
+          MIDDLE: "B",
+          RIGHT: "C",
+        };
+        const orientationNote = "East side of warehouse next to Aisle 21.";
+        let queued = false;
+
+        const overflowPositionFromCard = (card) => {
+          if (!card) return null;
+          const badge = card.querySelector(".location-badge")?.textContent?.trim() || "";
+          const copy = card.querySelector(".location-copy strong")?.textContent?.trim() || "";
+          const stored = card.dataset.overflowPosition;
+          if (stored) return stored;
+          const codeMatch = badge.match(/^22([ABC])$/i);
+          if (codeMatch) return positionBySection[codeMatch[1].toUpperCase()];
+          if (!/\bAisle\s+22\b/i.test(copy)) return null;
+          const sectionMatch = copy.match(/\bSection\s+([ABC])\b/i);
+          return positionBySection[sectionMatch?.[1]?.toUpperCase()] || null;
+        };
+
+        const enhanceOverflowCard = (card) => {
+          const position = overflowPositionFromCard(card);
+          if (!position) return null;
+          card.dataset.overflowPosition = position;
+          card.classList.add("atlas-overflow-location");
+          const badge = card.querySelector(".location-badge");
+          const title = card.querySelector(".location-copy strong");
+          const copy = card.querySelector(".location-copy");
+          if (badge && badge.textContent.trim() !== `FLOOR · ${position}`) {
+            badge.textContent = `FLOOR · ${position}`;
+          }
+          if (title && title.textContent.trim() !== `Overflow Floor · ${position}`) {
+            title.textContent = `Overflow Floor · ${position}`;
+          }
+          if (copy && !copy.querySelector(".atlas-overflow-card-note")) {
+            const note = document.createElement("span");
+            note.className = "atlas-overflow-card-note";
+            note.textContent = orientationNote;
+            copy.appendChild(note);
+          }
+          return position;
+        };
+
+        const enhanceOverflowResult = (resultCard) => {
+          resultCard
+            .querySelectorAll(".location-entry > .location-card")
+            .forEach(enhanceOverflowCard);
+
+          const selected = resultCard.querySelector(".location-entry.selected");
+          const selectedCard = selected?.querySelector(":scope > .location-card");
+          const position = enhanceOverflowCard(selectedCard);
+          if (!position) return;
+
+          const hero = selected.querySelector(":scope > .atlas-location-hero");
+          if (hero) {
+            hero.classList.add("atlas-overflow-hero");
+            const aisle = hero.querySelector(".atlas-location-aisle");
+            const section = hero.querySelector(".atlas-location-section");
+            const code = hero.querySelector(".atlas-location-code");
+            if (aisle) aisle.textContent = "OVERFLOW FLOOR";
+            if (section) section.textContent = position;
+            if (code) code.textContent = `FLOOR · ${position}`;
+            let note = hero.querySelector(".atlas-overflow-note");
+            if (!note) {
+              note = document.createElement("p");
+              note.className = "atlas-overflow-note";
+              hero.querySelector(":scope > div:first-child")?.appendChild(note);
+            }
+            note.textContent = orientationNote;
+          }
+
+          const panel = resultCard.querySelector(".map-panel");
+          if (!panel || panel.dataset.overflowPosition === position) return;
+          panel.dataset.overflowPosition = position;
+          panel.classList.add("atlas-overflow-map-panel");
+          panel.innerHTML = `
+            <div class="map-title">
+              <strong>Overflow Floor Location</strong>
+              <span>Selected: ${position[0] + position.slice(1).toLowerCase()}</span>
+            </div>
+            <div class="overflow-floor-orientation">${orientationNote}</div>
+            <div class="overflow-floor-map" role="img" aria-label="Overflow Floor map. ${position} is selected.">
+              ${["LEFT", "MIDDLE", "RIGHT"]
+                .map(
+                  (zone) => `
+                    <div class="overflow-floor-zone ${zone === position ? "active map-section" : ""}">
+                      <small>OVERFLOW</small>
+                      <span>${zone}</span>
+                    </div>`,
+                )
+                .join("")}
+            </div>`;
+        };
+
+        const enhanceOverflowBrowse = () => {
+          document.querySelectorAll(".aisle-card").forEach((card) => {
+            const title = card.querySelector(".aisle-card-title");
+            if (!title || !/OVERFLOW FLOOR LOCATION/i.test(title.textContent)) return;
+            card.classList.add("atlas-overflow-browse");
+            const titleParts = title.querySelectorAll("span");
+            if (titleParts[0]) titleParts[0].textContent = "OVERFLOW FLOOR";
+            if (titleParts[1]) titleParts[1].textContent = "LOCATION ID: 22";
+            card.querySelectorAll(".aisle-section-head strong").forEach((heading) => {
+              const match = heading.textContent.match(/(?:Left|Middle|Right)/i);
+              if (match) {
+                const position =
+                  match[0][0].toUpperCase() + match[0].slice(1).toLowerCase();
+                heading.textContent = `Overflow ${position}`;
+              }
+            });
+          });
+        };
+
+        const enhance = () => {
+          queued = false;
+          document
+            .querySelectorAll(".result-card")
+            .forEach(enhanceOverflowResult);
+          enhanceOverflowBrowse();
+        };
+        const queue = () => {
+          if (queued) return;
+          queued = true;
+          window.requestAnimationFrame(enhance);
+        };
+        new MutationObserver(queue).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+        window.addEventListener("DOMContentLoaded", queue);
+        queue();
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

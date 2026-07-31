@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v24-secondary-location-transition";
+const VERSION = "atlas-pwa-v25-overflow-floor-location";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
