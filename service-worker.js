@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v25-overflow-floor-location";
+const VERSION = "atlas-pwa-v26-floor-browse-button";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
