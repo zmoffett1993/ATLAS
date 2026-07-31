@@ -1,8 +1,8 @@
 {
-  "version": "2026-07-30",
+  "version": "2026-07-31-package-bros",
   "bucket": "product-images",
-  "approved_count": 310,
-  "manual_review_count": 68,
+  "approved_count": 329,
+  "manual_review_count": 49,
   "inactive_count": 2,
   "products": {
     "CGAB1-100ML-CNL-OBK": {
@@ -3414,6 +3414,215 @@
       "width": 720,
       "height": 720,
       "bytes": 8372
+    },
+    "CGAC1-18.5OZXL-TBK-OBK": {
+      "title": "18.5OZ XL AVIATOR CR JAR (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAC1-18.5OZXL-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-18.5OZXL-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-xl-jars-18-5oz-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-18.5OZXL-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-2OZ-TAM-OBK": {
+      "title": "2OZ AVIATOR CR JAR (TRANSLUCENT AMBER WITH BLACK CAP)",
+      "official_sku": "CGAC1-2OZ-TAM-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-2OZ-TAM-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-jars-2oz-translucent-amber-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-2OZ-TAM-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-2OZ-TBK-OBK": {
+      "title": "2OZ AVIATOR CR JAR (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAC1-2OZ-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-2OZ-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-jars-2oz-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-2OZ-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-3OZ-TAM-OBK": {
+      "title": "3OZ AVIATOR CR JAR (TRANSLUCENT AMBER WITH BLACK CAP)",
+      "official_sku": "CGAC1-3OZ-TAM-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-3OZ-TAM-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-jars-3oz-translucent-amber-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-3OZ-TAM-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-3OZ-TBK-OBK": {
+      "title": "3OZ AVIATOR CR JAR (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAC1-3OZ-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-3OZ-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-jars-3oz-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-3OZ-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-4OZ-TAM-OBK": {
+      "title": "4OZ AVIATOR CR JAR (TRANSLUCENT AMBER WITH BLACK CAP)",
+      "official_sku": "CGAC1-4OZ-TAM-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-4OZ-TAM-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-jars-4oz-translucent-amber-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-4OZ-TAM-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-4OZ-TBK-OBK": {
+      "title": "4OZ AVIATOR CR JAR (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAC1-4OZ-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-4OZ-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-jars-4oz-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-4OZ-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-5OZ-TAM-OBK": {
+      "title": "5OZ AVIATOR CR CONTAINER (TRANSLUCENT AMBER WITH BLACK CAP)",
+      "official_sku": "CGAC1-5OZ-TAM-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-5OZ-TAM-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-container-5oz-150cc-translucent-amber-container-with-opaque-black-closure/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-5OZ-TAM-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-5OZ-TBK-OBK": {
+      "title": "5OZ AVIATOR CR CONTAINER (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAC1-5OZ-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-5OZ-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-container-5oz-150cc-translucent-black-container-with-opaque-black-closure/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-5OZ-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAC1-8OZ-TBK-OBK": {
+      "title": "8OZ AVIATOR CR JAR (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAC1-8OZ-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAC1-8OZ-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-jars-8oz-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAC1-8OZ-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-100MM-TAM-OBK": {
+      "title": "100MM AVIATOR CR TUBE (TRANSLUCENT AMBER WITH BLACK CAP)",
+      "official_sku": "CGAT6-100MM-TAM-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-100MM-TAM-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-tubes-100mm-translucent-amber-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-100MM-TAM-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-100MM-TBK-OBK": {
+      "title": "100MM AVIATOR CR TUBE (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAT6-100MM-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-100MM-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-tubes-100mm-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-100MM-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-113MM-CNL-OBK": {
+      "title": "113MM TUBE (CLEAR WITH BLACK CAP)",
+      "official_sku": "CGAT6-113MM-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-113MM-CNL-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-tubes-113mm-clear-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-113MM-CNL-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-113MM-OBK-OBK": {
+      "title": "113MM TUBE (OPAQUE BLACK WITH BLACK CAP)",
+      "official_sku": "CGAT6-113MM-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-113MM-OBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-tubes-113mm-opaque-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-113MM-OBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-113MM-OWH-OWH": {
+      "title": "113MM AVIATOR CR TUBE (OPAQUE WHITE WITH WHITE CAP)",
+      "official_sku": "CGAT6-113MM-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-113MM-OWH-OWH.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-tubes-113mm-opaque-white-with-white-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-113MM-OWH-OWH.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-113MM-TAM-OBK": {
+      "title": "113MM AVIATOR CR TUBE (TRANSLUCENT AMBER WITH BLACK CAP)",
+      "official_sku": "CGAT6-113MM-TAM-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-113MM-TAM-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-tubes-113mm-translucent-amber-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-113MM-TAM-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-113MM-TBK-OBK": {
+      "title": "113MM AVIATOR CR TUBE (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAT6-113MM-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-113MM-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-tubes-113mm-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-113MM-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-120MM-TAM-OBK": {
+      "title": "120MM AVIATOR CR TUBE (TRANSLUCENT AMBER WITH BLACK CAP)",
+      "official_sku": "CGAT6-120MM-TAM-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-120MM-TAM-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-tubes-120mm-translucent-amber-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-120MM-TAM-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
+    },
+    "CGAT6-120MM-TBK-OBK": {
+      "title": "120MM AVIATOR CR TUBE (TRANSLUCENT BLACK WITH BLACK CAP)",
+      "official_sku": "CGAT6-120MM-TBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/CGAT6-120MM-TBK-OBK.jpg",
+      "source_page": "https://packagebros.com/product/chubby-gorilla-aviator-cr-tubes-120mm-translucent-black-with-black-cap/",
+      "source_image": "https://packagebros.com/wp-content/uploads/2023/10/CGAT6-120MM-TBK-OBK.jpg",
+      "match_type": "Approved Package Bros exact SKU match — internal Chubby Gorilla use",
+      "width": 1000,
+      "height": 1000,
+      "bytes": null
     }
   }
 }
