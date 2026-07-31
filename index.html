@@ -15736,6 +15736,7 @@ Error generating stack: ` +
           [d, f] = (0, C.useState)(!1),
           [p, m] = (0, C.useState)(null),
           [h, g] = (0, C.useState)(!1),
+          [k, N] = (0, C.useState)(!1),
           _ = (0, C.useCallback)(() => {
             (a.current?.getTracks().forEach((e) => e.stop()),
               (a.current = null));
@@ -15775,7 +15776,9 @@ Error generating stack: ` +
                 r.current &&
                   ((r.current.srcObject = t), await r.current.play()),
                 g(!0),
-                s(`Keep the printed SKU steady inside the blue guide.`));
+                s(
+                  `Center the printed SKU inside the blue guide, then tap Take SKU Photo.`,
+                ));
             } catch {
               s(`Camera permission was not granted. Choose a photo instead.`);
             }
@@ -15991,22 +15994,40 @@ Error generating stack: ` +
             }
           }
         }
-        function b() {
+        async function b() {
           let e = r.current;
-          !e?.videoWidth || !e.videoHeight || y(e, e.videoWidth, e.videoHeight);
+          if (k) {
+            (m(null),
+              l(0),
+              N(!1),
+              s(
+                `Center the printed SKU inside the blue guide, then tap Take SKU Photo.`,
+              ));
+            if (e && h) await e.play().catch(() => {});
+            return;
+          }
+          if (!e?.videoWidth || !e.videoHeight) return;
+          (N(!0),
+            e.pause(),
+            s(`Photo captured. Reading the printed SKU…`));
+          await y(e, e.videoWidth, e.videoHeight);
         }
         function x(e) {
           let t = e.target.files?.[0];
           if (!t) return;
+          ((e.target.value = ``),
+            N(!0),
+            r.current?.pause(),
+            s(`Photo selected. Reading the printed SKU…`));
           let n = new Image(),
-            r = URL.createObjectURL(t);
+            o = URL.createObjectURL(t);
           ((n.onload = () => {
-            (y(n, n.naturalWidth, n.naturalHeight), URL.revokeObjectURL(r));
+            (y(n, n.naturalWidth, n.naturalHeight), URL.revokeObjectURL(o));
           }),
             (n.onerror = () => {
-              (s(`That photo could not be opened.`), URL.revokeObjectURL(r));
+              (s(`That photo could not be opened.`), URL.revokeObjectURL(o));
             }),
-            (n.src = r));
+            (n.src = o));
         }
         return (0, T.jsx)(`div`, {
           className: `modal-backdrop`,
@@ -16026,7 +16047,7 @@ Error generating stack: ` +
                         children: `Scan Printed SKU`,
                       }),
                       (0, T.jsx)(`p`, {
-                        children: `Place the printed SKU inside the blue guide. ATLAS checks both single-line and multi-line labels.`,
+                        children: `Take a clear photo of the printed SKU or choose an existing photo. ATLAS checks both single-line and multi-line labels.`,
                       }),
                     ],
                   }),
@@ -16039,14 +16060,16 @@ Error generating stack: ` +
                 ],
               }),
               (0, T.jsxs)(`div`, {
-                className: `camera-stage`,
+                className: `camera-stage ${k ? `photo-captured` : ``}`,
                 children: [
                   (0, T.jsx)(`video`, { ref: r, playsInline: !0, muted: !0 }),
                   (0, T.jsx)(`div`, { className: `scan-shade top` }),
                   (0, T.jsx)(`div`, { className: `scan-shade bottom` }),
                   (0, T.jsx)(`div`, {
                     className: `scan-frame`,
-                    children: (0, T.jsx)(`span`, { children: `PRINTED SKU` }),
+                    children: (0, T.jsx)(`span`, {
+                      children: k ? `PHOTO CAPTURED` : `PRINTED SKU`,
+                    }),
                   }),
                   h
                     ? null
@@ -16130,11 +16153,10 @@ Error generating stack: ` +
                   (0, T.jsxs)(`label`, {
                     className: `secondary-button`,
                     children: [
-                      `Choose Photo`,
+                      `Choose Existing Photo`,
                       (0, T.jsx)(`input`, {
                         type: `file`,
                         accept: `image/*`,
-                        capture: `environment`,
                         onChange: x,
                       }),
                     ],
@@ -16144,7 +16166,11 @@ Error generating stack: ` +
                     type: `button`,
                     disabled: !h || d,
                     onClick: b,
-                    children: d ? `Reading…` : `Scan SKU`,
+                    children: d
+                      ? `Reading…`
+                      : k
+                        ? `Retake Photo`
+                        : `Take SKU Photo`,
                   }),
                 ],
               }),
@@ -18721,6 +18747,15 @@ Error generating stack: ` +
         width: 100%;
         height: 100%;
       }
+      .camera-stage.photo-captured video {
+        filter: saturate(0.82) contrast(1.04);
+      }
+      .camera-stage.photo-captured .scan-frame {
+        border-color: #78a9ff;
+        box-shadow:
+          0 0 0 2px #0759d6,
+          0 0 0 999px rgba(2, 8, 15, 0.12);
+      }
       .scan-shade {
         pointer-events: none;
         background: #02080f94;
@@ -18856,6 +18891,11 @@ Error generating stack: ` +
         gap: 9px;
         padding: 11px 16px 17px;
         display: grid;
+      }
+      .scanner-actions .secondary-button,
+      .scanner-actions .primary-button {
+        text-align: center;
+        line-height: 1.2;
       }
       .scanner-actions input {
         display: none;

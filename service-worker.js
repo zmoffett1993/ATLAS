@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v29-location-card-reorder";
+const VERSION = "atlas-pwa-v30-photo-capture-scanner";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
