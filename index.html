@@ -16284,7 +16284,7 @@ Error generating stack: ` +
                                                 className: `missing-button`,
                                                 type: `button`,
                                                 onClick: () => k(u),
-                                                children: `Product is Missing`,
+                                                children: `Can’t find product?`,
                                               }),
                                             ],
                                           },
@@ -22277,6 +22277,437 @@ Error generating stack: ` +
           }
         });
       };
+      const atlasEscapeHtml = (value) =>
+        String(value ?? "").replace(
+          /[&<>"']/g,
+          (character) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[character],
+        );
+      const atlasPostRpc = async (name, payload) => {
+        const response = await fetch(`${atlasApiUrl}/rest/v1/rpc/${name}`, {
+          method: "POST",
+          headers: {
+            ...atlasApiHeaders,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify(payload),
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw Error(
+            body?.message ||
+              body?.hint ||
+              "The inventory update could not be saved.",
+          );
+        }
+        return body;
+      };
+      const openMissingProductWorkflow = ({ sku, clickedLocationCode }) => {
+        document.querySelector(".atlas-correction-backdrop")?.remove();
+        document.querySelector(".atlas-missing-backdrop")?.remove();
+        const previousFocus = document.activeElement;
+        const overlay = document.createElement("div");
+        overlay.className = "atlas-missing-backdrop";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-labelledby", "atlas-missing-title");
+        overlay.innerHTML =
+          '<article class="atlas-missing-sheet" aria-live="polite"></article>';
+        document.body.appendChild(overlay);
+        document.body.classList.add("atlas-overlay-open");
+        const sheet = overlay.querySelector(".atlas-missing-sheet");
+        const safeSku = atlasEscapeHtml(sku);
+        const safeLocationCode = atlasEscapeHtml(clickedLocationCode);
+        const sectionFromCode =
+          String(clickedLocationCode).replace(/^\d+/, "").toUpperCase() ||
+          "this section";
+        let contextPromise;
+        let selectedExistingId = "";
+        let useNewLocation = false;
+
+        const close = () => {
+          document.removeEventListener("keydown", handleKeydown);
+          overlay.remove();
+          document.body.classList.remove("atlas-overlay-open");
+          if (previousFocus instanceof HTMLElement) previousFocus.focus();
+        };
+        const handleKeydown = (event) => {
+          if (event.key === "Escape") close();
+        };
+        const setStatus = (type, message) => {
+          const status = sheet.querySelector(".atlas-missing-status");
+          if (!status) return;
+          status.className = `atlas-missing-status show ${type}`;
+          status.textContent = message;
+        };
+        const getEmployee = () => {
+          const saved = localStorage.getItem("atlasEmployee")?.trim() || "";
+          const input = sheet.querySelector('[name="atlasMissingEmployee"]');
+          const employee = saved || input?.value.trim() || "";
+          if (employee.length < 2) {
+            setStatus(
+              "error",
+              "Enter at least two letters for the employee name or initials.",
+            );
+            input?.focus();
+            return "";
+          }
+          localStorage.setItem("atlasEmployee", employee);
+          return employee;
+        };
+        const employeeMarkup = () => {
+          const employee =
+            localStorage.getItem("atlasEmployee")?.trim() || "";
+          return employee
+            ? `<div class="atlas-session-note">
+                <span aria-hidden="true">✓</span>
+                Initials saved for this session: <strong>${atlasEscapeHtml(employee)}</strong>
+              </div>`
+            : `<label class="atlas-missing-field">
+                <span>Employee name or initials</span>
+                <input name="atlasMissingEmployee" maxlength="60" autocomplete="name" placeholder="Example: ZM">
+              </label>`;
+        };
+        const renderFrame = (content) => {
+          sheet.innerHTML = `
+            <div class="atlas-missing-handle" aria-hidden="true"></div>
+            ${content}`;
+        };
+        const loadContext = () => {
+          if (contextPromise) return contextPromise;
+          contextPromise = (async () => {
+            const skuResults = await atlasFetchJson(
+              `skus?select=id,sku&sku=eq.${encodeURIComponent(atlasNormalizeSku(sku))}`,
+            );
+            const skuRecord = skuResults[0];
+            if (!skuRecord)
+              throw Error("This SKU could not be found in ATLAS.");
+            const activeLocations = await atlasFetchJson(
+              `locations?select=id,sku_id,aisle,section,is_active,pick_first&sku_id=eq.${encodeURIComponent(skuRecord.id)}&is_active=eq.true`,
+            );
+            activeLocations.sort(
+              (left, right) =>
+                Number(left.aisle) - Number(right.aisle) ||
+                String(left.section).localeCompare(String(right.section)),
+            );
+            const sourceLocation = activeLocations.find(
+              (location) =>
+                atlasLocationCode(location) === clickedLocationCode,
+            );
+            if (!sourceLocation)
+              throw Error(
+                `${clickedLocationCode} is no longer an active location for this SKU.`,
+              );
+            return { skuRecord, activeLocations, sourceLocation };
+          })();
+          return contextPromise;
+        };
+        const showLoading = (title) => {
+          renderFrame(`
+            <div class="atlas-missing-loading">
+              <span class="atlas-missing-spinner" aria-hidden="true"></span>
+              <strong>${atlasEscapeHtml(title)}</strong>
+              <small>Loading current warehouse locations…</small>
+            </div>`);
+        };
+        const showLoadError = (error) => {
+          renderFrame(`
+            <div class="atlas-missing-step">
+              <span class="atlas-missing-kicker">LOCATION ASSISTANCE</span>
+              <h2 id="atlas-missing-title">Unable to load this location</h2>
+              <p>${atlasEscapeHtml(
+                error instanceof Error
+                  ? error.message
+                  : "The location could not be loaded.",
+              )}</p>
+              <button class="atlas-missing-primary" type="button" data-close>Close</button>
+            </div>`);
+          sheet
+            .querySelector("[data-close]")
+            ?.addEventListener("click", close);
+        };
+        const showSuccess = (heading, message) => {
+          renderFrame(`
+            <div class="atlas-missing-success">
+              <span class="atlas-missing-success-icon" aria-hidden="true">✓</span>
+              <h2 id="atlas-missing-title">${atlasEscapeHtml(heading)}</h2>
+              <p>${atlasEscapeHtml(message)}</p>
+            </div>`);
+          window.setTimeout(() => window.location.reload(), 1150);
+        };
+        const renderDecision = () => {
+          renderFrame(`
+            <div class="atlas-missing-step">
+              <span class="atlas-missing-kicker">LOCATION ASSISTANCE</span>
+              <h2 id="atlas-missing-title">Can’t find this product at ${safeLocationCode}?</h2>
+              <p>Confirm you checked all applicable levels in Section ${atlasEscapeHtml(sectionFromCode)}.</p>
+              <div class="atlas-missing-actions">
+                <button class="atlas-missing-choice primary" type="button" data-found>
+                  <span>
+                    <strong>Found somewhere else</strong>
+                    <small>Update its location</small>
+                  </span>
+                  <span class="atlas-missing-chevron" aria-hidden="true">›</span>
+                </button>
+                <button class="atlas-missing-choice" type="button" data-remove>
+                  <span>
+                    <strong>Still not found</strong>
+                    <small>Remove ${safeLocationCode} from active locations</small>
+                  </span>
+                  <span class="atlas-missing-chevron" aria-hidden="true">›</span>
+                </button>
+              </div>
+              <button class="atlas-missing-cancel" type="button" data-close>Cancel</button>
+              <div class="atlas-missing-status" role="status" aria-live="polite"></div>
+            </div>`);
+          sheet.querySelector("[data-found]").addEventListener("click", async () => {
+            showLoading("Preparing the location update");
+            try {
+              renderFound(await loadContext());
+            } catch (error) {
+              showLoadError(error);
+            }
+          });
+          sheet.querySelector("[data-remove]").addEventListener("click", async () => {
+            showLoading("Checking the current location");
+            try {
+              renderRemove(await loadContext());
+            } catch (error) {
+              showLoadError(error);
+            }
+          });
+          sheet.querySelector("[data-close]").addEventListener("click", close);
+          sheet.querySelector("[data-found]")?.focus();
+        };
+        const renderFound = ({ skuRecord, activeLocations, sourceLocation }) => {
+          const existingLocations = activeLocations.filter(
+            (location) => location.id !== sourceLocation.id,
+          );
+          const existingMarkup = existingLocations.length
+            ? existingLocations
+                .map((location) => {
+                  const code = atlasLocationCode(location);
+                  const isSelected = selectedExistingId === location.id;
+                  return `<button class="atlas-existing-choice${isSelected ? " selected" : ""}" type="button" data-existing-id="${atlasEscapeHtml(location.id)}" aria-pressed="${isSelected}">
+                    <span class="atlas-existing-code">${atlasEscapeHtml(code)}</span>
+                    <span>
+                      <strong>${atlasEscapeHtml(code)} · Aisle ${atlasEscapeHtml(location.aisle)}, Section ${atlasEscapeHtml(String(location.section).toUpperCase())}</strong>
+                      <small>${location.pick_first ? "Current Pick First location" : "Existing active location"}</small>
+                    </span>
+                    <span class="atlas-missing-chevron" aria-hidden="true">${isSelected ? "✓" : "›"}</span>
+                  </button>`;
+                })
+                .join("")
+            : '<div class="atlas-no-existing">No other active locations for this SKU.</div>';
+          const aisleOptions = Array.from(
+            { length: 22 },
+            (_, index) =>
+              `<option value="${index + 1}">Aisle ${index + 1}${index === 21 ? " · Overflow Floor Location" : ""}</option>`,
+          ).join("");
+          renderFrame(`
+            <div class="atlas-missing-step">
+              <button class="atlas-missing-back" type="button" data-back aria-label="Back to location choices">‹ Back</button>
+              <span class="atlas-missing-kicker">QUICK LOCATION UPDATE</span>
+              <h2 id="atlas-missing-title">Where did you find it?</h2>
+              <div class="atlas-missing-context">
+                <span>SKU</span>
+                <strong>${atlasEscapeHtml(skuRecord.sku)}</strong>
+                <small>Incorrect location: ${safeLocationCode}</small>
+              </div>
+              <div class="atlas-existing-list">
+                <span class="atlas-missing-label">Choose an existing location</span>
+                ${existingMarkup}
+              </div>
+              <button class="atlas-new-location-toggle${useNewLocation ? " selected" : ""}" type="button" data-new-location aria-expanded="${useNewLocation}">
+                <span class="atlas-new-location-icon" aria-hidden="true">⌖</span>
+                <span>
+                  <strong>Enter a different location</strong>
+                  <small>Use an aisle and section not listed above</small>
+                </span>
+                <span class="atlas-missing-chevron" aria-hidden="true">${useNewLocation ? "−" : "›"}</span>
+              </button>
+              ${
+                useNewLocation
+                  ? `<div class="atlas-new-location-fields">
+                      <label class="atlas-missing-field">
+                        <span>New aisle</span>
+                        <select name="atlasNewAisle">
+                          <option value="">Choose aisle</option>
+                          ${aisleOptions}
+                        </select>
+                      </label>
+                      <label class="atlas-missing-field">
+                        <span>New section</span>
+                        <select name="atlasNewSection" disabled>
+                          <option value="">Choose section</option>
+                        </select>
+                      </label>
+                    </div>`
+                  : ""
+              }
+              ${employeeMarkup()}
+              <div class="atlas-missing-status" role="status" aria-live="polite"></div>
+              <button class="atlas-missing-primary" type="button" data-update disabled>Update Location</button>
+              <button class="atlas-missing-cancel" type="button" data-close>Cancel</button>
+            </div>`);
+          const updateButton = sheet.querySelector("[data-update]");
+          const aisleSelect = sheet.querySelector('[name="atlasNewAisle"]');
+          const sectionSelect = sheet.querySelector('[name="atlasNewSection"]');
+          const syncUpdateAvailability = () => {
+            updateButton.disabled = !(
+              selectedExistingId ||
+              (useNewLocation && aisleSelect?.value && sectionSelect?.value)
+            );
+          };
+          sheet.querySelectorAll("[data-existing-id]").forEach((button) => {
+            button.addEventListener("click", () => {
+              selectedExistingId = button.dataset.existingId;
+              useNewLocation = false;
+              renderFound({ skuRecord, activeLocations, sourceLocation });
+            });
+          });
+          sheet.querySelector("[data-new-location]").addEventListener("click", () => {
+            useNewLocation = !useNewLocation;
+            if (useNewLocation) selectedExistingId = "";
+            renderFound({ skuRecord, activeLocations, sourceLocation });
+          });
+          aisleSelect?.addEventListener("change", () => {
+            const sections = atlasSectionsForAisle(Number(aisleSelect.value));
+            sectionSelect.innerHTML =
+              '<option value="">Choose section</option>' +
+              sections
+                .map(
+                  (section) =>
+                    `<option value="${section}">Section ${section}</option>`,
+                )
+                .join("");
+            sectionSelect.disabled = !aisleSelect.value;
+            syncUpdateAvailability();
+          });
+          sectionSelect?.addEventListener("change", syncUpdateAvailability);
+          updateButton.addEventListener("click", async () => {
+            const employee = getEmployee();
+            if (!employee) return;
+            const existingLocation = activeLocations.find(
+              (location) => location.id === selectedExistingId,
+            );
+            const newAisle = Number(aisleSelect?.value || 0);
+            const newSection = String(sectionSelect?.value || "").toUpperCase();
+            if (
+              !existingLocation &&
+              (!useNewLocation || !newAisle || !newSection)
+            ) {
+              return setStatus(
+                "error",
+                "Choose an existing location or enter a new aisle and section.",
+              );
+            }
+            if (
+              !existingLocation &&
+              Number(sourceLocation.aisle) === newAisle &&
+              String(sourceLocation.section).toUpperCase() === newSection
+            ) {
+              return setStatus(
+                "error",
+                "The new location must be different from the incorrect location.",
+              );
+            }
+            updateButton.disabled = true;
+            updateButton.textContent = "Updating…";
+            try {
+              await atlasPostRpc("correct_inventory_location", {
+                p_source_location_id: sourceLocation.id,
+                p_destination_location_id: existingLocation?.id || null,
+                p_new_aisle: existingLocation ? null : newAisle,
+                p_new_section: existingLocation ? null : newSection,
+                p_employee_name: employee,
+                p_reason: "Product found in a different location",
+              });
+              const destination = existingLocation
+                ? atlasLocationCode(existingLocation)
+                : `${newAisle}${newSection}`;
+              showSuccess(
+                "Location updated",
+                `${skuRecord.sku}: ${clickedLocationCode} → ${destination}`,
+              );
+            } catch (error) {
+              setStatus(
+                "error",
+                error instanceof Error
+                  ? error.message
+                  : "The location could not be updated.",
+              );
+              updateButton.disabled = false;
+              updateButton.textContent = "Update Location";
+            }
+          });
+          sheet.querySelector("[data-back]").addEventListener("click", renderDecision);
+          sheet.querySelector("[data-close]").addEventListener("click", close);
+          syncUpdateAvailability();
+        };
+        const renderRemove = ({ skuRecord, sourceLocation }) => {
+          renderFrame(`
+            <div class="atlas-missing-step">
+              <button class="atlas-missing-back" type="button" data-back aria-label="Back to location choices">‹ Back</button>
+              <span class="atlas-missing-kicker">CONFIRM LOCATION REMOVAL</span>
+              <h2 id="atlas-missing-title">Remove ${safeLocationCode} from active locations?</h2>
+              <p>This prevents other pickers from being sent here. The assignment can be restored later from Inventory.</p>
+              <div class="atlas-missing-context">
+                <span>SKU</span>
+                <strong>${atlasEscapeHtml(skuRecord.sku)}</strong>
+                <small>Location being removed: ${safeLocationCode}</small>
+              </div>
+              ${employeeMarkup()}
+              <div class="atlas-missing-status" role="status" aria-live="polite"></div>
+              <button class="atlas-missing-primary" type="button" data-confirm-remove>Remove ${safeLocationCode}</button>
+              <button class="atlas-missing-cancel" type="button" data-close>Cancel</button>
+            </div>`);
+          const removeButton = sheet.querySelector("[data-confirm-remove]");
+          removeButton.addEventListener("click", async () => {
+            const employee = getEmployee();
+            if (!employee) return;
+            removeButton.disabled = true;
+            removeButton.textContent = "Removing…";
+            try {
+              await atlasPostRpc("set_inventory_location_active", {
+                p_location_id: sourceLocation.id,
+                p_is_active: false,
+                p_employee_name: employee,
+                p_reason: "Product not found after checking all applicable levels",
+              });
+              showSuccess(
+                `${clickedLocationCode} removed`,
+                "Other pickers will no longer be sent to this location.",
+              );
+            } catch (error) {
+              setStatus(
+                "error",
+                error instanceof Error
+                  ? error.message
+                  : "The location could not be removed.",
+              );
+              removeButton.disabled = false;
+              removeButton.textContent = `Remove ${clickedLocationCode}`;
+            }
+          });
+          sheet.querySelector("[data-back]").addEventListener("click", renderDecision);
+          sheet.querySelector("[data-close]").addEventListener("click", close);
+        };
+
+        overlay.addEventListener("click", (event) => {
+          if (event.target === overlay) close();
+        });
+        document.addEventListener("keydown", handleKeydown);
+        renderDecision();
+        loadContext().catch(() => {});
+      };
       const ensureUpdatedAtlasBranding = () => {
         const image = document.querySelector(".atlas-logo-window img");
         if (!image || image.dataset.atlasHomeLockupV3 === "true") return;
@@ -22411,7 +22842,7 @@ Error generating stack: ` +
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
-          openCorrectLocation({ sku, clickedLocationCode });
+          openMissingProductWorkflow({ sku, clickedLocationCode });
         },
         true,
       );
@@ -22750,6 +23181,431 @@ Error generating stack: ` +
       @media (prefers-reduced-motion: reduce) {
         .atlas-product-placeholder {
           animation: none !important;
+        }
+      }
+    </style>
+    <style id="atlas-cant-find-product-workflow">
+      /* July 30, 2026 — approved compact navy exception workflow */
+      .result-card .location-entry .missing-button,
+      .result-card .location-entry.selected > .missing-button,
+      .result-card .location-entry:not(.selected) .missing-button {
+        width: auto;
+        min-height: 38px;
+        color: #102a56;
+        background: #f7faff;
+        border: 1px solid #9eb3cc;
+        border-radius: 10px;
+        margin: 8px 0 0 auto;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        line-height: 1;
+        box-shadow: none;
+      }
+      .result-card .location-entry .missing-button::before {
+        content: "?";
+        width: 17px;
+        height: 17px;
+        color: #102a56;
+        border: 1.5px solid currentColor;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 950;
+        line-height: 1;
+      }
+      .result-card .location-entry.selected > .missing-button {
+        margin: 9px 12px 12px auto;
+      }
+      .result-card .location-entry .missing-button:active {
+        background: #eaf1fa;
+        transform: translateY(1px);
+      }
+      .result-card .location-entry .missing-button:focus-visible {
+        outline: 3px solid rgba(16, 42, 86, 0.2);
+        outline-offset: 2px;
+      }
+      .atlas-missing-backdrop {
+        z-index: 255;
+        background: rgba(3, 18, 39, 0.58);
+        backdrop-filter: blur(5px);
+        padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+        align-items: end;
+        justify-content: center;
+        display: flex;
+        position: fixed;
+        inset: 0;
+      }
+      .atlas-missing-sheet {
+        width: min(100%, 560px);
+        max-height: min(88vh, 760px);
+        color: #10243e;
+        background: #fff;
+        border: 1px solid #dce6f1;
+        border-radius: 24px 24px 20px 20px;
+        overflow: auto;
+        box-shadow: 0 28px 80px rgba(0, 18, 48, 0.38);
+        scrollbar-width: thin;
+        scrollbar-color: #bfd0e4 transparent;
+      }
+      .atlas-missing-handle {
+        width: 40px;
+        height: 5px;
+        background: #c8d3df;
+        border-radius: 999px;
+        margin: 11px auto 4px;
+      }
+      .atlas-missing-step {
+        padding: 16px 20px 21px;
+      }
+      .atlas-missing-kicker,
+      .atlas-missing-label {
+        color: #31577f;
+        letter-spacing: 0.13em;
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+        display: block;
+      }
+      .atlas-missing-step h2,
+      .atlas-missing-success h2 {
+        color: #0b2344;
+        margin: 7px 0 8px;
+        font-size: clamp(22px, 6vw, 28px);
+        font-weight: 950;
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+      }
+      .atlas-missing-step > p,
+      .atlas-missing-success p {
+        color: #52667c;
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .atlas-missing-actions {
+        gap: 10px;
+        margin-top: 19px;
+        display: grid;
+      }
+      .atlas-missing-choice,
+      .atlas-existing-choice,
+      .atlas-new-location-toggle {
+        width: 100%;
+        min-height: 70px;
+        color: #122945;
+        text-align: left;
+        cursor: pointer;
+        background: #fff;
+        border: 1px solid #aebfd2;
+        border-radius: 14px;
+        padding: 12px 14px;
+        align-items: center;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        display: grid;
+      }
+      .atlas-missing-choice.primary {
+        color: #fff;
+        background: linear-gradient(135deg, #102a56, #071d3e);
+        border-color: #102a56;
+        box-shadow: 0 10px 23px rgba(16, 42, 86, 0.2);
+      }
+      .atlas-missing-choice strong,
+      .atlas-existing-choice strong,
+      .atlas-new-location-toggle strong {
+        font-size: 15px;
+        font-weight: 900;
+        line-height: 1.25;
+        display: block;
+      }
+      .atlas-missing-choice small,
+      .atlas-existing-choice small,
+      .atlas-new-location-toggle small {
+        color: #64788e;
+        margin-top: 3px;
+        font-size: 12px;
+        line-height: 1.3;
+        display: block;
+      }
+      .atlas-missing-choice.primary small {
+        color: #d8e5f6;
+      }
+      .atlas-missing-chevron {
+        min-width: 20px;
+        text-align: center;
+        font-size: 25px;
+        font-weight: 600;
+        line-height: 1;
+      }
+      .atlas-missing-cancel,
+      .atlas-missing-back {
+        color: #164875;
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        font-size: 14px;
+        font-weight: 900;
+      }
+      .atlas-missing-cancel {
+        width: 100%;
+        margin-top: 11px;
+        padding: 10px;
+      }
+      .atlas-missing-back {
+        margin: -5px 0 7px -8px;
+        padding: 7px 8px;
+      }
+      .atlas-missing-context {
+        background: linear-gradient(145deg, #f5f8fc, #edf3f9);
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        margin: 15px 0;
+        padding: 12px 14px;
+      }
+      .atlas-missing-context span {
+        color: #6a7d91;
+        letter-spacing: 0.13em;
+        font-size: 9px;
+        font-weight: 950;
+        display: block;
+      }
+      .atlas-missing-context strong {
+        color: #0b2344;
+        margin-top: 3px;
+        font-size: 16px;
+        overflow-wrap: anywhere;
+        display: block;
+      }
+      .atlas-missing-context small {
+        color: #50657c;
+        margin-top: 4px;
+        font-size: 12px;
+        display: block;
+      }
+      .atlas-existing-list {
+        gap: 8px;
+        margin-bottom: 10px;
+        display: grid;
+      }
+      .atlas-existing-choice {
+        min-height: 62px;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        padding: 9px 11px;
+      }
+      .atlas-existing-choice.selected {
+        color: #fff;
+        background: #102a56;
+        border-color: #102a56;
+        box-shadow: 0 8px 18px rgba(16, 42, 86, 0.18);
+      }
+      .atlas-existing-choice.selected small {
+        color: #d7e4f4;
+      }
+      .atlas-existing-code {
+        min-width: 44px;
+        height: 44px;
+        color: #fff;
+        background: linear-gradient(145deg, #0b5fd7, #0a429d);
+        border-radius: 9px;
+        padding: 0 7px;
+        place-items: center;
+        font-size: 15px;
+        font-weight: 950;
+        display: grid;
+      }
+      .atlas-no-existing {
+        color: #66798e;
+        background: #f7f9fc;
+        border: 1px dashed #cbd7e4;
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .atlas-new-location-toggle {
+        min-height: 62px;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        margin-top: 8px;
+      }
+      .atlas-new-location-toggle.selected {
+        background: #eef4fb;
+        border-color: #718ba8;
+      }
+      .atlas-new-location-icon {
+        width: 35px;
+        height: 35px;
+        color: #102a56;
+        background: #e6eef8;
+        border-radius: 50%;
+        place-items: center;
+        font-size: 19px;
+        font-weight: 900;
+        display: grid;
+      }
+      .atlas-new-location-fields {
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-top: 10px;
+        display: grid;
+      }
+      .atlas-missing-field {
+        gap: 6px;
+        margin-top: 12px;
+        display: grid;
+      }
+      .atlas-missing-field > span {
+        color: #243b56;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .atlas-missing-field input,
+      .atlas-missing-field select {
+        width: 100%;
+        min-height: 46px;
+        color: #12263f;
+        background: #fff;
+        border: 1px solid #bdccdc;
+        border-radius: 11px;
+        padding: 10px 11px;
+        font: inherit;
+        outline: none;
+      }
+      .atlas-missing-field input:focus,
+      .atlas-missing-field select:focus {
+        border-color: #102a56;
+        box-shadow: 0 0 0 3px rgba(16, 42, 86, 0.12);
+      }
+      .atlas-session-note {
+        color: #5c7086;
+        background: #f7f9fc;
+        border: 1px solid #e0e7ef;
+        border-radius: 11px;
+        margin-top: 13px;
+        padding: 10px 11px;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      .atlas-session-note span {
+        color: #155d49;
+        margin-right: 4px;
+        font-weight: 950;
+      }
+      .atlas-session-note strong {
+        color: #233b56;
+      }
+      .atlas-missing-primary {
+        width: 100%;
+        min-height: 50px;
+        color: #fff;
+        cursor: pointer;
+        background: linear-gradient(135deg, #102a56, #071d3e);
+        border: 0;
+        border-radius: 13px;
+        margin-top: 13px;
+        padding: 12px 15px;
+        font-size: 15px;
+        font-weight: 950;
+        box-shadow: 0 9px 22px rgba(16, 42, 86, 0.22);
+      }
+      .atlas-missing-primary:disabled {
+        cursor: not-allowed;
+        opacity: 0.48;
+        box-shadow: none;
+      }
+      .atlas-missing-status {
+        border-radius: 11px;
+        margin-top: 10px;
+        padding: 10px 11px;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.4;
+        display: none;
+      }
+      .atlas-missing-status.show {
+        display: block;
+      }
+      .atlas-missing-status.error {
+        color: #8f2930;
+        background: #fff4f4;
+        border: 1px solid #f2c9cd;
+      }
+      .atlas-missing-status.success {
+        color: #0c674c;
+        background: #effcf7;
+        border: 1px solid #bfe7d8;
+      }
+      .atlas-missing-loading,
+      .atlas-missing-success {
+        min-height: 210px;
+        text-align: center;
+        padding: 34px 22px;
+        place-items: center;
+        align-content: center;
+        display: grid;
+      }
+      .atlas-missing-loading strong {
+        color: #0b2344;
+        margin-top: 13px;
+        font-size: 17px;
+      }
+      .atlas-missing-loading small {
+        color: #65798f;
+        margin-top: 4px;
+        font-size: 12px;
+      }
+      .atlas-missing-spinner {
+        width: 34px;
+        height: 34px;
+        border: 3px solid #dce6f1;
+        border-top-color: #102a56;
+        border-radius: 50%;
+        animation: atlas-missing-spin 0.8s linear infinite;
+      }
+      .atlas-missing-success-icon {
+        width: 51px;
+        height: 51px;
+        color: #fff;
+        background: #17644f;
+        border-radius: 50%;
+        place-items: center;
+        font-size: 27px;
+        font-weight: 950;
+        display: grid;
+      }
+      .atlas-missing-success p {
+        max-width: 360px;
+      }
+      @keyframes atlas-missing-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (min-width: 620px) {
+        .atlas-missing-backdrop {
+          align-items: center;
+        }
+      }
+      @media (max-width: 390px) {
+        .atlas-missing-backdrop {
+          padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+        }
+        .atlas-missing-step {
+          padding: 14px 14px 18px;
+        }
+        .atlas-new-location-fields {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-missing-spinner {
+          animation: none;
         }
       }
     </style>
