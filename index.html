@@ -15792,11 +15792,16 @@ Error generating stack: ` +
         }, [_]);
         function v(e) {
           const ignoredLabelText =
-            /\b(?:CASE\s*QTY|QTY|QUANTITY|DATE|LOT|SETS?)\b.*$/i;
+            /(?:\bCASE\s*)?(?:[QO0]TY|QUANTITY)\s*[:.-]?\s*.*$|\b(?:DATE|LOT|BATCH|PALLET|PACK|SETS?)\b.*$/i;
           const cleanedLines = String(e || ``)
             .toUpperCase()
             .split(/\r?\n/)
-            .map((line) => line.replace(ignoredLabelText, ``).trim())
+            .map((line) =>
+              line
+                .replace(ignoredLabelText, ``)
+                .replace(/^\s*\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\s*$/, ``)
+                .trim(),
+            )
             .filter(
               (line) =>
                 line &&
@@ -15807,7 +15812,7 @@ Error generating stack: ` +
           for (let start = 0; start < cleanedLines.length; start += 1) {
             for (
               let count = 2;
-              count <= 3 && start + count <= cleanedLines.length;
+              count <= 6 && start + count <= cleanedLines.length;
               count += 1
             ) {
               const combined = M(
@@ -15886,6 +15891,21 @@ Error generating stack: ` +
                 left.distance - right.distance ||
                 left.sku.localeCompare(right.sku),
             );
+          const best = scored[0];
+          const runnerUp = scored[1];
+          if (
+            best &&
+            best.ratio <= 0.13 &&
+            best.distance <= 2.35 &&
+            (!runnerUp || runnerUp.ratio - best.ratio >= 0.055)
+          ) {
+            return {
+              exact: best.sku,
+              confidence: `high`,
+              suggestions: [],
+              raw: e,
+            };
+          }
           let i =
             normalizedCandidates.sort(
               (left, right) => right.length - left.length,
@@ -15902,17 +15922,17 @@ Error generating stack: ` +
             (f(!0), m(null), l(0), s(`Preparing the printed SKU…`));
             try {
               let i = Math.floor(r * 0.025),
-                c = Math.floor(a * 0.2),
+                c = Math.floor(a * 0.15),
                 d = Math.floor(r * 0.95),
-                f = Math.floor(a * 0.6),
+                f = Math.floor(a * 0.65),
                 p = Math.min(1800, Math.max(1200, d * 1.5)),
                 h = Math.max(440, Math.floor((f / d) * p));
               ((o.width = p), (o.height = h));
               let g = o.getContext(`2d`, { willReadFrequently: !0 });
               if (!g) throw Error(`The image could not be prepared.`);
-              g.drawImage(t, i, c, d, f, 0, 0, p, h);
-              s(`Reading SKU characters…`);
+              s(`Analyzing label angle and SKU characters…`);
               let recognitionPass = 0;
+              const scanAngles = [0, 6, -6];
               let {
                   createWorker: y,
                   OEM: b,
@@ -15937,7 +15957,9 @@ Error generating stack: ` +
                     e.status === `recognizing text` &&
                       l(
                         Math.round(
-                          ((recognitionPass + (e.progress || 0)) / 2) * 100,
+                          ((recognitionPass + (e.progress || 0)) /
+                            scanAngles.length) *
+                            100,
                         ),
                       );
                   },
@@ -15947,31 +15969,47 @@ Error generating stack: ` +
                 tessedit_pageseg_mode: x.SPARSE_TEXT,
                 preserve_interword_spaces: `0`,
               });
-              let C = await S.recognize(o);
-              recognitionPass = 1;
-              const enhanced = g.getImageData(0, 0, p, h);
-              for (let e = 0; e < enhanced.data.length; e += 4) {
-                const brightness =
-                  enhanced.data[e] * 0.299 +
-                  enhanced.data[e + 1] * 0.587 +
-                  enhanced.data[e + 2] * 0.114;
-                const contrast = Math.max(
-                  0,
-                  Math.min(255, (brightness - 128) * 1.65 + 128),
+              const readings = [];
+              for (
+                let passIndex = 0;
+                passIndex < scanAngles.length;
+                passIndex += 1
+              ) {
+                const angle = scanAngles[passIndex];
+                recognitionPass = passIndex;
+                s(
+                  `Reading SKU characters · angle ${passIndex + 1} of ${scanAngles.length}…`,
                 );
-                enhanced.data[e] = contrast;
-                enhanced.data[e + 1] = contrast;
-                enhanced.data[e + 2] = contrast;
+                g.setTransform(1, 0, 0, 1, 0, 0);
+                g.clearRect(0, 0, p, h);
+                g.fillStyle = `#ffffff`;
+                g.fillRect(0, 0, p, h);
+                g.save();
+                g.translate(p / 2, h / 2);
+                g.rotate((angle * Math.PI) / 180);
+                g.drawImage(t, i, c, d, f, -p / 2, -h / 2, p, h);
+                g.restore();
+
+                const enhanced = g.getImageData(0, 0, p, h);
+                for (let pixel = 0; pixel < enhanced.data.length; pixel += 4) {
+                  const brightness =
+                    enhanced.data[pixel] * 0.299 +
+                    enhanced.data[pixel + 1] * 0.587 +
+                    enhanced.data[pixel + 2] * 0.114;
+                  const contrast = Math.max(
+                    0,
+                    Math.min(255, (brightness - 128) * 1.6 + 128),
+                  );
+                  enhanced.data[pixel] = contrast;
+                  enhanced.data[pixel + 1] = contrast;
+                  enhanced.data[pixel + 2] = contrast;
+                }
+                g.putImageData(enhanced, 0, 0);
+                const passResult = await S.recognize(o);
+                readings.push(passResult.data.text || ``);
               }
-              g.putImageData(enhanced, 0, 0);
-              await S.setParameters({
-                tessedit_char_whitelist: `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.`,
-                tessedit_pageseg_mode: x.SINGLE_LINE,
-                preserve_interword_spaces: `0`,
-              });
-              const secondPass = await S.recognize(o);
               await S.terminate();
-              let w = v(`${C.data.text || ``}\n${secondPass.data.text || ``}`);
+              let w = v(readings.join(`\n`));
               (m(w),
                 w.exact
                   ? (s(`Exact ATLAS SKU found.`),
