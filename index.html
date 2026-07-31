@@ -24440,6 +24440,336 @@ Error generating stack: ` +
         queue();
       })();
     </script>
+    <style id="atlas-product-detail-modal-design">
+      .atlas-product-showcase {
+        position: relative;
+        cursor: zoom-in;
+        -webkit-tap-highlight-color: transparent;
+        transition:
+          border-color 160ms ease,
+          box-shadow 180ms ease,
+          transform 160ms ease;
+      }
+      .atlas-product-showcase::after {
+        content: "TAP TO ENLARGE";
+        position: absolute;
+        right: 10px;
+        bottom: 9px;
+        color: #164fb8;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(22, 79, 184, 0.18);
+        border-radius: 999px;
+        padding: 5px 8px;
+        box-shadow: 0 4px 10px rgba(7, 31, 67, 0.08);
+        font-size: 7px;
+        font-weight: 950;
+        letter-spacing: 0.1em;
+        pointer-events: none;
+      }
+      .atlas-product-showcase:active {
+        transform: scale(0.992);
+      }
+      .atlas-product-showcase:focus-visible {
+        outline: 3px solid rgba(24, 91, 219, 0.32);
+        outline-offset: 3px;
+      }
+      .atlas-product-detail-backdrop {
+        position: fixed;
+        z-index: 12000;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding:
+          max(20px, env(safe-area-inset-top))
+          18px
+          max(20px, env(safe-area-inset-bottom));
+        background: rgba(3, 15, 34, 0.38);
+        -webkit-backdrop-filter: blur(5px) saturate(0.9);
+        backdrop-filter: blur(5px) saturate(0.9);
+        animation: atlas-product-backdrop-in 190ms ease-out both;
+      }
+      .atlas-product-detail-modal {
+        position: relative;
+        width: min(86vw, 620px);
+        max-height: min(78dvh, 760px);
+        overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        color: #071a31;
+        background: #fff;
+        border: 1px solid rgba(205, 218, 235, 0.96);
+        border-radius: 22px;
+        box-shadow:
+          0 28px 70px rgba(2, 14, 34, 0.34),
+          0 2px 8px rgba(2, 14, 34, 0.12);
+        animation: atlas-product-modal-in 260ms
+          cubic-bezier(0.22, 0.8, 0.25, 1) both;
+      }
+      .atlas-product-detail-close {
+        position: sticky;
+        z-index: 2;
+        top: 14px;
+        float: right;
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        margin: 14px 14px -56px 0;
+        color: #102440;
+        background: rgba(242, 246, 251, 0.96);
+        border: 1px solid #d5dfeb;
+        border-radius: 50%;
+        box-shadow: 0 5px 14px rgba(5, 28, 59, 0.12);
+        cursor: pointer;
+        font-size: 25px;
+        line-height: 1;
+      }
+      .atlas-product-detail-content {
+        padding: 26px;
+      }
+      .atlas-product-detail-image {
+        display: grid;
+        place-items: center;
+        min-height: 280px;
+        margin-bottom: 23px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 42%, #fff 0%, #f7f9fc 72%);
+        border: 1px solid #e0e7f0;
+        border-radius: 17px;
+      }
+      .atlas-product-detail-image img {
+        display: block;
+        width: 100%;
+        height: min(36dvh, 350px);
+        padding: 18px;
+        object-fit: contain;
+      }
+      .atlas-product-detail-image span {
+        color: #65758a;
+        padding: 50px 22px;
+        font-size: 12px;
+        font-weight: 850;
+        text-align: center;
+      }
+      .atlas-product-detail-eyebrow,
+      .atlas-product-detail-sku-label {
+        display: block;
+        color: #1751ba;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+      .atlas-product-detail-title {
+        margin: 8px 0 22px;
+        color: #071a31;
+        font-size: clamp(22px, 5.6vw, 34px);
+        font-weight: 950;
+        line-height: 1.1;
+        letter-spacing: -0.025em;
+        overflow-wrap: anywhere;
+      }
+      .atlas-product-detail-sku {
+        margin-top: 7px;
+        color: #102440;
+        font-size: clamp(15px, 4vw, 20px);
+        font-weight: 900;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+      .atlas-product-detail-source {
+        margin: 18px 0 0;
+        color: #66768a;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.4;
+      }
+      body.atlas-product-detail-open {
+        overflow: hidden;
+      }
+      @keyframes atlas-product-backdrop-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes atlas-product-modal-in {
+        from {
+          opacity: 0;
+          transform: translateY(14px) scale(0.975);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @media (max-width: 460px) {
+        .atlas-product-detail-backdrop {
+          padding-inline: 14px;
+        }
+        .atlas-product-detail-modal {
+          width: 88vw;
+          max-height: 80dvh;
+          border-radius: 19px;
+        }
+        .atlas-product-detail-content {
+          padding: 20px;
+        }
+        .atlas-product-detail-image {
+          min-height: 230px;
+          margin-bottom: 19px;
+        }
+        .atlas-product-detail-image img {
+          height: min(32dvh, 300px);
+          padding: 12px;
+        }
+        .atlas-product-detail-title {
+          font-size: 23px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-product-showcase,
+        .atlas-product-detail-backdrop,
+        .atlas-product-detail-modal {
+          animation: none;
+          transition: none;
+        }
+      }
+    </style>
+    <script id="atlas-product-detail-modal-behavior">
+      (() => {
+        let returnFocus = null;
+
+        const closeProductDetail = () => {
+          const backdrop = document.querySelector(
+            ".atlas-product-detail-backdrop",
+          );
+          if (!backdrop) return;
+          backdrop.remove();
+          document.body.classList.remove("atlas-product-detail-open");
+          returnFocus?.focus?.({ preventScroll: true });
+          returnFocus = null;
+        };
+
+        const openProductDetail = (showcase) => {
+          if (!showcase) return;
+          closeProductDetail();
+          returnFocus = showcase;
+
+          const resultCard = showcase.closest(".result-card");
+          const title =
+            showcase.querySelector(".atlas-product-title")?.textContent?.trim() ||
+            "Product description unavailable";
+          const sku =
+            resultCard?.querySelector(".sku-copy strong")?.textContent?.trim() ||
+            showcase.dataset.sku ||
+            "SKU unavailable";
+          const sourceNote =
+            showcase
+              .querySelector(".atlas-product-match-note")
+              ?.textContent?.trim() || "";
+          const sourceImage = showcase.querySelector(".atlas-product-media img");
+          const imageUrl =
+            sourceImage?.currentSrc || sourceImage?.getAttribute("src") || "";
+          const imageAvailable =
+            Boolean(imageUrl) &&
+            !showcase.classList.contains("image-unavailable") &&
+            sourceImage?.complete &&
+            sourceImage?.naturalWidth > 0;
+
+          const backdrop = document.createElement("div");
+          backdrop.className = "atlas-product-detail-backdrop";
+          backdrop.setAttribute("role", "presentation");
+          backdrop.innerHTML = `
+            <article
+              class="atlas-product-detail-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="atlas-product-detail-title"
+            >
+              <button
+                class="atlas-product-detail-close"
+                type="button"
+                aria-label="Close product details"
+              >×</button>
+              <div class="atlas-product-detail-content">
+                <div class="atlas-product-detail-image"></div>
+                <span class="atlas-product-detail-eyebrow">Product Identification</span>
+                <h2 class="atlas-product-detail-title" id="atlas-product-detail-title"></h2>
+                <span class="atlas-product-detail-sku-label">SKU</span>
+                <div class="atlas-product-detail-sku"></div>
+                <p class="atlas-product-detail-source"></p>
+              </div>
+            </article>`;
+
+          const imageContainer = backdrop.querySelector(
+            ".atlas-product-detail-image",
+          );
+          if (imageAvailable) {
+            const image = document.createElement("img");
+            image.src = imageUrl;
+            image.alt = `${title} product image`;
+            imageContainer.appendChild(image);
+          } else {
+            const unavailable = document.createElement("span");
+            unavailable.textContent = "Product image currently unavailable";
+            imageContainer.appendChild(unavailable);
+          }
+          backdrop.querySelector(".atlas-product-detail-title").textContent =
+            title;
+          backdrop.querySelector(".atlas-product-detail-sku").textContent = sku;
+          const source = backdrop.querySelector(".atlas-product-detail-source");
+          source.textContent =
+            sourceNote || "Approved Chubby Gorilla catalog product";
+
+          backdrop
+            .querySelector(".atlas-product-detail-close")
+            .addEventListener("click", closeProductDetail);
+          backdrop.addEventListener("click", (event) => {
+            if (event.target === backdrop) closeProductDetail();
+          });
+          document.body.appendChild(backdrop);
+          document.body.classList.add("atlas-product-detail-open");
+          backdrop.querySelector(".atlas-product-detail-close").focus({
+            preventScroll: true,
+          });
+        };
+
+        document.addEventListener("click", (event) => {
+          const showcase = event.target.closest(".atlas-product-showcase");
+          if (!showcase) return;
+          openProductDetail(showcase);
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            closeProductDetail();
+            return;
+          }
+          if (
+            (event.key === "Enter" || event.key === " ") &&
+            event.target.classList?.contains("atlas-product-showcase")
+          ) {
+            event.preventDefault();
+            openProductDetail(event.target);
+          }
+        });
+
+        const makeShowcasesInteractive = () => {
+          document.querySelectorAll(".atlas-product-showcase").forEach((card) => {
+            if (card.hasAttribute("tabindex")) return;
+            card.tabIndex = 0;
+            card.setAttribute("role", "button");
+            card.setAttribute("aria-haspopup", "dialog");
+            card.setAttribute("aria-label", "Open larger product image and full description");
+          });
+        };
+        new MutationObserver(makeShowcasesInteractive).observe(
+          document.documentElement,
+          { childList: true, subtree: true },
+        );
+        window.addEventListener("DOMContentLoaded", makeShowcasesInteractive);
+        makeShowcasesInteractive();
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
