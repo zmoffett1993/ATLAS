@@ -14402,7 +14402,7 @@ Error generating stack: ` +
             id: `move`,
             icon: `⇄`,
             title: `Move Inventory`,
-            description: `Move a SKU location or add an overflow location when the active locations are full.`,
+            description: `Keep product in both locations or move all product to a new location.`,
           },
           {
             id: `clear`,
@@ -14553,12 +14553,21 @@ Error generating stack: ` +
         autoFocus: c = !1,
       }) {
         let [l, u] = (0, C.useState)(!1),
+          p = (0, C.useRef)(!1),
+          m = (0, C.useRef)(null),
           d = (0, C.useMemo)(
             () => (t.trim() ? n.filter((e) => Ke(e.sku, t)).slice(0, 10) : []),
             [n, t],
           ),
           f = (e) => {
             (u(!1), Ge(), i(e));
+          },
+          h = () => {
+            ((p.current = !0),
+              Ge(),
+              window.setTimeout(() => {
+                p.current = !1;
+              }, 260));
           };
         return (0, T.jsxs)(`div`, {
           className: `sku-search-field`,
@@ -14578,7 +14587,10 @@ Error generating stack: ` +
                   spellCheck: !1,
                   onChange: (e) => r(e.target.value.toUpperCase()),
                   onFocus: () => u(!0),
-                  onBlur: () => window.setTimeout(() => u(!1), 120),
+                  onBlur: () =>
+                    window.setTimeout(() => {
+                      p.current || u(!1);
+                    }, 120),
                   onKeyDown: (e) => {
                     if (e.key !== `Enter`) return;
                     e.preventDefault();
@@ -14608,6 +14620,23 @@ Error generating stack: ` +
                   ? (0, T.jsx)(`div`, {
                       className: `suggestions`,
                       role: `listbox`,
+                      onTouchStart: (e) => {
+                        m.current = e.touches?.[0]?.clientY ?? null;
+                      },
+                      onTouchMove: (e) => {
+                        let t = e.touches?.[0]?.clientY;
+                        if (
+                          m.current === null ||
+                          t === void 0 ||
+                          Math.abs(t - m.current) < 8
+                        )
+                          return;
+                        h();
+                      },
+                      onTouchEnd: () => {
+                        m.current = null;
+                      },
+                      onWheel: h,
                       children: d.length
                         ? d.map((e) =>
                             (0, T.jsxs)(
@@ -14884,7 +14913,7 @@ Error generating stack: ` +
           [o, s] = (0, C.useState)(r),
           c = Ye(o?.locations.filter((e) => e.is_active !== !1) || []),
           [l, u] = (0, C.useState)(c[0]?.id || ``),
-          [d, f] = (0, C.useState)(!1),
+          [d, f] = (0, C.useState)(!0),
           [p, m] = (0, C.useState)(1),
           [h, g] = (0, C.useState)(`A`),
           [_, v] = (0, C.useState)(``),
@@ -14934,7 +14963,7 @@ Error generating stack: ` +
           if (!d && !l)
             return E({
               type: `error`,
-              text: `Choose the location being moved.`,
+              text: `Choose the original location for the full move.`,
             });
           (ee(!0), localStorage.setItem(`atlasEmployee`, _.trim()));
           try {
@@ -14944,22 +14973,22 @@ Error generating stack: ` +
                   p_new_aisle: p,
                   p_new_section: h,
                   p_employee_name: _.trim(),
-                  p_reason: `${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
+                  p_reason: `Keep product in both locations — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
                 }),
                 E({
                   type: `success`,
-                  text: `${o.sku} now has an additional active location at ${p}${h}.`,
+                  text: `${o.sku} is now active in both its original location and ${p}${h}.`,
                 }))
               : (await $e(`move_inventory_location`, {
                   p_location_id: l,
                   p_new_aisle: p,
                   p_new_section: h,
                   p_employee_name: _.trim(),
-                  p_reason: `${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
+                  p_reason: `Move all product — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
                 }),
                 E({
                   type: `success`,
-                  text: `${o.sku} was moved to ${p}${h}.`,
+                  text: `${o.sku} was fully moved to ${p}${h}. The original location is no longer active.`,
                 })),
               await t());
           } catch (e) {
@@ -14990,21 +15019,59 @@ Error generating stack: ` +
             o
               ? (0, T.jsxs)(T.Fragment, {
                   children: [
-                    (0, T.jsxs)(`label`, {
-                      className: `overflow-toggle`,
+                    (0, T.jsxs)(`div`, {
+                      className: `movement-mode-selector`,
+                      role: `group`,
+                      "aria-label": `Inventory movement type`,
                       children: [
-                        (0, T.jsx)(`input`, {
-                          type: `checkbox`,
-                          checked: d,
-                          onChange: (e) => f(e.target.checked),
-                        }),
-                        (0, T.jsxs)(`span`, {
+                        (0, T.jsxs)(`button`, {
+                          type: `button`,
+                          className: `movement-mode ${d ? `active` : ``}`,
+                          "aria-pressed": d,
+                          onClick: () => f(!0),
                           children: [
-                            (0, T.jsx)(`strong`, {
-                              children: `Other active locations are full`,
+                            (0, T.jsx)(`span`, {
+                              className: `movement-mode-radio`,
+                              children: d ? `✓` : ``,
                             }),
-                            (0, T.jsx)(`small`, {
-                              children: `Add another location instead of moving an existing one.`,
+                            (0, T.jsxs)(`span`, {
+                              className: `movement-mode-copy`,
+                              children: [
+                                (0, T.jsxs)(`strong`, {
+                                  children: [
+                                    `Keep Product in Both Locations`,
+                                    (0, T.jsx)(`em`, {
+                                      children: `SAFER DEFAULT`,
+                                    }),
+                                  ],
+                                }),
+                                (0, T.jsx)(`small`, {
+                                  children: `Move some product while keeping the original location active.`,
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        (0, T.jsxs)(`button`, {
+                          type: `button`,
+                          className: `movement-mode ${d ? `` : `active`}`,
+                          "aria-pressed": !d,
+                          onClick: () => f(!1),
+                          children: [
+                            (0, T.jsx)(`span`, {
+                              className: `movement-mode-radio`,
+                              children: d ? `` : `✓`,
+                            }),
+                            (0, T.jsxs)(`span`, {
+                              className: `movement-mode-copy`,
+                              children: [
+                                (0, T.jsx)(`strong`, {
+                                  children: `Move All Product`,
+                                }),
+                                (0, T.jsx)(`small`, {
+                                  children: `Transfer the full SKU location and remove the original from active locations.`,
+                                }),
+                              ],
                             }),
                           ],
                         }),
@@ -15016,7 +15083,7 @@ Error generating stack: ` +
                           className: `field`,
                           children: [
                             (0, T.jsx)(`span`, {
-                              children: `Location being moved`,
+                              children: `Original location`,
                             }),
                             (0, T.jsxs)(`select`, {
                               value: l,
@@ -15041,8 +15108,15 @@ Error generating stack: ` +
                                 ),
                               ],
                             }),
+                            (0, T.jsx)(`small`, {
+                              children: `This location will be removed after the full move.`,
+                            }),
                           ],
                         }),
+                    (0, T.jsx)(`span`, {
+                      className: `movement-destination-label`,
+                      children: `Destination Location`,
+                    }),
                     (0, T.jsx)(ot, {
                       aisle: p,
                       section: h,
@@ -15103,8 +15177,8 @@ Error generating stack: ` +
                       children: w
                         ? `Saving…`
                         : d
-                          ? `Add Overflow Location`
-                          : `Confirm Move`,
+                          ? `Confirm Both Locations`
+                          : `Confirm Full Move`,
                     }),
                   ],
                 })
@@ -23606,6 +23680,127 @@ Error generating stack: ` +
       @media (prefers-reduced-motion: reduce) {
         .atlas-missing-spinner {
           animation: none;
+        }
+      }
+    </style>
+    <style id="atlas-inventory-movement-modes">
+      /* July 30, 2026 — approved partial/full inventory movement choices */
+      .movement-mode-selector {
+        gap: 9px;
+        display: grid;
+      }
+      .movement-mode {
+        width: 100%;
+        min-height: 76px;
+        color: #17304d;
+        text-align: left;
+        cursor: pointer;
+        background: #fff;
+        border: 1px solid #c7d4e2;
+        border-radius: 14px;
+        padding: 12px 13px;
+        align-items: center;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 11px;
+        display: grid;
+        transition:
+          border-color 0.16s ease,
+          background 0.16s ease,
+          box-shadow 0.16s ease,
+          transform 0.16s ease;
+      }
+      .movement-mode:hover {
+        border-color: #8fa7c0;
+      }
+      .movement-mode:active {
+        transform: scale(0.992);
+      }
+      .movement-mode.active {
+        color: #102a56;
+        background: linear-gradient(145deg, #f1f6fc, #e8f0fa);
+        border-color: #31577f;
+        box-shadow:
+          0 0 0 2px rgba(16, 42, 86, 0.08),
+          0 7px 17px rgba(16, 42, 86, 0.08);
+      }
+      .movement-mode:focus-visible {
+        outline: 3px solid rgba(16, 42, 86, 0.18);
+        outline-offset: 2px;
+      }
+      .movement-mode-radio {
+        width: 25px;
+        height: 25px;
+        color: transparent;
+        background: #fff;
+        border: 2px solid #a8b8c9;
+        border-radius: 50%;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 950;
+        line-height: 1;
+        display: grid;
+      }
+      .movement-mode.active .movement-mode-radio {
+        color: #fff;
+        background: #102a56;
+        border-color: #102a56;
+        box-shadow: 0 3px 9px rgba(16, 42, 86, 0.18);
+      }
+      .movement-mode-copy {
+        min-width: 0;
+      }
+      .movement-mode-copy strong,
+      .movement-mode-copy small {
+        display: block;
+      }
+      .movement-mode-copy strong {
+        align-items: center;
+        gap: 7px;
+        font-size: 13px;
+        font-weight: 950;
+        line-height: 1.3;
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .movement-mode-copy strong em {
+        color: #31577f;
+        background: #fff;
+        border: 1px solid #b7c9dc;
+        border-radius: 999px;
+        padding: 3px 6px;
+        font-size: 8px;
+        font-style: normal;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+      }
+      .movement-mode-copy small {
+        color: #5b7086;
+        margin-top: 4px;
+        font-size: 10px;
+        line-height: 1.4;
+      }
+      .movement-destination-label {
+        color: #17304d;
+        border-top: 1px solid #e0e7ef;
+        padding-top: 3px;
+        font-size: 12px;
+        font-weight: 950;
+        display: block;
+      }
+      @media (max-width: 380px) {
+        .movement-mode {
+          padding: 11px;
+        }
+        .movement-mode-copy strong {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 4px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .movement-mode {
+          transition: none;
         }
       }
     </style>

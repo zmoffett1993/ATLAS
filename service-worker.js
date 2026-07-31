@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v21-cant-find-product";
+const VERSION = "atlas-pwa-v23-keyboard-scroll-dismiss";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
