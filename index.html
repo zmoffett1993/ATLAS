@@ -14683,6 +14683,55 @@ Error generating stack: ` +
       function rt({ location: e }) {
         let t = Je(Number(e.aisle)),
           n = String(e.section).toUpperCase();
+        if (Number(e.aisle) === 22) {
+          let r =
+            {
+              A: `LEFT`,
+              B: `MIDDLE`,
+              C: `RIGHT`,
+            }[n] || `OVERFLOW`;
+          return (0, T.jsxs)(`div`, {
+            className: `map-panel atlas-overflow-map-panel`,
+            children: [
+              (0, T.jsxs)(`div`, {
+                className: `map-title`,
+                children: [
+                  (0, T.jsx)(`strong`, {
+                    children: `Overflow Floor Location`,
+                  }),
+                  (0, T.jsxs)(`span`, {
+                    children: [
+                      `Selected: `,
+                      r[0] + r.slice(1).toLowerCase(),
+                    ],
+                  }),
+                ],
+              }),
+              (0, T.jsx)(`div`, {
+                className: `overflow-floor-orientation`,
+                children: `East side of warehouse next to Aisle 21.`,
+              }),
+              (0, T.jsx)(`div`, {
+                className: `overflow-floor-map`,
+                role: `img`,
+                "aria-label": `Overflow Floor map. ${r} is selected.`,
+                children: [`LEFT`, `MIDDLE`, `RIGHT`].map((e) =>
+                  (0, T.jsxs)(
+                    `div`,
+                    {
+                      className: `overflow-floor-zone ${e === r ? `active map-section` : ``}`,
+                      children: [
+                        (0, T.jsx)(`small`, { children: `OVERFLOW` }),
+                        (0, T.jsx)(`span`, { children: e }),
+                      ],
+                    },
+                    e,
+                  ),
+                ),
+              }),
+            ],
+          });
+        }
         return (0, T.jsxs)(`div`, {
           className: `map-panel`,
           children: [
@@ -16304,33 +16353,46 @@ Error generating stack: ` +
                                                 children: [
                                                   (0, T.jsx)(`span`, {
                                                     className: `location-badge`,
-                                                    children: qe(e),
+                                                    children:
+                                                      Number(e.aisle) === 22
+                                                        ? `FLOOR · ${
+                                                            {
+                                                              A: `LEFT`,
+                                                              B: `MIDDLE`,
+                                                              C: `RIGHT`,
+                                                            }[
+                                                              String(
+                                                                e.section,
+                                                              ).toUpperCase()
+                                                            ] || `OVERFLOW`
+                                                          }`
+                                                        : qe(e),
                                                   }),
                                                   (0, T.jsxs)(`span`, {
                                                     className: `location-copy`,
                                                     children: [
                                                       (0, T.jsxs)(`strong`, {
-                                                        children: [
-                                                          `Aisle `,
-                                                          e.aisle,
-                                                          ` · Section `,
-                                                          String(
-                                                            e.section,
-                                                          ).toUpperCase(),
+                                                        children:
                                                           Number(e.aisle) === 22
-                                                            ? ` · ${
+                                                            ? `Overflow Floor · ${
                                                                 {
-                                                                  A: `Left`,
-                                                                  B: `Middle`,
-                                                                  C: `Right`,
+                                                                  A: `LEFT`,
+                                                                  B: `MIDDLE`,
+                                                                  C: `RIGHT`,
                                                                 }[
                                                                   String(
                                                                     e.section,
                                                                   ).toUpperCase()
-                                                                ] || `Overflow`
+                                                                ] || `OVERFLOW`
                                                               }`
-                                                            : ``,
-                                                        ],
+                                                            : [
+                                                                `Aisle `,
+                                                                e.aisle,
+                                                                ` · Section `,
+                                                                String(
+                                                                  e.section,
+                                                                ).toUpperCase(),
+                                                              ],
                                                       }),
                                                       (0, T.jsx)(`span`, {
                                                         children:
@@ -16501,12 +16563,15 @@ Error generating stack: ` +
                               className: `aisle-card-title`,
                               children: [
                                 (0, T.jsxs)(`span`, {
-                                  children: [`AISLE `, m],
+                                  children:
+                                    m === 22
+                                      ? `OVERFLOW FLOOR`
+                                      : [`AISLE `, m],
                                 }),
                                 (0, T.jsx)(`span`, {
                                   children:
                                     m === 22
-                                      ? `OVERFLOW FLOOR LOCATION`
+                                      ? `LOCATION ID: 22`
                                       : `WAREHOUSE LAYOUT`,
                                 }),
                               ],
@@ -16534,19 +16599,16 @@ Error generating stack: ` +
                                       className: `aisle-section-head`,
                                       children: [
                                         (0, T.jsxs)(`strong`, {
-                                          children: [
-                                            `Section `,
-                                            e,
+                                          children:
                                             m === 22
-                                              ? ` · ${
+                                              ? `Overflow ${
                                                   {
                                                     A: `Left`,
                                                     B: `Middle`,
                                                     C: `Right`,
                                                   }[e]
                                                 }`
-                                              : ``,
-                                          ],
+                                              : [`Section `, e],
                                         }),
                                         (0, T.jsxs)(`span`, {
                                           children: [
@@ -24320,6 +24382,12 @@ Error generating stack: ` +
           if (stored) return stored;
           const codeMatch = badge.match(/^22([ABC])$/i);
           if (codeMatch) return positionBySection[codeMatch[1].toUpperCase()];
+          const floorMatch = badge.match(/^FLOOR\s*·\s*(LEFT|MIDDLE|RIGHT)$/i);
+          if (floorMatch) return floorMatch[1].toUpperCase();
+          const namedMatch = copy.match(
+            /^Overflow Floor\s*·\s*(LEFT|MIDDLE|RIGHT)$/i,
+          );
+          if (namedMatch) return namedMatch[1].toUpperCase();
           if (!/\bAisle\s+22\b/i.test(copy)) return null;
           const sectionMatch = copy.match(/\bSection\s+([ABC])\b/i);
           return positionBySection[sectionMatch?.[1]?.toUpperCase()] || null;
@@ -24330,21 +24398,6 @@ Error generating stack: ` +
           if (!position) return null;
           card.dataset.overflowPosition = position;
           card.classList.add("atlas-overflow-location");
-          const badge = card.querySelector(".location-badge");
-          const title = card.querySelector(".location-copy strong");
-          const copy = card.querySelector(".location-copy");
-          if (badge && badge.textContent.trim() !== `FLOOR · ${position}`) {
-            badge.textContent = `FLOOR · ${position}`;
-          }
-          if (title && title.textContent.trim() !== `Overflow Floor · ${position}`) {
-            title.textContent = `Overflow Floor · ${position}`;
-          }
-          if (copy && !copy.querySelector(".atlas-overflow-card-note")) {
-            const note = document.createElement("span");
-            note.className = "atlas-overflow-card-note";
-            note.textContent = orientationNote;
-            copy.appendChild(note);
-          }
           return position;
         };
 
@@ -24376,46 +24429,6 @@ Error generating stack: ` +
             note.textContent = orientationNote;
           }
 
-          const panel = resultCard.querySelector(".map-panel");
-          if (!panel || panel.dataset.overflowPosition === position) return;
-          panel.dataset.overflowPosition = position;
-          panel.classList.add("atlas-overflow-map-panel");
-          panel.innerHTML = `
-            <div class="map-title">
-              <strong>Overflow Floor Location</strong>
-              <span>Selected: ${position[0] + position.slice(1).toLowerCase()}</span>
-            </div>
-            <div class="overflow-floor-orientation">${orientationNote}</div>
-            <div class="overflow-floor-map" role="img" aria-label="Overflow Floor map. ${position} is selected.">
-              ${["LEFT", "MIDDLE", "RIGHT"]
-                .map(
-                  (zone) => `
-                    <div class="overflow-floor-zone ${zone === position ? "active map-section" : ""}">
-                      <small>OVERFLOW</small>
-                      <span>${zone}</span>
-                    </div>`,
-                )
-                .join("")}
-            </div>`;
-        };
-
-        const enhanceOverflowBrowse = () => {
-          document.querySelectorAll(".aisle-card").forEach((card) => {
-            const title = card.querySelector(".aisle-card-title");
-            if (!title || !/OVERFLOW FLOOR LOCATION/i.test(title.textContent)) return;
-            card.classList.add("atlas-overflow-browse");
-            const titleParts = title.querySelectorAll("span");
-            if (titleParts[0]) titleParts[0].textContent = "OVERFLOW FLOOR";
-            if (titleParts[1]) titleParts[1].textContent = "LOCATION ID: 22";
-            card.querySelectorAll(".aisle-section-head strong").forEach((heading) => {
-              const match = heading.textContent.match(/(?:Left|Middle|Right)/i);
-              if (match) {
-                const position =
-                  match[0][0].toUpperCase() + match[0].slice(1).toLowerCase();
-                heading.textContent = `Overflow ${position}`;
-              }
-            });
-          });
         };
 
         const enhance = () => {
@@ -24423,7 +24436,6 @@ Error generating stack: ` +
           document
             .querySelectorAll(".result-card")
             .forEach(enhanceOverflowResult);
-          enhanceOverflowBrowse();
         };
         const queue = () => {
           if (queued) return;
