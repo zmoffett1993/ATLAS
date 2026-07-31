@@ -21929,7 +21929,7 @@ Error generating stack: ` +
         aspect-ratio: auto;
         margin: 28px 0 0;
         background-color: transparent;
-        background-image: url("./atlas-menu-lockup-v2.png");
+        background-image: url("./atlas-menu-lockup-v2.png?v=20260731-emergency-logo-fix");
         background-position: center;
         background-repeat: no-repeat;
         background-size: contain;
@@ -22925,7 +22925,7 @@ Error generating stack: ` +
       const ensureUpdatedAtlasBranding = () => {
         const image = document.querySelector(".atlas-logo-window img");
         if (!image || image.dataset.atlasHomeLockupV3 === "true") return;
-        image.src = "./atlas-home-lockup-v3.png";
+        image.src = "./atlas-home-lockup-v3.png?v=20260731-emergency-logo-fix";
         image.alt = "ATLAS Warehouse Management — Find, Manage, Deliver";
         image.dataset.atlasHomeLockupV3 = "true";
       };
