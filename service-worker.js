@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v23-keyboard-scroll-dismiss";
+const VERSION = "atlas-pwa-v24-secondary-location-transition";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

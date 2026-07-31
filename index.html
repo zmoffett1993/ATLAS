@@ -23967,6 +23967,237 @@ Error generating stack: ` +
         queueEnhancement();
       })();
     </script>
+    <style id="atlas-secondary-location-transition-design">
+      /*
+       * Premium location-change feedback.
+       * Runs only when a picker chooses a different active location.
+       */
+      .atlas-location-hero.atlas-location-change {
+        animation: atlas-location-hero-change 420ms cubic-bezier(0.22, 0.8, 0.25, 1)
+          both;
+      }
+      .atlas-location-hero.atlas-location-change .atlas-location-section {
+        animation: atlas-location-section-change 460ms
+          cubic-bezier(0.22, 0.8, 0.25, 1) both;
+      }
+      .atlas-location-hero.atlas-location-change .atlas-location-code {
+        animation: atlas-location-code-change 500ms
+          cubic-bezier(0.22, 0.8, 0.25, 1) both;
+      }
+      .map-panel.atlas-map-location-change .map-title span {
+        animation: atlas-map-label-change 360ms ease-out both;
+      }
+      .map-panel.atlas-map-location-change .map-section.active {
+        animation: atlas-map-section-change 520ms
+          cubic-bezier(0.22, 0.8, 0.25, 1) both;
+        transform-origin: center;
+      }
+      .result-card .location-entry:not(.selected) > .location-card:active .location-badge {
+        transform: scale(0.96);
+      }
+      .result-card .location-entry:not(.selected) > .location-card .location-badge {
+        transition: transform 140ms ease;
+      }
+      @keyframes atlas-location-hero-change {
+        0% {
+          opacity: 0.62;
+          filter: saturate(0.84);
+          transform: translateY(8px) scale(0.992);
+        }
+        58% {
+          opacity: 1;
+          filter: saturate(1.05);
+          transform: translateY(-1px) scale(1.002);
+        }
+        100% {
+          opacity: 1;
+          filter: saturate(1);
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes atlas-location-section-change {
+        0% {
+          opacity: 0.5;
+          transform: translateY(5px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes atlas-location-code-change {
+        0% {
+          box-shadow: 0 8px 18px rgba(0, 15, 55, 0.25);
+          transform: scale(0.92);
+        }
+        55% {
+          box-shadow:
+            0 9px 22px rgba(0, 15, 55, 0.28),
+            0 0 0 7px rgba(255, 255, 255, 0.16);
+          transform: scale(1.055);
+        }
+        100% {
+          box-shadow: 0 8px 18px rgba(0, 15, 55, 0.25);
+          transform: scale(1);
+        }
+      }
+      @keyframes atlas-map-label-change {
+        0% {
+          opacity: 0.42;
+          transform: translateY(3px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes atlas-map-section-change {
+        0% {
+          filter: brightness(0.9) saturate(0.8);
+          box-shadow: 0 0 0 rgba(21, 86, 206, 0);
+          transform: scale(0.985);
+        }
+        55% {
+          filter: brightness(1.08) saturate(1.08);
+          box-shadow: 0 0 0 6px rgba(21, 86, 206, 0.13);
+          transform: scale(1.012);
+        }
+        100% {
+          filter: brightness(1) saturate(1);
+          box-shadow: 0 0 0 rgba(21, 86, 206, 0);
+          transform: scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-location-hero.atlas-location-change,
+        .atlas-location-hero.atlas-location-change .atlas-location-section,
+        .atlas-location-hero.atlas-location-change .atlas-location-code,
+        .map-panel.atlas-map-location-change .map-title span,
+        .map-panel.atlas-map-location-change .map-section.active {
+          animation: none;
+        }
+        .result-card .location-entry:not(.selected) > .location-card .location-badge {
+          transition: none;
+        }
+      }
+    </style>
+    <script id="atlas-secondary-location-transition-behavior">
+      (() => {
+        const reduceMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        );
+        let transitionQueued = false;
+
+        const replayClass = (node, className, duration = 650) => {
+          if (!node || reduceMotion.matches) return;
+          node.classList.remove(className);
+          void node.offsetWidth;
+          node.classList.add(className);
+          window.setTimeout(() => node.classList.remove(className), duration);
+        };
+
+        const playPendingTransition = () => {
+          transitionQueued = false;
+          document
+            .querySelectorAll(".result-card[data-atlas-pending-location]")
+            .forEach((resultCard) => {
+              const selected = resultCard.querySelector(
+                ".location-entry.selected",
+              );
+              const selectedCode = selected
+                ?.querySelector(":scope > .location-card .location-badge")
+                ?.textContent?.trim();
+              const pendingCode = resultCard.dataset.atlasPendingLocation;
+              const hero = selected?.querySelector(
+                ":scope > .atlas-location-hero",
+              );
+
+              if (!selectedCode || selectedCode !== pendingCode || !hero) {
+                const attempts =
+                  Number(resultCard.dataset.atlasTransitionAttempts || 0) + 1;
+                if (attempts >= 12) {
+                  delete resultCard.dataset.atlasPendingLocation;
+                  delete resultCard.dataset.atlasTransitionAttempts;
+                } else {
+                  resultCard.dataset.atlasTransitionAttempts = String(attempts);
+                  queueTransitionCheck();
+                }
+                return;
+              }
+
+              delete resultCard.dataset.atlasPendingLocation;
+              delete resultCard.dataset.atlasTransitionAttempts;
+              replayClass(hero, "atlas-location-change");
+
+              const mapPanel = resultCard.querySelector(".map-panel");
+              replayClass(mapPanel, "atlas-map-location-change");
+
+              if (!reduceMotion.matches) {
+                window.setTimeout(() => {
+                  const activeSection =
+                    mapPanel?.querySelector(".map-section.active");
+                  if (!activeSection) return;
+                  const viewportHeight =
+                    window.visualViewport?.height || window.innerHeight;
+                  const safeBottom = viewportHeight - 104;
+                  const activeBounds = activeSection.getBoundingClientRect();
+                  if (
+                    activeBounds.bottom > safeBottom ||
+                    activeBounds.top < 72
+                  ) {
+                    mapPanel.scrollIntoView({
+                      behavior: "smooth",
+                      block: "nearest",
+                    });
+                  }
+                }, 90);
+              }
+            });
+        };
+
+        const queueTransitionCheck = () => {
+          if (transitionQueued) return;
+          transitionQueued = true;
+          window.requestAnimationFrame(() =>
+            window.requestAnimationFrame(playPendingTransition),
+          );
+        };
+
+        document.addEventListener(
+          "click",
+          (event) => {
+            const locationCard = event.target.closest(
+              ".result-card .location-entry:not(.selected) > .location-card",
+            );
+            if (!locationCard) return;
+            const resultCard = locationCard.closest(".result-card");
+            const locationCode = locationCard
+              .querySelector(".location-badge")
+              ?.textContent?.trim();
+            if (!resultCard || !locationCode) return;
+            resultCard.dataset.atlasPendingLocation = locationCode;
+            resultCard.dataset.atlasTransitionAttempts = "0";
+            queueTransitionCheck();
+          },
+          true,
+        );
+
+        new MutationObserver(() => {
+          if (
+            document.querySelector(
+              ".result-card[data-atlas-pending-location]",
+            )
+          ) {
+            queueTransitionCheck();
+          }
+        }).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
