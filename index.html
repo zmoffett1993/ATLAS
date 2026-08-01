@@ -24714,23 +24714,23 @@ Error generating stack: ` +
        * Runs only when a picker chooses a different active location.
        */
       .atlas-location-hero.atlas-location-change {
-        animation: atlas-location-hero-change 420ms cubic-bezier(0.22, 0.8, 0.25, 1)
+        animation: atlas-location-hero-change 260ms cubic-bezier(0.22, 1, 0.36, 1)
           both;
       }
       .atlas-location-hero.atlas-location-change .atlas-location-section {
-        animation: atlas-location-section-change 460ms
-          cubic-bezier(0.22, 0.8, 0.25, 1) both;
+        animation: atlas-location-section-change 240ms
+          cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       .atlas-location-hero.atlas-location-change .atlas-location-code {
-        animation: atlas-location-code-change 500ms
-          cubic-bezier(0.22, 0.8, 0.25, 1) both;
+        animation: atlas-location-code-change 260ms
+          cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       .map-panel.atlas-map-location-change .map-title span {
-        animation: atlas-map-label-change 360ms ease-out both;
+        animation: atlas-map-label-change 230ms cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       .map-panel.atlas-map-location-change .map-section.active {
-        animation: atlas-map-section-change 520ms
-          cubic-bezier(0.22, 0.8, 0.25, 1) both;
+        animation: atlas-map-section-change 280ms
+          cubic-bezier(0.22, 1, 0.36, 1) both;
         transform-origin: center;
       }
       .result-card .location-entry:not(.selected) > .location-card:active .location-badge {
@@ -24741,19 +24741,14 @@ Error generating stack: ` +
       }
       @keyframes atlas-location-hero-change {
         0% {
-          opacity: 0.62;
-          filter: saturate(0.84);
-          transform: translateY(8px) scale(0.992);
-        }
-        58% {
-          opacity: 1;
-          filter: saturate(1.05);
-          transform: translateY(-1px) scale(1.002);
+          opacity: 0.74;
+          filter: saturate(0.92);
+          transform: translateY(10px);
         }
         100% {
           opacity: 1;
           filter: saturate(1);
-          transform: translateY(0) scale(1);
+          transform: translateY(0);
         }
       }
       @keyframes atlas-location-section-change {
@@ -24768,18 +24763,14 @@ Error generating stack: ` +
       }
       @keyframes atlas-location-code-change {
         0% {
-          box-shadow: 0 8px 18px rgba(0, 15, 55, 0.25);
-          transform: scale(0.92);
-        }
-        55% {
-          box-shadow:
-            0 9px 22px rgba(0, 15, 55, 0.28),
-            0 0 0 7px rgba(255, 255, 255, 0.16);
-          transform: scale(1.055);
+          opacity: 0.72;
+          box-shadow: 0 8px 18px rgba(0, 15, 55, 0.22);
+          transform: translateY(6px) scale(0.985);
         }
         100% {
+          opacity: 1;
           box-shadow: 0 8px 18px rgba(0, 15, 55, 0.25);
-          transform: scale(1);
+          transform: translateY(0) scale(1);
         }
       }
       @keyframes atlas-map-label-change {
@@ -24794,19 +24785,14 @@ Error generating stack: ` +
       }
       @keyframes atlas-map-section-change {
         0% {
-          filter: brightness(0.9) saturate(0.8);
-          box-shadow: 0 0 0 rgba(21, 86, 206, 0);
-          transform: scale(0.985);
-        }
-        55% {
-          filter: brightness(1.08) saturate(1.08);
-          box-shadow: 0 0 0 6px rgba(21, 86, 206, 0.13);
-          transform: scale(1.012);
+          opacity: 0.72;
+          filter: brightness(0.96) saturate(0.9);
+          transform: translateY(4px);
         }
         100% {
+          opacity: 1;
           filter: brightness(1) saturate(1);
-          box-shadow: 0 0 0 rgba(21, 86, 206, 0);
-          transform: scale(1);
+          transform: translateY(0);
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -24854,40 +24840,33 @@ Error generating stack: ` +
           resultCard.querySelectorAll(".location-entry").forEach((entry) => {
             const code = locationCodeForEntry(entry);
             const previousTop = positions.get(code);
-            if (previousTop === void 0) return;
+            if (previousTop === void 0 || typeof entry.animate !== "function") return;
             const currentTop = entry.getBoundingClientRect().top;
-            const offsetY = previousTop - currentTop;
-            if (Math.abs(offsetY) < 2 || typeof entry.animate !== "function")
-              return;
+            const rawOffset = previousTop - currentTop;
+            const direction = rawOffset === 0 ? 1 : Math.sign(rawOffset);
+            const settleOffset = direction * Math.min(10, Math.max(4, Math.abs(rawOffset) * 0.08));
             const isSelected = entry.classList.contains("selected");
             entry.animate(
               [
                 {
-                  transform: `translate3d(0, ${offsetY}px, 0)`,
-                  opacity: isSelected ? 0.78 : 0.88,
-                  filter: isSelected ? `saturate(0.86)` : `none`,
-                },
-                {
-                  transform: `translate3d(0, ${offsetY * -0.025}px, 0)`,
-                  opacity: 1,
-                  filter: `none`,
-                  offset: 0.82,
+                  transform: `translate3d(0, ${settleOffset}px, 0)`,
+                  opacity: isSelected ? 0.82 : 0.9,
                 },
                 {
                   transform: `translate3d(0, 0, 0)`,
                   opacity: 1,
-                  filter: `none`,
                 },
               ],
               {
-                duration: isSelected ? 440 : 400,
-                easing: `cubic-bezier(0.22, 0.8, 0.25, 1)`,
+                duration: isSelected ? 270 : 240,
+                easing: `cubic-bezier(0.22, 1, 0.36, 1)`,
+                fill: `both`,
               },
             );
           });
         };
 
-        const replayClass = (node, className, duration = 650) => {
+        const replayClass = (node, className, duration = 360) => {
           if (!node || reduceMotion.matches) return;
           node.classList.remove(className);
           void node.offsetWidth;
@@ -24950,7 +24929,7 @@ Error generating stack: ` +
                       block: "nearest",
                     });
                   }
-                }, 90);
+                }, 280);
               }
             });
         };
@@ -25996,5 +25975,107 @@ Error generating stack: ` +
 </head>
   <body>
     <div id="root"></div>
+  
+    <style id="atlas-v1-0-2e1-motion-interaction">
+      :root {
+        --atlas-motion-settle: cubic-bezier(0.22, 1, 0.36, 1);
+        --atlas-motion-quick: 140ms;
+        --atlas-motion-standard: 240ms;
+        --atlas-motion-settle-time: 280ms;
+      }
+      button,
+      [role="button"],
+      .location-card,
+      .aisle-button,
+      .menu-item {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button:not(:disabled),
+      [role="button"],
+      .location-card,
+      .aisle-button,
+      .menu-item {
+        transition:
+          transform var(--atlas-motion-quick) var(--atlas-motion-settle),
+          box-shadow var(--atlas-motion-standard) var(--atlas-motion-settle),
+          opacity var(--atlas-motion-standard) var(--atlas-motion-settle);
+      }
+      button:not(:disabled):active,
+      [role="button"]:active,
+      .location-card:active,
+      .aisle-button:active,
+      .menu-item:active {
+        transform: scale(0.985);
+      }
+      .workflow-message {
+        animation: atlas-message-settle 260ms var(--atlas-motion-settle) both;
+      }
+      .modal-backdrop {
+        animation: atlas-backdrop-in 180ms ease-out both;
+      }
+      .scanner-modal,
+      .product-modal,
+      .modal-card {
+        animation: atlas-modal-settle 280ms var(--atlas-motion-settle) both;
+      }
+      .view-page,
+      .result-card {
+        animation: atlas-content-settle 240ms var(--atlas-motion-settle) both;
+      }
+      .result-card,
+      .map-panel,
+      .atlas-location-hero {
+        contain: layout paint;
+      }
+      @keyframes atlas-message-settle {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes atlas-backdrop-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes atlas-modal-settle {
+        from { opacity: 0; transform: translateY(10px) scale(0.992); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes atlas-content-settle {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+    <script id="atlas-v1-0-2e1-interaction-behavior">
+      (() => {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const dismissKeyboard = () => {
+          const active = document.activeElement;
+          if (!active || !/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+          active.blur();
+        };
+        let touchStartY = null;
+        document.addEventListener("touchstart", (event) => {
+          touchStartY = event.touches?.[0]?.clientY ?? null;
+        }, { passive: true });
+        document.addEventListener("touchmove", (event) => {
+          const y = event.touches?.[0]?.clientY;
+          if (touchStartY == null || y == null || Math.abs(y - touchStartY) < 14) return;
+          dismissKeyboard();
+          touchStartY = y;
+        }, { passive: true });
+        document.addEventListener("wheel", dismissKeyboard, { passive: true });
+
+        if (!reduceMotion.matches) {
+          document.documentElement.style.scrollBehavior = "smooth";
+        }
+      })();
+    </script>
   </body>
 </html>
