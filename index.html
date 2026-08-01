@@ -14422,6 +14422,18 @@ Error generating stack: ` +
             title: `Create New SKU`,
             description: `Add a new product and assign its first warehouse location.`,
           },
+          {
+            id: `edit`,
+            icon: `✎`,
+            title: `Edit SKU`,
+            description: `Correct a SKU or update its product description.`,
+          },
+          {
+            id: `delete`,
+            icon: `⌫`,
+            title: `Delete SKU`,
+            description: `Safely remove an incorrect SKU from picker searches.`,
+          },
         ];
       function atlasCleanSkuText(e) {
         return String(e ?? ``)
@@ -15723,9 +15735,14 @@ Error generating stack: ` +
               placeholder: `Type or scan the new printed SKU`,
             }),
             y
-              ? (0, T.jsxs)(`div`, {
-                  className: `duplicate-warning`,
-                  children: [`Existing SKU: `, y.sku],
+              ? (0, T.jsxs)(T.Fragment, {
+                  children: [
+                    (0, T.jsxs)(`div`, {
+                      className: `duplicate-warning`,
+                      children: [`This SKU already exists: `, y.sku],
+                    }),
+                    (0, T.jsx)(atlasExistingSkuDetails, { e: y }),
+                  ],
                 })
               : null,
             (0, T.jsxs)(`label`, {
@@ -15785,6 +15802,323 @@ Error generating stack: ` +
               disabled: h || !!y || !atlasSkuPreview.valid,
               children: h ? `Creating…` : `Create SKU and Location`,
             }),
+          ],
+        });
+      }
+
+      function atlasSkuChangeSummary(e, t, n, r) {
+        let i = [];
+        e !== t && i.push({ label: `SKU`, before: e, after: t });
+        (n || ``) !== (r || ``) &&
+          i.push({
+            label: `Description`,
+            before: n || `No description`,
+            after: r || `No description`,
+          });
+        return i;
+      }
+      function atlasExistingSkuDetails({ e }) {
+        return (0, T.jsxs)(`div`, {
+          className: `existing-sku-card`,
+          children: [
+            (0, T.jsxs)(`div`, {
+              children: [
+                (0, T.jsx)(`span`, { children: `EXISTING SKU` }),
+                (0, T.jsx)(`strong`, { children: e.sku }),
+                e.description
+                  ? (0, T.jsx)(`small`, { children: e.description })
+                  : null,
+              ],
+            }),
+            (0, T.jsx)(`div`, {
+              className: `existing-sku-locations`,
+              children: Ye(e.locations.filter((e) => e.is_active !== !1)).map(
+                (e) =>
+                  (0, T.jsx)(
+                    `span`,
+                    { children: atlasPickerLocationTitle(e) },
+                    e.id,
+                  ),
+              ),
+            }),
+          ],
+        });
+      }
+      function atlasEditSkuWorkflow({ items: e, reload: t, openScanner: n }) {
+        let [r, i] = (0, C.useState)(``),
+          [a, o] = (0, C.useState)(null),
+          [s, c] = (0, C.useState)(``),
+          [l, u] = (0, C.useState)(``),
+          [d, f] = (0, C.useState)(``),
+          [p, m] = (0, C.useState)(!1),
+          [h, g] = (0, C.useState)(!1),
+          [_, v] = (0, C.useState)(null),
+          y = atlasCanonicalizeSku(s, e),
+          b = a ? atlasSkuChangeSummary(a.sku, y.value, a.description, l.trim()) : [],
+          x = y.valid ? atlasFindExistingSku(y.value, e, !0) : null,
+          S = !!x && x.id !== a?.id;
+        ((0, C.useEffect)(() => {
+          let e = window.setTimeout(
+            () => f(localStorage.getItem(`atlasEmployee`) || ``),
+            0,
+          );
+          return () => window.clearTimeout(e);
+        }, []),
+          (0, C.useEffect)(() => {
+            if (!a) return;
+            (c(a.sku), u(a.description || ``), m(!1), v(null));
+          }, [a]));
+        async function w(e) {
+          (e.preventDefault(), v(null));
+          if (!a) return;
+          if (!y.valid) return v({ type: `error`, text: y.reason });
+          if (S)
+            return v({
+              type: `error`,
+              text: `${x.sku} already exists. ATLAS will not create a duplicate.`,
+            });
+          if (!b.length)
+            return v({ type: `error`, text: `No changes have been entered.` });
+          if (!p)
+            return v({
+              type: `error`,
+              text: `Confirm that you reviewed the exact changes before saving.`,
+            });
+          if (d.trim().length < 2)
+            return v({
+              type: `error`,
+              text: `Enter at least two letters for the employee name or initials.`,
+            });
+          (g(!0), localStorage.setItem(`atlasEmployee`, d.trim()));
+          try {
+            (await $e(`edit_inventory_sku`, {
+              p_sku_id: a.id,
+              p_new_sku: y.value,
+              p_description: l.trim() || null,
+              p_employee_name: d.trim(),
+            }),
+              v({
+                type: `success`,
+                text: `${a.sku} was updated successfully${a.sku !== y.value ? ` to ${y.value}` : ``}.`,
+              }),
+              await t(),
+              i(y.value),
+              o(null),
+              c(``),
+              u(``),
+              m(!1));
+          } catch (e) {
+            v({
+              type: `error`,
+              text: e instanceof Error ? e.message : `The SKU could not be updated.`,
+            });
+          } finally {
+            g(!1);
+          }
+        }
+        return (0, T.jsxs)(`form`, {
+          className: `workflow-card inventory-management-form`,
+          onSubmit: w,
+          children: [
+            (0, T.jsx)(at, {
+              title: `Search for the SKU to edit`,
+              items: e,
+              value: r,
+              selected: a,
+              setValue: i,
+              setSelected: o,
+              openScanner: n,
+            }),
+            a
+              ? (0, T.jsxs)(T.Fragment, {
+                  children: [
+                    (0, T.jsx)(atlasExistingSkuDetails, { e: a }),
+                    (0, T.jsxs)(`label`, {
+                      className: `field`,
+                      children: [
+                        (0, T.jsx)(`span`, { children: `Corrected SKU` }),
+                        (0, T.jsx)(`input`, {
+                          value: s,
+                          autoCapitalize: `characters`,
+                          spellCheck: !1,
+                          onChange: (e) => (c(e.target.value), m(!1)),
+                        }),
+                      ],
+                    }),
+                    (0, T.jsxs)(`label`, {
+                      className: `field`,
+                      children: [
+                        (0, T.jsxs)(`span`, {
+                          children: [
+                            `Description `,
+                            (0, T.jsx)(`em`, { children: `optional` }),
+                          ],
+                        }),
+                        (0, T.jsx)(`input`, {
+                          value: l,
+                          maxLength: 160,
+                          onChange: (e) => (u(e.target.value), m(!1)),
+                        }),
+                      ],
+                    }),
+                    (0, T.jsxs)(`div`, {
+                      className: `sku-save-preview ${s.trim() && !y.valid ? `invalid` : ``}`,
+                      children: [
+                        (0, T.jsx)(`span`, { children: `UPDATED SKU` }),
+                        y.valid
+                          ? (0, T.jsx)(`strong`, { children: y.value })
+                          : (0, T.jsx)(`small`, { children: y.reason }),
+                      ],
+                    }),
+                    S ? (0, T.jsx)(atlasExistingSkuDetails, { e: x }) : null,
+                    b.length
+                      ? (0, T.jsx)(`div`, {
+                          className: `change-summary`,
+                          children: b.map((e) =>
+                            (0, T.jsxs)(
+                              `div`,
+                              {
+                                children: [
+                                  (0, T.jsx)(`span`, { children: e.label }),
+                                  (0, T.jsx)(`del`, { children: e.before }),
+                                  (0, T.jsx)(`strong`, { children: e.after }),
+                                ],
+                              },
+                              e.label,
+                            ),
+                          ),
+                        })
+                      : null,
+                    (0, T.jsx)(st, { value: d, onChange: f }),
+                    (0, T.jsxs)(`label`, {
+                      className: `confirm-sku`,
+                      children: [
+                        (0, T.jsx)(`input`, {
+                          type: `checkbox`,
+                          checked: p,
+                          onChange: (e) => m(e.target.checked),
+                        }),
+                        (0, T.jsx)(`span`, {
+                          children: `I reviewed the original and updated values and confirm this correction.`,
+                        }),
+                      ],
+                    }),
+                    (0, T.jsx)(ct, { message: _ }),
+                    (0, T.jsx)(`button`, {
+                      type: `submit`,
+                      className: `primary-button`,
+                      disabled: h || !b.length || !y.valid || S,
+                      children: h ? `Saving Changes…` : `Save SKU Changes`,
+                    }),
+                  ],
+                })
+              : null,
+          ],
+        });
+      }
+      function atlasDeleteSkuWorkflow({ items: e, reload: t, openScanner: n }) {
+        let [r, i] = (0, C.useState)(``),
+          [a, o] = (0, C.useState)(null),
+          [s, c] = (0, C.useState)(``),
+          [l, u] = (0, C.useState)(``),
+          [d, f] = (0, C.useState)(!1),
+          [p, m] = (0, C.useState)(null),
+          h = !!a && (M(s) === M(a.sku) || s.trim().toUpperCase() === `DELETE`);
+        (0, C.useEffect)(() => {
+          let e = window.setTimeout(
+            () => u(localStorage.getItem(`atlasEmployee`) || ``),
+            0,
+          );
+          return () => window.clearTimeout(e);
+        }, []);
+        async function g(e) {
+          (e.preventDefault(), m(null));
+          if (!a) return;
+          if (!h)
+            return m({
+              type: `error`,
+              text: `Type the full SKU or DELETE to confirm this action.`,
+            });
+          if (l.trim().length < 2)
+            return m({
+              type: `error`,
+              text: `Enter at least two letters for the employee name or initials.`,
+            });
+          (f(!0), localStorage.setItem(`atlasEmployee`, l.trim()));
+          try {
+            (await $e(`soft_delete_inventory_sku`, {
+              p_sku_id: a.id,
+              p_employee_name: l.trim(),
+            }),
+              m({
+                type: `success`,
+                text: `${a.sku} was removed from picker searches and marked inactive.`,
+              }),
+              await t(),
+              i(``),
+              o(null),
+              c(``));
+          } catch (e) {
+            m({
+              type: `error`,
+              text: e instanceof Error ? e.message : `The SKU could not be deleted.`,
+            });
+          } finally {
+            f(!1);
+          }
+        }
+        return (0, T.jsxs)(`form`, {
+          className: `workflow-card inventory-management-form`,
+          onSubmit: g,
+          children: [
+            (0, T.jsx)(at, {
+              title: `Search for the SKU to delete`,
+              items: e,
+              value: r,
+              selected: a,
+              setValue: i,
+              setSelected: o,
+              openScanner: n,
+            }),
+            a
+              ? (0, T.jsxs)(T.Fragment, {
+                  children: [
+                    (0, T.jsx)(atlasExistingSkuDetails, { e: a }),
+                    (0, T.jsxs)(`div`, {
+                      className: `delete-warning`,
+                      children: [
+                        (0, T.jsx)(`strong`, { children: `Delete SKU?` }),
+                        (0, T.jsx)(`p`, {
+                          children: `This safely marks the SKU inactive and removes all of its locations from picker searches. The database record and audit history are retained.`,
+                        }),
+                      ],
+                    }),
+                    (0, T.jsxs)(`label`, {
+                      className: `field`,
+                      children: [
+                        (0, T.jsx)(`span`, {
+                          children: `Type the full SKU or DELETE to confirm`,
+                        }),
+                        (0, T.jsx)(`input`, {
+                          value: s,
+                          autoComplete: `off`,
+                          spellCheck: !1,
+                          placeholder: a.sku,
+                          onChange: (e) => c(e.target.value),
+                        }),
+                      ],
+                    }),
+                    (0, T.jsx)(st, { value: l, onChange: u }),
+                    (0, T.jsx)(ct, { message: p }),
+                    (0, T.jsx)(`button`, {
+                      type: `submit`,
+                      className: `danger-primary-button`,
+                      disabled: d || !h,
+                      children: d ? `Deleting SKU…` : `Delete SKU`,
+                    }),
+                  ],
+                })
+              : null,
           ],
         });
       }
@@ -15882,6 +16216,20 @@ Error generating stack: ` +
                   : null,
                 t === `create`
                   ? (0, T.jsx)(ft, { items: e, reload: r, openScanner: i })
+                  : null,
+                t === `edit`
+                  ? (0, T.jsx)(atlasEditSkuWorkflow, {
+                      items: e,
+                      reload: r,
+                      openScanner: i,
+                    })
+                  : null,
+                t === `delete`
+                  ? (0, T.jsx)(atlasDeleteSkuWorkflow, {
+                      items: e,
+                      reload: r,
+                      openScanner: i,
+                    })
                   : null,
               ],
             });
@@ -25319,7 +25667,118 @@ Error generating stack: ` +
           transition-delay: 0ms !important;
         }
       }
-    </style>
+    
+      /* ATLAS v1.0.2B — Inventory Management (isolated scope) */
+      .inventory-management-form {
+        display: grid;
+        gap: var(--atlas-space-4, 16px);
+      }
+      .existing-sku-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid rgba(16, 50, 82, 0.14);
+        border-radius: var(--atlas-radius-card, 16px);
+        background: #f7f9fc;
+      }
+      .existing-sku-card > div:first-child {
+        display: grid;
+        gap: 4px;
+      }
+      .existing-sku-card span:first-child {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: #667085;
+      }
+      .existing-sku-card strong {
+        overflow-wrap: anywhere;
+        font-size: 16px;
+        color: #102f4e;
+      }
+      .existing-sku-card small {
+        color: #667085;
+      }
+      .existing-sku-locations {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .existing-sku-locations span {
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: #e9eff7;
+        color: #173f65;
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .change-summary {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border-radius: var(--atlas-radius-card, 16px);
+        border: 1px solid rgba(19, 98, 171, 0.18);
+        background: #f4f8fc;
+      }
+      .change-summary > div {
+        display: grid;
+        grid-template-columns: minmax(72px, 0.6fr) 1fr 1fr;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+      }
+      .change-summary span {
+        font-weight: 800;
+        color: #526276;
+      }
+      .change-summary del {
+        color: #8a4b4b;
+        overflow-wrap: anywhere;
+      }
+      .change-summary strong {
+        color: #0f5c42;
+        overflow-wrap: anywhere;
+      }
+      .delete-warning {
+        padding: 16px;
+        border: 1px solid rgba(180, 35, 24, 0.25);
+        border-radius: var(--atlas-radius-card, 16px);
+        background: #fff5f3;
+      }
+      .delete-warning strong {
+        display: block;
+        margin-bottom: 6px;
+        color: #8f1d14;
+      }
+      .delete-warning p {
+        margin: 0;
+        color: #6d332e;
+        line-height: 1.5;
+      }
+      .danger-primary-button {
+        min-height: 48px;
+        width: 100%;
+        border: 0;
+        border-radius: var(--atlas-radius-control, 14px);
+        background: #b42318;
+        color: #fff;
+        font-weight: 800;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      .danger-primary-button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      @media (max-width: 520px) {
+        .change-summary > div {
+          grid-template-columns: 1fr;
+          gap: 3px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid rgba(16, 50, 82, 0.08);
+        }
+      }
+</style>
 
 </head>
   <body>
