@@ -25388,10 +25388,10 @@ Error generating stack: ` +
               >×</button>
               <div class="atlas-product-detail-content">
                 <div class="atlas-product-detail-image"></div>
-                <span class="atlas-product-detail-eyebrow">Product Identification</span>
-                <h2 class="atlas-product-detail-title" id="atlas-product-detail-title"></h2>
-                <span class="atlas-product-detail-sku-label">SKU</span>
+                <span class="atlas-product-detail-eyebrow">SKU</span>
                 <div class="atlas-product-detail-sku"></div>
+                <span class="atlas-product-detail-sku-label">Product Description</span>
+                <h2 class="atlas-product-detail-title" id="atlas-product-detail-title"></h2>
                 <p class="atlas-product-detail-source"></p>
               </div>
             </article>`;
@@ -25779,6 +25779,169 @@ Error generating stack: ` +
         }
       }
 </style>
+
+    <style id="atlas-v102c-browse-product-polish">
+      /* ATLAS v1.0.2C — Browse & Product Experience. Scoped visual-only rules. */
+      .browse-view .aisle-grid {
+        gap: 12px;
+        margin-bottom: 26px;
+      }
+      .browse-view .aisle-grid button {
+        min-height: 64px;
+        padding: 10px 8px;
+        border-radius: 11px;
+        transition:
+          transform var(--atlas-motion-fast, 160ms) ease,
+          box-shadow var(--atlas-motion-standard, 220ms) ease,
+          border-color var(--atlas-motion-fast, 160ms) ease;
+      }
+      .browse-view .aisle-grid button:active {
+        transform: scale(0.975);
+      }
+      .browse-view .aisle-card {
+        overflow: hidden;
+        border-radius: 15px;
+        box-shadow: 0 10px 28px rgba(1, 22, 45, 0.09);
+      }
+      .browse-view .aisle-card-title {
+        padding: 16px 18px;
+        letter-spacing: 0.035em;
+      }
+      .browse-view .aisle-section {
+        padding: 15px 17px;
+      }
+      .browse-view .aisle-section + .aisle-section {
+        border-top: 1px solid #e5ebf2;
+      }
+
+      .result-card .result-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .result-card .atlas-product-showcase {
+        margin-bottom: 18px;
+        border-color: #d8e1ec;
+        border-radius: 17px;
+        box-shadow: 0 9px 25px rgba(1, 22, 45, 0.075);
+      }
+      .result-card .atlas-product-media {
+        border-radius: 14px;
+      }
+      .result-card .sku-copy {
+        margin-bottom: 18px;
+        padding: 1px 2px 14px;
+      }
+      .result-card .sku-copy strong {
+        font-size: clamp(18px, 5vw, 25px);
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .result-card .location-list::before {
+        content: "PICK LOCATIONS";
+        display: block;
+        margin: 1px 0 9px;
+        color: #60738a;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.13em;
+      }
+      .result-card .location-list {
+        gap: 9px;
+      }
+      .result-card .location-entry.selected {
+        margin-bottom: 3px;
+        border-radius: 17px;
+        box-shadow: 0 12px 30px rgba(6, 55, 151, 0.16);
+      }
+      .result-card .location-entry:not(.selected) {
+        border: 1px solid #e0e7ef;
+        border-radius: 13px;
+        background: #fbfcfe;
+        overflow: hidden;
+      }
+      .result-card .location-entry:not(.selected) > .location-card {
+        min-height: 70px;
+        padding: 10px 12px;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .result-card .location-entry:not(.selected) > .missing-button {
+        margin: 0 12px 10px;
+      }
+      .result-card .location-entry:not(.selected) .location-copy strong {
+        font-size: 12px;
+      }
+      .result-card .location-entry:not(.selected) .location-copy > span {
+        font-size: 10px;
+      }
+      .atlas-location-hero {
+        min-height: 142px;
+        padding: 22px 22px 20px;
+      }
+      .atlas-location-label {
+        margin-bottom: 8px;
+      }
+      .atlas-location-section {
+        margin-top: 12px;
+      }
+
+      .atlas-product-detail-content {
+        display: flex;
+        flex-direction: column;
+        padding: 28px;
+      }
+      .atlas-product-detail-image {
+        margin-bottom: 24px;
+        border-radius: 19px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.72);
+      }
+      .atlas-product-detail-eyebrow {
+        order: 2;
+        margin-bottom: 5px;
+      }
+      .atlas-product-detail-sku {
+        order: 3;
+        margin: 0 0 21px;
+        color: #071a31;
+        font-size: clamp(20px, 5.4vw, 29px);
+        font-weight: 1000;
+        line-height: 1.13;
+        letter-spacing: -0.025em;
+      }
+      .atlas-product-detail-sku-label {
+        order: 4;
+        margin-bottom: 5px;
+        color: #60738a;
+      }
+      .atlas-product-detail-title {
+        order: 5;
+        margin: 0;
+        font-size: clamp(18px, 4.8vw, 27px);
+        line-height: 1.2;
+      }
+      .atlas-product-detail-source {
+        order: 6;
+        margin-top: 15px;
+        padding-top: 14px;
+        border-top: 1px solid #e3e9f1;
+      }
+      .atlas-product-detail-image { order: 1; }
+
+      @media (max-width: 460px) {
+        .browse-view .aisle-grid { gap: 10px; }
+        .browse-view .aisle-grid button { min-height: 61px; }
+        .atlas-location-hero {
+          min-height: 136px;
+          padding: 20px 19px 18px;
+        }
+        .atlas-product-detail-content { padding: 21px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .browse-view .aisle-grid button { transition: none; }
+      }
+    </style>
 
 </head>
   <body>
