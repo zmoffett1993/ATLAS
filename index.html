@@ -27206,6 +27206,75 @@ Error generating stack: ` +
       }
     </style>
 
+
+
+    <style id="atlas-v1-2-5-white-studio-showroom">
+      /* v1.2.5 — White Studio Showroom.
+         Keep the overall environment white while using localized neutral contrast
+         and layered floor shadows to preserve white/clear product silhouettes. */
+      .atlas-product-detail-image {
+        background:
+          radial-gradient(ellipse 58% 64% at 50% 43%,
+            #eef1f3 0%,
+            #f3f5f6 34%,
+            #fafbfb 67%,
+            #ffffff 100%);
+        box-shadow:
+          inset 0 0 0 1px rgba(185, 193, 201, .28),
+          0 12px 30px rgba(20, 29, 40, .08);
+      }
+      .atlas-product-detail-image::before {
+        content: "" !important;
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          linear-gradient(180deg,
+            rgba(255,255,255,.72) 0%,
+            rgba(255,255,255,.20) 43%,
+            rgba(225,229,232,.14) 72%,
+            rgba(214,219,223,.20) 100%),
+          radial-gradient(ellipse 72% 28% at 50% 84%,
+            rgba(214,219,223,.26) 0%,
+            rgba(232,235,238,.13) 48%,
+            rgba(255,255,255,0) 78%);
+        pointer-events: none;
+      }
+      .atlas-product-detail-image::after {
+        content: "" !important;
+        position: absolute;
+        left: 50%;
+        bottom: 28px;
+        z-index: 0;
+        width: min(54%, 270px);
+        height: 24px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background:
+          radial-gradient(ellipse at center,
+            rgba(41,47,54,.30) 0%,
+            rgba(41,47,54,.17) 38%,
+            rgba(41,47,54,.055) 68%,
+            rgba(41,47,54,0) 100%);
+        filter: blur(11px);
+        box-shadow:
+          0 2px 7px rgba(31,36,42,.13),
+          0 12px 24px rgba(31,36,42,.08);
+        opacity: .76;
+        pointer-events: none;
+      }
+      .atlas-product-detail-image img {
+        filter: none;
+      }
+      @media (max-width: 460px) {
+        .atlas-product-detail-image::after {
+          bottom: 24px;
+          width: 56%;
+          height: 22px;
+        }
+      }
+    </style>
+
 </head>
   <body>
     <div id="root"></div>

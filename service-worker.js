@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v55-studio-photography-refinement";
+const VERSION = "atlas-pwa-v56-white-studio-showroom";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
