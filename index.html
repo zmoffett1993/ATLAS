@@ -27377,6 +27377,56 @@ Error generating stack: ` +
       }
     </style>
 
+
+    <style id="atlas-v2-0-1-ultra-white-showroom-final">
+      /* Final Product Showroom presentation: pure white stage and untouched source imagery. */
+      .atlas-product-detail-image,
+      .atlas-product-detail-image.atlas-studio-light,
+      .atlas-product-detail-image.atlas-studio-contrast,
+      .atlas-product-detail-image.atlas-studio-warm {
+        background: #ffffff !important;
+        border: 1px solid rgba(218, 226, 235, 0.9) !important;
+        box-shadow: none !important;
+      }
+
+      .atlas-product-detail-image::before,
+      .atlas-product-detail-image::after,
+      .atlas-product-detail-image.atlas-studio-light::before,
+      .atlas-product-detail-image.atlas-studio-light::after,
+      .atlas-product-detail-image.atlas-studio-contrast::before,
+      .atlas-product-detail-image.atlas-studio-contrast::after,
+      .atlas-product-detail-image.atlas-studio-warm::before,
+      .atlas-product-detail-image.atlas-studio-warm::after {
+        content: none !important;
+        display: none !important;
+        background: none !important;
+        box-shadow: none !important;
+        filter: none !important;
+      }
+
+      .atlas-product-detail-image img,
+      .atlas-product-detail-image.atlas-studio-light img,
+      .atlas-product-detail-image.atlas-studio-contrast img,
+      .atlas-product-detail-image.atlas-studio-warm img {
+        transform: none !important;
+        filter: none !important;
+        box-shadow: none !important;
+        opacity: 1 !important;
+        animation: none !important;
+        image-rendering: auto;
+        object-fit: contain;
+      }
+
+      @media (max-width: 460px) {
+        .atlas-product-detail-image img,
+        .atlas-product-detail-image.atlas-studio-light img,
+        .atlas-product-detail-image.atlas-studio-contrast img,
+        .atlas-product-detail-image.atlas-studio-warm img {
+          transform: none !important;
+        }
+      }
+    </style>
+
 </head>
   <body>
     <div id="root"></div>
