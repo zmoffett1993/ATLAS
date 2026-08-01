@@ -27112,6 +27112,100 @@ Error generating stack: ` +
       }
     </style>
 
+
+
+    <style id="atlas-v1-2-4-studio-photography-refinement">
+      /* v1.2.4 — Studio Photography Refinement.
+         Depth is created by the neutral studio environment; product imagery remains untouched. */
+      .atlas-product-detail-image {
+        background:
+          radial-gradient(ellipse 74% 58% at 50% 34%,
+            rgba(248,248,247,.96) 0%,
+            rgba(237,237,235,.88) 44%,
+            rgba(221,222,220,.48) 72%,
+            rgba(207,209,207,0) 100%),
+          linear-gradient(180deg,
+            #eeeeec 0%,
+            #e9e9e7 48%,
+            #e2e3e1 72%,
+            #d9dbd9 100%);
+        box-shadow:
+          inset 0 0 0 1px rgba(160,165,169,.30),
+          inset 0 -52px 76px rgba(89,94,98,.055),
+          0 12px 30px rgba(20,29,40,.09);
+      }
+      .atlas-product-detail-image::before {
+        content: "" !important;
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(ellipse 48% 18% at 50% 82%,
+            rgba(255,255,255,.20) 0%,
+            rgba(255,255,255,.08) 48%,
+            rgba(255,255,255,0) 76%),
+          radial-gradient(ellipse 84% 72% at 50% 42%,
+            rgba(255,255,255,0) 48%,
+            rgba(72,77,81,.045) 78%,
+            rgba(55,60,65,.085) 100%),
+          linear-gradient(180deg,
+            rgba(255,255,255,.045) 0%,
+            rgba(255,255,255,0) 56%,
+            rgba(80,85,89,.035) 100%);
+        pointer-events: none;
+      }
+      .atlas-product-detail-image::after {
+        content: "" !important;
+        position: absolute;
+        left: 50%;
+        bottom: 29px;
+        z-index: 0;
+        width: min(52%, 260px);
+        height: 23px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: radial-gradient(ellipse at center,
+          rgba(31,35,39,.34) 0%,
+          rgba(31,35,39,.22) 38%,
+          rgba(31,35,39,.08) 68%,
+          rgba(31,35,39,0) 100%);
+        filter: blur(12px);
+        box-shadow:
+          0 2px 8px rgba(25,29,33,.16),
+          0 13px 25px rgba(25,29,33,.10);
+        opacity: .82;
+        pointer-events: none;
+      }
+      .atlas-product-detail-image img {
+        transform: translateY(8px) scale(1.06);
+        filter: none;
+        animation: atlas-studio-product-in 330ms cubic-bezier(.22,1,.36,1) both;
+      }
+      @keyframes atlas-studio-product-in {
+        from { opacity: 0; transform: translateY(13px) scale(1.035); }
+        to { opacity: 1; transform: translateY(8px) scale(1.06); }
+      }
+      @media (max-width: 460px) {
+        .atlas-product-detail-image::after {
+          bottom: 25px;
+          width: 54%;
+          height: 21px;
+        }
+        .atlas-product-detail-image img {
+          transform: translateY(7px) scale(1.055);
+        }
+        @keyframes atlas-studio-product-in {
+          from { opacity: 0; transform: translateY(12px) scale(1.03); }
+          to { opacity: 1; transform: translateY(7px) scale(1.055); }
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-product-detail-image img {
+          animation: none !important;
+        }
+      }
+    </style>
+
 </head>
   <body>
     <div id="root"></div>

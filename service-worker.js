@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v54-studio-edge-separation";
+const VERSION = "atlas-pwa-v55-studio-photography-refinement";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
