@@ -25484,6 +25484,33 @@ Error generating stack: ` +
             resultCard?.querySelector(".sku-copy strong")?.textContent?.trim() ||
             showcase.dataset.sku ||
             "SKU unavailable";
+
+          const classifyStudioTheme = () => {
+            const primaryFeature = String(pickerBullets[0] || "").toLowerCase();
+            const productText = `${displayTitle} ${pickerBullets.join(" ")}`.toLowerCase();
+            const skuText = String(sku || "").toUpperCase();
+
+            const contrastTerms = /\b(white|clear|frosted?|natural|translucent\s+clear|milky)\b/;
+            const darkTerms = /\b(translucent\s+black|black\s+(bottle|container|tube|jar)|dark\s+(gray|grey|blue)|opaque\s+dark|smoke|smoked)\b/;
+            const warmTerms = /\b(amber|red|pink|yellow|orange|green|purple|violet|teal|cyan|gold|copper|rose)\b/;
+
+            // The product body color takes priority over closure color.
+            if (contrastTerms.test(primaryFeature)) return "contrast";
+            if (darkTerms.test(primaryFeature)) return "light";
+            if (warmTerms.test(primaryFeature)) return "warm";
+
+            if (contrastTerms.test(productText)) return "contrast";
+            if (darkTerms.test(productText)) return "light";
+            if (warmTerms.test(productText)) return "warm";
+
+            // SKU fallback for profiles whose descriptive attributes are unavailable.
+            if (/(?:^|-)(?:CNL|OWH|NATL|WTC|CLR|FROST)(?:-|$)/.test(skuText)) return "contrast";
+            if (/(?:^|-)(?:AMB|TAM|AMBER|RD|RED|PK|PINK|YW|YELLOW|GR|GREEN|OR|ORG|PUR|VIO)(?:-|$)/.test(skuText)) return "warm";
+            if (/(?:^|-)(?:OBK|TBK|BK|BKBK|BLK|DGY|DBL)(?:-|$)/.test(skuText)) return "light";
+
+            return "light";
+          };
+          const studioTheme = classifyStudioTheme();
           const sourceImage = showcase.querySelector(".atlas-product-media img");
           const imageUrl =
             sourceImage?.currentSrc || sourceImage?.getAttribute("src") || "";
@@ -25522,6 +25549,10 @@ Error generating stack: ` +
           const imageContainer = backdrop.querySelector(
             ".atlas-product-detail-image",
           );
+          imageContainer.classList.add(`atlas-studio-${studioTheme}`);
+          backdrop
+            .querySelector(".atlas-product-detail-modal")
+            .setAttribute("data-studio-theme", studioTheme);
           if (imageAvailable) {
             const image = document.createElement("img");
             image.src = imageUrl;
@@ -27208,70 +27239,141 @@ Error generating stack: ` +
 
 
 
-    <style id="atlas-v1-2-5-white-studio-showroom">
-      /* v1.2.5 — White Studio Showroom.
-         Keep the overall environment white while using localized neutral contrast
-         and layered floor shadows to preserve white/clear product silhouettes. */
+    <style id="atlas-v2-adaptive-studio-system">
+      /* ATLAS Studio System v2.0
+         Automatically selects a professional stage based on the product body tone.
+         Product imagery remains untouched; only the environment changes. */
+
       .atlas-product-detail-image {
+        transition: background 220ms ease, box-shadow 220ms ease;
+      }
+
+      /* Studio A — Light Studio: dark and opaque products */
+      .atlas-product-detail-image.atlas-studio-light {
         background:
-          radial-gradient(ellipse 58% 64% at 50% 43%,
-            #eef1f3 0%,
-            #f3f5f6 34%,
-            #fafbfb 67%,
-            #ffffff 100%);
+          radial-gradient(ellipse 72% 58% at 50% 43%,
+            #ffffff 0%,
+            #fdfdfd 46%,
+            #f7f8f9 76%,
+            #f1f3f5 100%);
         box-shadow:
-          inset 0 0 0 1px rgba(185, 193, 201, .28),
-          0 12px 30px rgba(20, 29, 40, .08);
+          inset 0 0 0 1px rgba(204, 211, 219, .44),
+          0 12px 28px rgba(20, 29, 40, .075);
       }
-      .atlas-product-detail-image::before {
-        content: "" !important;
-        position: absolute;
-        inset: 0;
-        z-index: 0;
+      .atlas-product-detail-image.atlas-studio-light::before {
         background:
-          linear-gradient(180deg,
-            rgba(255,255,255,.72) 0%,
-            rgba(255,255,255,.20) 43%,
-            rgba(225,229,232,.14) 72%,
-            rgba(214,219,223,.20) 100%),
-          radial-gradient(ellipse 72% 28% at 50% 84%,
-            rgba(214,219,223,.26) 0%,
-            rgba(232,235,238,.13) 48%,
-            rgba(255,255,255,0) 78%);
-        pointer-events: none;
+          radial-gradient(ellipse 88% 72% at 50% 45%,
+            rgba(255,255,255,0) 52%,
+            rgba(96,105,115,.025) 82%,
+            rgba(70,78,88,.055) 100%),
+          linear-gradient(180deg, rgba(255,255,255,.14), rgba(225,230,235,.035));
       }
-      .atlas-product-detail-image::after {
-        content: "" !important;
-        position: absolute;
-        left: 50%;
+      .atlas-product-detail-image.atlas-studio-light::after {
         bottom: 28px;
-        z-index: 0;
-        width: min(54%, 270px);
-        height: 24px;
-        transform: translateX(-50%);
-        border-radius: 50%;
-        background:
-          radial-gradient(ellipse at center,
-            rgba(41,47,54,.30) 0%,
-            rgba(41,47,54,.17) 38%,
-            rgba(41,47,54,.055) 68%,
-            rgba(41,47,54,0) 100%);
-        filter: blur(11px);
-        box-shadow:
-          0 2px 7px rgba(31,36,42,.13),
-          0 12px 24px rgba(31,36,42,.08);
-        opacity: .76;
-        pointer-events: none;
+        width: min(46%, 235px);
+        height: 19px;
+        background: radial-gradient(ellipse at center,
+          rgba(28,33,39,.23) 0%,
+          rgba(28,33,39,.12) 44%,
+          rgba(28,33,39,0) 100%);
+        filter: blur(13px);
+        box-shadow: none;
+        opacity: .62;
       }
-      .atlas-product-detail-image img {
+
+      /* Studio B — Contrast Studio: white, clear, frosted and natural products */
+      .atlas-product-detail-image.atlas-studio-contrast {
+        background:
+          radial-gradient(ellipse 64% 56% at 50% 42%,
+            #eceff1 0%,
+            #e6e9ec 40%,
+            #d9dde1 70%,
+            #cbd0d5 100%);
+        box-shadow:
+          inset 0 0 0 1px rgba(147, 155, 164, .38),
+          inset 0 -46px 72px rgba(75, 83, 92, .055),
+          0 12px 30px rgba(20, 29, 40, .09);
+      }
+      .atlas-product-detail-image.atlas-studio-contrast::before {
+        background:
+          radial-gradient(ellipse 58% 52% at 50% 42%,
+            rgba(255,255,255,.11) 0%,
+            rgba(255,255,255,.045) 44%,
+            rgba(255,255,255,0) 72%),
+          radial-gradient(ellipse 94% 82% at 50% 48%,
+            rgba(55,62,70,0) 48%,
+            rgba(55,62,70,.055) 78%,
+            rgba(42,49,57,.105) 100%),
+          linear-gradient(180deg, rgba(255,255,255,.035), rgba(68,76,85,.045));
+      }
+      .atlas-product-detail-image.atlas-studio-contrast::after {
+        bottom: 27px;
+        width: min(52%, 260px);
+        height: 23px;
+        background: radial-gradient(ellipse at center,
+          rgba(25,30,36,.34) 0%,
+          rgba(25,30,36,.21) 40%,
+          rgba(25,30,36,.07) 70%,
+          rgba(25,30,36,0) 100%);
+        filter: blur(12px);
+        box-shadow: 0 3px 9px rgba(24,29,35,.13);
+        opacity: .78;
+      }
+
+      /* Studio C — Warm Studio: amber, colored and special-edition products */
+      .atlas-product-detail-image.atlas-studio-warm {
+        background:
+          radial-gradient(ellipse 68% 58% at 50% 42%,
+            #faf8f4 0%,
+            #f4f0e9 43%,
+            #ebe4da 72%,
+            #ded5c8 100%);
+        box-shadow:
+          inset 0 0 0 1px rgba(171, 157, 137, .30),
+          inset 0 -42px 70px rgba(111, 91, 65, .045),
+          0 12px 30px rgba(37, 29, 20, .085);
+      }
+      .atlas-product-detail-image.atlas-studio-warm::before {
+        background:
+          radial-gradient(ellipse 62% 52% at 50% 41%,
+            rgba(255,255,255,.23) 0%,
+            rgba(255,255,255,.08) 48%,
+            rgba(255,255,255,0) 75%),
+          radial-gradient(ellipse 92% 82% at 50% 48%,
+            rgba(104,82,55,0) 50%,
+            rgba(104,82,55,.038) 80%,
+            rgba(91,70,45,.075) 100%);
+      }
+      .atlas-product-detail-image.atlas-studio-warm::after {
+        bottom: 28px;
+        width: min(49%, 245px);
+        height: 21px;
+        background: radial-gradient(ellipse at center,
+          rgba(50,39,27,.28) 0%,
+          rgba(50,39,27,.15) 43%,
+          rgba(50,39,27,0) 100%);
+        filter: blur(13px);
+        box-shadow: none;
+        opacity: .68;
+      }
+
+      /* Keep source photography authentic in every studio. */
+      .atlas-product-detail-image.atlas-studio-light img,
+      .atlas-product-detail-image.atlas-studio-contrast img,
+      .atlas-product-detail-image.atlas-studio-warm img {
         filter: none;
       }
+
       @media (max-width: 460px) {
-        .atlas-product-detail-image::after {
+        .atlas-product-detail-image.atlas-studio-light::after,
+        .atlas-product-detail-image.atlas-studio-contrast::after,
+        .atlas-product-detail-image.atlas-studio-warm::after {
           bottom: 24px;
-          width: 56%;
-          height: 22px;
         }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-product-detail-image { transition: none !important; }
       }
     </style>
 
