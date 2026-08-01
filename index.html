@@ -14423,11 +14423,103 @@ Error generating stack: ` +
             description: `Add a new product and assign its first warehouse location.`,
           },
         ];
-      function M(e) {
+      function atlasCleanSkuText(e) {
         return String(e ?? ``)
+          .normalize(`NFKC`)
+          .replace(/[\u200B-\u200D\u2060\uFEFF]/g, ``)
           .toUpperCase()
-          .replace(/[–—_]/g, `-`)
-          .replace(/[^A-Z0-9]/g, ``);
+          .replace(/[‐‑‒–—―−﹘﹣－_]/g, `-`)
+          .replace(/\s+/g, ``)
+          .replace(/[^A-Z0-9./-]/g, ``)
+          .replace(/-+/g, `-`)
+          .replace(/^-+|-+$/g, ``)
+          .replace(/([0-9])0Z/g, `$1OZ`);
+      }
+      function M(e) {
+        return atlasCleanSkuText(e).replace(/[^A-Z0-9]/g, ``);
+      }
+      function atlasOcrEquivalent(e) {
+        return M(e)
+          .replace(/[OQ]/g, `0`)
+          .replace(/[IL]/g, `1`)
+          .replace(/S/g, `5`)
+          .replace(/B/g, `8`)
+          .replace(/Z/g, `2`)
+          .replace(/G/g, `6`);
+      }
+      function atlasFindExistingSku(e, t, n = !1) {
+        let r = M(e);
+        if (!r) return null;
+        let i = t.filter((e) => M(e.sku) === r);
+        if (i.length === 1) return i[0];
+        if (!n) return null;
+        let a = atlasOcrEquivalent(r),
+          o = t.filter(
+            (e) => M(e.sku).length === r.length && atlasOcrEquivalent(e.sku) === a,
+          );
+        return o.length === 1 ? o[0] : null;
+      }
+      function atlasSkuFormatIsValid(e) {
+        return (
+          /^[A-Z0-9][A-Z0-9./]*(?:-[A-Z0-9./]+){2,4}$/.test(e) &&
+          /[0-9]/.test(e)
+        );
+      }
+      function atlasCanonicalizeSku(e, t = []) {
+        let n = atlasCleanSkuText(e);
+        if (!n)
+          return {
+            valid: !1,
+            value: ``,
+            reason: `Enter the complete printed SKU.`,
+          };
+        let r = atlasFindExistingSku(n, t);
+        if (r) return { valid: !0, value: r.sku, existing: r };
+        let i = new Map(),
+          a = new Map(),
+          o = (e, t, n) => {
+            let r = e.get(t) || new Set();
+            (r.add(n), e.set(t, r));
+          };
+        for (let e of t) {
+          let t = atlasCleanSkuText(e.sku).split(`-`).filter(Boolean);
+          if (t.length < 3) continue;
+          (o(i, M(t[0]), t[0]),
+            t.slice(1).forEach((e) => o(a, M(e), e)));
+        }
+        let s = M(n),
+          c = [...i.entries()].sort((e, t) => t[0].length - e[0].length),
+          l = [...a.entries()].sort((e, t) => t[0].length - e[0].length),
+          u = new Set();
+        for (let [e, t] of c) {
+          if (!s.startsWith(e)) continue;
+          let n = s.slice(e.length),
+            r = [],
+            i = (e, t) => {
+              if (e === n.length) {
+                t.length >= 2 && t.length <= 4 && r.push(t);
+                return;
+              }
+              if (t.length >= 4) return;
+              for (let [r, a] of l)
+                if (n.startsWith(r, e))
+                  for (let n of a) i(e + r.length, [...t, n]);
+            };
+          i(0, []);
+          for (let e of t)
+            for (let t of r) u.add([e, ...t].join(`-`));
+        }
+        if (u.size === 1) {
+          let e = [...u][0];
+          return { valid: !0, value: e, inferred: !0 };
+        }
+        if (atlasSkuFormatIsValid(n))
+          return { valid: !0, value: n, typed: !0 };
+        return {
+          valid: !1,
+          value: n,
+          reason: `ATLAS cannot confidently determine the SKU format. Add or correct the hyphens before saving.`,
+        };
       }
       function Ge() {
         let e = document.activeElement;
@@ -14436,20 +14528,21 @@ Error generating stack: ` +
       function Ke(e, t) {
         let n = M(e),
           r = M(t);
-        return r
-          ? n.includes(r)
-            ? !0
-            : r
-                .split(`-`)
-                .filter(Boolean)
-                .every((e) => n.includes(e))
-          : !1;
+        return !!r && n.includes(r);
       }
       function qe(e) {
-        return `${e.aisle}${String(e.section).toUpperCase()}`;
+        return Number(e.aisle) === 23
+          ? `SAMPLES RACK ${String(e.section).toUpperCase()}`
+          : `${e.aisle}${String(e.section).toUpperCase()}`;
+      }
+      function atlasPickerLocationTitle(e) {
+        return Number(e.aisle) === 23
+          ? `Samples Rack · Section ${String(e.section).toUpperCase()}`
+          : `Aisle ${e.aisle} · Section ${String(e.section).toUpperCase()}`;
       }
       function Je(e) {
         if (Number(e) === 22) return [`A`, `B`, `C`];
+        if (Number(e) === 23) return [`A`, `B`];
         if (Number(e) === 20 || Number(e) === 21) return [`B`, `C`];
         return e >= 10 ? [`B`, `C`, `D`] : [`A`, `B`, `C`, `D`];
       }
@@ -14555,10 +14648,14 @@ Error generating stack: ` +
         let [l, u] = (0, C.useState)(!1),
           p = (0, C.useRef)(!1),
           m = (0, C.useRef)(null),
-          d = (0, C.useMemo)(
-            () => (t.trim() ? n.filter((e) => Ke(e.sku, t)).slice(0, 10) : []),
-            [n, t],
-          ),
+          d = (0, C.useMemo)(() => {
+            if (!t.trim()) return [];
+            let e = atlasFindExistingSku(t, n, !0),
+              r = n.filter((e) => Ke(e.sku, t));
+            return e
+              ? [e, ...r.filter((t) => t.id !== e.id)].slice(0, 10)
+              : r.slice(0, 10);
+          }, [n, t]),
           f = (e) => {
             (u(!1), Ge(), i(e));
           },
@@ -14585,7 +14682,7 @@ Error generating stack: ` +
                   autoCapitalize: `characters`,
                   autoCorrect: `off`,
                   spellCheck: !1,
-                  onChange: (e) => r(e.target.value.toUpperCase()),
+                  onChange: (e) => r(atlasCleanSkuText(e.target.value)),
                   onFocus: () => u(!0),
                   onBlur: () =>
                     window.setTimeout(() => {
@@ -14594,7 +14691,7 @@ Error generating stack: ` +
                   onKeyDown: (e) => {
                     if (e.key !== `Enter`) return;
                     e.preventDefault();
-                    let r = n.find((e) => M(e.sku) === M(t)) || d[0];
+                    let r = atlasFindExistingSku(t, n, !0) || d[0];
                     r && f(r);
                   },
                 }),
@@ -14683,6 +14780,37 @@ Error generating stack: ` +
       function rt({ location: e }) {
         let t = Je(Number(e.aisle)),
           n = String(e.section).toUpperCase();
+        if (Number(e.aisle) === 23)
+          return (0, T.jsxs)(`div`, {
+            className: `map-panel atlas-samples-rack-map-panel`,
+            children: [
+              (0, T.jsxs)(`div`, {
+                className: `map-title`,
+                children: [
+                  (0, T.jsx)(`strong`, { children: `Samples Rack` }),
+                  (0, T.jsxs)(`span`, { children: [`Selected: Section `, n] }),
+                ],
+              }),
+              (0, T.jsx)(`div`, {
+                className: `samples-rack-map`,
+                role: `img`,
+                "aria-label": `Samples Rack. Section ${n} is selected.`,
+                children: [`A`, `B`].map((e) =>
+                  (0, T.jsxs)(
+                    `div`,
+                    {
+                      className: `samples-rack-zone ${e === n ? `active map-section` : ``}`,
+                      children: [
+                        (0, T.jsx)(`small`, { children: `SAMPLES RACK` }),
+                        (0, T.jsxs)(`span`, { children: [`SECTION `, e] }),
+                      ],
+                    },
+                    e,
+                  ),
+                ),
+              }),
+            ],
+          });
         if (Number(e.aisle) === 22) {
           let r =
             {
@@ -14862,7 +14990,7 @@ Error generating stack: ` +
               onSelect: s,
               onCamera: () =>
                 o(!0, (e) => {
-                  let n = t.find((t) => M(t.sku) === M(e));
+                  let n = atlasFindExistingSku(e, t, !0);
                   n && s(n);
                 }),
             }),
@@ -14899,11 +15027,19 @@ Error generating stack: ` +
                   (0, T.jsx)(`select`, {
                     value: e,
                     onChange: (e) => n(Number(e.target.value)),
-                    children: Array.from({ length: 22 }, (e, t) => t + 1).map(
+                    children: Array.from({ length: 23 }, (e, t) => t + 1).map(
                       (e) =>
-                        (0, T.jsxs)(
+                        (0, T.jsx)(
                           `option`,
-                          { value: e, children: [`Aisle `, e] },
+                          {
+                            value: e,
+                            children:
+                              e === 22
+                                ? `Overflow Floor Location`
+                                : e === 23
+                                  ? `Samples Rack`
+                                  : `Aisle ${e}`,
+                          },
                           e,
                         ),
                     ),
@@ -15026,7 +15162,7 @@ Error generating stack: ` +
                 }),
                 E({
                   type: `success`,
-                  text: `${o.sku} is now active in both its original location and ${p}${h}.`,
+                  text: `${o.sku} is now active in both its original location and ${qe({ aisle: p, section: h })}.`,
                 }))
               : (await $e(`move_inventory_location`, {
                   p_location_id: l,
@@ -15037,7 +15173,7 @@ Error generating stack: ` +
                 }),
                 E({
                   type: `success`,
-                  text: `${o.sku} was fully moved to ${p}${h}. The original location is no longer active.`,
+                  text: `${o.sku} was fully moved to ${qe({ aisle: p, section: h })}. The original location is no longer active.`,
                 })),
               await t());
           } catch (e) {
@@ -15492,7 +15628,8 @@ Error generating stack: ` +
           [p, m] = (0, C.useState)(!1),
           [h, g] = (0, C.useState)(!1),
           [_, v] = (0, C.useState)(null),
-          y = e.find((e) => M(e.sku) === M(r));
+          y = atlasFindExistingSku(r, e, !0),
+          atlasSkuPreview = atlasCanonicalizeSku(r, e);
         (0, C.useEffect)(() => {
           let e = window.setTimeout(
             () => f(localStorage.getItem(`atlasEmployee`) || ``),
@@ -15500,15 +15637,16 @@ Error generating stack: ` +
           );
           return () => window.clearTimeout(e);
         }, []);
-        async function b(e) {
-          (e.preventDefault(), v(null));
-          let n = M(r);
-          if (n.length < 4)
+        async function b(atlasSubmitEvent) {
+          (atlasSubmitEvent.preventDefault(), v(null));
+          let atlasSkuResult = atlasCanonicalizeSku(r, e),
+            n = atlasSkuResult.value;
+          if (!atlasSkuResult.valid)
             return v({
               type: `error`,
-              text: `Enter the complete printed SKU.`,
+              text: atlasSkuResult.reason,
             });
-          if (y)
+          if (atlasFindExistingSku(n, e, !0))
             return v({
               type: `error`,
               text: `That SKU already exists in ATLAS.`,
@@ -15534,7 +15672,7 @@ Error generating stack: ` +
             }),
               v({
                 type: `success`,
-                text: `${n} was created at ${s}${l}. Pick First remains off.`,
+                text: `${n} was created at ${qe({ aisle: s, section: l })}. Pick First remains off.`,
               }),
               i(``),
               o(``),
@@ -15620,10 +15758,24 @@ Error generating stack: ` +
               children: `The first location will be active. Pick First remains off until someone turns it on.`,
             }),
             (0, T.jsx)(ct, { message: _ }),
+            (0, T.jsxs)(`div`, {
+              className: `sku-save-preview ${r.trim() && !atlasSkuPreview.valid ? `invalid` : ``}`,
+              children: [
+                (0, T.jsx)(`span`, { children: `SKU TO BE SAVED` }),
+                atlasSkuPreview.valid
+                  ? (0, T.jsx)(`strong`, { children: atlasSkuPreview.value })
+                  : (0, T.jsx)(`small`, {
+                      children:
+                        r.trim()
+                          ? atlasSkuPreview.reason
+                          : `Enter the complete printed SKU to preview the saved format.`,
+                    }),
+              ],
+            }),
             (0, T.jsx)(`button`, {
               className: `primary-button`,
               type: `submit`,
-              disabled: h || !!y,
+              disabled: h || !!y || !atlasSkuPreview.valid,
               children: h ? `Creating…` : `Create SKU and Location`,
             }),
           ],
@@ -15834,14 +15986,7 @@ Error generating stack: ` +
             );
             if (match) return { exact: match.sku, suggestions: [], raw: e };
           }
-          const ocrEquivalent = (value) =>
-            String(value || ``)
-              .replace(/[OQ]/g, `0`)
-              .replace(/[IL]/g, `1`)
-              .replace(/S/g, `5`)
-              .replace(/B/g, `8`)
-              .replace(/Z/g, `2`)
-              .replace(/G/g, `6`);
+          const ocrEquivalent = atlasOcrEquivalent;
           for (const candidate of normalizedCandidates) {
             const equivalentMatches = inventory.filter(
               (item) =>
@@ -15907,11 +16052,13 @@ Error generating stack: ` +
             };
           }
           let i =
-            normalizedCandidates.sort(
-              (left, right) => right.length - left.length,
-            )[0] || ``;
+              normalizedCandidates.sort(
+                (left, right) => right.length - left.length,
+              )[0] || ``,
+            a = atlasCanonicalizeSku(i, t);
           return {
-            candidate: i,
+            candidate: a.valid ? a.value : atlasCleanSkuText(i),
+            candidateValid: a.valid,
             suggestions: scored.slice(0, 4).map((item) => item.sku),
             raw: e,
           };
@@ -16019,7 +16166,9 @@ Error generating stack: ` +
                   : !e.existingOnly && w.candidate
                     ? s(`Review every character before using this new SKU.`)
                     : s(
-                        `No exact ATLAS SKU was found. Choose a close match or try again.`,
+                        w.suggestions.length
+                          ? `ATLAS found possible matches. Confirm the correct SKU below.`
+                          : `No confident SKU match was found. Retake the photo or enter the SKU manually.`,
                       ));
             } catch (e) {
               s(
@@ -16331,7 +16480,7 @@ Error generating stack: ` +
                             onSelect: D,
                             onCamera: () =>
                               re(!0, (e) => {
-                                let t = i.find((t) => M(t.sku) === M(e));
+                                let t = atlasFindExistingSku(e, i, !0);
                                 t && D(t);
                               }),
                           }),
@@ -16449,14 +16598,7 @@ Error generating stack: ` +
                                                                   ).toUpperCase()
                                                                 ] || `OVERFLOW`
                                                               }`
-                                                            : [
-                                                                `Aisle `,
-                                                                e.aisle,
-                                                                ` · Section `,
-                                                                String(
-                                                                  e.section,
-                                                                ).toUpperCase(),
-                                                              ],
+                                                            : atlasPickerLocationTitle(e),
                                                       }),
                                                       (0, T.jsx)(`span`, {
                                                         children:
@@ -16614,7 +16756,7 @@ Error generating stack: ` +
                                 type: `button`,
                                 className: e === m ? `active` : ``,
                                 onClick: () => h(e),
-                                children: e === 22 ? `FLOOR` : e,
+                                children: e === 22 ? `FLOOR` : e === 23 ? `SAMPLES` : e,
                               },
                               e,
                             ),
@@ -16630,13 +16772,17 @@ Error generating stack: ` +
                                   children:
                                     m === 22
                                       ? `OVERFLOW FLOOR`
-                                      : [`AISLE `, m],
+                                      : m === 23
+                                        ? `SAMPLES RACK`
+                                        : [`AISLE `, m],
                                 }),
                                 (0, T.jsx)(`span`, {
                                   children:
                                     m === 22
                                       ? `LOCATION ID: 22`
-                                      : `WAREHOUSE LAYOUT`,
+                                      : m === 23
+                                        ? `SECTIONS A & B`
+                                        : `WAREHOUSE LAYOUT`,
                                 }),
                               ],
                             }),
@@ -21929,7 +22075,7 @@ Error generating stack: ` +
         aspect-ratio: auto;
         margin: 28px 0 0;
         background-color: transparent;
-        background-image: url("./atlas-menu-lockup-v2.png?v=20260731-emergency-logo-fix");
+        background-image: url("./atlas-menu-lockup-v2.png");
         background-position: center;
         background-repeat: no-repeat;
         background-size: contain;
@@ -22164,15 +22310,27 @@ Error generating stack: ` +
       };
       const atlasNormalizeSku = (value) =>
         String(value || "")
+          .normalize("NFKC")
+          .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
           .toUpperCase()
-          .replace(/[–—_]/g, "-")
+          .replace(/[‐‑‒–—―−﹘﹣－_]/g, "-")
           .replace(/\s+/g, "")
-          .replace(/[^A-Z0-9.-]/g, "");
+          .replace(/[^A-Z0-9./-]/g, "")
+          .replace(/-+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .replace(/([0-9])0Z/g, "$1OZ");
       const atlasLocationCode = (location) =>
-        `${Number(location.aisle)}${String(location.section).toUpperCase()}`;
+        Number(location.aisle) === 23
+          ? `SAMPLES RACK ${String(location.section).toUpperCase()}`
+          : `${Number(location.aisle)}${String(location.section).toUpperCase()}`;
+      const atlasLocationDisplay = (location) =>
+        Number(location.aisle) === 23
+          ? `Samples Rack, Section ${String(location.section).toUpperCase()}`
+          : `Aisle ${Number(location.aisle)}, Section ${String(location.section).toUpperCase()}`;
       const atlasSectionsForAisle = (aisle) => {
         const aisleNumber = Number(aisle);
         if (aisleNumber === 22) return ["A", "B", "C"];
+        if (aisleNumber === 23) return ["A", "B"];
         if (aisleNumber === 20 || aisleNumber === 21) return ["B", "C"];
         return aisleNumber >= 10 ? ["B", "C", "D"] : ["A", "B", "C", "D"];
       };
@@ -22233,7 +22391,16 @@ Error generating stack: ` +
                 <span>New aisle</span>
                 <select name="correctAisle">
                   <option value="">Choose aisle</option>
-                  ${Array.from({ length: 22 }, (_, index) => `<option value="${index + 1}">Aisle ${index + 1}${index === 21 ? " · Overflow Floor Location" : ""}</option>`).join("")}
+                  ${Array.from({ length: 23 }, (_, index) => {
+                    const aisle = index + 1;
+                    const label =
+                      aisle === 22
+                        ? "Overflow Floor Location"
+                        : aisle === 23
+                          ? "Samples Rack"
+                          : `Aisle ${aisle}`;
+                    return `<option value="${aisle}">${label}</option>`;
+                  }).join("")}
                 </select>
               </label>
               <label class="atlas-correction-field">
@@ -22472,7 +22639,7 @@ Error generating stack: ` +
             const destination =
               existingLocationId && selectedExisting
                 ? atlasLocationCode(selectedExisting)
-                : `${correctAisle}${correctSection}`;
+                : atlasLocationCode({ aisle: correctAisle, section: correctSection });
             showStatus(
               "success",
               `${skuRecord.sku} is now assigned to ${destination}.`,
@@ -22540,7 +22707,7 @@ Error generating stack: ` +
         const safeSku = atlasEscapeHtml(sku);
         const safeLocationCode = atlasEscapeHtml(clickedLocationCode);
         const sectionFromCode =
-          String(clickedLocationCode).replace(/^\d+/, "").toUpperCase() ||
+          String(clickedLocationCode).match(/(?:^|\s)([A-D])$/i)?.[1]?.toUpperCase() ||
           "this section";
         let contextPromise;
         let selectedExistingId = "";
@@ -22712,7 +22879,7 @@ Error generating stack: ` +
                   return `<button class="atlas-existing-choice${isSelected ? " selected" : ""}" type="button" data-existing-id="${atlasEscapeHtml(location.id)}" aria-pressed="${isSelected}">
                     <span class="atlas-existing-code">${atlasEscapeHtml(code)}</span>
                     <span>
-                      <strong>${atlasEscapeHtml(code)} · Aisle ${atlasEscapeHtml(location.aisle)}, Section ${atlasEscapeHtml(String(location.section).toUpperCase())}</strong>
+                      <strong>${atlasEscapeHtml(code)} · ${atlasEscapeHtml(atlasLocationDisplay(location))}</strong>
                       <small>${location.pick_first ? "Current Pick First location" : "Existing active location"}</small>
                     </span>
                     <span class="atlas-missing-chevron" aria-hidden="true">${isSelected ? "✓" : "›"}</span>
@@ -22720,11 +22887,16 @@ Error generating stack: ` +
                 })
                 .join("")
             : '<div class="atlas-no-existing">No other active locations for this SKU.</div>';
-          const aisleOptions = Array.from(
-            { length: 22 },
-            (_, index) =>
-              `<option value="${index + 1}">Aisle ${index + 1}${index === 21 ? " · Overflow Floor Location" : ""}</option>`,
-          ).join("");
+          const aisleOptions = Array.from({ length: 23 }, (_, index) => {
+            const aisle = index + 1;
+            const label =
+              aisle === 22
+                ? "Overflow Floor Location"
+                : aisle === 23
+                  ? "Samples Rack"
+                  : `Aisle ${aisle}`;
+            return `<option value="${aisle}">${label}</option>`;
+          }).join("");
           renderFrame(`
             <div class="atlas-missing-step">
               <button class="atlas-missing-back" type="button" data-back aria-label="Back to location choices">‹ Back</button>
@@ -22846,7 +23018,7 @@ Error generating stack: ` +
               });
               const destination = existingLocation
                 ? atlasLocationCode(existingLocation)
-                : `${newAisle}${newSection}`;
+                : atlasLocationCode({ aisle: newAisle, section: newSection });
               showSuccess(
                 "Location updated",
                 `${skuRecord.sku}: ${clickedLocationCode} → ${destination}`,
@@ -22925,7 +23097,7 @@ Error generating stack: ` +
       const ensureUpdatedAtlasBranding = () => {
         const image = document.querySelector(".atlas-logo-window img");
         if (!image || image.dataset.atlasHomeLockupV3 === "true") return;
-        image.src = "./atlas-home-lockup-v3.png?v=20260731-emergency-logo-fix";
+        image.src = "./atlas-home-lockup-v3.png";
         image.alt = "ATLAS Warehouse Management — Find, Manage, Deliver";
         image.dataset.atlasHomeLockupV3 = "true";
       };
@@ -23946,7 +24118,7 @@ Error generating stack: ` +
     </style>
     <script id="atlas-product-image-result-behavior">
       (() => {
-        const PRODUCT_MAP_URL = "./product-images.json?v=20260730";
+        const PRODUCT_MAP_URL = "./product-images.json?v=20260731-sku-integrity";
         let enhancementQueued = false;
         const productMapPromise = fetch(PRODUCT_MAP_URL, { cache: "no-cache" })
           .then((response) => {
@@ -24047,8 +24219,16 @@ Error generating stack: ` +
           const match = locationDescription.match(
             /Aisle\s+(.+?)\s+·\s+Section\s+([^·]+)/i,
           );
-          const aisle = match?.[1]?.trim() || locationCode.replace(/\D+.*$/, "") || "—";
-          const section = match?.[2]?.trim() || locationCode.replace(/^\d+/, "") || "—";
+          const samplesMatch = locationDescription.match(
+            /Samples Rack\s+·\s+Section\s+([AB])/i,
+          );
+          const isSamplesRack = Boolean(samplesMatch);
+          const aisle = isSamplesRack
+            ? "SAMPLES RACK"
+            : match?.[1]?.trim() || locationCode.replace(/\D+.*$/, "") || "—";
+          const section = isSamplesRack
+            ? samplesMatch?.[1]?.toUpperCase() || "—"
+            : match?.[2]?.trim() || locationCode.replace(/^\d+/, "") || "—";
           const isPickFirst = Boolean(original.querySelector(".pick-first-badge"));
           const signature = [locationCode, aisle, section, isPickFirst].join("|");
           let hero = selected.querySelector(":scope > .atlas-location-hero");
@@ -24069,7 +24249,10 @@ Error generating stack: ` +
             <div class="atlas-location-side">
               <strong class="atlas-location-code"></strong>
             </div>`;
-          setText(hero.querySelector(".atlas-location-aisle"), `AISLE ${aisle}`);
+          setText(
+            hero.querySelector(".atlas-location-aisle"),
+            isSamplesRack ? "SAMPLES RACK" : `AISLE ${aisle}`,
+          );
           setText(hero.querySelector(".atlas-location-section"), `SECTION ${section}`);
           setText(hero.querySelector(".atlas-location-code"), locationCode);
           if (isPickFirst) {
@@ -24920,6 +25103,81 @@ Error generating stack: ` +
         makeShowcasesInteractive();
       })();
     </script>
+  
+    <style id="atlas-sku-integrity-and-samples-rack-design">
+      .sku-save-preview {
+        border: 1px solid #bfd0e2;
+        background: #f5f9fd;
+        border-radius: 14px;
+        padding: 13px 14px;
+        display: grid;
+        gap: 5px;
+      }
+      .sku-save-preview span {
+        color: #55708b;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.12em;
+      }
+      .sku-save-preview strong {
+        color: #071a31;
+        font-size: 16px;
+        font-weight: 950;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+      .sku-save-preview small {
+        color: #5c6e82;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.4;
+      }
+      .sku-save-preview.invalid {
+        border-color: #e2b5b8;
+        background: #fff7f7;
+      }
+      .sku-save-preview.invalid small {
+        color: #9c2e37;
+      }
+      .samples-rack-map {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        min-height: 260px;
+        padding: 16px 0 4px;
+      }
+      .samples-rack-zone {
+        color: var(--brand-navy);
+        border: 2px solid var(--line);
+        background: #fff;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 20px 9px;
+        font-size: clamp(15px, 4vw, 22px);
+        font-weight: 950;
+        text-align: center;
+      }
+      .samples-rack-zone small {
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.09em;
+      }
+      .samples-rack-zone.active {
+        color: #fff;
+        border-color: var(--atlas-blue);
+        background: linear-gradient(155deg, var(--atlas-blue-2), var(--atlas-blue));
+        box-shadow: 0 16px 30px rgba(13, 75, 180, 0.23);
+      }
+      .samples-rack-zone.active small {
+        color: rgba(255, 255, 255, 0.82);
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

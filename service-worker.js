@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v33-emergency-logo-and-menu-fix";
+const VERSION = "atlas-pwa-v32-sku-integrity-samples-rack";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

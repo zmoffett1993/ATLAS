@@ -555,72 +555,6 @@
       "height": 720,
       "bytes": 11674
     },
-    "CGAC1-1OZCNL-OBK": {
-      "title": "1OZ CR AVIATOR CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGAC1-1OZ-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-1ozcnl-obk-81638492.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-1oz-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-1oz-cnl-obk_3199_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 5762
-    },
-    "CGAC1-1OZCNL-OWH": {
-      "title": "1OZ CR AVIATOR CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGAC1-1OZ-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-1ozcnl-owh-c0d9853b.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-1oz-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-1oz-cnl-owh_3200_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 7356
-    },
-    "CGAC1-21.50ZXL-CNL-OBK": {
-      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGAC1-21-5OZXL-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-cnl-obk-c2f4c218.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-cnl-obk.3339_large_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 10770
-    },
-    "CGAC1-21.50ZXL-CNL-OWH": {
-      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGAC1-21-5OZXL-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-cnl-owh-7611f991.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-cnl-owh.3340_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 12356
-    },
-    "CGAC1-21.50ZXL-OBK-OBK": {
-      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGAC1-21-5OZXL-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-obk-obk-b5b3fbe3.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-obk-obk.3338_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9336
-    },
-    "CGAC1-21.50ZXL-OWH-OWH": {
-      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGAC1-21-5OZXL-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-owh-owh-c31a6377.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-owh-owh.3343_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 11556
-    },
     "CGAC1-2OZ-CNL-OBK": {
       "title": "2OZ CR AVIATOR CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
       "official_sku": "CGAC1-2OZ-CNL-OBK",
@@ -906,39 +840,6 @@
       "width": 720,
       "height": 720,
       "bytes": 7958
-    },
-    "CGAC1-7.50ZXL-CNL-OWH": {
-      "title": "7.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGAC1-7-5OZXL-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-7-50zxl-cnl-owh-993a76e0.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-7-5ozxl-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-7.5ozxl-cnl-owh.3302_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 11454
-    },
-    "CGAC1-7.50ZXL-OBK-OBK": {
-      "title": "7.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGAC1-7-5OZXL-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-7-50zxl-obk-obk-f24486bf.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-7-5ozxl-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-7.5ozxl-obk-obk.3299_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 7940
-    },
-    "CGAC1-7.50ZXL-OWH-OWH": {
-      "title": "7.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGAC1-7-5OZXL-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-7-50zxl-owh-owh-18dd04ca.webp",
-      "source_page": "https://chubbygorilla.com/default/cgac1-7-5ozxl-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-7.5ozxl-owh-owh.3304_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 10278
     },
     "CGAC1-8OZ-CNL-OBK": {
       "title": "8OZ CR AVIATOR CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
@@ -1864,193 +1765,6 @@
       "height": 720,
       "bytes": 5636
     },
-    "CGSC1-100-ZWM-CNL-OBK": {
-      "title": "10OZ CR WIDE MOUTH SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-10OZWM-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100-zwm-cnl-obk-27479acd.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozwm-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozwm-cnl-obk_2806_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 8888
-    },
-    "CGSC1-100-ZWM-CNL-OWH": {
-      "title": "10OZ CR WIDE MOUTH SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-10OZWM-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100-zwm-cnl-owh-c51b35e0.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozwm-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozwm-cnl-owh_2807_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9136
-    },
-    "CGSC1-100-ZWM-OBK-OBK": {
-      "title": "10OZ CR WIDE MOUTH SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-10OZWM-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100-zwm-obk-obk-b3905b8c.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozwm-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozwm-obk-obk_2805_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 7942
-    },
-    "CGSC1-100ZXL-CNL-OBK": {
-      "title": "10OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-10OZXL-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100zxl-cnl-obk-344b0dbb.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozxl-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozxl-cnl-obk_2837_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 10444
-    },
-    "CGSC1-100ZXL-OBK-OBK": {
-      "title": "10OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-10OZXL-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100zxl-obk-obk-fa8a2bc4.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozxl-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozxl-obk-obk_3719_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 8528
-    },
-    "CGSC1-100ZXL-OWH-OWH": {
-      "title": "10OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-10OZXL-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100zxl-owh-owh-381ee75f.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozxl-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozxl-owh-owh_2841_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 8830
-    },
-    "CGSC1-18.50ZXL-CNL-OBK": {
-      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-18-5OZXL-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-cnl-obk-283671fa.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-cnl-obk.2850_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 11252
-    },
-    "CGSC1-18.50ZXL-CNL-OWH": {
-      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-18-5OZXL-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-cnl-owh-83d890ec.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-cnl-owh.2852_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 11778
-    },
-    "CGSC1-18.50ZXL-OBK-OBK": {
-      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-18-5OZXL-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-obk-obk-b7efc143.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-obk-obk.2851_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9238
-    },
-    "CGSC1-18.50ZXL-OWH-OWH": {
-      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-18-5OZXL-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-owh-owh-96bb22af.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-owh-owh.2853_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9188
-    },
-    "CGSC1-20Z-TW-CNL-OWH": {
-      "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-2OZTW-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-cnl-owh-dc1d4e40.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-2oztw-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-cnl-owh_2891_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 8444
-    },
-    "CGSC1-20Z-TW-OBK-OBK": {
-      "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-2OZTW-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-obk-obk-b62848d0.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-2oztw-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-obk-obk_2889_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 6696
-    },
-    "CGSC1-20Z-TW-OWH-OWH": {
-      "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-2OZTW-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-owh-owh-2973fbbf.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-2otw-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-owh-owh.2892_large_1.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 6768
-    },
-    "CGSC1-21.50ZXL-CNL-OBK": {
-      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-21-5OZXL-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-cnl-obk-29978783.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-cnl-obk.2864_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 11562
-    },
-    "CGSC1-21.50ZXL-CNL-OWH": {
-      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-21-5OZXL-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-cnl-owh-30f1fd13.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-cnl-owh.2865_2_1.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 12456
-    },
-    "CGSC1-21.50ZXL-OBK-OBK": {
-      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-21-5OZXL-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-obk-obk-aea0f624.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-obk-obk.2863_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9350
-    },
-    "CGSC1-21.50ZXL-OWH-OWH": {
-      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-21-5OZXL-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-owh-owh-981b607e.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-owh-owh.2866_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9560
-    },
     "CGSC1-2OZ-CNL-OBK": {
       "title": "2OZ CR SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
       "official_sku": "CGSC1-2OZ-CNL-OBK",
@@ -2403,50 +2117,6 @@
       "height": 720,
       "bytes": 7230
     },
-    "CGSC1-7.50ZXL-CNL-OBK": {
-      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-7-5OZXL-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-cnl-obk-44ba48bf.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-cnl-obk.2822_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9698
-    },
-    "CGSC1-7.50ZXL-CNL-OWH": {
-      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-7-5OZXL-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-cnl-owh-a9b3f7e8.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-cnl-owh.2824_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 10908
-    },
-    "CGSC1-7.50ZXL-OBK-OBK": {
-      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-7-5OZXL-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-obk-obk-68d8a9b5.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-obk-obk.2821_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 7978
-    },
-    "CGSC1-7.50ZXL-OWH-OWH": {
-      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-7-5OZXL-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-owh-owh-705aafb3.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-owh-owh.2825_2.png",
-      "match_type": "Auto-match — known ATLAS format correction",
-      "width": 720,
-      "height": 720,
-      "bytes": 9104
-    },
     "CGSC1-8OZ-CNL-OWH": {
       "title": "8OZ CR SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
       "official_sku": "CGSC1-8OZ-CNL-OWH",
@@ -2479,17 +2149,6 @@
       "width": 720,
       "height": 720,
       "bytes": 7066
-    },
-    "CGSC1-8OZCNL-OBK": {
-      "title": "8OZ CR SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-8OZ-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-8ozcnl-obk-3bb17b37.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-8oz-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-8oz-cnl-obk_2794_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 8496
     },
     "CGSSB1-60ML-CNL-CNL": {
       "title": "60ML SPIRAL SHOT BOTTLE WITH TAMPER EVIDENT(CLEAR BOTTLE WITH CLEAR CLOSURE)",
@@ -3414,6 +3073,347 @@
       "width": 720,
       "height": 720,
       "bytes": 8372
+    },
+    "CGAC1-21.5OZXL-OWH-OWH": {
+      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGAC1-21-5OZXL-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-owh-owh-c31a6377.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-owh-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-owh-owh.3343_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 11556
+    },
+    "CGSC1-10OZXL-OWH-OWH": {
+      "title": "10OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-10OZXL-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100zxl-owh-owh-381ee75f.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozxl-owh-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozxl-owh-owh_2841_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 8830
+    },
+    "CGSC1-21.5OZXL-OBK-OBK": {
+      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-21-5OZXL-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-obk-obk-aea0f624.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-obk-obk.2863_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9350
+    },
+    "CGAC1-7.5OZXL-OWH-OWH": {
+      "title": "7.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGAC1-7-5OZXL-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-7-50zxl-owh-owh-18dd04ca.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-7-5ozxl-owh-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-7.5ozxl-owh-owh.3304_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 10278
+    },
+    "CGAC1-21.5OZXL-OBK-OBK": {
+      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGAC1-21-5OZXL-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-obk-obk-b5b3fbe3.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-obk-obk.3338_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9336
+    },
+    "CGSC1-7.5OZXL-CNL-OWH": {
+      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-7-5OZXL-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-cnl-owh-a9b3f7e8.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-cnl-owh.2824_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 10908
+    },
+    "CGSC1-18.5OZXL-OWH-OWH": {
+      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-18-5OZXL-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-owh-owh-96bb22af.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-owh-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-owh-owh.2853_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9188
+    },
+    "CGAC1-1OZ-CNL-OBK": {
+      "title": "1OZ CR AVIATOR CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGAC1-1OZ-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-1ozcnl-obk-81638492.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-1oz-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-1oz-cnl-obk_3199_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 5762
+    },
+    "CGSC1-10OZXL-CNL-OBK": {
+      "title": "10OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-10OZXL-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100zxl-cnl-obk-344b0dbb.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozxl-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozxl-cnl-obk_2837_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 10444
+    },
+    "CGAC1-7.5OZXL-OBK-OBK": {
+      "title": "7.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGAC1-7-5OZXL-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-7-50zxl-obk-obk-f24486bf.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-7-5ozxl-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-7.5ozxl-obk-obk.3299_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 7940
+    },
+    "CGSC1-2OZ-TW-CNL-OWH": {
+      "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-2OZTW-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-cnl-owh-dc1d4e40.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-2oztw-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-cnl-owh_2891_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 8444
+    },
+    "CGSC1-7.5OZXL-CNL-OBK": {
+      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-7-5OZXL-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-cnl-obk-44ba48bf.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-cnl-obk.2822_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9698
+    },
+    "CGSC1-2OZ-TW-OBK-OBK": {
+      "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-2OZTW-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-obk-obk-b62848d0.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-2oztw-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-obk-obk_2889_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 6696
+    },
+    "CGSC1-7.5OZXL-OWH-OWH": {
+      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-7-5OZXL-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-owh-owh-705aafb3.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-owh-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-owh-owh.2825_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9104
+    },
+    "CGAC1-7.5OZXL-CNL-OWH": {
+      "title": "7.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGAC1-7-5OZXL-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-7-50zxl-cnl-owh-993a76e0.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-7-5ozxl-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-7.5ozxl-cnl-owh.3302_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 11454
+    },
+    "CGAC1-1OZ-CNL-OWH": {
+      "title": "1OZ CR AVIATOR CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGAC1-1OZ-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-1ozcnl-owh-c0d9853b.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-1oz-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-1oz-cnl-owh_3200_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 7356
+    },
+    "CGAC1-21.5OZXL-CNL-OBK": {
+      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGAC1-21-5OZXL-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-cnl-obk-c2f4c218.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-cnl-obk.3339_large_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 10770
+    },
+    "CGAC1-21.5OZXL-CNL-OWH": {
+      "title": "21.5OZ CR AVIATOR XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGAC1-21-5OZXL-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgac1-21-50zxl-cnl-owh-7611f991.webp",
+      "source_page": "https://chubbygorilla.com/default/cgac1-21-5ozxl-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgac1-21.5ozxl-cnl-owh.3340_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 12356
+    },
+    "CGSC1-8OZ-CNL-OBK": {
+      "title": "8OZ CR SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-8OZ-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-8ozcnl-obk-3bb17b37.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-8oz-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-8oz-cnl-obk_2794_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 8496
+    },
+    "CGSC1-18.5OZXL-CNL-OWH": {
+      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-18-5OZXL-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-cnl-owh-83d890ec.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-cnl-owh.2852_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 11778
+    },
+    "CGSC1-21.5OZXL-OWH-OWH": {
+      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-21-5OZXL-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-owh-owh-981b607e.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-owh-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-owh-owh.2866_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9560
+    },
+    "CGSC1-7.5OZXL-OBK-OBK": {
+      "title": "7.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-7-5OZXL-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-7-50zxl-obk-obk-68d8a9b5.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-7-5ozxl-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-7.5ozxl-obk-obk.2821_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 7978
+    },
+    "CGSC1-21.5OZXL-CNL-OBK": {
+      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-21-5OZXL-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-cnl-obk-29978783.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-cnl-obk.2864_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 11562
+    },
+    "CGSC1-18.5OZXL-OBK-OBK": {
+      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-18-5OZXL-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-obk-obk-b7efc143.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-obk-obk.2851_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9238
+    },
+    "CGSC1-10OZXL-OBK-OBK": {
+      "title": "10OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-10OZXL-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100zxl-obk-obk-fa8a2bc4.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozxl-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozxl-obk-obk_3719_2.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 8528
+    },
+    "CGSC1-18.5OZXL-CNL-OBK": {
+      "title": "18.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-18-5OZXL-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-18-50zxl-cnl-obk-283671fa.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-18-5ozxl-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-18.5ozxl-cnl-obk.2850_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 11252
+    },
+    "CGSC1-21.5OZXL-CNL-OWH": {
+      "title": "21.5OZ CR SPIRAL XL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-21-5OZXL-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-21-50zxl-cnl-owh-30f1fd13.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-21-5ozxl-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-21.5ozxl-cnl-owh.2865_2_1.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 12456
+    },
+    "CGSC1-2OZ-TW-OWH-OWH": {
+      "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-2OZTW-OWH-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-owh-owh-2973fbbf.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-2otw-owh-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-owh-owh.2892_large_1.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 6768
+    },
+    "CGSC1-10OZWM-CNL-OBK": {
+      "title": "10OZ CR WIDE MOUTH SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-10OZWM-CNL-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100-zwm-cnl-obk-27479acd.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozwm-cnl-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozwm-cnl-obk_2806_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 8888
+    },
+    "CGSC1-10OZWM-OBK-OBK": {
+      "title": "10OZ CR WIDE MOUTH SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
+      "official_sku": "CGSC1-10OZWM-OBK-OBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100-zwm-obk-obk-b3905b8c.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozwm-obk-obk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozwm-obk-obk_2805_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 7942
+    },
+    "CGSC1-10OZWM-CNL-OWH": {
+      "title": "10OZ CR WIDE MOUTH SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
+      "official_sku": "CGSC1-10OZWM-CNL-OWH",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-100-zwm-cnl-owh-c51b35e0.webp",
+      "source_page": "https://chubbygorilla.com/default/cgsc1-10ozwm-cnl-owh.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-10ozwm-cnl-owh_2807_large.png",
+      "match_type": "Auto-match — known ATLAS format correction",
+      "width": 720,
+      "height": 720,
+      "bytes": 9136
     }
   }
 }
