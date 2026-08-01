@@ -26875,6 +26875,197 @@ Error generating stack: ` +
       }
     </style>
 
+
+    <style id="atlas-v1-2-2-product-showroom-locked-design">
+      /* v1.2.2 — faithful implementation of the approved Product Showroom mockup */
+      .atlas-product-detail-modal {
+        width: min(88vw, 620px);
+        max-height: min(84dvh, 820px);
+        overflow-x: hidden;
+        color: #071a31;
+        background: #ffffff;
+        border: 1px solid rgba(202, 211, 222, .95);
+        border-radius: 25px;
+        box-shadow:
+          0 30px 76px rgba(5, 19, 38, .34),
+          0 3px 12px rgba(5, 19, 38, .12);
+      }
+      .atlas-product-detail-content {
+        padding: 22px 24px 30px;
+        background: #ffffff;
+      }
+      .atlas-product-detail-image {
+        position: relative;
+        isolation: isolate;
+        width: 100%;
+        min-height: clamp(300px, 40dvh, 400px);
+        margin: 0 0 26px;
+        overflow: hidden;
+        border: 0;
+        border-radius: 24px;
+        background:
+          radial-gradient(ellipse at 50% 44%,
+            #ffffff 0%,
+            #fbfbfb 30%,
+            #f2f2f2 63%,
+            #e6e6e6 100%);
+        box-shadow:
+          inset 0 0 0 1px rgba(209, 212, 216, .42),
+          0 12px 28px rgba(20, 29, 40, .08);
+      }
+      .atlas-product-detail-image::before {
+        content: "" !important;
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(ellipse at 50% 44%, rgba(255,255,255,.98) 0 18%, rgba(255,255,255,.48) 46%, rgba(255,255,255,0) 73%),
+          linear-gradient(180deg, rgba(255,255,255,.30), rgba(220,220,220,.10));
+        pointer-events: none;
+      }
+      .atlas-product-detail-image::after {
+        content: "" !important;
+        position: absolute;
+        left: 50%;
+        bottom: 35px;
+        z-index: 0;
+        width: min(42%, 220px);
+        height: 18px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: rgba(50, 54, 60, .20);
+        filter: blur(14px);
+        opacity: .55;
+        pointer-events: none;
+      }
+      .atlas-product-detail-image img {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: min(40dvh, 385px);
+        padding: 28px 34px 20px;
+        object-fit: contain;
+        transform: translateY(8px) scale(1);
+        filter: drop-shadow(0 12px 13px rgba(28, 31, 36, .11));
+      }
+      .atlas-product-detail-close {
+        position: absolute;
+        top: 34px;
+        right: 36px;
+        z-index: 8;
+        float: none;
+        width: 40px;
+        height: 40px;
+        margin: 0;
+        color: #0b1f38;
+        background: rgba(255,255,255,.88);
+        border: 1px solid rgba(208, 213, 220, .92);
+        border-radius: 50%;
+        box-shadow: 0 8px 18px rgba(15, 22, 32, .12);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        font-size: 23px;
+      }
+      .atlas-product-detail-name {
+        max-width: 25ch;
+        margin: 0 0 22px;
+        align-self: initial;
+        color: #071a31;
+        text-align: left;
+        font-size: clamp(23px, 5.5vw, 34px);
+        font-weight: 950;
+        line-height: 1.12;
+        letter-spacing: -.028em;
+        text-wrap: balance;
+      }
+      .atlas-product-detail-eyebrow {
+        align-self: initial;
+        margin-top: 0;
+        color: #566a81;
+        text-align: left;
+        font-size: 9px;
+        letter-spacing: .17em;
+      }
+      .atlas-product-detail-sku {
+        align-self: initial;
+        margin-top: 6px;
+        color: #12233b;
+        text-align: left;
+        font-size: clamp(15px, 3.9vw, 19px);
+        letter-spacing: -.008em;
+      }
+      .atlas-product-detail-divider {
+        margin: 22px 0 20px;
+        background: #d9e0e8;
+      }
+      .atlas-product-detail-sku-label {
+        color: #1558c6;
+        font-size: 9px;
+        letter-spacing: .18em;
+      }
+      .atlas-product-detail-bullets {
+        gap: 8px;
+        padding: 3px 0 2px;
+        color: #20344f;
+        font-size: 13.5px;
+        line-height: 1.48;
+      }
+      .atlas-product-detail-bullets li::marker {
+        color: #1558c6;
+      }
+      @media (max-width: 460px) {
+        .atlas-product-detail-modal {
+          width: 92vw;
+          max-height: 86dvh;
+          border-radius: 22px;
+        }
+        .atlas-product-detail-content {
+          padding: 18px 18px 26px;
+        }
+        .atlas-product-detail-image {
+          min-height: 285px;
+          margin-bottom: 24px;
+          border-radius: 21px;
+        }
+        .atlas-product-detail-image img {
+          height: min(38dvh, 345px);
+          padding: 24px 26px 18px;
+          transform: translateY(7px) scale(1);
+        }
+        .atlas-product-detail-image::after {
+          bottom: 30px;
+          width: 44%;
+        }
+        .atlas-product-detail-close {
+          top: 28px;
+          right: 28px;
+          width: 38px;
+          height: 38px;
+        }
+        .atlas-product-detail-name {
+          max-width: 24ch;
+          font-size: 25px;
+          margin-bottom: 20px;
+        }
+      }
+      @media (max-width: 360px) {
+        .atlas-product-detail-content { padding-inline: 15px; }
+        .atlas-product-detail-image { min-height: 260px; }
+        .atlas-product-detail-image img { height: min(36dvh, 320px); }
+        .atlas-product-detail-close { top: 25px; right: 25px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-product-detail-image img,
+        .atlas-product-detail-name,
+        .atlas-product-detail-eyebrow,
+        .atlas-product-detail-sku,
+        .atlas-product-detail-sku-label,
+        .atlas-product-detail-bullets {
+          animation: none !important;
+        }
+      }
+    </style>
+
 </head>
   <body>
     <div id="root"></div>
