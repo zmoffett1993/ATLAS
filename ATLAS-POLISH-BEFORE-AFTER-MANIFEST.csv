@@ -1,0 +1,48 @@
+path,action,reason
+ATLAS-SCAN-ACCURACY-UPDATE-INSTRUCTIONS.txt,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+ATLAS-SKU-INTEGRITY-UPDATE-NOTES.txt,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+ATLAS-SUPABASE-GLITCH-FIX.sql,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+ATLAS-UPDATE-INSTRUCTIONS.txt,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+INSTALL-UPDATE.txt,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+INSTALL_ATLAS.md,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+README.md,KEEP,Production file retained unchanged.
+animations (4).css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+animations.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+app.js,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+apple-touch-icon.png,KEEP,Production file retained unchanged.
+assets/placeholder.txt,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+atlas-192.png,KEEP,Production file retained unchanged.
+atlas-512.png,KEEP,Production file retained unchanged.
+atlas-command-center-menu.jpeg,KEEP,Production file retained unchanged.
+atlas-home-lockup-restored.png,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+atlas-home-lockup-v3.png,KEEP,Production file retained unchanged.
+atlas-home-logo-v2.png,KEEP,Production file retained unchanged.
+atlas-maskable-512.png,KEEP,Production file retained unchanged.
+atlas-menu-brand-lockup.png,KEEP,Production file retained unchanged.
+atlas-menu-lockup-restored.png,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+atlas-menu-lockup-v2.png,KEEP,Production file retained unchanged.
+atlas-warehouse-management.png,KEEP,Production file retained unchanged.
+chubby-gorilla-about-restored.jpeg,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+chubby-gorilla-about-v2.jpeg,KEEP,Production file retained unchanged.
+chubby-gorilla-black.jpeg,KEEP,Production file retained unchanged.
+chubby-gorilla-header-v2.png,KEEP,Production file retained unchanged.
+chubby-gorilla-lockup.png,KEEP,Production file retained unchanged.
+chubby-gorilla-white.png,KEEP,Production file retained unchanged.
+components (6).css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+components.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+css/animations.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+css/components.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+css/layout.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+css/theme.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+favicon-32.png,KEEP,Production file retained unchanged.
+index.html,MODIFY,Removed one confirmed broken assets/chubby-gorilla-white.png reference; no workflow logic changed.
+js/app.js,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+layout (2).css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+layout (3).css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+layout.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+manifest.webmanifest,KEEP,Production file retained unchanged.
+placeholder.txt,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+product-images.json,KEEP,Production file retained unchanged.
+service-worker.js,MODIFY,Cache version advanced to v37 so clients receive cleanup build.
+theme (3).css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."
+theme.css,REMOVE,"Approved obsolete, duplicate, empty, or unlinked production-root artifact."

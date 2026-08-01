@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v36-create-sku-raw-input";
+const VERSION = "atlas-pwa-v37-production-polish-cleanup";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
