@@ -24537,7 +24537,14 @@ Error generating stack: ` +
                 <span class="atlas-product-match-note" hidden></span>
                 <button class="atlas-product-view-details" type="button">View Details</button>
               </div>`;
-            resultBody.insertBefore(showcase, resultBody.firstChild);
+            const skuBlock = resultBody.querySelector(":scope > .sku-copy");
+            if (skuBlock?.nextSibling) {
+              resultBody.insertBefore(showcase, skuBlock.nextSibling);
+            } else if (skuBlock) {
+              resultBody.appendChild(showcase);
+            } else {
+              resultBody.insertBefore(showcase, resultBody.firstChild);
+            }
           }
           if (showcase.dataset.sku === sku) return;
           showcase.dataset.sku = sku;
