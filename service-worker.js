@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v43-premium-product-profiles-102f";
+const VERSION = "atlas-pwa-v44-driveway-labels-102f1";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
