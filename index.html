@@ -14532,7 +14532,7 @@ Error generating stack: ` +
       }
       function qe(e) {
         return Number(e.aisle) === 23
-          ? `SAMPLES RACK ${String(e.section).toUpperCase()}`
+          ? `SR`
           : `${e.aisle}${String(e.section).toUpperCase()}`;
       }
       function atlasPickerLocationTitle(e) {
@@ -24254,7 +24254,15 @@ Error generating stack: ` +
             isSamplesRack ? "SAMPLES RACK" : `AISLE ${aisle}`,
           );
           setText(hero.querySelector(".atlas-location-section"), `SECTION ${section}`);
-          setText(hero.querySelector(".atlas-location-code"), locationCode);
+          const heroCode = hero.querySelector(".atlas-location-code");
+          if (isSamplesRack) {
+            heroCode.classList.add("atlas-samples-rack-code");
+            heroCode.innerHTML = `<span>SR</span><span>${section}</span>`;
+            heroCode.setAttribute("aria-label", `Samples Rack Section ${section}`);
+          } else {
+            heroCode.classList.remove("atlas-samples-rack-code");
+            setText(heroCode, locationCode);
+          }
           if (isPickFirst) {
             const chip = document.createElement("span");
             chip.className = "atlas-pick-first-chip";
@@ -25206,6 +25214,27 @@ Error generating stack: ` +
         padding-right: 18px !important;
         min-width: 104px !important;
         letter-spacing: -0.02em;
+      }
+
+      /* Samples Rack compact badge treatment. */
+      .location-entry .location-badge {
+        text-align: center;
+      }
+      .atlas-location-code.atlas-samples-rack-code {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        line-height: 0.92;
+        text-align: center;
+      }
+      .atlas-location-code.atlas-samples-rack-code span:first-child {
+        font-size: 20px;
+        letter-spacing: 0.01em;
+      }
+      .atlas-location-code.atlas-samples-rack-code span:last-child {
+        font-size: 17px;
       }
       @media (max-width: 430px) {
         .brand-top .cg-lockup { width: 166px !important; height: 46px !important; }

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v34-final-approved-visuals";
+const VERSION = "atlas-pwa-v35-samples-rack-badges";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
