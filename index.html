@@ -23736,6 +23736,31 @@ Error generating stack: ` +
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 4;
       }
+      .atlas-product-bullets {
+        display: grid;
+        gap: 4px;
+        margin: 10px 0 0;
+        padding: 0;
+        color: #334b67;
+        list-style: none;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.3;
+      }
+      .atlas-product-bullets[hidden] {
+        display: none;
+      }
+      .atlas-product-bullets li {
+        position: relative;
+        padding-left: 12px;
+      }
+      .atlas-product-bullets li::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: #1751ba;
+        font-weight: 1000;
+      }
       .atlas-product-match-note {
         display: block;
         margin-top: 10px;
@@ -23896,6 +23921,11 @@ Error generating stack: ` +
         .atlas-product-title {
           font-size: 17px;
           -webkit-line-clamp: 5;
+        }
+        .atlas-product-bullets {
+          gap: 3px;
+          margin-top: 8px;
+          font-size: 10px;
         }
         .atlas-product-match-note {
           font-size: 9px;
@@ -24472,7 +24502,7 @@ Error generating stack: ` +
     </style>
     <script id="atlas-product-image-result-behavior">
       (() => {
-        const PRODUCT_MAP_URL = "./product-images.json?v=20260731-sku-integrity";
+        const PRODUCT_MAP_URL = "./product-images.json?v=20260731-product-profiles-102d";
         let enhancementQueued = false;
         const productMapPromise = fetch(PRODUCT_MAP_URL, { cache: "no-cache" })
           .then((response) => {
@@ -24503,6 +24533,7 @@ Error generating stack: ` +
               <div class="atlas-product-copy">
                 <span class="atlas-product-eyebrow">Product identification</span>
                 <h2 class="atlas-product-title"></h2>
+                <ul class="atlas-product-bullets" aria-label="Product details"></ul>
                 <span class="atlas-product-match-note"></span>
               </div>`;
             resultBody.insertBefore(showcase, resultBody.firstChild);
@@ -24516,6 +24547,13 @@ Error generating stack: ` +
           delete image.dataset.fallbackTried;
           image.alt = "";
           setText(showcase.querySelector(".atlas-product-title"), sku);
+          const bulletList = showcase.querySelector(".atlas-product-bullets");
+          if (bulletList) {
+            bulletList.innerHTML = "";
+            bulletList.hidden = true;
+          }
+          delete showcase.dataset.fullDescription;
+          delete showcase.dataset.pickerName;
           setText(showcase.querySelector(".atlas-product-match-note"), "Matching approved catalog image…");
           setText(showcase.querySelector(".atlas-product-placeholder strong"), "LOADING PRODUCT IMAGE");
 
@@ -24531,7 +24569,25 @@ Error generating stack: ` +
               setText(placeholderText, "PRODUCT IMAGE PENDING");
               return;
             }
-            setText(showcase.querySelector(".atlas-product-title"), product.title || sku);
+            const fullDescription =
+              product.full_description || product.title || sku;
+            const pickerName = product.picker_name || fullDescription;
+            const pickerBullets = Array.isArray(product.picker_bullets)
+              ? product.picker_bullets.filter(Boolean).slice(0, 5)
+              : [];
+            showcase.dataset.fullDescription = fullDescription;
+            showcase.dataset.pickerName = pickerName;
+            setText(showcase.querySelector(".atlas-product-title"), pickerName);
+            const bullets = showcase.querySelector(".atlas-product-bullets");
+            if (bullets) {
+              bullets.innerHTML = "";
+              pickerBullets.forEach((detail) => {
+                const item = document.createElement("li");
+                item.textContent = detail;
+                bullets.appendChild(item);
+              });
+              bullets.hidden = pickerBullets.length === 0;
+            }
             setText(showcase.querySelector(".atlas-product-match-note"), "Approved Chubby Gorilla catalog image");
             image.onload = () => {
               if (showcase.dataset.sku !== sku) return;
@@ -24550,7 +24606,7 @@ Error generating stack: ` +
               setText(placeholderText, "PRODUCT IMAGE UNAVAILABLE");
               setText(showcase.querySelector(".atlas-product-match-note"), "SKU and pick location are still available");
             };
-            image.alt = `${product.title || sku} product image`;
+            image.alt = `${product.picker_name || product.title || sku} product image`;
             image.src = product.image_url;
           });
         };
@@ -25351,17 +25407,15 @@ Error generating stack: ` +
           returnFocus = showcase;
 
           const resultCard = showcase.closest(".result-card");
-          const title =
+          const pickerName =
             showcase.querySelector(".atlas-product-title")?.textContent?.trim() ||
             "Product description unavailable";
+          const fullDescription =
+            showcase.dataset.fullDescription || pickerName;
           const sku =
             resultCard?.querySelector(".sku-copy strong")?.textContent?.trim() ||
             showcase.dataset.sku ||
             "SKU unavailable";
-          const sourceNote =
-            showcase
-              .querySelector(".atlas-product-match-note")
-              ?.textContent?.trim() || "";
           const sourceImage = showcase.querySelector(".atlas-product-media img");
           const imageUrl =
             sourceImage?.currentSrc || sourceImage?.getAttribute("src") || "";
@@ -25390,9 +25444,8 @@ Error generating stack: ` +
                 <div class="atlas-product-detail-image"></div>
                 <span class="atlas-product-detail-eyebrow">SKU</span>
                 <div class="atlas-product-detail-sku"></div>
-                <span class="atlas-product-detail-sku-label">Product Description</span>
+                <span class="atlas-product-detail-sku-label">Product Details</span>
                 <h2 class="atlas-product-detail-title" id="atlas-product-detail-title"></h2>
-                <p class="atlas-product-detail-source"></p>
               </div>
             </article>`;
 
@@ -25402,7 +25455,7 @@ Error generating stack: ` +
           if (imageAvailable) {
             const image = document.createElement("img");
             image.src = imageUrl;
-            image.alt = `${title} product image`;
+            image.alt = `${pickerName} product image`;
             imageContainer.appendChild(image);
           } else {
             const unavailable = document.createElement("span");
@@ -25410,11 +25463,8 @@ Error generating stack: ` +
             imageContainer.appendChild(unavailable);
           }
           backdrop.querySelector(".atlas-product-detail-title").textContent =
-            title;
+            fullDescription;
           backdrop.querySelector(".atlas-product-detail-sku").textContent = sku;
-          const source = backdrop.querySelector(".atlas-product-detail-source");
-          source.textContent =
-            sourceNote || "Approved Chubby Gorilla catalog product";
 
           backdrop
             .querySelector(".atlas-product-detail-close")
@@ -25454,7 +25504,7 @@ Error generating stack: ` +
             card.tabIndex = 0;
             card.setAttribute("role", "button");
             card.setAttribute("aria-haspopup", "dialog");
-            card.setAttribute("aria-label", "Open larger product image and full description");
+            card.setAttribute("aria-label", "Open larger product image and product details");
           });
         };
         new MutationObserver(makeShowcasesInteractive).observe(
