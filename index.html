@@ -21787,7 +21787,7 @@ Error generating stack: ` +
         max-width: 292px;
         aspect-ratio: 1628 / 349;
         margin: 27px 0 0;
-        background: url("./atlas-menu-lockup-restored.png") center / contain no-repeat;
+        background: url("./atlas-menu-lockup-v2.png") center / contain no-repeat;
         position: relative;
         z-index: 2;
         display: block;
@@ -22282,7 +22282,7 @@ Error generating stack: ` +
           </div>
         </section>
         <div class="atlas-info-closing">
-          <img class="atlas-gorilla-logo" src="./chubby-gorilla-about-restored.jpeg" alt="Chubby Gorilla">
+          <img class="atlas-gorilla-logo" src="./chubby-gorilla-about-v2.jpeg?v=34" alt="Chubby Gorilla">
           <strong>Built specifically for the Chubby Gorilla warehouse team</strong>
           <div class="atlas-info-signature">FIND · MANAGE · DELIVER</div>
         </div>
@@ -23097,7 +23097,7 @@ Error generating stack: ` +
       const ensureUpdatedAtlasBranding = () => {
         const image = document.querySelector(".atlas-logo-window img");
         if (!image || image.dataset.atlasHomeLockupV3 === "true") return;
-        image.src = "./atlas-home-lockup-restored.png";
+        image.src = "./atlas-home-lockup-v3.png?v=34";
         image.alt = "ATLAS Warehouse Management — Find, Manage, Deliver";
         image.dataset.atlasHomeLockupV3 = "true";
       };
@@ -25184,7 +25184,34 @@ Error generating stack: ` +
         letter-spacing: -0.015em;
       }
     </style>
-  </head>
+  
+    <style id="atlas-final-approved-visual-restoration">
+      /* Exact approved Chubby Gorilla header lockup. */
+      .brand-top .cg-lockup {
+        width: 202px !important;
+        height: 53px !important;
+        background: transparent url("./chubby-gorilla-header-v2.png?v=34") center / contain no-repeat !important;
+        opacity: 1 !important;
+        filter: none !important;
+      }
+      /* Exact approved full ATLAS menu lockup. */
+      .premium-drawer-head .premium-drawer-brand {
+        background: transparent url("./atlas-menu-lockup-v2.png?v=34") center / contain no-repeat !important;
+      }
+      /* Give the longer Samples label safe breathing room. */
+      button[data-aisle="23"],
+      .aisle-button[data-aisle="23"],
+      [data-aisle="23"].browse-aisle-button {
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+        min-width: 104px !important;
+        letter-spacing: -0.02em;
+      }
+      @media (max-width: 430px) {
+        .brand-top .cg-lockup { width: 166px !important; height: 46px !important; }
+      }
+    </style>
+</head>
   <body>
     <div id="root"></div>
   </body>
