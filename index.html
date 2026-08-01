@@ -14644,6 +14644,7 @@ Error generating stack: ` +
         allowNew: o = !1,
         placeholder: s = `Search SKU or scan printed SKU`,
         autoFocus: c = !1,
+        preserveRawInput: atlasPreserveRawInput = !1,
       }) {
         let [l, u] = (0, C.useState)(!1),
           p = (0, C.useRef)(!1),
@@ -14682,7 +14683,12 @@ Error generating stack: ` +
                   autoCapitalize: `characters`,
                   autoCorrect: `off`,
                   spellCheck: !1,
-                  onChange: (e) => r(atlasCleanSkuText(e.target.value)),
+                  onChange: (e) =>
+                    r(
+                      atlasPreserveRawInput
+                        ? e.target.value
+                        : atlasCleanSkuText(e.target.value),
+                    ),
                   onFocus: () => u(!0),
                   onBlur: () =>
                     window.setTimeout(() => {
@@ -15713,6 +15719,7 @@ Error generating stack: ` +
                   (i(e), m(!1));
                 }),
               allowNew: !0,
+              preserveRawInput: !0,
               placeholder: `Type or scan the new printed SKU`,
             }),
             y

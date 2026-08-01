@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v35-samples-rack-badges";
+const VERSION = "atlas-pwa-v36-create-sku-raw-input";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
