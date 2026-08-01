@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v42-motion-interaction-102e1";
+const VERSION = "atlas-pwa-v43-premium-product-profiles-102f";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
