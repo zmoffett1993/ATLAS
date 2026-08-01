@@ -14910,7 +14910,7 @@ Error generating stack: ` +
                                 children:
                                   i === 0 && Number(e.aisle) < 10
                                     ? `MAIN FORKLIFT DRIVEWAY`
-                                    : `FORKLIFT DRIVEWAY ${i + 1}`,
+                                    : `FORKLIFT DRIVEWAY ${Number(e.aisle) < 10 ? i + 1 : i + 2}`,
                               })
                             : null,
                         ],
