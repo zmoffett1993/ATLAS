@@ -25246,6 +25246,81 @@ Error generating stack: ` +
         .brand-top .cg-lockup { width: 166px !important; height: 46px !important; }
       }
     </style>
+
+    <style id="atlas-v102a-design-foundation">
+      /* ATLAS v1.0.2A — design foundation only. No workflow or layout rewrite. */
+      :root {
+        --atlas-space-1: 8px;
+        --atlas-space-2: 12px;
+        --atlas-space-3: 16px;
+        --atlas-space-4: 24px;
+        --atlas-space-5: 32px;
+        --atlas-radius-control: 10px;
+        --atlas-radius-card: 14px;
+        --atlas-radius-feature: 18px;
+        --atlas-radius-pill: 999px;
+        --atlas-touch-target: 44px;
+        --atlas-control-compact: 40px;
+        --atlas-control-primary: 48px;
+        --atlas-motion-press: 150ms;
+        --atlas-motion-color: 170ms;
+        --atlas-motion-card: 240ms;
+        --atlas-motion-page: 260ms;
+        --atlas-ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      /* Accessibility-sized hit areas for existing compact controls. */
+      button[aria-label],
+      .premium-drawer-close,
+      .atlas-info-close,
+      .atlas-correction-close,
+      .atlas-product-detail-close,
+      .atlas-missing-back {
+        min-width: var(--atlas-touch-target);
+        min-height: var(--atlas-touch-target);
+      }
+
+      /* Existing primary actions keep their appearance and gain a shared floor. */
+      .atlas-correction-submit,
+      .atlas-missing-primary,
+      .premium-drawer-link {
+        min-height: var(--atlas-control-primary);
+      }
+
+      /* Preserve each component's transition properties while normalizing feel. */
+      button,
+      [role="button"],
+      .premium-drawer-link,
+      .atlas-existing-choice,
+      .atlas-new-location-toggle {
+        transition-duration: var(--atlas-motion-color);
+      }
+
+      .atlas-location-card,
+      .atlas-product-detail-modal,
+      .atlas-missing-sheet,
+      .premium-drawer {
+        transition-duration: var(--atlas-motion-card);
+        transition-timing-function: var(--atlas-ease-premium);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html:focus-within {
+          scroll-behavior: auto !important;
+        }
+
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          transition-delay: 0ms !important;
+        }
+      }
+    </style>
+
 </head>
   <body>
     <div id="root"></div>
