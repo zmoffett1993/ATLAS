@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v59-search-hyphen-fix";
+const VERSION = "atlas-pwa-v60-bkbk-canonical-fix";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

@@ -4128,25 +4128,6 @@
         "Child Resistant"
       ]
     },
-    "CGUB1-100MLV3-BK-BK": {
-      "title": "100ML CR UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
-      "official_sku": "CGUB1-100MLV3-BKBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-100mlv3-bk-bk-af344293.webp",
-      "source_page": "https://chubbygorilla.com/default/cgub1-100mlv3-bkbk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-100mlv3-bkbk__2296_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 8522,
-      "full_description": "100ML CR UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
-      "picker_name": "100Ml CR Unicorn Bottle With Tamper Evident",
-      "picker_bullets": [
-        "Translucent Black Bottle",
-        "Black Closure",
-        "Tamper Evident",
-        "Child Resistant"
-      ]
-    },
     "CGUB1-100MLV3-BK-SOLID": {
       "title": "100ML CR UNICORN BOTTLE WITH TAMPER EVIDENT (BLACK BOTTLE WITH BLACK CLOSURE)",
       "official_sku": "CGUB1-100MLV3-BK-SOLID",
@@ -4238,25 +4219,6 @@
       "picker_bullets": [
         "Clear Bottle",
         "Black Closure",
-        "Tamper Evident",
-        "Child Resistant"
-      ]
-    },
-    "CGUB1-10MLR-BK-BK": {
-      "title": "10ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
-      "official_sku": "CGUB1-10MLR-BKBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-10mlr-bk-bk-6ac91e27.webp",
-      "source_page": "https://chubbygorilla.com/default/cgub1-10mlr-bkbk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-10mlr-bkbk__2097_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 5366,
-      "full_description": "10ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
-      "picker_name": "10Ml CR Reducer Unicorn Bottle With Tamper Evident",
-      "picker_bullets": [
-        "Translucent Black Bottle",
-        "Translucent Black Closure",
         "Tamper Evident",
         "Child Resistant"
       ]
@@ -4542,25 +4504,6 @@
       "picker_bullets": [
         "Clear Bottle",
         "Black Closure",
-        "Tamper Evident",
-        "Child Resistant"
-      ]
-    },
-    "CGUB1-15MLR-BK-BK": {
-      "title": "15ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
-      "official_sku": "CGUB1-15MLR-BKBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-15mlr-bk-bk-edced8d2.webp",
-      "source_page": "https://chubbygorilla.com/default/cgub1-15mlr-bkbk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-15mlr-bkbk__2125_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 5782,
-      "full_description": "15ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
-      "picker_name": "15Ml CR Reducer Unicorn Bottle With Tamper Evident",
-      "picker_bullets": [
-        "Translucent Black Bottle",
-        "Translucent Black Closure",
         "Tamper Evident",
         "Child Resistant"
       ]
@@ -4888,25 +4831,6 @@
         "Child Resistant"
       ]
     },
-    "CGUB1-30MLR-BK-BK": {
-      "title": "30ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
-      "official_sku": "CGUB1-30MLR-BKBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-30mlr-bk-bk-ffe4469d.webp",
-      "source_page": "https://chubbygorilla.com/default/cgub1-30mlr-bkbk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-30mlr-bkbk__2211_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 6482,
-      "full_description": "30ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
-      "picker_name": "30Ml CR Reducer Unicorn Bottle With Tamper Evident",
-      "picker_bullets": [
-        "Translucent Black Bottle",
-        "Translucent Black Closure",
-        "Tamper Evident",
-        "Child Resistant"
-      ]
-    },
     "CGUB1-30MLR-NATL": {
       "title": "30ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (CLEAR BOTTLE WITH CLEAR CLOSURE)",
       "official_sku": "CGUB1-30MLR-NATL",
@@ -5225,25 +5149,6 @@
       "picker_name": "60Ml CR Stubby Unicorn Bottle With Tamper Evident",
       "picker_bullets": [
         "Clear Bottle",
-        "Black Closure",
-        "Tamper Evident",
-        "Child Resistant"
-      ]
-    },
-    "CGUB1-60MLSC-BK-BK": {
-      "title": "60ML CR STUBBY UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
-      "official_sku": "CGUB1-60MLSC-BKBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-60mlsc-bk-bk-beb09683.webp",
-      "source_page": "https://chubbygorilla.com/default/cgub1-60mlsc-bkbk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-60mlsc-bkbk__2370_large.png",
-      "match_type": "Auto-match — punctuation normalized",
-      "width": 720,
-      "height": 720,
-      "bytes": 8104,
-      "full_description": "60ML CR STUBBY UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
-      "picker_name": "60Ml CR Stubby Unicorn Bottle With Tamper Evident",
-      "picker_bullets": [
-        "Translucent Black Bottle",
         "Black Closure",
         "Tamper Evident",
         "Child Resistant"
@@ -6280,6 +6185,101 @@
       ],
       "atlas_sku": "CGSC1-30MLM-TW-CNL-OBK",
       "mapped_from": "CGSC1-30-MLM-TW-CNL-OBK"
+    },
+    "CGUB1-10MLR-BKBK": {
+      "title": "10ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
+      "official_sku": "CGUB1-10MLR-BKBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-10mlr-bk-bk-6ac91e27.webp",
+      "source_page": "https://chubbygorilla.com/default/cgub1-10mlr-bkbk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-10mlr-bkbk__2097_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 5366,
+      "full_description": "10ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
+      "picker_name": "10Ml CR Reducer Unicorn Bottle With Tamper Evident",
+      "picker_bullets": [
+        "Translucent Black Bottle",
+        "Translucent Black Closure",
+        "Tamper Evident",
+        "Child Resistant"
+      ]
+    },
+    "CGUB1-15MLR-BKBK": {
+      "title": "15ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
+      "official_sku": "CGUB1-15MLR-BKBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-15mlr-bk-bk-edced8d2.webp",
+      "source_page": "https://chubbygorilla.com/default/cgub1-15mlr-bkbk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-15mlr-bkbk__2125_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 5782,
+      "full_description": "15ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
+      "picker_name": "15Ml CR Reducer Unicorn Bottle With Tamper Evident",
+      "picker_bullets": [
+        "Translucent Black Bottle",
+        "Translucent Black Closure",
+        "Tamper Evident",
+        "Child Resistant"
+      ]
+    },
+    "CGUB1-30MLR-BKBK": {
+      "title": "30ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
+      "official_sku": "CGUB1-30MLR-BKBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-30mlr-bk-bk-ffe4469d.webp",
+      "source_page": "https://chubbygorilla.com/default/cgub1-30mlr-bkbk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-30mlr-bkbk__2211_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 6482,
+      "full_description": "30ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",
+      "picker_name": "30Ml CR Reducer Unicorn Bottle With Tamper Evident",
+      "picker_bullets": [
+        "Translucent Black Bottle",
+        "Translucent Black Closure",
+        "Tamper Evident",
+        "Child Resistant"
+      ]
+    },
+    "CGUB1-60MLSC-BKBK": {
+      "title": "60ML CR STUBBY UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
+      "official_sku": "CGUB1-60MLSC-BKBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-60mlsc-bk-bk-beb09683.webp",
+      "source_page": "https://chubbygorilla.com/default/cgub1-60mlsc-bkbk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-60mlsc-bkbk__2370_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 8104,
+      "full_description": "60ML CR STUBBY UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
+      "picker_name": "60Ml CR Stubby Unicorn Bottle With Tamper Evident",
+      "picker_bullets": [
+        "Translucent Black Bottle",
+        "Black Closure",
+        "Tamper Evident",
+        "Child Resistant"
+      ]
+    },
+    "CGUB1-100MLV3-BKBK": {
+      "title": "100ML CR UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
+      "official_sku": "CGUB1-100MLV3-BKBK",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-100mlv3-bk-bk-af344293.webp",
+      "source_page": "https://chubbygorilla.com/default/cgub1-100mlv3-bkbk.html",
+      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgub1-100mlv3-bkbk__2296_large.png",
+      "match_type": "Auto-match — punctuation normalized",
+      "width": 720,
+      "height": 720,
+      "bytes": 8522,
+      "full_description": "100ML CR UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH BLACK CLOSURE)",
+      "picker_name": "100Ml CR Unicorn Bottle With Tamper Evident",
+      "picker_bullets": [
+        "Translucent Black Bottle",
+        "Black Closure",
+        "Tamper Evident",
+        "Child Resistant"
+      ]
     }
   },
   "profile_count": 324,

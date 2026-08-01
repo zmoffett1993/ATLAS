@@ -14445,6 +14445,7 @@ Error generating stack: ` +
           .replace(/[^A-Z0-9./-]/g, ``)
           .replace(/-+/g, `-`)
           .replace(/^-+|-+$/g, ``)
+          .replace(/-BK-BK$/g, `-BKBK`)
           .replace(/([0-9])0Z/g, `$1OZ`);
       }
       function M(e) {
@@ -22674,6 +22675,7 @@ Error generating stack: ` +
           .replace(/[^A-Z0-9./-]/g, "")
           .replace(/-+/g, "-")
           .replace(/^-+|-+$/g, "")
+          .replace(/-BK-BK$/g, "-BKBK")
           .replace(/([0-9])0Z/g, "$1OZ");
       const atlasLocationCode = (location) =>
         Number(location.aisle) === 23
