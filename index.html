@@ -24535,7 +24535,7 @@ Error generating stack: ` +
                 <p class="atlas-product-subtitle" hidden></p>
                 <ul class="atlas-product-bullets" aria-label="Product details"></ul>
                 <span class="atlas-product-match-note" hidden></span>
-                <button class="atlas-product-view-details" type="button">View Details</button>
+                <button class="atlas-product-view-details" type="button"><span>View Product Details</span><i aria-hidden="true">›</i></button>
               </div>`;
             const skuBlock = resultBody.querySelector(":scope > .sku-copy");
             if (skuBlock?.nextSibling) {
@@ -26274,6 +26274,118 @@ Error generating stack: ` +
         .atlas-product-media,
         .atlas-product-detail-backdrop,
         .atlas-product-detail-modal { animation: none !important; transition: none !important; }
+      }
+    </style>
+
+    <style id="atlas-v1-0-3-picker-first-product-experience">
+      /* v1.0.3 — picker-first product page: SKU, details on demand, location */
+      .result-card .atlas-product-showcase {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        align-items: center;
+        gap: 13px;
+        min-height: 68px;
+        margin: 18px 0 20px;
+        padding: 8px 10px;
+        background: linear-gradient(145deg, #ffffff 0%, #f7faff 100%);
+        border: 1px solid #c9d7e8;
+        border-radius: 14px;
+        box-shadow: 0 7px 18px rgba(7, 31, 67, 0.06);
+      }
+      .result-card .atlas-product-showcase .atlas-product-media {
+        width: 52px;
+        min-height: 52px;
+        height: 52px;
+        border: 0;
+        border-radius: 10px;
+        box-shadow: none;
+        background: #f4f7fb;
+        cursor: pointer;
+        overflow: hidden;
+      }
+      .result-card .atlas-product-showcase .atlas-product-media img {
+        width: 100%;
+        height: 100%;
+        padding: 4px;
+        object-fit: contain;
+      }
+      .result-card .atlas-product-showcase .atlas-product-placeholder {
+        padding: 4px;
+      }
+      .result-card .atlas-product-showcase .atlas-product-placeholder-icon,
+      .result-card .atlas-product-showcase .atlas-product-placeholder strong {
+        display: none;
+      }
+      .result-card .atlas-product-showcase .atlas-product-copy {
+        display: block;
+        min-width: 0;
+      }
+      .result-card .atlas-product-showcase .atlas-product-title,
+      .result-card .atlas-product-showcase .atlas-product-subtitle,
+      .result-card .atlas-product-showcase .atlas-product-bullets,
+      .result-card .atlas-product-showcase .atlas-product-match-note {
+        display: none !important;
+      }
+      .result-card .atlas-product-showcase .atlas-product-view-details {
+        display: flex;
+        width: 100%;
+        min-height: 48px;
+        margin: 0;
+        padding: 0 9px 0 2px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #103e83;
+        background: transparent;
+        border: 0;
+        border-radius: 9px;
+        box-shadow: none;
+        font-size: 14px;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-align: left;
+      }
+      .result-card .atlas-product-showcase .atlas-product-view-details i {
+        color: #0b4da8;
+        font-size: 30px;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 1;
+        transform: translateY(-1px);
+      }
+      .result-card .atlas-product-showcase .atlas-product-view-details:active,
+      .result-card .atlas-product-showcase .atlas-product-media:active {
+        transform: scale(.985);
+      }
+      .result-card .sku-copy {
+        margin-bottom: 0;
+      }
+      .result-card .atlas-product-showcase + .location-list {
+        margin-top: 0;
+      }
+      @media (max-width: 460px) {
+        .result-card .atlas-product-showcase {
+          grid-template-columns: 48px minmax(0, 1fr);
+          min-height: 64px;
+          gap: 11px;
+          margin: 15px 0 18px;
+          padding: 7px 9px;
+        }
+        .result-card .atlas-product-showcase .atlas-product-media {
+          width: 48px;
+          min-height: 48px;
+          height: 48px;
+        }
+        .result-card .atlas-product-showcase .atlas-product-view-details {
+          min-height: 46px;
+          font-size: 13px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .result-card .atlas-product-showcase .atlas-product-view-details,
+        .result-card .atlas-product-showcase .atlas-product-media {
+          transition: none !important;
+        }
       }
     </style>
 
