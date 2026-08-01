@@ -25435,6 +25435,27 @@ Error generating stack: ` +
           window.setTimeout(finishClose, 190);
         };
 
+        const formatCatalogTitle = (value) => {
+          const preserved = new Set([
+            "CR", "CRC", "APT", "XL", "PET", "HDPE", "LDPE", "PP", "PE",
+            "ML", "MM", "OZ", "L", "V2", "V3", "V4"
+          ]);
+          return String(value || "")
+            .trim()
+            .split(/(\s+)/)
+            .map((part) => {
+              if (/^\s+$/.test(part)) return part;
+              const leading = part.match(/^[^A-Za-z0-9]*/)?.[0] || "";
+              const trailing = part.match(/[^A-Za-z0-9]*$/)?.[0] || "";
+              const core = part.slice(leading.length, part.length - trailing.length || undefined);
+              if (!core) return part;
+              const upper = core.toUpperCase();
+              if (/\d/.test(core) || preserved.has(upper)) return `${leading}${upper}${trailing}`;
+              return `${leading}${core.charAt(0).toUpperCase()}${core.slice(1).toLowerCase()}${trailing}`;
+            })
+            .join("");
+        };
+
         const openProductDetail = (showcase) => {
           if (!showcase) return;
           closeProductDetail();
@@ -25449,8 +25470,7 @@ Error generating stack: ` +
             "Product description unavailable";
           const fullDescription =
             showcase.dataset.fullDescription || pickerName;
-          const subtitle =
-            showcase.querySelector(".atlas-product-subtitle")?.textContent?.trim() || "";
+          const displayTitle = formatCatalogTitle(fullDescription);
           let pickerBullets = [];
           try {
             pickerBullets = JSON.parse(showcase.dataset.pickerBullets || "[]");
@@ -25491,14 +25511,11 @@ Error generating stack: ` +
               <div class="atlas-product-detail-content">
                 <div class="atlas-product-detail-image"></div>
                 <h2 class="atlas-product-detail-name" id="atlas-product-detail-title"></h2>
-                <p class="atlas-product-detail-subtitle" hidden></p>
                 <span class="atlas-product-detail-eyebrow">SKU</span>
                 <div class="atlas-product-detail-sku"></div>
                 <div class="atlas-product-detail-divider" aria-hidden="true"></div>
-                <span class="atlas-product-detail-sku-label">Product Details</span>
-                <ul class="atlas-product-detail-bullets" aria-label="Product details"></ul>
-                <div class="atlas-product-detail-divider" aria-hidden="true"></div>
-                <p class="atlas-product-detail-title"></p>
+                <span class="atlas-product-detail-sku-label">Features</span>
+                <ul class="atlas-product-detail-bullets" aria-label="Product features"></ul>
               </div>
             </article>`;
 
@@ -25508,19 +25525,14 @@ Error generating stack: ` +
           if (imageAvailable) {
             const image = document.createElement("img");
             image.src = imageUrl;
-            image.alt = `${pickerName} product image`;
+            image.alt = `${displayTitle} product image`;
             imageContainer.appendChild(image);
           } else {
             const unavailable = document.createElement("span");
             unavailable.textContent = "Product image currently unavailable";
             imageContainer.appendChild(unavailable);
           }
-          backdrop.querySelector(".atlas-product-detail-name").textContent = pickerName;
-          const detailSubtitle = backdrop.querySelector(".atlas-product-detail-subtitle");
-          if (detailSubtitle) {
-            detailSubtitle.textContent = subtitle;
-            detailSubtitle.hidden = !subtitle;
-          }
+          backdrop.querySelector(".atlas-product-detail-name").textContent = displayTitle;
           const detailBullets = backdrop.querySelector(".atlas-product-detail-bullets");
           pickerBullets.forEach((detail) => {
             const item = document.createElement("li");
@@ -25528,8 +25540,6 @@ Error generating stack: ` +
             detailBullets.appendChild(item);
           });
           detailBullets.hidden = pickerBullets.length === 0;
-          backdrop.querySelector(".atlas-product-detail-title").textContent =
-            fullDescription;
           backdrop.querySelector(".atlas-product-detail-sku").textContent = sku;
 
           backdrop
@@ -26599,7 +26609,24 @@ Error generating stack: ` +
       }
     </style>
 
-  </head>
+  
+    <style id="atlas-v1-1-2-product-details-refinement">
+      /* v1.1.2 — complete title, no repeated subtitle or duplicate footer description */
+      .atlas-product-detail-name {
+        margin-bottom: 0;
+        text-wrap: balance;
+      }
+      .atlas-product-detail-eyebrow {
+        margin-top: 24px;
+      }
+      .atlas-product-detail-sku-label {
+        color: #1751ba;
+      }
+      .atlas-product-detail-bullets {
+        padding-bottom: 4px;
+      }
+    </style>
+</head>
   <body>
     <div id="root"></div>
   
