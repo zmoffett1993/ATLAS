@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v32-sku-integrity-samples-rack";
+const VERSION = "atlas-pwa-v33-visual-assets-restored";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -20,6 +20,9 @@ const APP_SHELL = [
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",
   "./atlas-menu-lockup-v2.png",
+  "./atlas-home-lockup-restored.png",
+  "./atlas-menu-lockup-restored.png",
+  "./chubby-gorilla-about-restored.jpeg",
 ];
 
 self.addEventListener("install", (event) => {

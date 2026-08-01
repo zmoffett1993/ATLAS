@@ -21787,7 +21787,7 @@ Error generating stack: ` +
         max-width: 292px;
         aspect-ratio: 1628 / 349;
         margin: 27px 0 0;
-        background: url("./atlas-menu-brand-lockup.png") center / contain no-repeat;
+        background: url("./atlas-menu-lockup-restored.png") center / contain no-repeat;
         position: relative;
         z-index: 2;
         display: block;
@@ -22282,7 +22282,7 @@ Error generating stack: ` +
           </div>
         </section>
         <div class="atlas-info-closing">
-          <img class="atlas-gorilla-logo" src="./chubby-gorilla-about-v2.jpeg" alt="Chubby Gorilla">
+          <img class="atlas-gorilla-logo" src="./chubby-gorilla-about-restored.jpeg" alt="Chubby Gorilla">
           <strong>Built specifically for the Chubby Gorilla warehouse team</strong>
           <div class="atlas-info-signature">FIND · MANAGE · DELIVER</div>
         </div>
@@ -23097,7 +23097,7 @@ Error generating stack: ` +
       const ensureUpdatedAtlasBranding = () => {
         const image = document.querySelector(".atlas-logo-window img");
         if (!image || image.dataset.atlasHomeLockupV3 === "true") return;
-        image.src = "./atlas-home-lockup-v3.png";
+        image.src = "./atlas-home-lockup-restored.png";
         image.alt = "ATLAS Warehouse Management — Find, Manage, Deliver";
         image.dataset.atlasHomeLockupV3 = "true";
       };
@@ -25176,6 +25176,12 @@ Error generating stack: ` +
       }
       .samples-rack-zone.active small {
         color: rgba(255, 255, 255, 0.82);
+      }
+      /* Visual-only correction: give the longer SAMPLES tile breathing room. */
+      .aisle-grid button:nth-last-child(1) {
+        padding-left: 14px;
+        padding-right: 14px;
+        letter-spacing: -0.015em;
       }
     </style>
   </head>
