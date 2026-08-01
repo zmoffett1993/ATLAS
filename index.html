@@ -14553,6 +14553,7 @@ Error generating stack: ` +
           : `Aisle ${e.aisle} · Section ${String(e.section).toUpperCase()}`;
       }
       function Je(e) {
+        if (Number(e) === 1) return [`A`, `B`, `C`];
         if (Number(e) === 22) return [`A`, `B`, `C`];
         if (Number(e) === 23) return [`A`, `B`];
         if (Number(e) === 20 || Number(e) === 21) return [`B`, `C`];
@@ -26675,6 +26676,52 @@ Error generating stack: ` +
           animation-duration: 0.01ms !important;
           animation-iteration-count: 1 !important;
           transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+    <style id="atlas-v1-1-1-sku-focus">
+      /* Picker-first SKU confirmation plaque. Presentation only. */
+      .result-card .sku-copy {
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0 0 16px;
+        padding: 18px 16px 17px;
+        text-align: center;
+        background: linear-gradient(180deg, rgba(239, 246, 255, 0.94), rgba(247, 250, 255, 0.98));
+        border: 1px solid #cbd9ea;
+        border-radius: 16px;
+        box-shadow: 0 7px 20px rgba(7, 39, 84, 0.065);
+      }
+      .result-card .sku-copy::before {
+        content: "PRODUCT SKU";
+        margin-bottom: 7px;
+        color: #47617f;
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: 0.16em;
+        text-align: center;
+      }
+      .result-card .sku-copy strong {
+        color: #071b39;
+        font-size: clamp(20px, 5.5vw, 27px);
+        line-height: 1.14;
+        letter-spacing: -0.018em;
+        text-align: center;
+      }
+      .result-card .sku-copy span {
+        margin-top: 7px;
+        color: #617189;
+        font-size: 12px;
+        line-height: 1.35;
+        text-align: center;
+      }
+      .result-card .sku-copy:active {
+        transform: scale(0.992);
+      }
+      @media (max-width: 460px) {
+        .result-card .sku-copy {
+          padding: 17px 12px 16px;
+          border-radius: 15px;
         }
       }
     </style>
