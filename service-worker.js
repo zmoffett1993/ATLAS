@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v58-product-size-plus-10";
+const VERSION = "atlas-pwa-v59-search-hyphen-fix";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
