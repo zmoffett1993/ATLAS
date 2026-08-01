@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v47-picker-first-product-103";
+const VERSION = "atlas-pwa-v48-premium-navigation-11";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
