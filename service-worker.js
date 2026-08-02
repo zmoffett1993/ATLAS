@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v71-raised-mobile-menu-tabs";
+const VERSION = "atlas-pwa-v72-compact-menu-depth";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -15,7 +15,7 @@ const APP_SHELL = [
   "./atlas-warehouse-management.png",
   "./atlas-home-logo-v2.png",
   "./atlas-home-lockup-v3.png",
-  "./atlas-menu-warehouse-v1.webp?v=2",
+  "./atlas-menu-warehouse-v1.webp?v=72",
   "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",

@@ -23535,7 +23535,6 @@ Error generating stack: ` +
           </div>
           <span class="atlas-menu-purpose">WAREHOUSE MANAGEMENT</span>
         </div>
-        <p class="atlas-menu-promise">Excellence Delivered.</p>
       </header>
       <nav class="premium-drawer-nav atlas-menu-nav" aria-label="Primary navigation">
         <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Home">
@@ -28017,26 +28016,28 @@ Error generating stack: ` +
         visibility: visible !important;
         pointer-events: auto !important;
         transition:
-          opacity 260ms cubic-bezier(0.22, 0.72, 0.2, 1),
+          opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
           visibility 0s !important;
       }
       .premium-drawer.atlas-menu-drawer {
         position: absolute !important;
-        inset: 0 auto 0 0 !important;
-        width: min(75vw, 520px) !important;
+        inset: 0 auto auto 0 !important;
+        width: min(85vw, 520px) !important;
         max-width: none !important;
-        height: 100dvh !important;
-        max-height: none !important;
+        height: auto !important;
+        max-height: 100dvh !important;
         margin: 0 !important;
         padding: 0 !important;
         color: #f8f4ec !important;
         border: 0 !important;
         border-right: 1px solid rgba(214, 229, 242, 0.34) !important;
-        border-radius: 0 !important;
-        overflow: hidden !important;
+        border-bottom: 1px solid rgba(214, 229, 242, 0.24) !important;
+        border-radius: 0 0 30px 0 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
         isolation: isolate;
         display: grid !important;
-        grid-template-rows: minmax(250px, 40dvh) auto 1fr auto;
+        grid-template-rows: auto auto auto;
         background:
           linear-gradient(
             180deg,
@@ -28044,7 +28045,7 @@ Error generating stack: ` +
             #011522 58%,
             #01101e 100%
           ) !important;
-        box-shadow: 16px 0 40px rgba(0, 8, 20, 0.42) !important;
+        box-shadow: 18px 24px 52px rgba(0, 8, 20, 0.46) !important;
         transform: translate3d(-102%, 0, 0) !important;
         transform-origin: left center !important;
         transition: transform 390ms cubic-bezier(0.2, 0.82, 0.24, 1) !important;
@@ -28054,11 +28055,16 @@ Error generating stack: ` +
       }
       .premium-drawer-backdrop.open .premium-drawer.atlas-menu-drawer {
         transform: translate3d(var(--atlas-menu-drag-x, 0px), 0, 0) !important;
+        transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
       .premium-drawer.atlas-menu-drawer.is-swipe-tracking {
         transition: none !important;
         user-select: none;
         -webkit-user-select: none;
+      }
+      .premium-drawer-backdrop.open
+        .premium-drawer.atlas-menu-drawer.is-swipe-tracking {
+        transition: none !important;
       }
       .premium-drawer-backdrop.atlas-menu-backdrop.atlas-swipe-closing {
         transition:
@@ -28092,6 +28098,8 @@ Error generating stack: ` +
       }
       .atlas-menu-brand {
         min-width: 0;
+        width: 100%;
+        aspect-ratio: 1351 / 1164;
         padding:
           calc(62px + env(safe-area-inset-top))
           clamp(19px, 5.2vw, 32px)
@@ -28107,17 +28115,17 @@ Error generating stack: ` +
         background:
           linear-gradient(
             180deg,
-            rgba(0, 8, 18, 0.1) 0%,
-            rgba(0, 11, 24, 0.17) 40%,
-            rgba(1, 17, 31, 0.76) 100%
+            rgba(0, 8, 18, 0.2) 0%,
+            rgba(0, 11, 24, 0.08) 46%,
+            rgba(1, 17, 31, 0.34) 100%
           ),
           linear-gradient(
             90deg,
-            rgba(0, 7, 17, 0.48) 0%,
-            rgba(0, 12, 26, 0.18) 59%,
-            rgba(2, 20, 38, 0.14) 100%
+            rgba(0, 7, 17, 0.34) 0%,
+            rgba(0, 12, 26, 0.08) 59%,
+            rgba(2, 20, 38, 0.06) 100%
           ),
-          url("./atlas-menu-warehouse-v1.webp?v=2") center 35% / cover no-repeat;
+          url("./atlas-menu-warehouse-v1.webp?v=72") center center / cover no-repeat;
         box-shadow:
           inset 0 -1px rgba(242, 227, 207, 0.18),
           0 14px 28px rgba(0, 8, 18, 0.12);
@@ -28155,16 +28163,7 @@ Error generating stack: ` +
         display: none;
       }
       .atlas-menu-promise {
-        color: rgba(250, 247, 239, 0.96);
-        margin: clamp(24px, 6.2vw, 37px) 0 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(9px, 2.35vw, 12px);
-        font-style: italic;
-        font-weight: 400;
-        line-height: 1.15;
-        letter-spacing: 0.005em;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-        white-space: nowrap;
+        display: none;
       }
       .premium-drawer-close.atlas-menu-close,
       .premium-drawer-close.atlas-menu-close:hover,
@@ -28363,7 +28362,7 @@ Error generating stack: ` +
       }
       @media (max-height: 700px) {
         .premium-drawer.atlas-menu-drawer {
-          grid-template-rows: minmax(222px, 36dvh) auto 1fr auto;
+          grid-template-rows: auto auto auto;
         }
         .atlas-menu-brand {
           padding-top: calc(49px + env(safe-area-inset-top));
@@ -28383,8 +28382,8 @@ Error generating stack: ` +
       }
       @media (max-width: 699px) {
         .premium-drawer.atlas-menu-drawer {
-          /* Keep tall phones from turning the statement header into empty space. */
-          grid-template-rows: clamp(236px, 31dvh, 270px) auto 1fr auto;
+          width: 85vw !important;
+          grid-template-rows: auto auto auto;
         }
       }
       @media (min-width: 700px) {
@@ -28394,7 +28393,9 @@ Error generating stack: ` +
       }
       @media (prefers-reduced-motion: reduce) {
         .premium-drawer-backdrop.atlas-menu-backdrop,
+        .premium-drawer-backdrop.atlas-menu-backdrop.open,
         .premium-drawer.atlas-menu-drawer,
+        .premium-drawer-backdrop.open .premium-drawer.atlas-menu-drawer,
         .atlas-menu-drawer .premium-drawer-link.atlas-menu-item {
           transition-duration: 0.01ms !important;
           transition-delay: 0s !important;
