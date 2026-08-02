@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v63-control-center-hero-v1";
+const VERSION = "atlas-pwa-v64-control-center-hero-full-clarity";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
