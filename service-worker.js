@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v74-footer-systems";
+const VERSION = "atlas-pwa-v75-footer-bottom-gap";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
