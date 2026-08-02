@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v64-control-center-hero-full-clarity";
+const VERSION = "atlas-pwa-v64-control-center-v1-spec-rebuild";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -17,6 +17,7 @@ const APP_SHELL = [
   "./atlas-home-lockup-v3.png",
   "./atlas-command-center-menu.jpeg",
   "./atlas-control-center-hero-v1.webp",
+  "./atlas-control-center-spec-v1.jpg",
   "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",

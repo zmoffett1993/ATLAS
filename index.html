@@ -23496,59 +23496,16 @@ Error generating stack: ` +
         const backdrop = document.createElement("div");
         backdrop.className = "premium-drawer-backdrop";
         backdrop.innerHTML = `
-    <aside id="atlasPremiumDrawer" class="premium-drawer" aria-label="ATLAS menu">
-      <div class="premium-drawer-rail-mark" aria-hidden="true">
-        <svg viewBox="0 0 44 54"><path fill="currentColor" d="M2 50 19 7h12L14 50H2Zm21-17L32 10l10 40H30l-5-17h-2Z"/><path fill="#9ed0ff" d="m20 50 6-14 6 14H20Z"/></svg>
-      </div>
-      <div class="premium-drawer-head">
-        <img class="premium-drawer-reference-head" src="./atlas-command-center-menu.jpeg" alt="" aria-hidden="true">
-        <div class="premium-drawer-brand" role="img" aria-label="ATLAS Warehouse Management">
-          <svg viewBox="0 0 390 94" aria-hidden="true">
-            <g transform="translate(1 10)">
-              <path fill="#071a3b" d="M0 69 27 4h18L18 69H0Zm36-49L48 4l25 65H54L42 37 30 69H19l17-49Z"/>
-              <path fill="#0874ff" d="m28 69 11-25 10 25H28Z"/>
-            </g>
-            <g fill="#071a3b" transform="translate(82 18) scale(.46)">
-              <g transform="translate(16 0) skewX(-8)">
-                <path fill-rule="evenodd" d="M0 110 39 10h36l39 100H82l-8-22H34l-7 22H0Zm46-46h21L56 34 46 64Z"/>
-                <path d="M119 10h116l-7 28h-37l-13 72h-33l13-72h-46l7-28Z"/>
-                <path d="M247 10h33v72h70l-7 28h-96V10Z"/>
-                <path fill-rule="evenodd" d="M359 110 398 10h36l39 100h-32l-8-22h-40l-7 22h-27Zm46-46h21l-11-30-10 30Z"/>
-                <path d="M492 10h112l-7 27h-71c-7 0-11 2-12 7-1 5 3 7 11 7h41c24 0 35 10 31 30-4 20-21 29-50 29h-91l8-28h84c9 0 14-2 15-7 1-5-3-7-12-7h-39c-24 0-35-10-31-30 4-19 20-28 48-28h-37Z"/>
-              </g>
-            </g>
-            <line x1="87" y1="82" x2="117" y2="82" stroke="#0874ff" stroke-width="2"/>
-            <text x="126" y="86" fill="#071a3b" font-size="10" font-family="Arial,sans-serif" font-weight="800" letter-spacing="2.1">WAREHOUSE MANAGEMENT</text>
-            <line x1="352" y1="82" x2="382" y2="82" stroke="#0874ff" stroke-width="2"/>
-          </svg>
-        </div>
-        <button class="premium-drawer-close" type="button" aria-label="Close menu">×</button>
-        <div class="premium-drawer-hero-copy" aria-label="ATLAS Warehouse Management">
-          <div class="premium-drawer-identity-mark" aria-hidden="true">
-            <svg viewBox="0 0 120 96"><defs><linearGradient id="atlasIdentityGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9eeff"/><stop offset=".45" stop-color="#1684ff"/><stop offset="1" stop-color="#073ea8"/></linearGradient></defs><path d="M10 84 48 10h25L36 84H10Z"/><path d="m55 84 15-31 15 31H55Z" class="identity-accent"/><path d="M70 10h16l25 74H88L70 10Z"/></svg>
-          </div>
-          <div class="premium-drawer-identity-name">ATLAS</div>
-          <div class="premium-drawer-identity-purpose">WAREHOUSE MANAGEMENT</div>
-          <div class="premium-drawer-brand-promise">Excellence Delivered.</div>
-        </div>
-      </div>
-      <div class="premium-drawer-section-label">CONTROL CENTER</div>
-      <nav class="premium-drawer-nav">
-        <button class="premium-drawer-link" type="button" data-nav="Home">${premiumIcon.home}<span class="drawer-copy"><strong>Home</strong><small>Return to dashboard</small></span><span class="drawer-chevron">›</span></button>
-        <button class="premium-drawer-link" type="button" data-nav="Browse Aisles">${premiumIcon.grid}<span class="drawer-copy"><strong>Browse Aisles</strong><small>Explore warehouse locations</small></span><span class="drawer-chevron">›</span></button>
-        <button class="premium-drawer-link premium-drawer-inventory" type="button" data-nav="Inventory">${premiumIcon.inventory}<span class="drawer-copy"><strong>Inventory</strong><small>Manage products and movement</small></span><span class="drawer-management-badge">MANAGEMENT TOOLS</span><span class="drawer-chevron">›</span></button>
-        <button class="premium-drawer-link" type="button" data-action="about">${premiumIcon.info}<span class="drawer-copy"><strong>About ATLAS</strong><small>Product and system information</small></span><span class="drawer-chevron">›</span></button>
-      </nav>
-      <div class="premium-drawer-status">
-        <span class="premium-drawer-status-live">SYSTEM LIVE</span>
-        <span class="premium-drawer-status-divider" aria-hidden="true"></span>
-        <span class="premium-drawer-status-secure">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v6c0 5-3.2 8-8 10-4.8-2-8-5-8-10V6l8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
-          SECURE
-        </span>
-      </div>
-      <div class="premium-drawer-signature" aria-label="ATLAS Design System established 2026">
-        <span class="signature-rule" aria-hidden="true"></span>
+    <aside id="atlasPremiumDrawer" class="premium-drawer atlas-spec-drawer" aria-label="ATLAS Control Center">
+      <div class="atlas-spec-canvas" aria-hidden="true"></div>
+      <div class="atlas-spec-promise" aria-hidden="true">Excellence Delivered.</div>
+      <button class="premium-drawer-close atlas-spec-close" type="button" aria-label="Close menu"></button>
+      <button class="premium-drawer-link atlas-spec-hotspot atlas-spec-home" type="button" data-nav="Home" aria-label="Home"></button>
+      <button class="premium-drawer-link atlas-spec-hotspot atlas-spec-browse" type="button" data-nav="Browse Aisles" aria-label="Browse Aisles"></button>
+      <button class="premium-drawer-link atlas-spec-hotspot atlas-spec-inventory" type="button" data-nav="Inventory" aria-label="Inventory"></button>
+      <button class="premium-drawer-link atlas-spec-hotspot atlas-spec-about" type="button" data-action="about" aria-label="About ATLAS"></button>
+      <div class="atlas-spec-footer" aria-label="ATLAS Design System established 2026">
+        <span class="atlas-spec-footer-rule" aria-hidden="true"></span>
         <strong>ATLAS DESIGN SYSTEM</strong>
         <span>EST. 2026</span>
       </div>
@@ -27985,7 +27942,9 @@ Error generating stack: ` +
         isolation: isolate;
         overflow: hidden !important;
         background:
-          url("./atlas-control-center-hero-v1.webp?v=2") center / cover no-repeat !important;
+          linear-gradient(90deg, rgba(2,13,34,.88) 0%, rgba(2,17,44,.72) 48%, rgba(3,29,67,.28) 100%),
+          linear-gradient(180deg, rgba(1,12,31,.18), rgba(0,13,36,.42)),
+          url("./atlas-control-center-hero-v1.webp?v=1") center / cover no-repeat !important;
         box-shadow:
           inset 0 -1px 0 rgba(111,178,255,.38),
           inset 0 -80px 90px -65px rgba(238,246,255,.45) !important;
@@ -27999,7 +27958,9 @@ Error generating stack: ` +
         height:auto !important;
         opacity:1 !important;
         pointer-events:none;
-        background: none !important;
+        background:
+          linear-gradient(115deg, transparent 0 56%, rgba(87,160,255,.09) 56.2%, transparent 56.7%),
+          radial-gradient(circle at 78% 76%, rgba(44,139,255,.17), transparent 35%) !important;
         transform:none !important;
       }
       .premium-drawer-head:after {
@@ -28141,5 +28102,163 @@ Error generating stack: ` +
       }
     </style>
 
-  </body>
+  
+    <style id="atlas-control-center-v1-spec-rebuild">
+      /* ATLAS Control Center v1.0 — strict mockup-spec rebuild */
+      .premium-drawer-backdrop {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 99990 !important;
+        display: block !important;
+        background: rgba(3, 15, 36, .48) !important;
+        -webkit-backdrop-filter: blur(10px) saturate(.82) !important;
+        backdrop-filter: blur(10px) saturate(.82) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transition: opacity .32s cubic-bezier(.22,.72,.2,1), visibility 0s linear .32s !important;
+      }
+      .premium-drawer-backdrop.open {
+        opacity: 1 !important;
+        visibility: visible !important;
+        transition: opacity .32s cubic-bezier(.22,.72,.2,1), visibility 0s !important;
+      }
+      .premium-drawer.atlas-spec-drawer {
+        position: absolute !important;
+        top: max(8px, env(safe-area-inset-top)) !important;
+        bottom: max(8px, env(safe-area-inset-bottom)) !important;
+        left: 8px !important;
+        right: auto !important;
+        width: min(calc(100vw - 16px), calc((100vh - 16px) * .4621), 430px) !important;
+        max-width: none !important;
+        height: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        transform: translate3d(-42px,0,0) scale(.992) !important;
+        transform-origin: left center !important;
+        transition: transform .52s cubic-bezier(.18,.82,.22,1) .08s !important;
+      }
+      .premium-drawer-backdrop.open .premium-drawer.atlas-spec-drawer {
+        transform: translate3d(0,0,0) scale(1) !important;
+      }
+      .atlas-spec-canvas {
+        position: absolute;
+        inset: 0;
+        background: url('./atlas-control-center-spec-v1.jpg?v=1') center / 100% 100% no-repeat;
+        pointer-events: none;
+        user-select: none;
+      }
+      .atlas-spec-promise {
+        position: absolute;
+        left: 8.8%;
+        top: 26.7%;
+        width: 58%;
+        color: rgba(242,247,255,.94);
+        font-family: Georgia, 'Times New Roman', serif;
+        font-style: italic;
+        font-weight: 400;
+        font-size: clamp(13px, 3.2vw, 20px);
+        line-height: 1;
+        letter-spacing: .20em;
+        white-space: nowrap;
+        opacity: .12;
+        text-shadow: 0 1px 7px rgba(0,0,0,.28), 0 0 16px rgba(87,159,255,.14);
+        pointer-events: none;
+      }
+      .premium-drawer-backdrop.open .atlas-spec-promise {
+        animation: atlasSpecBrandReveal .58s cubic-bezier(.22,.7,.2,1) 1.45s both;
+      }
+      @keyframes atlasSpecBrandReveal {
+        from { opacity: .12; }
+        to { opacity: .94; }
+      }
+      .atlas-spec-close,
+      .atlas-spec-hotspot {
+        position: absolute !important;
+        display: block !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: transparent !important;
+        opacity: 1 !important;
+        cursor: pointer;
+        z-index: 4;
+      }
+      .atlas-spec-close { left: 84.5% !important; top: 2.6% !important; width: 11.5% !important; height: 5.3% !important; }
+      .atlas-spec-home { left: 5.4% !important; top: 41.2% !important; width: 89.2% !important; height: 9.6% !important; }
+      .atlas-spec-browse { left: 5.4% !important; top: 51.5% !important; width: 89.2% !important; height: 9.6% !important; }
+      .atlas-spec-inventory { left: 5.2% !important; top: 61.1% !important; width: 90% !important; height: 10.3% !important; }
+      .atlas-spec-about { left: 5.4% !important; top: 72.0% !important; width: 89.2% !important; height: 9.5% !important; }
+      .atlas-spec-close:focus-visible,
+      .atlas-spec-hotspot:focus-visible {
+        outline: 3px solid rgba(22,112,255,.72) !important;
+        outline-offset: -3px !important;
+        border-radius: 16px !important;
+      }
+      .atlas-spec-hotspot:active {
+        background: rgba(8,116,255,.035) !important;
+        border-radius: 18px !important;
+      }
+      .atlas-spec-footer {
+        position: absolute;
+        z-index: 3;
+        left: 2.4%;
+        right: 2.4%;
+        bottom: 1.8%;
+        height: 9.1%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: rgba(23,48,82,.58);
+        text-align: center;
+        background: linear-gradient(180deg, rgba(230,236,246,.10), rgba(224,231,243,.98) 24%, rgba(221,229,242,.99) 100%);
+        border-radius: 0 0 28px 28px;
+        pointer-events: none;
+      }
+      .atlas-spec-footer-rule {
+        width: 54%;
+        height: 1px;
+        margin-bottom: 13px;
+        background: linear-gradient(90deg, transparent, rgba(22,93,191,.44) 20%, rgba(22,93,191,.44) 80%, transparent);
+      }
+      .atlas-spec-footer strong {
+        display: block;
+        font-size: clamp(8px, 1.95vw, 11px);
+        line-height: 1.1;
+        font-weight: 800;
+        letter-spacing: .28em;
+        padding-left: .28em;
+      }
+      .atlas-spec-footer > span:last-child {
+        display: block;
+        margin-top: 8px;
+        font-size: clamp(7px, 1.7vw, 9px);
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: .26em;
+        padding-left: .26em;
+      }
+      @media (min-width: 700px) {
+        .premium-drawer.atlas-spec-drawer { left: 18px !important; top: 18px !important; bottom: 18px !important; }
+        .atlas-spec-promise { font-size: 16px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .premium-drawer-backdrop,
+        .premium-drawer.atlas-spec-drawer { transition-duration: .01ms !important; transition-delay: 0s !important; }
+        .premium-drawer-backdrop.open .atlas-spec-promise { animation: none !important; opacity: .94 !important; }
+      }
+    </style>
+
+</body>
 </html>
