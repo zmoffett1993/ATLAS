@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v65-approved-navigation-drawer";
+const VERSION = "atlas-pwa-v67-menu-swipe-premium-icons";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
