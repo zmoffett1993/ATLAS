@@ -28216,8 +28216,8 @@ Error generating stack: ` +
         transform: translate(-50%, -50%) rotate(-45deg);
       }
       .atlas-menu-close:focus-visible {
-        outline: 2px solid #2aaeff !important;
-        outline-offset: -3px !important;
+        outline: none !important;
+        box-shadow: none !important;
       }
       .premium-drawer-nav.atlas-menu-nav {
         width: 100% !important;
@@ -28388,7 +28388,44 @@ Error generating stack: ` +
       }
       @media (min-width: 700px) {
         .premium-drawer.atlas-menu-drawer {
-          width: min(68vw, 520px) !important;
+          width: min(44vw, 430px) !important;
+          width: min(44vw, 430px, 54dvh) !important;
+        }
+        .atlas-menu-brand {
+          padding:
+            clamp(48px, 7.4dvh, 62px)
+            28px
+            18px;
+        }
+        .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
+        .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
+        .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
+        .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active {
+          min-height: clamp(62px, 8.6dvh, 78px) !important;
+          padding: 0 24px !important;
+          grid-template-columns: 48px minmax(0, 1fr) 22px !important;
+          gap: 14px !important;
+        }
+        .atlas-menu-icon {
+          width: 42px;
+          height: 42px;
+        }
+        .atlas-menu-label {
+          font-size: 17px;
+        }
+        .atlas-menu-drawer .premium-drawer-link .drawer-chevron.atlas-menu-chevron,
+        .atlas-menu-drawer .premium-drawer-link:first-child .drawer-chevron.atlas-menu-chevron,
+        .atlas-menu-drawer .premium-drawer-link.is-active .drawer-chevron.atlas-menu-chevron {
+          font-size: 34px !important;
+        }
+        .atlas-menu-footer {
+          min-height: clamp(72px, 9dvh, 82px);
+          padding: 14px 28px clamp(20px, 3dvh, 26px);
+          gap: 7px;
+        }
+        .atlas-menu-footer strong,
+        .atlas-menu-footer span {
+          font-size: 11px;
         }
       }
       @media (prefers-reduced-motion: reduce) {
