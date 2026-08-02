@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v69-premium-statement-header";
+const VERSION = "atlas-pwa-v70-premium-logo-refinement";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",
-  "./atlas-menu-lockup-v2.png",
+  "./atlas-menu-lockup-v2.png?v=70",
 ];
 
 self.addEventListener("install", (event) => {
