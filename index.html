@@ -23525,10 +23525,11 @@ Error generating stack: ` +
         <button class="premium-drawer-close" type="button" aria-label="Close menu">×</button>
         <div class="premium-drawer-hero-copy" aria-label="ATLAS Warehouse Management">
           <div class="premium-drawer-identity-mark" aria-hidden="true">
-            <svg viewBox="0 0 120 96"><path d="M10 84 48 10h25L36 84H10Z"/><path d="m55 84 15-31 15 31H55Z" class="identity-accent"/><path d="M70 10h16l25 74H88L70 10Z"/></svg>
+            <svg viewBox="0 0 120 96"><defs><linearGradient id="atlasIdentityGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9eeff"/><stop offset=".45" stop-color="#1684ff"/><stop offset="1" stop-color="#073ea8"/></linearGradient></defs><path d="M10 84 48 10h25L36 84H10Z"/><path d="m55 84 15-31 15 31H55Z" class="identity-accent"/><path d="M70 10h16l25 74H88L70 10Z"/></svg>
           </div>
           <div class="premium-drawer-identity-name">ATLAS</div>
           <div class="premium-drawer-identity-purpose">WAREHOUSE MANAGEMENT</div>
+          <div class="premium-drawer-brand-promise">Excellence Delivered.</div>
         </div>
       </div>
       <div class="premium-drawer-section-label">CONTROL CENTER</div>
@@ -27945,6 +27946,202 @@ Error generating stack: ` +
         .premium-drawer-identity-purpose { margin-top:11px; }
         .premium-drawer-section-label { margin-top:22px !important; }
         .premium-drawer-link,.premium-drawer-link:first-child,.premium-drawer-link:nth-child(3) { min-height:75px !important; }
+      }
+    </style>
+
+    <style id="atlas-control-center-hero-build-v1">
+      /* ATLAS Control Center — approved left-side architectural hero + brand reveal */
+      .premium-drawer-backdrop {
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity .32s cubic-bezier(.22,.72,.2,1),
+          visibility 0s linear .32s !important;
+      }
+      .premium-drawer-backdrop.open {
+        opacity: 1;
+        visibility: visible;
+        transition:
+          opacity .32s cubic-bezier(.22,.72,.2,1),
+          visibility 0s !important;
+      }
+      .premium-drawer {
+        inset:
+          max(10px, env(safe-area-inset-top))
+          auto
+          max(10px, env(safe-area-inset-bottom))
+          10px !important;
+        transform: translate3d(-36px,0,0) scale(.992) !important;
+        transform-origin: left center !important;
+        transition: transform .50s cubic-bezier(.18,.82,.22,1) .08s !important;
+      }
+      .premium-drawer-backdrop.open .premium-drawer {
+        transform: translate3d(0,0,0) scale(1) !important;
+      }
+
+      .premium-drawer-head {
+        min-height: 360px !important;
+        padding: 48px 30px 56px !important;
+        isolation: isolate;
+        overflow: hidden !important;
+        background:
+          linear-gradient(90deg, rgba(2,13,34,.88) 0%, rgba(2,17,44,.72) 48%, rgba(3,29,67,.28) 100%),
+          linear-gradient(180deg, rgba(1,12,31,.18), rgba(0,13,36,.42)),
+          url("./atlas-control-center-hero-v1.webp?v=1") center / cover no-repeat !important;
+        box-shadow:
+          inset 0 -1px 0 rgba(111,178,255,.38),
+          inset 0 -80px 90px -65px rgba(238,246,255,.45) !important;
+      }
+      .premium-drawer-head:before {
+        content:"" !important;
+        display:block !important;
+        position:absolute !important;
+        inset:0 !important;
+        width:auto !important;
+        height:auto !important;
+        opacity:1 !important;
+        pointer-events:none;
+        background:
+          linear-gradient(115deg, transparent 0 56%, rgba(87,160,255,.09) 56.2%, transparent 56.7%),
+          radial-gradient(circle at 78% 76%, rgba(44,139,255,.17), transparent 35%) !important;
+        transform:none !important;
+      }
+      .premium-drawer-head:after {
+        content:"" !important;
+        display:block !important;
+        position:absolute !important;
+        left:50% !important;
+        bottom:48px !important;
+        width:72px !important;
+        height:2px !important;
+        border-radius:999px;
+        transform:translateX(-50%) !important;
+        opacity:.95 !important;
+        background:linear-gradient(90deg,transparent,#1180ff 30%,#7ac1ff 50%,#1180ff 70%,transparent) !important;
+        box-shadow:0 0 16px rgba(26,128,255,.72);
+      }
+      .premium-drawer-hero-copy {
+        transform: translateY(3px);
+      }
+      .premium-drawer-identity-mark {
+        width: 82px !important;
+        height: 68px !important;
+        margin-bottom: 18px !important;
+      }
+      .premium-drawer-identity-mark svg {
+        filter:
+          drop-shadow(0 9px 18px rgba(0,94,255,.38))
+          drop-shadow(0 0 15px rgba(98,180,255,.18)) !important;
+      }
+      .premium-drawer-identity-mark path {
+        fill: url("#atlasIdentityGradient");
+      }
+      .premium-drawer-identity-name {
+        font-size: 46px !important;
+        font-weight: 430 !important;
+        letter-spacing: .30em !important;
+        padding-left: .30em !important;
+      }
+      .premium-drawer-identity-purpose {
+        margin-top: 18px !important;
+        color: rgba(239,246,255,.86) !important;
+        font-size: 11px !important;
+        letter-spacing: .30em !important;
+        padding-left: .30em !important;
+      }
+      .premium-drawer-brand-promise {
+        margin-top: 42px;
+        color: rgba(223,237,255,.68);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 17px;
+        font-style: italic;
+        font-weight: 400;
+        letter-spacing: .17em;
+        padding-left: .17em;
+        opacity: .14;
+        transform: none;
+        text-shadow: 0 0 18px rgba(74,156,255,.18);
+      }
+      .premium-drawer-backdrop.open .premium-drawer-brand-promise {
+        animation: atlasBrandReveal .48s cubic-bezier(.22,.7,.2,1) 1.45s both;
+      }
+      @keyframes atlasBrandReveal {
+        from { opacity: .14; }
+        to   { opacity: .70; }
+      }
+      .premium-drawer-close {
+        top: 20px !important;
+        right: 20px !important;
+        z-index: 5 !important;
+      }
+
+      .premium-drawer-section-label {
+        margin-top: 28px !important;
+      }
+      .premium-drawer-signature strong {
+        letter-spacing: .29em !important;
+      }
+
+      @media (max-width:430px) {
+        .premium-drawer {
+          inset:
+            8px
+            auto
+            max(8px,env(safe-area-inset-bottom))
+            8px !important;
+        }
+        .premium-drawer-head {
+          min-height: 332px !important;
+          padding: 42px 20px 50px !important;
+        }
+        .premium-drawer-identity-mark {
+          width: 72px !important;
+          height: 60px !important;
+        }
+        .premium-drawer-identity-name {
+          font-size: 40px !important;
+        }
+        .premium-drawer-brand-promise {
+          margin-top: 37px;
+          font-size: 15px;
+        }
+      }
+      @media (max-height:760px) {
+        .premium-drawer-head {
+          min-height: 286px !important;
+          padding-top: 30px !important;
+          padding-bottom: 44px !important;
+        }
+        .premium-drawer-identity-mark {
+          width: 62px !important;
+          height: 51px !important;
+          margin-bottom: 10px !important;
+        }
+        .premium-drawer-identity-name {
+          font-size: 34px !important;
+        }
+        .premium-drawer-identity-purpose {
+          margin-top: 12px !important;
+          font-size: 9px !important;
+        }
+        .premium-drawer-brand-promise {
+          margin-top: 27px;
+          font-size: 13px;
+        }
+        .premium-drawer-head:after {
+          bottom: 34px !important;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .premium-drawer-backdrop,
+        .premium-drawer {
+          transition-duration: .01ms !important;
+          transition-delay: 0s !important;
+        }
+        .premium-drawer-backdrop.open .premium-drawer-brand-promise {
+          animation: none !important;
+          opacity: .70 !important;
+        }
       }
     </style>
 
