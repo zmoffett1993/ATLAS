@@ -23498,7 +23498,17 @@ Error generating stack: ` +
         backdrop.innerHTML = `
     <aside id="atlasPremiumDrawer" class="premium-drawer atlas-spec-drawer" aria-label="ATLAS Control Center">
       <div class="atlas-spec-canvas" aria-hidden="true"></div>
-      <div class="atlas-spec-promise" aria-hidden="true">Excellence Delivered.</div>
+      <div class="atlas-refine-hero" aria-hidden="true">
+        <img class="atlas-refine-logo" src="./atlas-control-center-logo-transparent.png?v=1" alt="">
+        <div class="atlas-refine-wordmark">ATLAS</div>
+        <div class="atlas-refine-subtitle">WAREHOUSE MANAGEMENT</div>
+        <div class="atlas-spec-promise">Excellence Delivered.</div>
+      </div>
+      <div class="atlas-refine-inventory" aria-hidden="true">
+        <div class="atlas-refine-inventory-icon">◇</div>
+        <div class="atlas-refine-inventory-copy"><strong>Inventory</strong><span>Manage products and movement</span></div>
+        <div class="atlas-refine-chevron">›</div>
+      </div>
       <button class="premium-drawer-close atlas-spec-close" type="button" aria-label="Close menu"></button>
       <button class="premium-drawer-link atlas-spec-hotspot atlas-spec-home" type="button" data-nav="Home" aria-label="Home"></button>
       <button class="premium-drawer-link atlas-spec-hotspot atlas-spec-browse" type="button" data-nav="Browse Aisles" aria-label="Browse Aisles"></button>
@@ -28258,6 +28268,42 @@ Error generating stack: ` +
         .premium-drawer.atlas-spec-drawer { transition-duration: .01ms !important; transition-delay: 0s !important; }
         .premium-drawer-backdrop.open .atlas-spec-promise { animation: none !important; opacity: .94 !important; }
       }
+    </style>
+
+    <style id="atlas-control-center-v1-1-refinements">
+      /* ATLAS Control Center v1.1 — targeted fidelity refinements */
+      .atlas-refine-hero{
+        position:absolute;z-index:2;left:2.3%;right:2.3%;top:1.1%;height:34.2%;
+        overflow:hidden;border-radius:28px 28px 0 0;
+        background:url('./atlas-control-center-hero-v1.webp?v=2') 55% center/cover no-repeat;
+        pointer-events:none;
+      }
+      .atlas-refine-hero::after{
+        content:"";position:absolute;inset:auto 0 0;height:31%;
+        background:linear-gradient(180deg,rgba(236,242,250,0),rgba(236,242,250,.93) 70%,rgba(236,242,250,1));
+      }
+      .atlas-refine-logo{position:absolute;z-index:2;left:31%;top:11.5%;width:24%;height:auto;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,70,190,.24));}
+      .atlas-refine-wordmark{position:absolute;z-index:2;left:7%;right:35%;top:34%;text-align:center;color:#fff;font-size:clamp(32px,9.5vw,58px);line-height:1;font-weight:400;letter-spacing:.28em;padding-left:.28em;text-shadow:0 2px 10px rgba(0,0,0,.28);}
+      .atlas-refine-subtitle{position:absolute;z-index:2;left:6%;right:34%;top:48.5%;text-align:center;color:rgba(250,252,255,.94);font-size:clamp(10px,2.8vw,17px);font-weight:500;letter-spacing:.22em;padding-left:.22em;white-space:nowrap;text-shadow:0 2px 8px rgba(0,0,0,.28);}
+      .atlas-refine-hero .atlas-spec-promise{left:7.5%;top:62.5%;width:60%;font-size:clamp(12px,3.2vw,19px);background:transparent!important;box-shadow:none!important;}
+      .atlas-refine-inventory{
+        position:absolute;z-index:3;left:5.3%;right:5.3%;top:61.2%;height:10.1%;
+        display:flex;align-items:center;border-radius:22px;
+        background:rgba(244,248,255,.94);box-shadow:0 8px 22px rgba(45,76,125,.05);
+        border:1px solid rgba(160,181,214,.18);pointer-events:none;
+      }
+      .atlas-refine-inventory-icon{margin-left:3.2%;width:15.8%;aspect-ratio:1;border-radius:18px;display:grid;place-items:center;color:#145fed;font-size:clamp(34px,8vw,48px);font-weight:300;border:1px solid rgba(149,174,211,.23);background:rgba(248,251,255,.92);transform:rotate(45deg);}
+      .atlas-refine-inventory-icon::first-letter{transform:rotate(-45deg)}
+      .atlas-refine-inventory-copy{display:flex;flex-direction:column;gap:9px;margin-left:5%;color:#071a3b;}
+      .atlas-refine-inventory-copy strong{font-size:clamp(19px,5vw,30px);line-height:1;font-weight:800;}
+      .atlas-refine-inventory-copy span{font-size:clamp(11px,2.9vw,17px);color:#536782;white-space:nowrap;}
+      .atlas-refine-chevron{margin-left:auto;margin-right:4.4%;font-size:clamp(32px,7vw,44px);line-height:1;color:#0b2b63;font-weight:300;}
+      .atlas-spec-footer{background:linear-gradient(180deg,rgba(224,231,243,.98),rgba(221,229,242,.995))!important;}
+      .atlas-spec-footer::before{content:"";position:absolute;inset:-42% 0 auto;height:52%;background:linear-gradient(180deg,rgba(224,231,243,0),rgba(224,231,243,.99));}
+      .atlas-spec-footer-rule,.atlas-spec-footer strong,.atlas-spec-footer>span:last-child{position:relative;z-index:2;}
+      .atlas-spec-canvas{filter:none!important;opacity:1!important;}
+      .premium-drawer-link.atlas-spec-inventory{z-index:5!important;}
+      @media (prefers-reduced-motion:reduce){.atlas-refine-hero .atlas-spec-promise{opacity:.94!important}}
     </style>
 
 </body>

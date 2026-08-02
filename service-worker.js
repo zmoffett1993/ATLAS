@@ -5,6 +5,7 @@ const DATA_CACHE = `${VERSION}-warehouse-data`;
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./atlas-control-center-logo-transparent.png",
   "./manifest.webmanifest",
   "./product-images.json",
   "./atlas-192.png",
