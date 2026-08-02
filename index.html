@@ -24583,6 +24583,7 @@ Error generating stack: ` +
           }
           delete showcase.dataset.fullDescription;
           delete showcase.dataset.pickerName;
+          delete showcase.dataset.explodedImageUrl;
           const matchNote = showcase.querySelector(".atlas-product-match-note");
           setText(matchNote, "Matching approved catalog image…");
           if (matchNote) matchNote.hidden = false;
@@ -24611,6 +24612,16 @@ Error generating stack: ` +
             showcase.dataset.fullDescription = fullDescription;
             showcase.dataset.pickerName = pickerName;
             showcase.dataset.pickerBullets = JSON.stringify(pickerBullets);
+            const explodedImageUrl =
+              product.exploded_image_url ||
+              product.exploded_url ||
+              product.secondary_image_url ||
+              "";
+            if (explodedImageUrl) {
+              showcase.dataset.explodedImageUrl = explodedImageUrl;
+            } else {
+              delete showcase.dataset.explodedImageUrl;
+            }
             setText(showcase.querySelector(".atlas-product-title"), pickerName);
             const subtitleNode = showcase.querySelector(".atlas-product-subtitle");
             const subtitleText = pickerBullets.includes("Tamper Evident")
@@ -25517,6 +25528,7 @@ Error generating stack: ` +
           const sourceImage = showcase.querySelector(".atlas-product-media img");
           const imageUrl =
             sourceImage?.currentSrc || sourceImage?.getAttribute("src") || "";
+          const explodedImageUrl = showcase.dataset.explodedImageUrl || "";
           const imageAvailable =
             Boolean(imageUrl) &&
             !showcase.classList.contains("image-unavailable") &&
@@ -25557,10 +25569,87 @@ Error generating stack: ` +
             .querySelector(".atlas-product-detail-modal")
             .setAttribute("data-studio-theme", studioTheme);
           if (imageAvailable) {
-            const image = document.createElement("img");
-            image.src = imageUrl;
-            image.alt = `${displayTitle} product image`;
-            imageContainer.appendChild(image);
+            const galleryImages = [
+              {
+                src: imageUrl,
+                alt: `${displayTitle} product image`,
+              },
+            ];
+            if (explodedImageUrl && explodedImageUrl !== imageUrl) {
+              galleryImages.push({
+                src: explodedImageUrl,
+                alt: `${displayTitle} exploded product view`,
+              });
+            }
+
+            const gallery = document.createElement("div");
+            gallery.className = "atlas-product-gallery";
+            gallery.dataset.activeIndex = "0";
+            gallery.innerHTML = `
+              <div class="atlas-product-gallery-track"></div>
+              <div class="atlas-product-gallery-dots" aria-label="Product image gallery"></div>`;
+            const track = gallery.querySelector(".atlas-product-gallery-track");
+            const dots = gallery.querySelector(".atlas-product-gallery-dots");
+
+            const setGalleryIndex = (nextIndex) => {
+              const bounded = Math.max(0, Math.min(galleryImages.length - 1, nextIndex));
+              gallery.dataset.activeIndex = String(bounded);
+              track.style.transform = `translate3d(${-100 * bounded}%, 0, 0)`;
+              gallery.querySelectorAll(".atlas-product-gallery-slide").forEach((slide, index) => {
+                slide.setAttribute("aria-hidden", index === bounded ? "false" : "true");
+              });
+              gallery.querySelectorAll(".atlas-product-gallery-dot").forEach((dot, index) => {
+                const active = index === bounded;
+                dot.classList.toggle("is-active", active);
+                dot.setAttribute("aria-current", active ? "true" : "false");
+              });
+            };
+
+            galleryImages.forEach((entry, index) => {
+              const slide = document.createElement("div");
+              slide.className = "atlas-product-gallery-slide";
+              slide.setAttribute("aria-hidden", index === 0 ? "false" : "true");
+              const image = document.createElement("img");
+              image.src = entry.src;
+              image.alt = entry.alt;
+              image.decoding = "async";
+              image.draggable = false;
+              slide.appendChild(image);
+              track.appendChild(slide);
+
+              if (galleryImages.length > 1) {
+                const dot = document.createElement("button");
+                dot.type = "button";
+                dot.className = `atlas-product-gallery-dot${index === 0 ? " is-active" : ""}`;
+                dot.setAttribute("aria-label", `Show image ${index + 1} of ${galleryImages.length}`);
+                dot.setAttribute("aria-current", index === 0 ? "true" : "false");
+                dot.addEventListener("click", () => setGalleryIndex(index));
+                dots.appendChild(dot);
+              }
+            });
+
+            if (galleryImages.length < 2) {
+              dots.hidden = true;
+              gallery.classList.add("is-single-image");
+            }
+
+            let touchStartX = 0;
+            let touchStartY = 0;
+            gallery.addEventListener("touchstart", (event) => {
+              if (galleryImages.length < 2 || event.touches.length !== 1) return;
+              touchStartX = event.touches[0].clientX;
+              touchStartY = event.touches[0].clientY;
+            }, { passive: true });
+            gallery.addEventListener("touchend", (event) => {
+              if (galleryImages.length < 2 || event.changedTouches.length !== 1) return;
+              const deltaX = event.changedTouches[0].clientX - touchStartX;
+              const deltaY = event.changedTouches[0].clientY - touchStartY;
+              if (Math.abs(deltaX) < 42 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+              const current = Number(gallery.dataset.activeIndex || 0);
+              setGalleryIndex(deltaX < 0 ? current + 1 : current - 1);
+            }, { passive: true });
+
+            imageContainer.appendChild(gallery);
           } else {
             const unavailable = document.createElement("span");
             unavailable.textContent = "Product image currently unavailable";
@@ -27447,6 +27536,140 @@ Error generating stack: ` +
         .atlas-product-detail-image.atlas-studio-contrast img,
         .atlas-product-detail-image.atlas-studio-warm img {
           transform: scale(1.10) !important;
+        }
+      }
+    </style>
+
+    <style id="atlas-v2-1-product-showroom-gallery-foundation">
+      /*
+       * v2.1 — Product Showroom gallery foundation.
+       * One image: no dots and no reserved dot space.
+       * Two images: swipe gallery with calm, deliberate motion.
+       */
+      .atlas-product-detail-backdrop {
+        animation-duration: 440ms !important;
+        animation-timing-function: cubic-bezier(.22, 1, .36, 1) !important;
+      }
+
+      .atlas-product-detail-modal {
+        animation: atlas-v2-1-showroom-enter 480ms cubic-bezier(.22, 1, .36, 1) both !important;
+      }
+
+      .atlas-product-detail-image {
+        position: relative;
+      }
+
+      .atlas-product-gallery {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        border-radius: inherit;
+        touch-action: pan-y;
+      }
+
+      .atlas-product-gallery-track {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        transform: translate3d(0, 0, 0);
+        transition: transform 420ms cubic-bezier(.45, 0, .2, 1);
+        will-change: transform;
+      }
+
+      .atlas-product-gallery-slide {
+        flex: 0 0 100%;
+        display: grid;
+        place-items: center;
+        min-width: 0;
+        height: 100%;
+      }
+
+      .atlas-product-gallery-slide img {
+        display: block;
+        width: 100%;
+        height: min(36dvh, 350px);
+        padding: 18px;
+        object-fit: contain;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .atlas-product-gallery-dots {
+        position: absolute;
+        z-index: 3;
+        left: 50%;
+        bottom: 17px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transform: translateX(-50%);
+      }
+
+      .atlas-product-gallery-dots[hidden] {
+        display: none !important;
+      }
+
+      .atlas-product-gallery-dot {
+        width: 7px;
+        height: 7px;
+        min-width: 7px;
+        min-height: 7px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(33, 50, 72, 0.24);
+        box-shadow: none;
+        cursor: pointer;
+        transform: none;
+        transition:
+          width 380ms cubic-bezier(.45, 0, .2, 1),
+          background-color 380ms ease,
+          opacity 380ms ease;
+      }
+
+      .atlas-product-gallery-dot.is-active {
+        width: 18px;
+        background: rgba(19, 38, 64, 0.72);
+      }
+
+      .atlas-product-gallery-dot:focus-visible {
+        outline: 2px solid rgba(24, 91, 219, 0.38);
+        outline-offset: 3px;
+      }
+
+      @keyframes atlas-v2-1-showroom-enter {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 460px) {
+        .atlas-product-gallery-slide img {
+          height: min(32dvh, 300px);
+          padding: 12px;
+        }
+
+        .atlas-product-gallery-dots {
+          bottom: 14px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-product-detail-backdrop,
+        .atlas-product-detail-modal {
+          animation: none !important;
+        }
+
+        .atlas-product-gallery-track,
+        .atlas-product-gallery-dot {
+          transition: none !important;
         }
       }
     </style>
