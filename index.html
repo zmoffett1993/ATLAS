@@ -23523,16 +23523,20 @@ Error generating stack: ` +
           </svg>
         </div>
         <button class="premium-drawer-close" type="button" aria-label="Close menu">×</button>
-        <div class="premium-drawer-hero-copy">
-          <div class="premium-drawer-kicker">COMMAND CENTER</div>
-          <p class="premium-drawer-tagline">Warehouse operations,<br>simplified.</p>
+        <div class="premium-drawer-hero-copy" aria-label="ATLAS Warehouse Management">
+          <div class="premium-drawer-identity-mark" aria-hidden="true">
+            <svg viewBox="0 0 120 96"><path d="M10 84 48 10h25L36 84H10Z"/><path d="m55 84 15-31 15 31H55Z" class="identity-accent"/><path d="M70 10h16l25 74H88L70 10Z"/></svg>
+          </div>
+          <div class="premium-drawer-identity-name">ATLAS</div>
+          <div class="premium-drawer-identity-purpose">WAREHOUSE MANAGEMENT</div>
         </div>
       </div>
+      <div class="premium-drawer-section-label">CONTROL CENTER</div>
       <nav class="premium-drawer-nav">
-        <button class="premium-drawer-link" type="button" data-nav="Home">${premiumIcon.home}<span>Home</span><span class="drawer-chevron">›</span></button>
-        <button class="premium-drawer-link" type="button" data-nav="Browse Aisles">${premiumIcon.grid}<span>Browse Aisles</span><span class="drawer-chevron">›</span></button>
-        <button class="premium-drawer-link" type="button" data-nav="Inventory">${premiumIcon.inventory}<span>Inventory</span><span class="drawer-chevron">›</span></button>
-        <button class="premium-drawer-link" type="button" data-action="about">${premiumIcon.info}<span>About ATLAS</span><span class="drawer-chevron">›</span></button>
+        <button class="premium-drawer-link" type="button" data-nav="Home">${premiumIcon.home}<span class="drawer-copy"><strong>Home</strong><small>Return to dashboard</small></span><span class="drawer-chevron">›</span></button>
+        <button class="premium-drawer-link" type="button" data-nav="Browse Aisles">${premiumIcon.grid}<span class="drawer-copy"><strong>Browse Aisles</strong><small>Explore warehouse locations</small></span><span class="drawer-chevron">›</span></button>
+        <button class="premium-drawer-link premium-drawer-inventory" type="button" data-nav="Inventory">${premiumIcon.inventory}<span class="drawer-copy"><strong>Inventory</strong><small>Manage products and movement</small></span><span class="drawer-management-badge">MANAGEMENT TOOLS</span><span class="drawer-chevron">›</span></button>
+        <button class="premium-drawer-link" type="button" data-action="about">${premiumIcon.info}<span class="drawer-copy"><strong>About ATLAS</strong><small>Product and system information</small></span><span class="drawer-chevron">›</span></button>
       </nav>
       <div class="premium-drawer-status">
         <span class="premium-drawer-status-live">SYSTEM LIVE</span>
@@ -23542,7 +23546,11 @@ Error generating stack: ` +
           SECURE
         </span>
       </div>
-      <div class="premium-drawer-footer"><strong>ATLAS</strong><span>Warehouse Management</span><span>FIND · MANAGE · DELIVER</span></div>
+      <div class="premium-drawer-signature" aria-label="ATLAS Design System established 2026">
+        <span class="signature-rule" aria-hidden="true"></span>
+        <strong>ATLAS DESIGN SYSTEM</strong>
+        <span>EST. 2026</span>
+      </div>
     </aside>`;
         document.body.appendChild(backdrop);
         syncPremiumDrawerActiveState();
@@ -27825,5 +27833,120 @@ Error generating stack: ` +
         }
       })();
     </script>
+  
+    <style id="atlas-control-center-step-1">
+      /* ATLAS Control Center — Step 1: frozen executive framework */
+      .premium-drawer-backdrop {
+        background: rgba(2, 12, 29, .58) !important;
+        backdrop-filter: blur(8px) saturate(.82) !important;
+        -webkit-backdrop-filter: blur(8px) saturate(.82) !important;
+      }
+      .premium-drawer {
+        inset: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)) auto !important;
+        width: min(calc(100vw - 20px), 430px) !important;
+        height: auto !important;
+        max-height: none !important;
+        color: #071a3b !important;
+        background: linear-gradient(180deg,#fff 0%,#fbfdff 55%,#f7faff 100%) !important;
+        border: 1px solid rgba(164,190,222,.78) !important;
+        border-radius: 34px !important;
+        box-shadow: 0 34px 90px rgba(1,13,34,.42), inset 0 1px 0 rgba(255,255,255,.95) !important;
+        overflow: auto !important;
+        transform: translate3d(28px,0,0) scale(.992) !important;
+      }
+      .premium-drawer-backdrop.open .premium-drawer { transform: translate3d(0,0,0) scale(1) !important; }
+      .premium-drawer-reference-head,.premium-drawer-brand { display:none !important; }
+      .premium-drawer-head {
+        min-height: 300px !important;
+        height: auto !important;
+        padding: 42px 28px 54px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        clip-path:none !important;
+        border-radius:33px 33px 0 0 !important;
+        background:
+          linear-gradient(90deg,transparent 49.8%,rgba(52,130,240,.09) 50%,transparent 50.2%),
+          repeating-linear-gradient(90deg,transparent 0 48px,rgba(70,151,255,.055) 49px,transparent 50px 96px),
+          repeating-linear-gradient(0deg,transparent 0 39px,rgba(70,151,255,.045) 40px,transparent 41px 80px),
+          radial-gradient(circle at 78% 76%,rgba(19,111,244,.22),transparent 37%),
+          linear-gradient(145deg,#031329 0%,#052452 64%,#073d83 100%) !important;
+        box-shadow: inset 0 -1px 0 rgba(83,157,255,.35) !important;
+        filter:none !important;
+      }
+      .premium-drawer-head:before {
+        display:block !important; width:260px !important; height:250px !important;
+        right:-34px !important; bottom:-14px !important; top:auto !important;
+        opacity:.14 !important;
+      }
+      .premium-drawer-head:after {
+        width:64px !important; height:2px !important; left:50% !important; bottom:31px !important;
+        transform:translateX(-50%) !important; opacity:.8 !important;
+      }
+      .premium-drawer-close {
+        width:48px !important; height:48px !important; top:20px !important; right:20px !important;
+        color:#fff !important; border-radius:15px !important;
+        background:rgba(2,20,48,.42) !important; border:1px solid rgba(97,169,255,.7) !important;
+        box-shadow:0 12px 28px rgba(0,8,26,.24),inset 0 1px 0 rgba(255,255,255,.08) !important;
+      }
+      .premium-drawer-hero-copy { margin:0 !important; position:relative !important; z-index:2 !important; text-align:center !important; }
+      .premium-drawer-identity-mark { width:74px; height:62px; margin:0 auto 16px; }
+      .premium-drawer-identity-mark svg { width:100%; height:100%; overflow:visible; filter:drop-shadow(0 9px 15px rgba(0,91,255,.22)); }
+      .premium-drawer-identity-mark path { fill:#eef6ff; }
+      .premium-drawer-identity-mark .identity-accent { fill:#087cff; }
+      .premium-drawer-identity-name { color:#fff; font-size:42px; line-height:1; font-weight:450; letter-spacing:.28em; padding-left:.28em; text-shadow:0 8px 25px rgba(0,0,0,.22); }
+      .premium-drawer-identity-purpose { margin-top:17px; color:rgba(235,244,255,.82); font-size:11px; font-weight:760; letter-spacing:.28em; padding-left:.28em; }
+      .premium-drawer-section-label {
+        margin:31px 31px 0 !important; color:#173965; font-size:11px; font-weight:900; letter-spacing:.25em;
+      }
+      .premium-drawer-section-label:after { content:""; display:block; width:34px; height:2px; margin-top:12px; border-radius:99px; background:#087cff; }
+      .premium-drawer-nav { gap:0 !important; padding:16px 30px 0 !important; }
+      .premium-drawer-link,
+      .premium-drawer-link:first-child,
+      .premium-drawer-link:nth-child(3) {
+        min-height:88px !important; grid-template-columns:54px minmax(0,1fr) 24px !important; gap:15px !important;
+        padding:15px 7px !important; border:0 !important; border-bottom:1px solid rgba(205,218,233,.75) !important;
+        border-radius:0 !important; background:transparent !important; box-shadow:none !important;
+      }
+      .premium-drawer-link:last-child { border-bottom:0 !important; }
+      .premium-drawer-link.is-active { background:transparent !important; box-shadow:none !important; }
+      .premium-drawer-link.is-active:before { display:none !important; }
+      .premium-drawer-link > svg,.premium-drawer-link:first-child > svg {
+        width:52px !important; height:52px !important; padding:12px !important; color:#102f59 !important;
+        background:linear-gradient(145deg,#fbfdff,#eef4fb) !important; border:1px solid rgba(210,224,239,.9) !important;
+        border-radius:17px !important; box-shadow:inset 0 1px 0 #fff,0 7px 18px rgba(12,43,81,.055) !important;
+      }
+      .premium-drawer-link.is-active > svg { color:#0874ff !important; }
+      .drawer-copy { display:grid !important; gap:5px !important; min-width:0 !important; }
+      .drawer-copy strong { color:#071a3b; font-size:17px; line-height:1.1; font-weight:820; }
+      .drawer-copy small { color:#687b94; font-size:11px; line-height:1.3; font-weight:560; }
+      .premium-drawer-link .drawer-chevron { color:#183b68 !important; font-size:29px !important; }
+      .premium-drawer-inventory { position:relative !important; margin:7px 0 !important; padding:16px 9px 16px 8px !important; border:1px solid #cfe2fb !important; border-radius:20px !important; background:linear-gradient(90deg,#eef6ff,#fafcff) !important; box-shadow:0 11px 28px rgba(6,89,194,.09),inset 0 1px 0 #fff !important; }
+      .premium-drawer-inventory:before { content:""; position:absolute; left:0; top:13px; bottom:13px; width:3px; border-radius:0 99px 99px 0; background:#087cff; }
+      .premium-drawer-inventory > svg { color:#0874ff !important; background:linear-gradient(145deg,#f3f8ff,#e7f1ff) !important; }
+      .drawer-management-badge { position:absolute; right:30px; top:13px; color:#0756ca; background:#e4efff; border-radius:999px; padding:5px 8px; font-size:8px; font-weight:900; letter-spacing:.045em; }
+      .premium-drawer-status { margin:23px 30px 0 !important; padding:18px 7px !important; border:0 !important; border-top:1px solid rgba(205,218,233,.78) !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; }
+      .premium-drawer-signature { padding:24px 20px calc(26px + env(safe-area-inset-bottom)); text-align:center; color:#7a899d; }
+      .premium-drawer-signature .signature-rule { display:block; width:58%; max-width:210px; height:1px; margin:0 auto 18px; background:linear-gradient(90deg,transparent,#c4d0df 18%,#c4d0df 82%,transparent); }
+      .premium-drawer-signature strong { display:block; font-size:9px; font-weight:850; letter-spacing:.26em; }
+      .premium-drawer-signature > span:last-child { display:block; margin-top:7px; font-size:8px; font-weight:750; letter-spacing:.23em; }
+      @media (max-width:430px) {
+        .premium-drawer { width:calc(100vw - 16px) !important; inset:8px 8px max(8px,env(safe-area-inset-bottom)) auto !important; border-radius:30px !important; }
+        .premium-drawer-head { min-height:280px !important; padding:38px 20px 48px !important; border-radius:29px 29px 0 0 !important; }
+        .premium-drawer-identity-name { font-size:36px; }
+        .premium-drawer-nav { padding-left:22px !important; padding-right:22px !important; }
+        .premium-drawer-section-label { margin-left:23px !important; margin-right:23px !important; }
+        .premium-drawer-status { margin-left:22px !important; margin-right:22px !important; }
+      }
+      @media (max-height:760px) {
+        .premium-drawer-head { min-height:245px !important; padding-top:28px !important; padding-bottom:43px !important; }
+        .premium-drawer-identity-mark { width:59px; height:49px; margin-bottom:10px; }
+        .premium-drawer-identity-name { font-size:32px; }
+        .premium-drawer-identity-purpose { margin-top:11px; }
+        .premium-drawer-section-label { margin-top:22px !important; }
+        .premium-drawer-link,.premium-drawer-link:first-child,.premium-drawer-link:nth-child(3) { min-height:75px !important; }
+      }
+    </style>
+
   </body>
 </html>

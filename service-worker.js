@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v61-product-gallery-foundation";
+const VERSION = "atlas-pwa-v62-control-center-step-1";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
