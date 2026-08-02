@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v70-premium-logo-refinement";
+const VERSION = "atlas-pwa-v71-raised-mobile-menu-tabs";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

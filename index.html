@@ -28381,6 +28381,12 @@ Error generating stack: ` +
           padding-bottom: calc(23px + env(safe-area-inset-bottom));
         }
       }
+      @media (max-width: 699px) {
+        .premium-drawer.atlas-menu-drawer {
+          /* Keep tall phones from turning the statement header into empty space. */
+          grid-template-rows: clamp(236px, 31dvh, 270px) auto 1fr auto;
+        }
+      }
       @media (min-width: 700px) {
         .premium-drawer.atlas-menu-drawer {
           width: min(68vw, 520px) !important;
