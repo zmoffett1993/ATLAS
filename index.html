@@ -16903,7 +16903,7 @@ Error generating stack: ` +
                                           children: u.sku,
                                         }),
                                         (0, T.jsx)(`span`, {
-                                          children: `All levels (A1 – A4) · Tap to copy`,
+                                          children: `Tap to copy`,
                                         }),
                                       ],
                                     }),
@@ -16957,11 +16957,6 @@ Error generating stack: ` +
                                                                 ] || `OVERFLOW`
                                                               }`
                                                             : atlasPickerLocationTitle(e),
-                                                      }),
-                                                      (0, T.jsx)(`span`, {
-                                                        children:
-                                                          e.level_info ||
-                                                          `All Levels`,
                                                       }),
                                                       e.pick_first
                                                         ? (0, T.jsx)(`em`, {
@@ -24705,14 +24700,16 @@ Error generating stack: ` +
                 <span class="atlas-product-match-note" hidden></span>
                 <button class="atlas-product-view-details" type="button"><span>View Product Details</span><i aria-hidden="true">›</i></button>
               </div>`;
-            const skuBlock = resultBody.querySelector(":scope > .sku-copy");
-            if (skuBlock?.nextSibling) {
-              resultBody.insertBefore(showcase, skuBlock.nextSibling);
-            } else if (skuBlock) {
-              resultBody.appendChild(showcase);
-            } else {
-              resultBody.insertBefore(showcase, resultBody.firstChild);
-            }
+            resultBody.appendChild(showcase);
+          }
+          const locationList = resultBody.querySelector(
+            ":scope > .location-list",
+          );
+          if (
+            locationList &&
+            showcase.previousElementSibling !== locationList
+          ) {
+            locationList.insertAdjacentElement("afterend", showcase);
           }
           if (showcase.dataset.sku === sku) return;
           showcase.dataset.sku = sku;
@@ -29049,6 +29046,353 @@ Error generating stack: ` +
         }
       }
     </style>
+
+    <style id="atlas-approved-picker-speed-workflow-v1">
+      /* August 2, 2026 — approved picker-first result hierarchy. */
+      .result-card .result-top {
+        padding: 13px 16px !important;
+      }
+      .result-card .result-body {
+        padding: 16px !important;
+      }
+      .result-card .sku-copy {
+        margin-bottom: 0 !important;
+      }
+      .result-card .sku-copy span {
+        margin-top: 6px !important;
+      }
+      .result-card .sku-copy + .location-list {
+        margin-top: 12px !important;
+      }
+      .result-card .location-list::before {
+        content: none !important;
+        display: none !important;
+      }
+      .result-card .location-list.has-alternate-locations::before {
+        content: "OTHER PICK LOCATIONS" !important;
+        order: 0;
+        display: block !important;
+        margin: 8px 0 0 !important;
+        color: #60738a;
+        font-size: 9px;
+        font-weight: 950;
+        line-height: 1.2;
+        letter-spacing: 0.13em;
+      }
+      .result-card .location-list + .atlas-product-showcase {
+        margin: 13px 0 14px !important;
+      }
+      .result-card .atlas-product-showcase + .map-panel {
+        margin-top: 0 !important;
+      }
+      .result-card .location-entry:not(.selected) > .missing-button {
+        display: none !important;
+      }
+      .result-card .location-entry.selected > .missing-button {
+        width: auto !important;
+        min-height: 40px !important;
+        margin: 7px 10px 9px auto !important;
+        padding: 7px 9px !important;
+        color: #536981 !important;
+        background: transparent !important;
+        border-color: rgba(126, 151, 180, 0.62) !important;
+        font-size: 10px !important;
+        letter-spacing: 0 !important;
+        opacity: 0.9;
+      }
+      .result-card .location-entry.selected > .missing-button::before {
+        width: 16px !important;
+        height: 16px !important;
+        color: #536981 !important;
+        font-size: 10px !important;
+      }
+      .result-card .location-entry.selected > .missing-button:active {
+        background: #f2f6fb !important;
+        opacity: 1;
+      }
+      .atlas-location-hero.atlas-location-arrival {
+        will-change: opacity, transform, filter, box-shadow;
+        animation: atlas-picker-location-arrival 380ms
+          cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes atlas-picker-location-arrival {
+        0% {
+          opacity: 0.72;
+          filter: saturate(0.9) brightness(0.98);
+          box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.38);
+          transform: translateY(9px);
+        }
+        58% {
+          opacity: 1;
+          box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
+        }
+        100% {
+          opacity: 1;
+          filter: saturate(1) brightness(1);
+          box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0);
+          transform: translateY(0);
+        }
+      }
+      .atlas-pick-reminder {
+        position: fixed;
+        z-index: 180;
+        top: max(10px, calc(env(safe-area-inset-top) + 8px));
+        left: 50%;
+        width: min(calc(100vw - 28px), 720px);
+        min-height: 50px;
+        padding: 8px 12px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        color: #fff;
+        pointer-events: none;
+        background: rgba(3, 25, 53, 0.95);
+        border: 1px solid rgba(133, 179, 233, 0.45);
+        border-radius: 15px;
+        box-shadow:
+          0 12px 30px rgba(0, 14, 37, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        -webkit-backdrop-filter: blur(12px) saturate(0.9);
+        backdrop-filter: blur(12px) saturate(0.9);
+        opacity: 0;
+        visibility: hidden;
+        transform: translate(-50%, -10px) scale(0.985);
+        transition:
+          opacity 180ms ease,
+          visibility 0s linear 180ms,
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .atlas-pick-reminder.is-visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, 0) scale(1);
+        transition:
+          opacity 180ms ease,
+          visibility 0s,
+          transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .atlas-pick-reminder > span {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+      .atlas-pick-reminder__location {
+        text-align: right;
+      }
+      .atlas-pick-reminder small {
+        color: #9db9dc;
+        font-size: 7px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: 0.15em;
+      }
+      .atlas-pick-reminder strong {
+        color: #fff;
+        font-size: clamp(9px, 2.4vw, 12px);
+        font-weight: 950;
+        line-height: 1.12;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+      }
+      .atlas-pick-reminder__sku strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      html.atlas-menu-open .atlas-pick-reminder,
+      body.atlas-product-detail-open .atlas-pick-reminder {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transform: translate(-50%, -10px) scale(0.985) !important;
+      }
+      @media (max-width: 460px) {
+        .result-card .result-body {
+          padding: 12px !important;
+        }
+        .result-card .sku-copy + .location-list {
+          margin-top: 10px !important;
+        }
+        .result-card .location-list + .atlas-product-showcase {
+          margin: 11px 0 12px !important;
+        }
+        .atlas-pick-reminder {
+          width: calc(100vw - 22px);
+          min-height: 48px;
+          padding: 8px 10px;
+          gap: 10px;
+          border-radius: 14px;
+        }
+        .atlas-pick-reminder strong {
+          font-size: clamp(8.5px, 2.55vw, 11px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-location-hero.atlas-location-arrival {
+          animation: none !important;
+          will-change: auto;
+        }
+        .atlas-pick-reminder,
+        .atlas-pick-reminder.is-visible {
+          transition: none !important;
+        }
+      }
+    </style>
+    <script id="atlas-approved-picker-speed-workflow-behavior-v1">
+      (() => {
+        const reduceMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        );
+        let queued = false;
+
+        const reminder = document.createElement("div");
+        reminder.className = "atlas-pick-reminder";
+        reminder.setAttribute("aria-hidden", "true");
+        reminder.innerHTML = `
+          <span class="atlas-pick-reminder__sku">
+            <small>SKU</small>
+            <strong></strong>
+          </span>
+          <span class="atlas-pick-reminder__location">
+            <small>PICK LOCATION</small>
+            <strong></strong>
+          </span>`;
+        document.body.appendChild(reminder);
+
+        const setText = (node, value) => {
+          if (node && node.textContent !== value) node.textContent = value;
+        };
+
+        const enhanceResultCard = (resultCard) => {
+          const resultBody = resultCard.querySelector(".result-body");
+          const locationList = resultCard.querySelector(".location-list");
+          const showcase = resultCard.querySelector(".atlas-product-showcase");
+          const sku = resultCard
+            .querySelector(".sku-copy strong")
+            ?.textContent?.trim();
+          if (!resultBody || !locationList || !sku) return;
+
+          const locationCount = locationList.querySelectorAll(
+            ":scope > .location-entry",
+          ).length;
+          locationList.classList.toggle(
+            "has-alternate-locations",
+            locationCount > 1,
+          );
+
+          if (
+            showcase &&
+            showcase.previousElementSibling !== locationList
+          ) {
+            locationList.insertAdjacentElement("afterend", showcase);
+          }
+
+          const hero = locationList.querySelector(
+            ".location-entry.selected > .atlas-location-hero",
+          );
+          if (hero && resultCard.dataset.atlasArrivalSku !== sku) {
+            resultCard.dataset.atlasArrivalSku = sku;
+            if (!reduceMotion.matches) {
+              hero.classList.add("atlas-location-arrival");
+              window.setTimeout(
+                () => hero.classList.remove("atlas-location-arrival"),
+                430,
+              );
+            }
+          }
+        };
+
+        const updateReminder = () => {
+          const resultCard = document.querySelector(
+            ".home-view .result-card",
+          );
+          if (!resultCard) {
+            reminder.classList.remove("is-visible");
+            reminder.setAttribute("aria-hidden", "true");
+            return;
+          }
+
+          enhanceResultCard(resultCard);
+          const mapPanel = resultCard.querySelector(".map-panel");
+          const hero = resultCard.querySelector(
+            ".location-entry.selected > .atlas-location-hero",
+          );
+          const sku = resultCard
+            .querySelector(".sku-copy strong")
+            ?.textContent?.trim();
+          const aisle = hero
+            ?.querySelector(".atlas-location-aisle")
+            ?.textContent?.trim();
+          const section = hero
+            ?.querySelector(".atlas-location-section")
+            ?.textContent?.trim();
+
+          if (!mapPanel || !sku || !aisle || !section) {
+            reminder.classList.remove("is-visible");
+            reminder.setAttribute("aria-hidden", "true");
+            return;
+          }
+
+          setText(reminder.querySelector(".atlas-pick-reminder__sku strong"), sku);
+          setText(
+            reminder.querySelector(".atlas-pick-reminder__location strong"),
+            `${aisle} · ${section}`,
+          );
+
+          const viewportHeight =
+            window.visualViewport?.height || window.innerHeight;
+          const safeTop =
+            Number.parseFloat(
+              getComputedStyle(document.documentElement).getPropertyValue(
+                "--atlas-safe-top",
+              ),
+            ) || 0;
+          const mapBounds = mapPanel.getBoundingClientRect();
+          const cardBounds = resultCard.getBoundingClientRect();
+          const mapEngaged =
+            mapBounds.top <= viewportHeight * 0.62 &&
+            mapBounds.bottom > Math.max(72, safeTop + 56);
+          const cardVisible =
+            cardBounds.top < viewportHeight && cardBounds.bottom > 72;
+          const unobstructed =
+            !document.documentElement.classList.contains("atlas-menu-open") &&
+            !document.body.classList.contains("atlas-product-detail-open");
+          const shouldShow = mapEngaged && cardVisible && unobstructed;
+
+          reminder.classList.toggle("is-visible", shouldShow);
+          reminder.setAttribute("aria-hidden", String(!shouldShow));
+        };
+
+        const enhance = () => {
+          queued = false;
+          document
+            .querySelectorAll(".home-view .result-card")
+            .forEach(enhanceResultCard);
+          updateReminder();
+        };
+        const queue = () => {
+          if (queued) return;
+          queued = true;
+          window.requestAnimationFrame(enhance);
+        };
+
+        new MutationObserver(queue).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+        window.addEventListener("scroll", queue, { passive: true });
+        window.addEventListener("resize", queue, { passive: true });
+        window.visualViewport?.addEventListener("resize", queue, {
+          passive: true,
+        });
+        window.visualViewport?.addEventListener("scroll", queue, {
+          passive: true,
+        });
+        window.addEventListener("DOMContentLoaded", queue);
+        queue();
+      })();
+    </script>
 
 </body>
 </html>
