@@ -27996,6 +27996,18 @@ Error generating stack: ` +
         pointer-events: none !important;
         transform: scale(0.94) !important;
       }
+      /* Keep the ATLAS page physically connected to the drawer. The page
+         travels by the drawer's exact responsive width, then sweeps back into
+         place as the menu closes. */
+      body > #root {
+        transform: none;
+        transition: transform 390ms cubic-bezier(0.2, 0.82, 0.24, 1);
+      }
+      html.atlas-menu-open body > #root {
+        transform: translate3d(85vw, 0, 0);
+        transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform;
+      }
       .premium-drawer-backdrop.atlas-menu-backdrop {
         position: fixed !important;
         inset: 0 !important;
@@ -28030,8 +28042,6 @@ Error generating stack: ` +
         padding: 0 !important;
         color: #f8f4ec !important;
         border: 0 !important;
-        border-right: 1px solid rgba(214, 229, 242, 0.34) !important;
-        border-bottom: 1px solid rgba(214, 229, 242, 0.24) !important;
         border-radius: 0 0 30px 0 !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
@@ -28045,7 +28055,10 @@ Error generating stack: ` +
             #011522 58%,
             #01101e 100%
           ) !important;
-        box-shadow: 18px 24px 52px rgba(0, 8, 20, 0.46) !important;
+        box-shadow:
+          inset -1px 0 rgba(255, 255, 255, 0.09),
+          14px 0 36px rgba(0, 8, 20, 0.28),
+          8px 22px 46px rgba(0, 8, 20, 0.2) !important;
         transform: translate3d(-102%, 0, 0) !important;
         transform-origin: left center !important;
         transition: transform 390ms cubic-bezier(0.2, 0.82, 0.24, 1) !important;
@@ -28393,6 +28406,9 @@ Error generating stack: ` +
         }
       }
       @media (min-width: 700px) {
+        html.atlas-menu-open body > #root {
+          transform: translate3d(min(44vw, 430px, 54dvh), 0, 0);
+        }
         .premium-drawer.atlas-menu-drawer {
           width: min(44vw, 430px) !important;
           width: min(44vw, 430px, 54dvh) !important;
@@ -28436,6 +28452,8 @@ Error generating stack: ` +
         }
       }
       @media (prefers-reduced-motion: reduce) {
+        body > #root,
+        html.atlas-menu-open body > #root,
         .premium-drawer-backdrop.atlas-menu-backdrop,
         .premium-drawer-backdrop.atlas-menu-backdrop.open,
         .premium-drawer.atlas-menu-drawer,

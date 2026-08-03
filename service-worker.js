@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v75-footer-bottom-gap";
+const VERSION = "atlas-pwa-v76-menu-depth-page-push";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
