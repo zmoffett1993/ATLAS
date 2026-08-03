@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v79-picker-speed-hierarchy";
+const VERSION = "atlas-pwa-v80-slower-menu-open-close";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

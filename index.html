@@ -23590,7 +23590,7 @@ Error generating stack: ` +
               backdrop.classList.remove("atlas-swipe-closing");
               if (drawer) drawer.atlasSwipeResetTimer = null;
             },
-            useSwipeMotion ? 590 : 420,
+            660,
           );
           if (restoreFocus) launcher?.focus();
         };
@@ -28089,11 +28089,11 @@ Error generating stack: ` +
          place as the menu closes. */
       body > #root {
         transform: none;
-        transition: transform 390ms cubic-bezier(0.2, 0.82, 0.24, 1);
+        transition: transform 620ms cubic-bezier(0.2, 0.82, 0.24, 1);
       }
       html.atlas-menu-open body > #root {
         transform: translate3d(85vw, 0, 0);
-        transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+        transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
         will-change: transform;
       }
       .premium-drawer-backdrop.atlas-menu-backdrop {
@@ -28108,15 +28108,15 @@ Error generating stack: ` +
         visibility: hidden !important;
         pointer-events: none !important;
         transition:
-          opacity 260ms cubic-bezier(0.22, 0.72, 0.2, 1),
-          visibility 0s linear 260ms !important;
+          opacity 620ms cubic-bezier(0.22, 0.72, 0.2, 1),
+          visibility 0s linear 620ms !important;
       }
       .premium-drawer-backdrop.atlas-menu-backdrop.open {
         opacity: 1 !important;
         visibility: visible !important;
         pointer-events: auto !important;
         transition:
-          opacity 520ms cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 620ms cubic-bezier(0.16, 1, 0.3, 1),
           visibility 0s !important;
       }
       .premium-drawer.atlas-menu-drawer {
@@ -28149,14 +28149,14 @@ Error generating stack: ` +
           8px 22px 46px rgba(0, 8, 20, 0.2) !important;
         transform: translate3d(-102%, 0, 0) !important;
         transform-origin: left center !important;
-        transition: transform 390ms cubic-bezier(0.2, 0.82, 0.24, 1) !important;
+        transition: transform 620ms cubic-bezier(0.2, 0.82, 0.24, 1) !important;
         touch-action: pan-y;
         will-change: transform;
         scrollbar-width: none;
       }
       .premium-drawer-backdrop.open .premium-drawer.atlas-menu-drawer {
         transform: translate3d(var(--atlas-menu-drag-x, 0px), 0, 0) !important;
-        transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+        transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
       .premium-drawer.atlas-menu-drawer.is-swipe-tracking {
         transition: none !important;
@@ -28169,12 +28169,12 @@ Error generating stack: ` +
       }
       .premium-drawer-backdrop.atlas-menu-backdrop.atlas-swipe-closing {
         transition:
-          opacity 480ms cubic-bezier(0.4, 0, 0.2, 1),
-          visibility 0s linear 580ms !important;
+          opacity 620ms cubic-bezier(0.4, 0, 0.2, 1),
+          visibility 0s linear 620ms !important;
       }
       .premium-drawer-backdrop.atlas-menu-backdrop.atlas-swipe-closing
         .premium-drawer.atlas-menu-drawer {
-        transition: transform 560ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: transform 620ms cubic-bezier(0.4, 0, 0.2, 1) !important;
       }
       .premium-drawer.atlas-menu-drawer::before,
       .premium-drawer.atlas-menu-drawer::after {
