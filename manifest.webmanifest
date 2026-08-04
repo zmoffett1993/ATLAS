@@ -14405,6 +14405,12 @@ Error generating stack: ` +
             description: `Keep product in both locations or move all product to a new location.`,
           },
           {
+            id: `clear`,
+            icon: `⊘`,
+            title: `Temporarily Clear Location`,
+            description: `Hide an empty location from pickers without deleting its assignment.`,
+          },
+          {
             id: `pick`,
             icon: `★`,
             title: `Manage Pick First`,
@@ -25898,19 +25904,26 @@ Error generating stack: ` +
               const mapPanel = resultCard.querySelector(".map-panel");
               replayClass(mapPanel, "atlas-map-location-change");
 
-              const skuAnchor = resultCard.querySelector(".sku-copy");
-              window.setTimeout(
-                () => {
-                  if (!skuAnchor?.isConnected) return;
-                  const anchorTop =
-                    window.scrollY + skuAnchor.getBoundingClientRect().top - 16;
-                  window.scrollTo({
-                    top: Math.max(0, anchorTop),
-                    behavior: reduceMotion.matches ? "auto" : "smooth",
-                  });
-                },
-                reduceMotion.matches ? 0 : 580,
-              );
+              if (!reduceMotion.matches) {
+                window.setTimeout(() => {
+                  const activeSection =
+                    mapPanel?.querySelector(".map-section.active");
+                  if (!activeSection) return;
+                  const viewportHeight =
+                    window.visualViewport?.height || window.innerHeight;
+                  const safeBottom = viewportHeight - 104;
+                  const activeBounds = activeSection.getBoundingClientRect();
+                  if (
+                    activeBounds.bottom > safeBottom ||
+                    activeBounds.top < 72
+                  ) {
+                    mapPanel.scrollIntoView({
+                      behavior: "smooth",
+                      block: "nearest",
+                    });
+                  }
+                }, 280);
+              }
             });
         };
 
