@@ -1,132 +1,21 @@
-const VERSION = "atlas-pwa-v92-authentic-about-map";
-const SHELL_CACHE = `${VERSION}-shell`;
-const DATA_CACHE = `${VERSION}-warehouse-data`;
+# ATLAS — Sprint 3 Design Foundation
 
-const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./product-images.json",
-  "./atlas-icon-v2-180.png",
-  "./atlas-icon-v2-192.png",
-  "./atlas-icon-v2-512.png",
-  "./atlas-icon-v2-maskable-512.png",
-  "./atlas-favicon-v2-32.png",
-  "./atlas-warehouse-management.png",
-  "./atlas-home-logo-v2.png",
-  "./atlas-home-lockup-v3.png",
-  "./atlas-menu-warehouse-v1.webp?v=87",
-  "./chubby-gorilla-about-v2.jpeg",
-  "./chubby-gorilla-header-v2.png",
-  "./atlas-menu-brand-lockup.png",
-  "./atlas-menu-lockup-v2.png?v=81",
-  "./atlas-about-mark-v1.png?v=81",
-  "./atlas-about-hero-polished-v6.png?v=87",
-  "./atlas-about-inventory-stylized-v2.webp?v=87",
-  "./atlas-about-product-clear-trimmed.webp?v=86",
-  "./atlas-about-product-clear-black-trimmed.webp?v=86",
-];
+This build begins **ATLAS Design System 1.0** while preserving the validated warehouse search application and Supabase connection.
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)),
-  );
-});
+## Structure
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter(
-              (key) =>
-                key.startsWith("atlas-pwa-") &&
-                ![SHELL_CACHE, DATA_CACHE].includes(key),
-            )
-            .map((key) => caches.delete(key)),
-        ),
-      )
-      .then(() => self.clients.claim()),
-  );
-});
+- `index.html` — semantic application shell
+- `css/theme.css` — official colors, typography foundation, global tokens
+- `css/layout.css` — responsive structure and spacing
+- `css/components.css` — reusable interface components
+- `css/animations.css` — motion language and reduced-motion support
+- `js/app.js` — validated search, recents, aisle browsing, and Supabase logic
+- `assets/` — reserved for approved logos, icons, and product imagery
 
-self.addEventListener("message", (event) => {
-  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
-});
+## GitHub update
 
-async function networkFirst(request, cacheName, fallback) {
-  const cache = await caches.open(cacheName);
-  try {
-    const response = await fetch(request);
-    if (response.ok) await cache.put(request, response.clone());
-    return response;
-  } catch {
-    return (await cache.match(request)) || fallback;
-  }
-}
+Replace the current repository contents with this folder's contents, keeping the folder structure intact. Open `index.html` locally before committing, then verify the live GitHub Pages site.
 
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  if (request.method !== "GET") return;
+## Sprint 3 checkpoint
 
-  const url = new URL(request.url);
-  const isNavigation = request.mode === "navigate";
-  const isSupabaseRead =
-    url.hostname.endsWith(".supabase.co") &&
-    url.pathname.startsWith("/rest/v1/");
-  const isProductImage =
-    url.hostname.endsWith(".supabase.co") &&
-    url.pathname.startsWith(
-      "/storage/v1/object/public/product-images/",
-    );
-
-  if (isNavigation) {
-    event.respondWith(
-      networkFirst(request, SHELL_CACHE, caches.match("./index.html")),
-    );
-    return;
-  }
-
-  if (isSupabaseRead) {
-    const unavailable = new Response(
-      JSON.stringify({
-        message:
-          "Warehouse data is unavailable offline until ATLAS completes one successful online load.",
-      }),
-      { status: 503, headers: { "Content-Type": "application/json" } },
-    );
-    event.respondWith(networkFirst(request, DATA_CACHE, unavailable));
-    return;
-  }
-
-  if (isProductImage) {
-    event.respondWith(
-      caches.open(DATA_CACHE).then(async (cache) => {
-        const cached = await cache.match(request);
-        if (cached) return cached;
-        const response = await fetch(request);
-        if (response.ok) await cache.put(request, response.clone());
-        return response;
-      }),
-    );
-    return;
-  }
-
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then(async (response) => {
-            if (response.ok) {
-              const cache = await caches.open(SHELL_CACHE);
-              await cache.put(request, response.clone());
-            }
-            return response;
-          }),
-      ),
-    );
-  }
-});
+This is **3.1 — Design Foundation**. No warehouse features were added or removed. The next checkpoint is **3.2 — Brand Experience**, where the header, floating search experience, typography hierarchy, and spacing will be rebuilt against these shared files.
