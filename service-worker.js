@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v90-android-two-touch-voice-ounce";
+const VERSION = "atlas-pwa-v91-wallet-location-promotion";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

@@ -25580,19 +25580,38 @@ Error generating stack: ` +
     </script>
     <style id="atlas-secondary-location-transition-design">
       /*
-       * Premium location-change feedback.
-       * Runs only when a picker chooses a different active location.
+       * Apple Wallet-inspired location promotion.
+       * Runs only when a picker chooses a secondary card from a result with
+       * multiple active locations. The selected card travels into position
+       * one while the former primary card settles into the vacated stack.
        */
+      .result-card .location-list {
+        position: relative;
+        isolation: isolate;
+      }
+      .result-card .location-entry.atlas-wallet-in-flight {
+        position: relative;
+        z-index: 3;
+        will-change: transform, opacity, filter, box-shadow;
+        backface-visibility: hidden;
+        transform-origin: center top;
+      }
+      .result-card .location-entry.atlas-wallet-promoting {
+        z-index: 5;
+      }
+      .result-card .location-entry.atlas-wallet-promoting > .location-card {
+        filter: saturate(1.04);
+      }
       .atlas-location-hero.atlas-location-change {
-        animation: atlas-location-hero-change 260ms cubic-bezier(0.22, 1, 0.36, 1)
+        animation: atlas-location-hero-change 340ms cubic-bezier(0.22, 1, 0.36, 1)
           both;
       }
       .atlas-location-hero.atlas-location-change .atlas-location-section {
-        animation: atlas-location-section-change 240ms
+        animation: atlas-location-section-change 320ms
           cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       .atlas-location-hero.atlas-location-change .atlas-location-code {
-        animation: atlas-location-code-change 260ms
+        animation: atlas-location-code-change 340ms
           cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       .map-panel.atlas-map-location-change .map-title span {
@@ -25673,6 +25692,9 @@ Error generating stack: ` +
         .map-panel.atlas-map-location-change .map-section.active {
           animation: none;
         }
+        .result-card .location-entry.atlas-wallet-in-flight {
+          will-change: auto;
+        }
         .result-card .location-entry:not(.selected) > .location-card .location-badge {
           transition: none;
         }
@@ -25692,46 +25714,108 @@ Error generating stack: ` +
             ?.textContent?.trim() || "";
 
         const captureLocationPositions = (resultCard) => {
+          const entries = Array.from(
+            resultCard.querySelectorAll(".location-entry"),
+          );
+          if (entries.length < 2) return false;
+
           const positions = new Map();
-          resultCard.querySelectorAll(".location-entry").forEach((entry) => {
+          entries.forEach((entry) => {
             entry.getAnimations?.().forEach((animation) => animation.cancel());
-            const code = locationCodeForEntry(entry);
-            if (!code) return;
-            positions.set(code, entry.getBoundingClientRect().top);
+            entry.classList.remove(
+              "atlas-wallet-in-flight",
+              "atlas-wallet-promoting",
+            );
+            const bounds = entry.getBoundingClientRect();
+            positions.set(entry, {
+              top: bounds.top,
+              left: bounds.left,
+              width: bounds.width,
+              height: bounds.height,
+              wasSelected: entry.classList.contains("selected"),
+            });
           });
           pendingLocationMoves.set(resultCard, positions);
+          return true;
         };
 
-        const playLocationReorder = (resultCard) => {
+        const playLocationReorder = (resultCard, selectedEntry) => {
           const positions = pendingLocationMoves.get(resultCard);
           pendingLocationMoves.delete(resultCard);
           if (!positions || reduceMotion.matches) return;
 
+          const animations = [];
           resultCard.querySelectorAll(".location-entry").forEach((entry) => {
-            const code = locationCodeForEntry(entry);
-            const previousTop = positions.get(code);
-            if (previousTop === void 0 || typeof entry.animate !== "function") return;
-            const currentTop = entry.getBoundingClientRect().top;
-            const rawOffset = previousTop - currentTop;
-            const direction = rawOffset === 0 ? 1 : Math.sign(rawOffset);
-            const settleOffset = direction * Math.min(10, Math.max(4, Math.abs(rawOffset) * 0.08));
-            const isSelected = entry.classList.contains("selected");
-            entry.animate(
-              [
-                {
-                  transform: `translate3d(0, ${settleOffset}px, 0)`,
-                  opacity: isSelected ? 0.82 : 0.9,
-                },
-                {
-                  transform: `translate3d(0, 0, 0)`,
-                  opacity: 1,
-                },
-              ],
-              {
-                duration: isSelected ? 270 : 240,
-                easing: `cubic-bezier(0.22, 1, 0.36, 1)`,
-                fill: `both`,
-              },
+            const previous = positions.get(entry);
+            if (!previous || typeof entry.animate !== "function") return;
+
+            const current = entry.getBoundingClientRect();
+            const offsetX = previous.left - current.left;
+            const offsetY = previous.top - current.top;
+            const distance = Math.hypot(offsetX, offsetY);
+            if (distance < 1) return;
+
+            const isPromoted = entry === selectedEntry;
+            const wasPrimary = previous.wasSelected;
+            entry.classList.add("atlas-wallet-in-flight");
+            if (isPromoted) entry.classList.add("atlas-wallet-promoting");
+
+            const keyframes = isPromoted
+              ? [
+                  {
+                    transform: `translate3d(${offsetX}px, ${offsetY}px, 0) scale(0.992)`,
+                    opacity: 0.96,
+                    filter: `saturate(0.98)`,
+                    boxShadow: `0 8px 20px rgba(6, 55, 151, 0.12)`,
+                    offset: 0,
+                  },
+                  {
+                    transform: `translate3d(${offsetX}px, ${offsetY - 7}px, 0) scale(1.008)`,
+                    opacity: 1,
+                    filter: `saturate(1.04)`,
+                    boxShadow: `0 20px 42px rgba(6, 55, 151, 0.24)`,
+                    offset: 0.16,
+                  },
+                  {
+                    transform: `translate3d(0, -3px, 0) scale(1.002)`,
+                    opacity: 1,
+                    filter: `saturate(1.02)`,
+                    boxShadow: `0 14px 32px rgba(6, 55, 151, 0.18)`,
+                    offset: 0.86,
+                  },
+                  {
+                    transform: `translate3d(0, 0, 0) scale(1)`,
+                    opacity: 1,
+                    filter: `saturate(1)`,
+                    boxShadow: `0 12px 30px rgba(6, 55, 151, 0.16)`,
+                    offset: 1,
+                  },
+                ]
+              : [
+                  {
+                    transform: `translate3d(${offsetX}px, ${offsetY}px, 0)`,
+                    opacity: wasPrimary ? 0.94 : 0.97,
+                  },
+                  {
+                    transform: `translate3d(0, 0, 0)`,
+                    opacity: 1,
+                  },
+                ];
+
+            const animation = entry.animate(keyframes, {
+              duration: isPromoted ? 560 : wasPrimary ? 520 : 470,
+              easing: `cubic-bezier(0.22, 1, 0.36, 1)`,
+              fill: `none`,
+            });
+            animations.push(animation.finished.catch(() => {}));
+          });
+
+          Promise.all(animations).finally(() => {
+            resultCard.querySelectorAll(".location-entry").forEach((entry) =>
+              entry.classList.remove(
+                "atlas-wallet-in-flight",
+                "atlas-wallet-promoting",
+              ),
             );
           });
         };
@@ -25775,7 +25859,7 @@ Error generating stack: ` +
 
               delete resultCard.dataset.atlasPendingLocation;
               delete resultCard.dataset.atlasTransitionAttempts;
-              playLocationReorder(resultCard);
+              playLocationReorder(resultCard, selected);
               replayClass(hero, "atlas-location-change");
 
               const mapPanel = resultCard.querySelector(".map-panel");
@@ -25807,9 +25891,7 @@ Error generating stack: ` +
         const queueTransitionCheck = () => {
           if (transitionQueued) return;
           transitionQueued = true;
-          window.requestAnimationFrame(() =>
-            window.requestAnimationFrame(playPendingTransition),
-          );
+          window.requestAnimationFrame(playPendingTransition);
         };
 
         document.addEventListener(
@@ -25824,7 +25906,7 @@ Error generating stack: ` +
               .querySelector(".location-badge")
               ?.textContent?.trim();
             if (!resultCard || !locationCode) return;
-            captureLocationPositions(resultCard);
+            if (!captureLocationPositions(resultCard)) return;
             resultCard.dataset.atlasPendingLocation = locationCode;
             resultCard.dataset.atlasTransitionAttempts = "0";
             queueTransitionCheck();
