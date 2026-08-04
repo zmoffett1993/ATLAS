@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v88-voice-toggle-audio-search";
+const VERSION = "atlas-pwa-v90-android-two-touch-voice-ounce";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

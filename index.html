@@ -14812,6 +14812,11 @@ Error generating stack: ` +
         for (let e = 0; e < t.length; e += 1) {
           let s = t[e];
           if (a.has(s)) continue;
+          if (s === `FLUID` && [`OUNCE`, `OUNCES`].includes(t[e + 1])) continue;
+          if (s === `OUNCE` || s === `OUNCES`) {
+            o += `OZ`;
+            continue;
+          }
           if (s === `NATURAL` && e === t.length - 1) {
             o += `NATL`;
             continue;
@@ -14992,12 +14997,15 @@ Error generating stack: ` +
               atlasProcessVoiceSearch(atlasVoiceTranscriptsRef.current));
           },
           atlasStartVoice = () => {
-            let e = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let e = window.SpeechRecognition || window.webkitSpeechRecognition,
+              atlasAndroidVoice = /Android/i.test(navigator.userAgent || ``);
             if (!e) {
               (atlasSetVoiceCandidates([]),
                 atlasSetVoiceStatus({
                   mode: `error`,
-                  message: `Voice search is not supported in this browser. Use the keyboard or camera instead.`,
+                  message: atlasAndroidVoice
+                    ? `Android voice search requires Google Chrome. Open ATLAS in Chrome, allow microphone access, and try again.`
+                    : `Voice search is not supported in this browser. Use the keyboard or camera instead.`,
                 }));
               return;
             }
@@ -15008,14 +15016,63 @@ Error generating stack: ` +
             atlasVoiceStopFallbackRef.current &&
               window.clearTimeout(atlasVoiceStopFallbackRef.current);
             let s = new e(),
-              c = atlasVoiceSessionRef.current;
+              c = atlasVoiceSessionRef.current,
+              atlasAndroidRestartScheduled = !1,
+              atlasRestartAndroidRecognition = () => {
+                if (
+                  !atlasAndroidVoice ||
+                  atlasAndroidRestartScheduled ||
+                  c !== atlasVoiceSessionRef.current ||
+                  atlasVoiceStopRequestedRef.current ||
+                  atlasVoiceFinalizedRef.current
+                )
+                  return;
+                atlasAndroidRestartScheduled = !0;
+                let atlasHeard = atlasVoiceTranscriptsRef.current[0] || ``;
+                atlasSetVoiceStatus({
+                  mode: `listening`,
+                  message: atlasHeard
+                    ? `Heard “${atlasHeard}.” Tap the blue microphone again to stop and search.`
+                    : `Listening… Speak the SKU, then tap the blue microphone again to search.`,
+                });
+                let atlasTryRestart = (atlasAttempt = 0) => {
+                  window.setTimeout(
+                    () => {
+                      if (
+                        c !== atlasVoiceSessionRef.current ||
+                        atlasVoiceStopRequestedRef.current ||
+                        atlasVoiceFinalizedRef.current
+                      )
+                        return;
+                      ((atlasAndroidRestartScheduled = !1),
+                        (atlasSpeechRef.current = s));
+                      try {
+                        s.start();
+                      } catch {
+                        if (atlasAttempt < 1) {
+                          atlasTryRestart(atlasAttempt + 1);
+                          return;
+                        }
+                        ((atlasSpeechRef.current = null),
+                          (atlasVoiceFinalizedRef.current = !0),
+                          atlasSetVoiceStatus({
+                            mode: `error`,
+                            message: `Android voice recognition paused unexpectedly. Tap the microphone to try again.`,
+                          }));
+                      }
+                    },
+                    atlasAttempt ? 260 : 120,
+                  );
+                };
+                atlasTryRestart();
+              };
             ((atlasSpeechRef.current = s),
               (atlasVoiceTranscriptsRef.current = []),
               (atlasVoiceStopRequestedRef.current = !1),
               (atlasVoiceFinalizedRef.current = !1),
               (atlasVoiceStopFallbackRef.current = null),
               (s.lang = `en-US`),
-              (s.continuous = !0),
+              (s.continuous = !atlasAndroidVoice),
               (s.interimResults = !0),
               (s.maxAlternatives = 5),
               atlasSetVoiceCandidates([]),
@@ -15023,7 +15080,6 @@ Error generating stack: ` +
                 mode: `listening`,
                 message: `Listening… Speak the SKU, then tap the blue microphone again to search.`,
               }),
-              atlasPlayVoiceCue(`start`),
               (s.onresult = (e) => {
                 if (c !== atlasVoiceSessionRef.current) return;
                 let s = [];
@@ -15058,7 +15114,18 @@ Error generating stack: ` +
                   atlasVoiceStopRequestedRef.current &&
                   (e.error === `aborted` || e.error === `no-speech`)
                 ) {
-                  atlasFinishVoiceSearch(c);
+                  window.setTimeout(
+                    () => atlasFinishVoiceSearch(c),
+                    atlasAndroidVoice ? 160 : 60,
+                  );
+                  return;
+                }
+                if (
+                  atlasAndroidVoice &&
+                  (e.error === `aborted` || e.error === `no-speech`)
+                ) {
+                  ((atlasSpeechRef.current = null),
+                    atlasRestartAndroidRecognition());
                   return;
                 }
                 ((atlasVoiceFinalizedRef.current = !0),
@@ -15069,6 +15136,10 @@ Error generating stack: ` +
                 let t =
                   e.error === `not-allowed` || e.error === `service-not-allowed`
                     ? `Microphone access is off. Allow microphone access in browser settings, then try again.`
+                    : e.error === `audio-capture`
+                      ? `ATLAS could not access the microphone. Close other recording apps, check microphone permission, and try again.`
+                      : e.error === `network`
+                        ? `Voice recognition needs a network connection. Reconnect, then tap the microphone again.`
                     : e.error === `no-speech`
                       ? `I didn’t hear a SKU. Tap the microphone and try again.`
                       : `Voice search could not start. Try again or use the camera.`;
@@ -15079,7 +15150,14 @@ Error generating stack: ` +
                 if (c !== atlasVoiceSessionRef.current) return;
                 atlasSpeechRef.current === s && (atlasSpeechRef.current = null);
                 if (atlasVoiceStopRequestedRef.current) {
-                  atlasFinishVoiceSearch(c);
+                  window.setTimeout(
+                    () => atlasFinishVoiceSearch(c),
+                    atlasAndroidVoice ? 160 : 60,
+                  );
+                  return;
+                }
+                if (atlasAndroidVoice) {
+                  atlasRestartAndroidRecognition();
                   return;
                 }
                 let e = atlasVoiceTranscriptsRef.current[0] || ``;
@@ -15095,6 +15173,7 @@ Error generating stack: ` +
               }));
             try {
               s.start();
+              atlasPlayVoiceCue(`start`);
             } catch {
               ((atlasSpeechRef.current = null),
                 (atlasVoiceFinalizedRef.current = !0),
@@ -15107,8 +15186,8 @@ Error generating stack: ` +
           atlasStopVoiceAndSearch = () => {
             let e = atlasVoiceSessionRef.current;
             if (atlasVoiceStatus.mode === `processing`) return;
-            atlasPlayVoiceCue(`stop`);
             if (atlasVoiceStatus.mode === `ready`) {
+              atlasPlayVoiceCue(`stop`);
               atlasFinishVoiceSearch(e);
               return;
             }
@@ -15123,15 +15202,18 @@ Error generating stack: ` +
               }));
             let t = atlasSpeechRef.current;
             if (!t) {
+              atlasPlayVoiceCue(`stop`);
               atlasFinishVoiceSearch(e);
               return;
             }
             try {
               t.stop();
             } catch {
+              atlasPlayVoiceCue(`stop`);
               atlasFinishVoiceSearch(e);
               return;
             }
+            atlasPlayVoiceCue(`stop`);
             (atlasVoiceStopFallbackRef.current &&
               window.clearTimeout(atlasVoiceStopFallbackRef.current),
               (atlasVoiceStopFallbackRef.current = window.setTimeout(
