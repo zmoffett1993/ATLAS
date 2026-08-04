@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v91-wallet-location-promotion";
+const VERSION = "atlas-pwa-v92-authentic-about-map";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

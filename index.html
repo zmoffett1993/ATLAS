@@ -23239,19 +23239,54 @@ Error generating stack: ` +
             <span><small>PICK LOCATION</small><strong>AISLE 4</strong><em>SECTION A</em></span>
             <b>4A</b>
           </div>
-          <div class="atlas-story-ui atlas-story-ui--map" aria-hidden="true">
-            <svg class="atlas-story-warehouse-plan" viewBox="0 0 240 112" role="presentation">
-              <rect class="atlas-story-plan-outline" x="5" y="5" width="230" height="102" rx="8"></rect>
-              <g class="atlas-story-plan-racks">
-                <rect x="16" y="16" width="38" height="80" rx="3"></rect>
-                <rect x="62" y="16" width="38" height="80" rx="3"></rect>
-                <rect x="140" y="16" width="38" height="80" rx="3"></rect>
-                <rect x="186" y="16" width="38" height="80" rx="3"></rect>
-                <path d="M16 36H54M16 56H54M16 76H54M62 36H100M62 56H100M62 76H100M140 36H178M140 56H178M140 76H178M186 36H224M186 56H224M186 76H224"></path>
+          <div class="atlas-story-ui atlas-story-ui--map" role="img" aria-label="ATLAS Aisle 4 warehouse layout with Section A selected, followed by the main forklift driveway, Section B, forklift driveway 2, Section C, forklift driveway 3, and Section D from front to back">
+            <svg class="atlas-story-warehouse-plan" viewBox="0 0 240 112" aria-hidden="true">
+              <defs>
+                <linearGradient id="atlasStorySelectedA" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#0876ff"></stop>
+                  <stop offset="1" stop-color="#0646b8"></stop>
+                </linearGradient>
+                <linearGradient id="atlasStoryDrive" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#0b2342"></stop>
+                  <stop offset="1" stop-color="#061a33"></stop>
+                </linearGradient>
+                <marker id="atlasStoryArrow" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse">
+                  <path d="M0,0 L5,2.5 L0,5 Z" fill="#102846"></path>
+                </marker>
+              </defs>
+              <rect class="atlas-story-plan-outline" x="5" y="5" width="230" height="102" rx="9"></rect>
+              <text class="atlas-story-map-title" x="15" y="18">AISLE 4 LAYOUT</text>
+              <rect class="atlas-story-map-selected-pill" x="164" y="9" width="61" height="13" rx="6.5"></rect>
+              <text class="atlas-story-map-selected-text" x="194.5" y="17.8">SELECTED: A</text>
+
+              <g class="atlas-story-map-stack">
+                <rect class="atlas-story-map-section atlas-story-map-section--active" x="15" y="26" width="170" height="14" rx="3.5"></rect>
+                <text class="atlas-story-map-section-label atlas-story-map-section-label--active" x="100" y="36">A</text>
+
+                <rect class="atlas-story-map-drive atlas-story-map-drive--main" x="15" y="42" width="170" height="8" rx="2.5"></rect>
+                <text class="atlas-story-map-drive-label" x="100" y="48">MAIN FORKLIFT DRIVEWAY</text>
+
+                <rect class="atlas-story-map-section" x="15" y="52" width="170" height="11" rx="3"></rect>
+                <text class="atlas-story-map-section-label" x="100" y="60.5">B</text>
+
+                <rect class="atlas-story-map-drive" x="15" y="65" width="170" height="6" rx="2"></rect>
+                <text class="atlas-story-map-drive-label atlas-story-map-drive-label--small" x="100" y="69.7">FORKLIFT DRIVEWAY 2</text>
+
+                <rect class="atlas-story-map-section" x="15" y="73" width="170" height="11" rx="3"></rect>
+                <text class="atlas-story-map-section-label" x="100" y="81.5">C</text>
+
+                <rect class="atlas-story-map-drive" x="15" y="86" width="170" height="6" rx="2"></rect>
+                <text class="atlas-story-map-drive-label atlas-story-map-drive-label--small" x="100" y="90.7">FORKLIFT DRIVEWAY 3</text>
+
+                <rect class="atlas-story-map-section" x="15" y="94" width="170" height="11" rx="3"></rect>
+                <text class="atlas-story-map-section-label" x="100" y="102.5">D</text>
               </g>
-              <path class="atlas-story-plan-aisle" d="M120 14V98"></path>
-              <rect class="atlas-story-plan-bay" x="141" y="56" width="36" height="19" rx="2"></rect>
-              <path class="atlas-story-plan-cross" d="M107 56H133"></path>
+
+              <g class="atlas-story-map-direction">
+                <text x="211" y="31">FRONT</text>
+                <line x1="211" y1="39" x2="211" y2="91" marker-start="url(#atlasStoryArrow)" marker-end="url(#atlasStoryArrow)"></line>
+                <text x="211" y="103">BACK</text>
+              </g>
             </svg>
           </div>
         </div>
@@ -28898,38 +28933,82 @@ Error generating stack: ` +
         display: block;
       }
       .atlas-story-plan-outline {
-        fill: rgba(255, 255, 255, 0.72);
-        stroke: #9fbbdc;
-        stroke-width: 1.5;
+        fill: rgba(255, 255, 255, 0.84);
+        stroke: #b9cbe0;
+        stroke-width: 1.35;
       }
-      .atlas-story-plan-racks rect {
-        fill: #e5eef9;
-        stroke: #587da9;
-        stroke-width: 1.6;
+      .atlas-story-map-title {
+        fill: #071b40;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 8px;
+        font-weight: 950;
+        letter-spacing: 0.8px;
       }
-      .atlas-story-plan-racks path {
-        fill: none;
-        stroke: #8eabc9;
+      .atlas-story-map-selected-pill {
+        fill: #e9f3ff;
+        stroke: rgba(8, 113, 239, 0.24);
+        stroke-width: 0.8;
+      }
+      .atlas-story-map-selected-text {
+        fill: #0757c6;
+        text-anchor: middle;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 5.5px;
+        font-weight: 950;
+        letter-spacing: 0.35px;
+      }
+      .atlas-story-map-section {
+        fill: #ffffff;
+        stroke: #c1cfdf;
+        stroke-width: 1;
+      }
+      .atlas-story-map-section--active {
+        fill: url(#atlasStorySelectedA);
+        stroke: #064bbd;
         stroke-width: 1.1;
+        filter: drop-shadow(0 2px 2px rgba(6, 71, 174, 0.18));
       }
-      .atlas-story-plan-aisle {
-        fill: none;
-        stroke: #0871ef;
-        stroke-width: 5;
+      .atlas-story-map-section-label {
+        fill: #071b40;
+        text-anchor: middle;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 8px;
+        font-weight: 950;
+      }
+      .atlas-story-map-section-label--active {
+        fill: #ffffff;
+        font-size: 9px;
+      }
+      .atlas-story-map-drive {
+        fill: #69798d;
+      }
+      .atlas-story-map-drive--main {
+        fill: url(#atlasStoryDrive);
+      }
+      .atlas-story-map-drive-label {
+        fill: #ffffff;
+        text-anchor: middle;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 4px;
+        font-weight: 900;
+        letter-spacing: 0.55px;
+      }
+      .atlas-story-map-drive-label--small {
+        font-size: 3.5px;
+        letter-spacing: 0.45px;
+      }
+      .atlas-story-map-direction text {
+        fill: #102846;
+        text-anchor: middle;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 5.2px;
+        font-weight: 950;
+        letter-spacing: 0.35px;
+      }
+      .atlas-story-map-direction line {
+        stroke: #102846;
+        stroke-width: 1.5;
         stroke-linecap: round;
-        opacity: 0.92;
-      }
-      .atlas-story-plan-cross {
-        fill: none;
-        stroke: #6f92b9;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-dasharray: 3 3;
-      }
-      .atlas-story-plan-bay {
-        fill: rgba(8, 113, 239, 0.18);
-        stroke: #0871ef;
-        stroke-width: 2.2;
       }
       .atlas-story-builder {
         position: relative;
