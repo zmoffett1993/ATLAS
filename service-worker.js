@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v84-about-mobile-layout";
+const VERSION = "atlas-pwa-v86-about-card-proof-search-polish";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -22,7 +22,9 @@ const APP_SHELL = [
   "./atlas-menu-lockup-v2.png?v=81",
   "./atlas-about-mark-v1.png?v=81",
   "./atlas-about-hero-polished-v5.png?v=84",
-  "./atlas-about-inventory-polished-v3.png?v=82",
+  "./atlas-about-inventory-v1.jpeg?v=85",
+  "./atlas-about-product-clear-trimmed.webp?v=86",
+  "./atlas-about-product-clear-black-trimmed.webp?v=86",
 ];
 
 self.addEventListener("install", (event) => {

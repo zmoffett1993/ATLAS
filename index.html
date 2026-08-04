@@ -14968,7 +14968,7 @@ Error generating stack: ` +
           children: [
             e ? (0, T.jsx)(`label`, { children: e }) : null,
             (0, T.jsxs)(`div`, {
-              className: `search-wrap`,
+              className: `search-wrap ${atlasEnableVoice ? `has-voice` : ``}`,
               children: [
                 (0, T.jsx)(tt, {}),
                 (0, T.jsx)(`input`, {
@@ -22937,7 +22937,7 @@ Error generating stack: ` +
         </div>
         <div class="atlas-story-system" aria-label="ATLAS connects product identification, pick location, and warehouse mapping">
           <div class="atlas-story-ui atlas-story-ui--sku">
-            <span class="atlas-story-product-image"><img src="https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-60mlv3-natl-d41f10cd.webp" alt=""></span>
+            <span class="atlas-story-product-image"><img src="./atlas-about-product-clear-trimmed.webp?v=86" alt=""></span>
             <span><small>PRODUCT SKU</small><strong>CGUB1-60MLV3-NATL</strong><em>Tap SKU to copy</em></span>
           </div>
           <div class="atlas-story-ui atlas-story-ui--location">
@@ -22945,8 +22945,19 @@ Error generating stack: ` +
             <b>4A</b>
           </div>
           <div class="atlas-story-ui atlas-story-ui--map" aria-hidden="true">
-            <span class="atlas-story-map-lines"></span>
-            <i></i>
+            <svg class="atlas-story-warehouse-plan" viewBox="0 0 240 112" role="presentation">
+              <rect class="atlas-story-plan-outline" x="5" y="5" width="230" height="102" rx="8"></rect>
+              <g class="atlas-story-plan-racks">
+                <rect x="16" y="16" width="38" height="80" rx="3"></rect>
+                <rect x="62" y="16" width="38" height="80" rx="3"></rect>
+                <rect x="140" y="16" width="38" height="80" rx="3"></rect>
+                <rect x="186" y="16" width="38" height="80" rx="3"></rect>
+                <path d="M16 36H54M16 56H54M16 76H54M62 36H100M62 56H100M62 76H100M140 36H178M140 56H178M140 76H178M186 36H224M186 56H224M186 76H224"></path>
+              </g>
+              <path class="atlas-story-plan-aisle" d="M120 14V98"></path>
+              <rect class="atlas-story-plan-bay" x="141" y="56" width="36" height="19" rx="2"></rect>
+              <path class="atlas-story-plan-cross" d="M107 56H133"></path>
+            </svg>
           </div>
         </div>
       </header>
@@ -22962,8 +22973,22 @@ Error generating stack: ` +
       </section>
 
       <section class="atlas-story-proof" aria-labelledby="atlas-about-proof-title">
-        <h2 id="atlas-about-proof-title" class="atlas-story-sr-only">Every detail began with the way Chubby Gorilla works.</h2>
-        <img class="atlas-story-proof-art" src="./atlas-about-inventory-polished-v3.png?v=82" alt="Chubby Gorilla inventory cartons on pallets in warehouse racks beside an ATLAS product SKU and pick-location card showing Aisle 4, Section A, location 4A." loading="lazy" decoding="async">
+        <div class="atlas-story-proof-copy">
+          <h2 id="atlas-about-proof-title">EVERY DETAIL BEGAN WITH THE WAY CHUBBY GORILLA WORKS.</h2>
+          <p>FIND <span>·</span> MANAGE <span>·</span> DELIVER</p>
+        </div>
+        <div class="atlas-story-proof-photo" role="img" aria-label="Chubby Gorilla inventory cartons stacked on pallets in warehouse racks">
+          <div class="atlas-story-proof-card" aria-label="Example ATLAS product and warehouse location card">
+            <div class="atlas-story-proof-product">
+              <span class="atlas-story-proof-bottle"><img src="./atlas-about-product-clear-black-trimmed.webp?v=86" alt=""></span>
+              <span><small>PRODUCT SKU</small><strong>CGAB1-100ML-CNL-OBK</strong><em>Tap SKU to copy</em></span>
+            </div>
+            <div class="atlas-story-proof-location">
+              <small>LOCATION</small>
+              <div><b>AISLE 4</b><b>SECTION A</b><b>4A</b></div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <footer class="atlas-story-finale">
@@ -28356,8 +28381,8 @@ Error generating stack: ` +
         bottom: -54px;
         left: 30px;
         display: grid;
-        grid-template-columns: 1fr 0.9fr 1fr;
-        align-items: center;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
         gap: 15px;
       }
       .atlas-story-system::before {
@@ -28372,7 +28397,9 @@ Error generating stack: ` +
         box-shadow: 0 0 12px rgba(10, 112, 245, 0.34);
       }
       .atlas-story-ui {
+        height: 118px;
         min-width: 0;
+        box-sizing: border-box;
         color: #071b40;
         background: rgba(255, 255, 255, 0.96);
         border: 1px solid rgba(200, 217, 237, 0.95);
@@ -28380,10 +28407,10 @@ Error generating stack: ` +
         box-shadow: 0 15px 30px rgba(2, 18, 42, 0.18);
       }
       .atlas-story-ui--sku {
-        min-height: 108px;
+        min-height: 0;
         padding: 13px;
         display: grid;
-        grid-template-columns: 45px minmax(0, 1fr);
+        grid-template-columns: 54px minmax(0, 1fr);
         align-items: center;
         gap: 12px;
       }
@@ -28415,9 +28442,10 @@ Error generating stack: ` +
         font-style: normal;
       }
       .atlas-story-product-image {
-        width: 45px;
-        height: 70px;
-        padding: 5px;
+        width: 54px;
+        height: 82px;
+        padding: 4px;
+        overflow: hidden;
         background: linear-gradient(145deg, #f3f6fa, #eaf0f6);
         border-radius: 10px;
         display: grid;
@@ -28427,19 +28455,21 @@ Error generating stack: ` +
         width: 100%;
         height: 100%;
         object-fit: contain;
+        transform: scale(1.04);
+        transform-origin: center;
         display: block;
       }
       .atlas-story-ui--location {
-        min-height: 128px;
-        padding: 15px;
+        min-height: 0;
+        padding: 13px;
         color: #fff;
         background: linear-gradient(145deg, #0875ff, #0750c9 72%, #053b9f);
         border-color: rgba(8, 89, 221, 0.68);
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 56px;
+        grid-template-columns: minmax(0, 1fr) 54px;
         align-items: center;
         gap: 10px;
-        transform: translateY(10px);
+        transform: none;
       }
       .atlas-story-ui--location small,
       .atlas-story-ui--location strong,
@@ -28472,32 +28502,56 @@ Error generating stack: ` +
       }
       .atlas-story-ui--map {
         position: relative;
-        min-height: 112px;
+        min-height: 0;
+        padding: 8px;
         overflow: hidden;
         background:
-          linear-gradient(rgba(17, 104, 226, 0.08) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(17, 104, 226, 0.08) 1px, transparent 1px),
+          linear-gradient(rgba(17, 104, 226, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(17, 104, 226, 0.045) 1px, transparent 1px),
           #fbfdff;
-        background-size: 18px 18px;
+        background-size: 14px 14px;
+        display: grid;
+        place-items: center;
       }
-      .atlas-story-map-lines {
-        position: absolute;
-        inset: 16px 18px;
-        border: 1px solid rgba(8, 105, 232, 0.34);
-        background:
-          linear-gradient(90deg, transparent 20%, #0b6ef3 20% 23%, transparent 23% 47%, rgba(9, 92, 208, 0.5) 47% 49%, transparent 49% 75%, rgba(9, 92, 208, 0.42) 75% 77%, transparent 77%),
-          linear-gradient(180deg, transparent 24%, rgba(9, 92, 208, 0.42) 24% 27%, transparent 27% 60%, #0b6ef3 60% 63%, transparent 63%);
+      .atlas-story-warehouse-plan {
+        width: 100%;
+        height: 100%;
+        max-height: 102px;
+        display: block;
       }
-      .atlas-story-ui--map i {
-        position: absolute;
-        right: 26%;
-        bottom: 27%;
-        width: 10px;
-        height: 10px;
-        background: #0876ff;
-        border: 3px solid #fff;
-        border-radius: 50%;
-        box-shadow: 0 0 0 1px #0876ff, 0 0 12px rgba(8, 118, 255, 0.7);
+      .atlas-story-plan-outline {
+        fill: rgba(255, 255, 255, 0.72);
+        stroke: #9fbbdc;
+        stroke-width: 1.5;
+      }
+      .atlas-story-plan-racks rect {
+        fill: #e5eef9;
+        stroke: #587da9;
+        stroke-width: 1.6;
+      }
+      .atlas-story-plan-racks path {
+        fill: none;
+        stroke: #8eabc9;
+        stroke-width: 1.1;
+      }
+      .atlas-story-plan-aisle {
+        fill: none;
+        stroke: #0871ef;
+        stroke-width: 5;
+        stroke-linecap: round;
+        opacity: 0.92;
+      }
+      .atlas-story-plan-cross {
+        fill: none;
+        stroke: #6f92b9;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-dasharray: 3 3;
+      }
+      .atlas-story-plan-bay {
+        fill: rgba(8, 113, 239, 0.18);
+        stroke: #0871ef;
+        stroke-width: 2.2;
       }
       .atlas-story-builder {
         position: relative;
@@ -28549,16 +28603,139 @@ Error generating stack: ` +
         display: block;
       }
       .atlas-story-proof {
-        min-height: 0;
+        min-height: 310px;
         overflow: hidden;
+        display: grid;
+        grid-template-columns: 44% 56%;
         background: #f6f7f7;
         border-top: 1px solid #fff;
       }
-      .atlas-story-proof-art {
+      .atlas-story-proof-copy {
+        position: relative;
+        z-index: 2;
+        padding: 40px 6px 34px 36px;
+        background: linear-gradient(90deg, #fbfaf7 0%, #fbfaf7 82%, rgba(251, 250, 247, 0) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .atlas-story-proof-copy h2 {
+        margin: 0 0 24px;
+        color: #071b40;
+        font-size: clamp(25px, 4.3vw, 34px);
+        font-weight: 950;
+        line-height: 1.16;
+        letter-spacing: -0.035em;
+      }
+      .atlas-story-proof-copy p {
+        width: max-content;
+        margin: 0;
+        padding-bottom: 11px;
+        color: #071b40;
+        border-bottom: 2px solid #0872f3;
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: 0.18em;
+      }
+      .atlas-story-proof-copy p span {
+        color: #0872f3;
+      }
+      .atlas-story-proof-photo {
+        position: relative;
+        min-height: 310px;
+        margin-left: -34px;
+        background-image:
+          linear-gradient(90deg, rgba(251, 250, 247, 0.96) 0%, rgba(251, 250, 247, 0.13) 34%, rgba(3, 20, 40, 0.03) 100%),
+          url("./atlas-about-inventory-v1.jpeg?v=85");
+        background-position: center, 64% 43%;
+        background-size: cover;
+      }
+      .atlas-story-proof-card {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        width: min(250px, calc(100% - 30px));
+        padding: 13px;
+        color: #071b40;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(207, 220, 236, 0.96);
+        border-radius: 15px;
+        box-shadow: 0 17px 35px rgba(2, 18, 42, 0.24);
+        transform: translateY(-50%);
+      }
+      .atlas-story-proof-product {
+        padding-bottom: 11px;
+        border-bottom: 1px solid #dde6ef;
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+      .atlas-story-proof-bottle {
+        width: 40px;
+        height: 62px;
+        padding: 4px;
+        overflow: hidden;
+        background: #edf2f7;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+      }
+      .atlas-story-proof-bottle img {
         width: 100%;
-        height: auto;
+        height: 100%;
         object-fit: contain;
+        transform: scale(1.18);
+      }
+      .atlas-story-proof-card small,
+      .atlas-story-proof-card strong,
+      .atlas-story-proof-card em {
         display: block;
+      }
+      .atlas-story-proof-card small {
+        color: #53709a;
+        font-size: 6.5px;
+        font-weight: 950;
+        letter-spacing: 0.14em;
+      }
+      .atlas-story-proof-card strong {
+        margin-top: 6px;
+        overflow: hidden;
+        color: #071b40;
+        font-size: 11px;
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .atlas-story-proof-card em {
+        margin-top: 6px;
+        color: #55708f;
+        font-size: 8px;
+        font-style: normal;
+      }
+      .atlas-story-proof-location {
+        padding-top: 10px;
+      }
+      .atlas-story-proof-location > div {
+        margin-top: 7px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 0.58fr;
+      }
+      .atlas-story-proof-location b {
+        padding: 7px 3px;
+        color: #075bcc;
+        text-align: center;
+        background: #f7faff;
+        border: 1px solid #a9c7ed;
+        font-size: 7px;
+      }
+      .atlas-story-proof-location b:first-child {
+        color: #fff;
+        background: #0871ef;
+        border-radius: 6px 0 0 6px;
+      }
+      .atlas-story-proof-location b:last-child {
+        border-radius: 0 6px 6px 0;
       }
       .atlas-story-finale {
         min-height: 190px;
@@ -28644,7 +28821,7 @@ Error generating stack: ` +
           right: 10px;
           bottom: -38px;
           left: 10px;
-          grid-template-columns: 1fr 0.92fr 1fr;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 6px;
         }
         .atlas-story-system::before {
@@ -28653,26 +28830,28 @@ Error generating stack: ` +
           left: 12%;
         }
         .atlas-story-ui {
+          height: 80px;
           border-radius: 10px;
           box-shadow: 0 10px 20px rgba(2, 18, 42, 0.16);
         }
         .atlas-story-ui--map {
           grid-column: auto;
-          min-height: 74px;
+          min-height: 0;
+          padding: 5px;
           margin: 0;
         }
         .atlas-story-ui--sku {
-          min-height: 72px;
+          min-height: 0;
           padding: 6px;
-          grid-template-columns: 25px minmax(0, 1fr);
+          grid-template-columns: 38px minmax(0, 1fr);
           gap: 5px;
         }
         .atlas-story-ui--location {
-          min-height: 84px;
+          min-height: 0;
           padding: 7px;
           grid-template-columns: minmax(0, 1fr) 32px;
           gap: 4px;
-          transform: translateY(5px);
+          transform: none;
         }
         .atlas-story-ui--location > b {
           min-height: 38px;
@@ -28680,9 +28859,9 @@ Error generating stack: ` +
           font-size: 14px;
         }
         .atlas-story-product-image {
-          width: 25px;
-          height: 50px;
-          padding: 3px;
+          width: 38px;
+          height: 60px;
+          padding: 2px;
           border-radius: 6px;
         }
         .atlas-story-ui small {
@@ -28705,13 +28884,8 @@ Error generating stack: ` +
           padding: 4px;
           font-size: 6px;
         }
-        .atlas-story-map-lines {
-          inset: 10px;
-        }
-        .atlas-story-ui--map i {
-          width: 7px;
-          height: 7px;
-          border-width: 2px;
+        .atlas-story-warehouse-plan {
+          max-height: 68px;
         }
         .atlas-story-builder {
           min-height: 500px;
@@ -28743,6 +28917,68 @@ Error generating stack: ` +
           margin-top: 18px;
           font-size: 7px;
           letter-spacing: 0.22em;
+        }
+        .atlas-story-proof {
+          min-height: 250px;
+          grid-template-columns: 45% 55%;
+        }
+        .atlas-story-proof-copy {
+          padding: 22px 3px 20px 18px;
+        }
+        .atlas-story-proof-copy h2 {
+          margin-bottom: 18px;
+          font-size: clamp(14px, 4.15vw, 18px);
+          line-height: 1.2;
+        }
+        .atlas-story-proof-copy p {
+          padding-bottom: 7px;
+          font-size: 6px;
+          letter-spacing: 0.13em;
+        }
+        .atlas-story-proof-photo {
+          min-height: 250px;
+          margin-left: -18px;
+          background-position: center, 63% 43%;
+        }
+        .atlas-story-proof-card {
+          right: 8px;
+          width: min(158px, calc(100% - 10px));
+          padding: 8px;
+          border-radius: 10px;
+          box-shadow: 0 12px 24px rgba(2, 18, 42, 0.22);
+        }
+        .atlas-story-proof-product {
+          padding-bottom: 7px;
+          grid-template-columns: 27px minmax(0, 1fr);
+          gap: 6px;
+        }
+        .atlas-story-proof-bottle {
+          width: 27px;
+          height: 46px;
+          padding: 2px;
+          border-radius: 6px;
+        }
+        .atlas-story-proof-card small {
+          font-size: 4.5px;
+          letter-spacing: 0.1em;
+        }
+        .atlas-story-proof-card strong {
+          margin-top: 4px;
+          font-size: 6.8px;
+        }
+        .atlas-story-proof-card em {
+          margin-top: 4px;
+          font-size: 5.5px;
+        }
+        .atlas-story-proof-location {
+          padding-top: 7px;
+        }
+        .atlas-story-proof-location > div {
+          margin-top: 5px;
+        }
+        .atlas-story-proof-location b {
+          padding: 5px 1px;
+          font-size: 4.8px;
         }
         .atlas-story-finale {
           min-height: 180px;
@@ -28811,11 +29047,14 @@ Error generating stack: ` +
       }
     </style>
     <style id="atlas-voice-sku-search-v1">
+      .search-wrap.has-voice .search-input {
+        padding-right: 110px;
+      }
       .voice-button {
         position: absolute;
         z-index: 2;
         top: 10px;
-        right: 50px;
+        right: 58px;
         width: 36px;
         height: 36px;
         padding: 0;
