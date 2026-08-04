@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v80-slower-menu-open-close";
+const VERSION = "atlas-pwa-v82-about-polished-images";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,19 +7,22 @@ const APP_SHELL = [
   "./index.html",
   "./manifest.webmanifest",
   "./product-images.json",
-  "./atlas-192.png",
-  "./atlas-512.png",
-  "./atlas-maskable-512.png",
-  "./apple-touch-icon.png",
-  "./favicon-32.png",
+  "./atlas-icon-v2-180.png",
+  "./atlas-icon-v2-192.png",
+  "./atlas-icon-v2-512.png",
+  "./atlas-icon-v2-maskable-512.png",
+  "./atlas-favicon-v2-32.png",
   "./atlas-warehouse-management.png",
   "./atlas-home-logo-v2.png",
   "./atlas-home-lockup-v3.png",
-  "./atlas-menu-warehouse-v1.webp?v=72",
+  "./atlas-menu-warehouse-v1.webp?v=81",
   "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",
-  "./atlas-menu-lockup-v2.png?v=70",
+  "./atlas-menu-lockup-v2.png?v=81",
+  "./atlas-about-mark-v1.png?v=81",
+  "./atlas-about-hero-polished-v4.png?v=82",
+  "./atlas-about-inventory-polished-v3.png?v=82",
 ];
 
 self.addEventListener("install", (event) => {

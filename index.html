@@ -19,19 +19,19 @@
     <link
       rel="apple-touch-icon"
       sizes="180x180"
-      href="./apple-touch-icon.png?v=6"
+      href="./atlas-icon-v2-180.png?v=81"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="./favicon-32.png?v=6"
+      href="./atlas-favicon-v2-32.png?v=81"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="192x192"
-      href="./atlas-192.png?v=6"
+      href="./atlas-icon-v2-192.png?v=81"
     />
     <title>ATLAS · Warehouse Management</title>
     <script type="module">
@@ -14648,6 +14648,185 @@ Error generating stack: ` +
           "aria-hidden": `true`,
         });
       }
+      function atlasMicrophoneGlyph() {
+        return (0, T.jsxs)(`span`, {
+          className: `voice-glyph`,
+          "aria-hidden": `true`,
+          children: [(0, T.jsx)(`span`, {}), (0, T.jsx)(`i`, {})],
+        });
+      }
+      function atlasSpeechSkuFingerprint(e) {
+        let t = String(e ?? ``)
+            .normalize(`NFKC`)
+            .toUpperCase()
+            .replace(/\bDOUBLE\s+YOU\b/g, ` W `)
+            .replace(/\bX[ -]?RAY\b/g, ` X `)
+            .replace(/[^A-Z0-9]+/g, ` `)
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean),
+          n = {
+            ZERO: `0`,
+            ONE: `1`,
+            WON: `1`,
+            TWO: `2`,
+            TO: `2`,
+            TOO: `2`,
+            THREE: `3`,
+            FOUR: `4`,
+            FOR: `4`,
+            FIVE: `5`,
+            SIX: `6`,
+            SEVEN: `7`,
+            EIGHT: `8`,
+            ATE: `8`,
+            NINE: `9`,
+          },
+          r = {
+            TEN: 10,
+            ELEVEN: 11,
+            TWELVE: 12,
+            THIRTEEN: 13,
+            FOURTEEN: 14,
+            FIFTEEN: 15,
+            SIXTEEN: 16,
+            SEVENTEEN: 17,
+            EIGHTEEN: 18,
+            NINETEEN: 19,
+            TWENTY: 20,
+            THIRTY: 30,
+            FORTY: 40,
+            FIFTY: 50,
+            SIXTY: 60,
+            SEVENTY: 70,
+            EIGHTY: 80,
+            NINETY: 90,
+          },
+          i = {
+            A: `A`,
+            AY: `A`,
+            B: `B`,
+            BEE: `B`,
+            BE: `B`,
+            C: `C`,
+            SEE: `C`,
+            SEA: `C`,
+            D: `D`,
+            DEE: `D`,
+            E: `E`,
+            F: `F`,
+            G: `G`,
+            GEE: `G`,
+            H: `H`,
+            AITCH: `H`,
+            I: `I`,
+            EYE: `I`,
+            J: `J`,
+            JAY: `J`,
+            K: `K`,
+            KAY: `K`,
+            L: `L`,
+            EL: `L`,
+            M: `M`,
+            EM: `M`,
+            N: `N`,
+            EN: `N`,
+            O: `O`,
+            OH: `O`,
+            P: `P`,
+            PEE: `P`,
+            Q: `Q`,
+            CUE: `Q`,
+            QUEUE: `Q`,
+            R: `R`,
+            ARE: `R`,
+            S: `S`,
+            ESS: `S`,
+            T: `T`,
+            TEE: `T`,
+            U: `U`,
+            YOU: `U`,
+            V: `V`,
+            VEE: `V`,
+            W: `W`,
+            X: `X`,
+            EX: `X`,
+            Y: `Y`,
+            WHY: `Y`,
+            Z: `Z`,
+            ZEE: `Z`,
+            ZED: `Z`,
+          },
+          a = new Set([
+            `DASH`,
+            `HYPHEN`,
+            `MINUS`,
+            `SLASH`,
+            `POINT`,
+            `DOT`,
+            `SPACE`,
+          ]),
+          o = ``;
+        for (let e = 0; e < t.length; e += 1) {
+          let s = t[e];
+          if (a.has(s)) continue;
+          if (n[s] !== void 0 && t[e + 1] === `HUNDRED`) {
+            let i = Number(n[s]) * 100;
+            if (r[t[e + 2]] !== void 0) {
+              i += r[t[e + 2]];
+              e += 1;
+              if (n[t[e + 2]] !== void 0) {
+                i += Number(n[t[e + 2]]);
+                e += 1;
+              }
+            } else if (n[t[e + 2]] !== void 0) {
+              i += Number(n[t[e + 2]]);
+              e += 1;
+            }
+            ((o += String(i)), (e += 1));
+            continue;
+          }
+          if (r[s] !== void 0) {
+            let i = r[s];
+            n[t[e + 1]] !== void 0 && ((i += Number(n[t[e + 1]])), (e += 1));
+            o += String(i);
+            continue;
+          }
+          if (n[s] !== void 0) {
+            o += n[s];
+            continue;
+          }
+          if (i[s] !== void 0) {
+            o += i[s];
+            continue;
+          }
+          o += s;
+        }
+        return M(o);
+      }
+      function atlasRankVoiceSkuCandidates(e, t) {
+        let n = [...new Set(e.map(atlasSpeechSkuFingerprint).filter(Boolean))];
+        return t
+          .map((e) => {
+            let t = M(e.sku),
+              r = n.reduce((e, n) => {
+                let r = Math.min(
+                  Xe(n, t),
+                  Xe(atlasOcrEquivalent(n), atlasOcrEquivalent(t)),
+                );
+                return Math.min(e, r / Math.max(n.length, t.length, 1));
+              }, 1);
+            return { item: e, score: r };
+          })
+          .sort(
+            (e, t) =>
+              e.score - t.score ||
+              String(e.item.sku).localeCompare(String(t.item.sku)),
+          )
+          .filter((e) => e.score <= 0.45)
+          .slice(0, 3)
+          .map((e) => e.item);
+      }
       function nt({
         label: e,
         value: t,
@@ -14659,10 +14838,17 @@ Error generating stack: ` +
         placeholder: s = `Search SKU or scan printed SKU`,
         autoFocus: c = !1,
         preserveRawInput: atlasPreserveRawInput = !1,
+        enableVoice: atlasEnableVoice = !1,
       }) {
         let [l, u] = (0, C.useState)(!1),
+          [atlasVoiceStatus, atlasSetVoiceStatus] = (0, C.useState)({
+            mode: `idle`,
+            message: ``,
+          }),
+          [atlasVoiceCandidates, atlasSetVoiceCandidates] = (0, C.useState)([]),
           p = (0, C.useRef)(!1),
           m = (0, C.useRef)(null),
+          atlasSpeechRef = (0, C.useRef)(null),
           d = (0, C.useMemo)(() => {
             if (!t.trim()) return [];
             let e = atlasFindExistingSku(t, n, !0),
@@ -14672,7 +14858,11 @@ Error generating stack: ` +
               : r.slice(0, 10);
           }, [n, t]),
           f = (e) => {
-            (u(!1), Ge(), i(e));
+            (u(!1),
+              atlasSetVoiceCandidates([]),
+              atlasSetVoiceStatus({ mode: `idle`, message: `` }),
+              Ge(),
+              i(e));
           },
           h = () => {
             ((p.current = !0),
@@ -14680,7 +14870,91 @@ Error generating stack: ` +
               window.setTimeout(() => {
                 p.current = !1;
               }, 260));
+          },
+          atlasStartVoice = () => {
+            let e = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!e) {
+              (atlasSetVoiceCandidates([]),
+                atlasSetVoiceStatus({
+                  mode: `error`,
+                  message: `Voice search is not supported in this browser. Use the keyboard or camera instead.`,
+                }));
+              return;
+            }
+            try {
+              atlasSpeechRef.current?.abort();
+            } catch {}
+            let s = new e(),
+              c = !1;
+            ((atlasSpeechRef.current = s),
+              (s.lang = `en-US`),
+              (s.continuous = !1),
+              (s.interimResults = !1),
+              (s.maxAlternatives = 5),
+              atlasSetVoiceCandidates([]),
+              atlasSetVoiceStatus({
+                mode: `listening`,
+                message: `Listening… Speak the SKU without dashes.`,
+              }),
+              (s.onresult = (e) => {
+                c = !0;
+                let s = [];
+                for (let t = 0; t < e.results.length; t += 1)
+                  for (let n = 0; n < e.results[t].length; n += 1)
+                    s.push(e.results[t][n].transcript);
+                let o = [...new Set(s.map(atlasSpeechSkuFingerprint).filter(Boolean))],
+                  h = o
+                    .map((e) => atlasFindExistingSku(e, n, !0))
+                    .find(Boolean);
+                if (h) {
+                  (atlasSetVoiceStatus({ mode: `matched`, message: `Matched ${h.sku}` }),
+                    atlasSetVoiceCandidates([]),
+                    r(h.sku),
+                    window.setTimeout(() => f(h), 120));
+                  return;
+                }
+                let g = atlasRankVoiceSkuCandidates(s, n),
+                  v = o[0] || ``;
+                (v && r(v), u(!1), atlasSetVoiceCandidates(g));
+                g.length
+                  ? atlasSetVoiceStatus({
+                      mode: `review`,
+                      message: `I heard “${s[0] || v}.” Choose the correct ATLAS SKU.`,
+                    })
+                  : atlasSetVoiceStatus({
+                      mode: `error`,
+                      message: `No likely ATLAS SKU was found. Try again or use the camera.`,
+                    });
+              }),
+              (s.onerror = (e) => {
+                c = !0;
+                let t =
+                  e.error === `not-allowed` || e.error === `service-not-allowed`
+                    ? `Microphone access is off. Allow microphone access in browser settings, then try again.`
+                    : e.error === `no-speech`
+                      ? `I didn’t hear a SKU. Tap the microphone and try again.`
+                      : `Voice search could not start. Try again or use the camera.`;
+                (atlasSetVoiceCandidates([]),
+                  atlasSetVoiceStatus({ mode: `error`, message: t }));
+              }),
+              (s.onend = () => {
+                atlasSpeechRef.current = null;
+                c ||
+                  atlasSetVoiceStatus({
+                    mode: `error`,
+                    message: `I didn’t hear a SKU. Tap the microphone and try again.`,
+                  });
+              }),
+              s.start());
           };
+        ((0, C.useEffect)(
+          () => () => {
+            try {
+              atlasSpeechRef.current?.abort();
+            } catch {}
+          },
+          [],
+        ));
         return (0, T.jsxs)(`div`, {
           className: `sku-search-field`,
           children: [
@@ -14697,12 +14971,15 @@ Error generating stack: ` +
                   autoCapitalize: `characters`,
                   autoCorrect: `off`,
                   spellCheck: !1,
-                  onChange: (e) =>
-                    r(
+                  onChange: (e) => {
+                    (atlasSetVoiceCandidates([]),
+                      atlasSetVoiceStatus({ mode: `idle`, message: `` }),
+                      r(
                       atlasPreserveRawInput
                         ? e.target.value
                         : atlasCleanSkuText(e.target.value),
-                    ),
+                      ));
+                  },
                   onFocus: () => u(!0),
                   onBlur: () =>
                     window.setTimeout(() => {
@@ -14721,10 +14998,24 @@ Error generating stack: ` +
                       type: `button`,
                       "aria-label": `Clear SKU`,
                       onMouseDown: (e) => e.preventDefault(),
-                      onClick: () => r(``),
+                      onClick: () => {
+                        (r(``),
+                          atlasSetVoiceCandidates([]),
+                          atlasSetVoiceStatus({ mode: `idle`, message: `` }));
+                      },
                       children: `×`,
                     })
-                  : null,
+                  : atlasEnableVoice
+                    ? (0, T.jsx)(`button`, {
+                        className: `voice-button ${atlasVoiceStatus.mode === `listening` ? `is-listening` : ``}`,
+                        type: `button`,
+                        "aria-label": `Search SKU by voice`,
+                        "aria-pressed": atlasVoiceStatus.mode === `listening`,
+                        onMouseDown: (e) => e.preventDefault(),
+                        onClick: atlasStartVoice,
+                        children: (0, T.jsx)(atlasMicrophoneGlyph, {}),
+                      })
+                    : null,
                 (0, T.jsx)(`button`, {
                   className: `camera-button`,
                   type: `button`,
@@ -14794,6 +15085,49 @@ Error generating stack: ` +
                   : null,
               ],
             }),
+            atlasEnableVoice && atlasVoiceStatus.mode !== `idle`
+              ? (0, T.jsxs)(`div`, {
+                  className: `voice-status voice-status--${atlasVoiceStatus.mode}`,
+                  role: `status`,
+                  "aria-live": `polite`,
+                  children: [
+                    (0, T.jsxs)(`div`, {
+                      className: `voice-status-copy`,
+                      children: [
+                        (0, T.jsx)(atlasMicrophoneGlyph, {}),
+                        (0, T.jsx)(`span`, { children: atlasVoiceStatus.message }),
+                      ],
+                    }),
+                    atlasVoiceCandidates.length
+                      ? (0, T.jsx)(`div`, {
+                          className: `voice-match-list`,
+                          children: atlasVoiceCandidates.map((e) =>
+                            (0, T.jsxs)(
+                              `button`,
+                              {
+                                type: `button`,
+                                onClick: () => f(e),
+                                children: [
+                                  (0, T.jsx)(`strong`, { children: e.sku }),
+                                  (0, T.jsxs)(`span`, {
+                                    children: [
+                                      e.locations.filter((e) => e.is_active !== !1).length,
+                                      ` active location`,
+                                      e.locations.filter((e) => e.is_active !== !1).length === 1
+                                        ? ``
+                                        : `s`,
+                                    ],
+                                  }),
+                                ],
+                              },
+                              `voice-${e.id}`,
+                            ),
+                          ),
+                        })
+                      : null,
+                  ],
+                })
+              : null,
           ],
         });
       }
@@ -16836,6 +17170,7 @@ Error generating stack: ` +
                             },
                             onSelect: D,
                             preserveRawInput: !0,
+                            enableVoice: !0,
                             onCamera: () =>
                               re(!0, (e) => {
                                 let t = atlasFindExistingSku(e, i, !0);
@@ -22576,83 +22911,80 @@ Error generating stack: ` +
         button?.click();
       };
       const openAtlasAbout = () => {
-        document.querySelector(".atlas-info-backdrop")?.remove();
+        document.querySelector(".atlas-story-backdrop")?.remove();
         const modal = document.createElement("div");
-        modal.className = "atlas-info-backdrop";
+        modal.className = "atlas-story-backdrop";
         modal.setAttribute("role", "dialog");
         modal.setAttribute("aria-modal", "true");
         modal.setAttribute("aria-labelledby", "atlas-about-title");
         modal.innerHTML = `
-    <article class="atlas-info-card">
-      <header class="atlas-info-head">
-        <div class="atlas-info-brand">
-          <svg class="atlas-info-mark" viewBox="0 0 48 48" aria-hidden="true">
-            <path fill="currentColor" d="M24 3 3 43h12.1L24 25.9 32.9 43H45L24 3Z"/>
-            <path fill="#061a33" d="M24 17.1 10.4 43h8.4L24 33l5.2 10h8.4L24 17.1Z"/>
-          </svg>
-          <div class="atlas-info-brand-copy">
-            <span>WAREHOUSE MANAGEMENT</span>
-          </div>
-          <h2 id="atlas-about-title">About ATLAS</h2>
-          <p class="atlas-info-positioning">Smarter location. Better inventory. Stronger operations.</p>
+    <article class="atlas-story-card">
+      <header class="atlas-story-hero">
+        <img class="atlas-story-hero-art" src="./atlas-about-hero-polished-v4.png?v=82" alt="" aria-hidden="true">
+        <button class="atlas-story-close" type="button" aria-label="Close About ATLAS"><span class="atlas-story-sr-only">Close About ATLAS</span></button>
+        <div class="atlas-story-sr-only">
+          <p>Created exclusively for Chubby Gorilla.</p>
+          <h1 id="atlas-about-title">A custom warehouse system, built from the ground up.</h1>
+          <p>Designed around Chubby Gorilla’s products, warehouse layout, daily workflows, and the people doing the work.</p>
         </div>
-        <button class="atlas-info-close" type="button" aria-label="Close About ATLAS">×</button>
+        <div class="atlas-story-system" aria-label="ATLAS connects product identification, pick location, and warehouse mapping">
+          <div class="atlas-story-ui atlas-story-ui--sku">
+            <span class="atlas-story-product-image"><img src="https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgub1-60mlv3-natl-d41f10cd.webp" alt=""></span>
+            <span><small>PRODUCT SKU</small><strong>CGUB1-60MLV3-NATL</strong><em>Tap SKU to copy</em></span>
+          </div>
+          <div class="atlas-story-ui atlas-story-ui--location">
+            <span><small>PICK LOCATION</small><strong>AISLE 4</strong><em>SECTION A</em></span>
+            <b>4A</b>
+          </div>
+          <div class="atlas-story-ui atlas-story-ui--map" aria-hidden="true">
+            <span class="atlas-story-map-lines"></span>
+            <i></i>
+          </div>
+        </div>
       </header>
-      <div class="atlas-info-body">
-        <p class="atlas-info-lead">ATLAS is a streamlined warehouse SKU location and inventory management system built to make everyday warehouse operations faster, clearer, and more accurate.</p>
-        <div class="atlas-info-accent" aria-hidden="true"></div>
-        <div class="atlas-capability-grid">
-          <article class="atlas-capability">
-            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="21" cy="21" r="13"/><path d="m31 31 11 11M15 17l6-3 6 3v8l-6 3-6-3v-8Zm0 0 6 3 6-3m-6 3v8"/></svg>
-            <strong>Faster Product Location</strong>
-            <p>Quickly find products and browse aisles.</p>
-          </article>
-          <article class="atlas-capability">
-            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M16 9h16v6H16zM12 12H8v30h32V12h-4M15 23l3 3 6-7m-9 15 3 3 6-7m4-7h7m-7 11h7"/></svg>
-            <strong>Accurate Inventory</strong>
-            <p>Keep inventory locations current and trusted.</p>
-          </article>
-          <article class="atlas-capability">
-            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="19" y="4" width="10" height="7" rx="2"/><rect x="4" y="37" width="10" height="7" rx="2"/><rect x="19" y="37" width="10" height="7" rx="2"/><rect x="34" y="37" width="10" height="7" rx="2"/><path d="M24 11v12M9 37v-8h30v8M24 23v14"/></svg>
-            <strong>Practical Workflows</strong>
-            <p>Simple, mobile-friendly tools for daily work.</p>
-          </article>
+
+      <section class="atlas-story-builder">
+        <div class="atlas-story-builder-copy">
+          <p class="atlas-story-section-label">WHY I BUILT ATLAS</p>
+          <h2>ATLAS began as a personal project after I saw an opportunity to make everyday warehouse work faster, clearer, and more dependable.</h2>
+          <p>Every part was designed specifically around Chubby Gorilla—from its SKU structure and physical warehouse layout to product identification and mobile picking.</p>
+          <p class="atlas-story-signature">— ZACH MOFFETT</p>
         </div>
-        <section class="atlas-info-section">
-          <div class="atlas-section-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28V11l12-7 12 7v17H4Zm5 0V16h14v12M12 28v-7h8v7"/></svg></div>
-          <div>
-            <h3>Built for the Warehouse Floor</h3>
-            <p>Designed specifically for the Chubby Gorilla warehouse team, ATLAS helps employees quickly locate products, browse warehouse aisles, and manage inventory locations through a simple, mobile-friendly interface.</p>
-            <p>By replacing guesswork and manual searching with clear, up-to-date location information, ATLAS helps reduce picking time, improve inventory accuracy, and keep warehouse operations organized.</p>
-          </div>
-        </section>
-        <section class="atlas-info-section">
-          <div class="atlas-section-icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 27h24M7 25v-7h5v7m4 0V13h5v12m4 0V8h4v17M5 14l7-6 5 3 10-8m-5 0h5v5"/></svg></div>
-          <div>
-            <h3>Designed to Grow</h3>
-            <p>Built with real warehouse workflows in mind, ATLAS is designed to remain practical, dependable, and easy to use as operational needs continue to grow.</p>
-          </div>
-        </section>
-        <div class="atlas-info-closing">
-          <img class="atlas-gorilla-logo" src="./chubby-gorilla-about-v2.jpeg?v=34" alt="Chubby Gorilla">
-          <strong>Built specifically for the Chubby Gorilla warehouse team</strong>
-          <div class="atlas-info-signature">FIND · MANAGE · DELIVER</div>
+        <img class="atlas-story-builder-mark" src="./atlas-about-mark-v1.png?v=81" alt="" aria-hidden="true">
+      </section>
+
+      <section class="atlas-story-proof" aria-labelledby="atlas-about-proof-title">
+        <h2 id="atlas-about-proof-title" class="atlas-story-sr-only">Every detail began with the way Chubby Gorilla works.</h2>
+        <img class="atlas-story-proof-art" src="./atlas-about-inventory-polished-v3.png?v=82" alt="Chubby Gorilla inventory cartons on pallets in warehouse racks beside an ATLAS product SKU and pick-location card showing Aisle 4, Section A, location 4A." loading="lazy" decoding="async">
+      </section>
+
+      <footer class="atlas-story-finale">
+        <div>
+          <h2>BUILT FOR THE TEAM.<br>DESIGNED FOR WHAT’S NEXT.</h2>
+          <p>ATLAS WAREHOUSE MANAGEMENT · 2026</p>
+          <span>DESIGNED AND DEVELOPED BY ZACH MOFFETT</span>
         </div>
-      </div>
+        <span class="atlas-story-gorilla"><img src="./chubby-gorilla-header-v2.png?v=81" alt="Chubby Gorilla"></span>
+      </footer>
     </article>`;
+        const handleKeydown = (event) => {
+          if (event.key === "Escape") close();
+        };
         const close = () => {
+          document.removeEventListener("keydown", handleKeydown);
           modal.remove();
           document.body.classList.remove("atlas-overlay-open");
         };
         modal
-          .querySelector(".atlas-info-close")
+          .querySelector(".atlas-story-close")
           .addEventListener("click", close);
         modal.addEventListener("click", (event) => {
           if (event.target === modal) close();
         });
         document.body.appendChild(modal);
         document.body.classList.add("atlas-overlay-open");
-        modal.querySelector(".atlas-info-close").focus();
+        document.addEventListener("keydown", handleKeydown);
+        modal.querySelector(".atlas-story-close").focus();
       };
       const atlasApiUrl = "https://dwrrbpiprcmajfyronlf.supabase.co";
       const atlasPublicKey = "sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa";
@@ -27914,6 +28246,676 @@ Error generating stack: ` +
       }
     </style>
 
+    <style id="atlas-premium-about-v1">
+      .atlas-story-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 100250;
+        padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        background: rgba(5, 15, 30, 0.56);
+        -webkit-backdrop-filter: blur(18px) saturate(0.7);
+        backdrop-filter: blur(18px) saturate(0.7);
+        animation: atlas-story-backdrop-in 260ms ease both;
+      }
+      .atlas-story-card {
+        width: min(100%, 760px);
+        max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        overflow: auto;
+        overscroll-behavior: contain;
+        color: #071b40;
+        background: #fbfaf7;
+        border: 1px solid rgba(255, 255, 255, 0.84);
+        border-radius: 31px;
+        box-shadow:
+          0 36px 90px rgba(2, 11, 24, 0.42),
+          0 8px 26px rgba(2, 11, 24, 0.18);
+        scrollbar-width: thin;
+        animation: atlas-story-card-in 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .atlas-story-sr-only {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+      .atlas-story-hero {
+        position: relative;
+        min-height: 0;
+        padding: 0;
+        overflow: visible;
+        isolation: isolate;
+        color: #fff;
+        background: #fbfaf7;
+        border-radius: 30px 30px 0 0;
+      }
+      .atlas-story-hero-art {
+        width: 100%;
+        height: auto;
+        border-radius: 30px 30px 0 0;
+        display: block;
+      }
+      .atlas-story-hero::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        z-index: 1;
+        height: clamp(26px, 7vw, 54px);
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(251, 250, 247, 0), #fbfaf7 72%);
+      }
+      .atlas-story-close {
+        position: absolute;
+        z-index: 4;
+        top: 22px;
+        right: 24px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        border-radius: 50%;
+        font-size: 0;
+        transition: background-color 180ms ease, transform 180ms ease;
+      }
+      .atlas-story-close:hover,
+      .atlas-story-close:focus-visible {
+        background: rgba(255, 255, 255, 0.14);
+        transform: scale(1.08);
+        outline: 2px solid rgba(255, 255, 255, 0.9);
+        outline-offset: 2px;
+      }
+      .atlas-story-section-label {
+        margin: 0;
+        color: #086ee8;
+        font-size: 10px;
+        font-weight: 950;
+        line-height: 1.3;
+        letter-spacing: 0.22em;
+      }
+      .atlas-story-system {
+        position: absolute;
+        z-index: 3;
+        right: 30px;
+        bottom: -54px;
+        left: 30px;
+        display: grid;
+        grid-template-columns: 1fr 0.9fr 1fr;
+        align-items: center;
+        gap: 15px;
+      }
+      .atlas-story-system::before {
+        content: "";
+        position: absolute;
+        right: 15%;
+        bottom: -15px;
+        left: 15%;
+        z-index: -1;
+        height: 2px;
+        background: #0a70f5;
+        box-shadow: 0 0 12px rgba(10, 112, 245, 0.34);
+      }
+      .atlas-story-ui {
+        min-width: 0;
+        color: #071b40;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(200, 217, 237, 0.95);
+        border-radius: 15px;
+        box-shadow: 0 15px 30px rgba(2, 18, 42, 0.18);
+      }
+      .atlas-story-ui--sku {
+        min-height: 108px;
+        padding: 13px;
+        display: grid;
+        grid-template-columns: 45px minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+      }
+      .atlas-story-ui small,
+      .atlas-story-ui strong,
+      .atlas-story-ui em {
+        display: block;
+      }
+      .atlas-story-ui small {
+        color: #5f7693;
+        font-size: 7px;
+        font-style: normal;
+        font-weight: 950;
+        letter-spacing: 0.15em;
+      }
+      .atlas-story-ui strong {
+        margin-top: 7px;
+        overflow: hidden;
+        color: #071b40;
+        font-size: clamp(10px, 1.75vw, 14px);
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .atlas-story-ui em {
+        margin-top: 7px;
+        color: #60748e;
+        font-size: 9px;
+        font-style: normal;
+      }
+      .atlas-story-product-image {
+        width: 45px;
+        height: 70px;
+        padding: 5px;
+        background: linear-gradient(145deg, #f3f6fa, #eaf0f6);
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+      }
+      .atlas-story-product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+      .atlas-story-ui--location {
+        min-height: 128px;
+        padding: 15px;
+        color: #fff;
+        background: linear-gradient(145deg, #0875ff, #0750c9 72%, #053b9f);
+        border-color: rgba(8, 89, 221, 0.68);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 56px;
+        align-items: center;
+        gap: 10px;
+        transform: translateY(10px);
+      }
+      .atlas-story-ui--location small,
+      .atlas-story-ui--location strong,
+      .atlas-story-ui--location em {
+        color: #fff;
+      }
+      .atlas-story-ui--location strong {
+        margin: 9px 0;
+        font-size: clamp(19px, 4vw, 31px);
+        line-height: 0.95;
+      }
+      .atlas-story-ui--location em {
+        width: max-content;
+        margin: 0;
+        padding: 6px 8px;
+        color: #0750c9;
+        background: #fff;
+        border-radius: 6px;
+        font-weight: 950;
+      }
+      .atlas-story-ui--location > b {
+        min-height: 62px;
+        color: #0854ca;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 26, 83, 0.2);
+        font-size: 25px;
+        display: grid;
+        place-items: center;
+      }
+      .atlas-story-ui--map {
+        position: relative;
+        min-height: 112px;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(17, 104, 226, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(17, 104, 226, 0.08) 1px, transparent 1px),
+          #fbfdff;
+        background-size: 18px 18px;
+      }
+      .atlas-story-map-lines {
+        position: absolute;
+        inset: 16px 18px;
+        border: 1px solid rgba(8, 105, 232, 0.34);
+        background:
+          linear-gradient(90deg, transparent 20%, #0b6ef3 20% 23%, transparent 23% 47%, rgba(9, 92, 208, 0.5) 47% 49%, transparent 49% 75%, rgba(9, 92, 208, 0.42) 75% 77%, transparent 77%),
+          linear-gradient(180deg, transparent 24%, rgba(9, 92, 208, 0.42) 24% 27%, transparent 27% 60%, #0b6ef3 60% 63%, transparent 63%);
+      }
+      .atlas-story-ui--map i {
+        position: absolute;
+        right: 26%;
+        bottom: 27%;
+        width: 10px;
+        height: 10px;
+        background: #0876ff;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 0 1px #0876ff, 0 0 12px rgba(8, 118, 255, 0.7);
+      }
+      .atlas-story-builder {
+        position: relative;
+        min-height: 500px;
+        padding: 126px 48px 62px;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(210px, 0.8fr);
+        align-items: center;
+        gap: 28px;
+        background:
+          radial-gradient(circle at 85% 50%, rgba(8, 110, 232, 0.07), transparent 42%),
+          #fbfaf7;
+      }
+      .atlas-story-builder-copy {
+        position: relative;
+        z-index: 2;
+      }
+      .atlas-story-builder h2 {
+        margin: 22px 0 17px;
+        color: #081d40;
+        font-size: clamp(23px, 4vw, 32px);
+        font-weight: 900;
+        line-height: 1.31;
+        letter-spacing: -0.026em;
+      }
+      .atlas-story-builder-copy > p:not(.atlas-story-section-label):not(.atlas-story-signature) {
+        margin: 0;
+        color: #263d5a;
+        font-size: clamp(13px, 2.2vw, 16px);
+        line-height: 1.65;
+      }
+      .atlas-story-signature {
+        margin: 25px 0 0;
+        color: #607795;
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: 0.29em;
+      }
+      .atlas-story-builder-mark {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 285px);
+        height: auto;
+        margin: 0 auto;
+        object-fit: contain;
+        filter: drop-shadow(0 22px 34px rgba(5, 57, 125, 0.14));
+        display: block;
+      }
+      .atlas-story-proof {
+        min-height: 0;
+        overflow: hidden;
+        background: #f6f7f7;
+        border-top: 1px solid #fff;
+      }
+      .atlas-story-proof-art {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+      }
+      .atlas-story-finale {
+        min-height: 190px;
+        padding: 37px 44px;
+        color: #fff;
+        background:
+          radial-gradient(circle at 79% 18%, rgba(26, 111, 221, 0.28), transparent 38%),
+          linear-gradient(135deg, #06182f, #07264c 66%, #031426);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 240px;
+        align-items: center;
+        gap: 30px;
+      }
+      .atlas-story-finale h2 {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(23px, 3.8vw, 32px);
+        font-weight: 950;
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+      }
+      .atlas-story-finale p {
+        width: max-content;
+        margin: 18px 0 10px;
+        padding-bottom: 9px;
+        color: #b8cbe3;
+        border-bottom: 2px solid #0874f8;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+      }
+      .atlas-story-finale > div > span {
+        color: #8da6c5;
+        font-size: 7px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+      }
+      .atlas-story-gorilla {
+        min-height: 82px;
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.54);
+        border-radius: 18px;
+        box-shadow: 0 16px 28px rgba(0, 8, 26, 0.18);
+        display: grid;
+        place-items: center;
+      }
+      .atlas-story-gorilla img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      @keyframes atlas-story-backdrop-in {
+        from { opacity: 0; }
+      }
+      @keyframes atlas-story-card-in {
+        from { opacity: 0; transform: translateY(22px) scale(0.982); }
+      }
+      @media (max-width: 660px) {
+        .atlas-story-backdrop {
+          padding: 0;
+          display: block;
+        }
+        .atlas-story-card {
+          width: 100%;
+          max-height: 100dvh;
+          border: 0;
+          border-radius: 0;
+        }
+        .atlas-story-hero {
+          min-height: 0;
+          padding: env(safe-area-inset-top) 0 0;
+          border-radius: 0;
+        }
+        .atlas-story-hero-art {
+          border-radius: 0;
+        }
+        .atlas-story-close {
+          top: max(15px, calc(env(safe-area-inset-top) + 4px));
+          right: 15px;
+        }
+        .atlas-story-system {
+          right: 10px;
+          bottom: -38px;
+          left: 10px;
+          grid-template-columns: 1fr 0.92fr 1fr;
+          gap: 6px;
+        }
+        .atlas-story-system::before {
+          right: 12%;
+          bottom: -9px;
+          left: 12%;
+        }
+        .atlas-story-ui {
+          border-radius: 10px;
+          box-shadow: 0 10px 20px rgba(2, 18, 42, 0.16);
+        }
+        .atlas-story-ui--map {
+          grid-column: auto;
+          min-height: 74px;
+          margin: 0;
+        }
+        .atlas-story-ui--sku {
+          min-height: 72px;
+          padding: 6px;
+          grid-template-columns: 25px minmax(0, 1fr);
+          gap: 5px;
+        }
+        .atlas-story-ui--location {
+          min-height: 84px;
+          padding: 7px;
+          grid-template-columns: minmax(0, 1fr) 32px;
+          gap: 4px;
+          transform: translateY(5px);
+        }
+        .atlas-story-ui--location > b {
+          min-height: 38px;
+          border-radius: 9px;
+          font-size: 14px;
+        }
+        .atlas-story-product-image {
+          width: 25px;
+          height: 50px;
+          padding: 3px;
+          border-radius: 6px;
+        }
+        .atlas-story-ui small {
+          font-size: 5px;
+          letter-spacing: 0.11em;
+        }
+        .atlas-story-ui strong {
+          margin-top: 4px;
+          font-size: 7px;
+        }
+        .atlas-story-ui em {
+          margin-top: 4px;
+          font-size: 6px;
+        }
+        .atlas-story-ui--location strong {
+          margin: 5px 0;
+          font-size: 15px;
+        }
+        .atlas-story-ui--location em {
+          padding: 4px;
+          font-size: 6px;
+        }
+        .atlas-story-map-lines {
+          inset: 10px;
+        }
+        .atlas-story-ui--map i {
+          width: 7px;
+          height: 7px;
+          border-width: 2px;
+        }
+        .atlas-story-builder {
+          min-height: 610px;
+          padding: 96px 28px 55px;
+          grid-template-columns: 1fr;
+          gap: 25px;
+        }
+        .atlas-story-builder-mark {
+          width: min(60vw, 240px);
+          grid-row: 1;
+        }
+        .atlas-story-builder-copy {
+          grid-row: 2;
+        }
+        .atlas-story-finale {
+          padding: 38px 26px max(38px, calc(env(safe-area-inset-bottom) + 24px));
+          grid-template-columns: 1fr;
+          gap: 27px;
+        }
+        .atlas-story-gorilla {
+          width: min(260px, 76%);
+          min-height: 68px;
+          justify-self: start;
+        }
+      }
+      @media (max-width: 390px) {
+        .atlas-story-ui--sku strong {
+          font-size: 6.5px;
+        }
+        .atlas-story-ui--sku em {
+          font-size: 5.5px;
+        }
+        .atlas-story-ui--location strong {
+          font-size: 14px;
+        }
+        .atlas-story-builder {
+          padding-right: 22px;
+          padding-left: 22px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-story-backdrop,
+        .atlas-story-card {
+          animation: none;
+        }
+      }
+    </style>
+    <style id="atlas-voice-sku-search-v1">
+      .voice-button {
+        position: absolute;
+        z-index: 2;
+        top: 10px;
+        right: 50px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        color: #17466f;
+        cursor: pointer;
+        background: #edf2f7;
+        border: 0;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+      }
+      .voice-button:hover,
+      .voice-button:focus-visible {
+        color: #0759d6;
+        background: #e5effd;
+        outline: 0;
+      }
+      .voice-button:active {
+        transform: scale(0.94);
+      }
+      .voice-button.is-listening {
+        color: #fff;
+        background: #0870ef;
+        box-shadow: 0 0 0 5px rgba(8, 112, 239, 0.14);
+        animation: atlas-voice-pulse 1.25s ease-in-out infinite;
+      }
+      .voice-glyph {
+        position: relative;
+        width: 16px;
+        height: 20px;
+        display: block;
+      }
+      .voice-glyph > span {
+        position: absolute;
+        top: 0;
+        left: 5px;
+        width: 7px;
+        height: 12px;
+        border: 2px solid currentColor;
+        border-radius: 6px;
+      }
+      .voice-glyph::before {
+        content: "";
+        position: absolute;
+        top: 7px;
+        left: 2px;
+        width: 12px;
+        height: 8px;
+        border: 2px solid currentColor;
+        border-top: 0;
+        border-radius: 0 0 8px 8px;
+      }
+      .voice-glyph::after {
+        content: "";
+        position: absolute;
+        bottom: 1px;
+        left: 7px;
+        width: 2px;
+        height: 5px;
+        background: currentColor;
+        border-radius: 2px;
+      }
+      .voice-glyph > i {
+        position: absolute;
+        right: 3px;
+        bottom: 0;
+        left: 3px;
+        height: 2px;
+        background: currentColor;
+        border-radius: 2px;
+      }
+      .voice-status {
+        margin-top: 9px;
+        overflow: hidden;
+        color: #24405e;
+        background: rgba(246, 249, 253, 0.98);
+        border: 1px solid #d4e0ed;
+        border-radius: 12px;
+        box-shadow: 0 7px 18px rgba(1, 22, 45, 0.08);
+      }
+      .voice-status-copy {
+        min-height: 45px;
+        padding: 10px 13px;
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+      .voice-status-copy .voice-glyph {
+        color: #0870ef;
+        transform: scale(0.85);
+      }
+      .voice-status-copy span {
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.4;
+      }
+      .voice-status--listening {
+        color: #064ba9;
+        background: #eef6ff;
+        border-color: #b8d6fb;
+      }
+      .voice-status--error {
+        color: #6f4320;
+        background: #fffaf1;
+        border-color: #efd9b4;
+      }
+      .voice-status--error .voice-glyph {
+        color: #ad6a27;
+      }
+      .voice-status--matched {
+        color: #155a3d;
+        background: #f0faf6;
+        border-color: #bee3d2;
+      }
+      .voice-match-list {
+        border-top: 1px solid #d9e4ef;
+      }
+      .voice-match-list button {
+        width: 100%;
+        padding: 11px 13px;
+        color: #071b40;
+        cursor: pointer;
+        text-align: left;
+        background: #fff;
+        border: 0;
+        border-bottom: 1px solid #e4ebf2;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+      }
+      .voice-match-list button:last-child {
+        border-bottom: 0;
+      }
+      .voice-match-list button:hover,
+      .voice-match-list button:focus-visible {
+        background: #f1f7ff;
+        outline: 0;
+      }
+      .voice-match-list strong {
+        overflow-wrap: anywhere;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .voice-match-list span {
+        color: #63778f;
+        font-size: 9px;
+        white-space: nowrap;
+      }
+      @keyframes atlas-voice-pulse {
+        50% { box-shadow: 0 0 0 9px rgba(8, 112, 239, 0.08); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .voice-button.is-listening {
+          animation: none;
+        }
+      }
+    </style>
 </head>
   <body>
     <div id="root"></div>
