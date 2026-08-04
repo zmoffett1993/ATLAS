@@ -14659,6 +14659,44 @@ Error generating stack: ` +
           children: [(0, T.jsx)(`span`, {}), (0, T.jsx)(`i`, {})],
         });
       }
+      let atlasVoiceAudioContext = null;
+      function atlasPlayVoiceCue(e = `start`) {
+        try {
+          let t = window.AudioContext || window.webkitAudioContext;
+          if (!t) return;
+          atlasVoiceAudioContext || (atlasVoiceAudioContext = new t());
+          let n = atlasVoiceAudioContext,
+            r = () => {
+              let t = n.currentTime + 0.015,
+                r =
+                  e === `stop`
+                    ? [
+                        { frequency: 784, offset: 0, duration: 0.07, gain: 0.035 },
+                        { frequency: 523.25, offset: 0.065, duration: 0.1, gain: 0.03 },
+                      ]
+                    : [
+                        { frequency: 659.25, offset: 0, duration: 0.07, gain: 0.035 },
+                        { frequency: 987.77, offset: 0.065, duration: 0.1, gain: 0.04 },
+                      ];
+              r.forEach((e) => {
+                let r = n.createOscillator(),
+                  i = n.createGain(),
+                  a = t + e.offset,
+                  o = a + e.duration;
+                ((r.type = `sine`),
+                  r.frequency.setValueAtTime(e.frequency, a),
+                  i.gain.setValueAtTime(0.0001, a),
+                  i.gain.exponentialRampToValueAtTime(e.gain, a + 0.012),
+                  i.gain.exponentialRampToValueAtTime(0.0001, o),
+                  r.connect(i),
+                  i.connect(n.destination),
+                  r.start(a),
+                  r.stop(o + 0.02));
+              });
+            };
+          n.state === `suspended` ? n.resume().then(r).catch(() => {}) : r();
+        } catch {}
+      }
       function atlasSpeechSkuFingerprint(e) {
         let t = String(e ?? ``)
             .normalize(`NFKC`)
@@ -14857,6 +14895,11 @@ Error generating stack: ` +
           p = (0, C.useRef)(!1),
           m = (0, C.useRef)(null),
           atlasSpeechRef = (0, C.useRef)(null),
+          atlasVoiceTranscriptsRef = (0, C.useRef)([]),
+          atlasVoiceStopRequestedRef = (0, C.useRef)(!1),
+          atlasVoiceFinalizedRef = (0, C.useRef)(!1),
+          atlasVoiceStopFallbackRef = (0, C.useRef)(null),
+          atlasVoiceSessionRef = (0, C.useRef)(0),
           d = (0, C.useMemo)(() => {
             if (!t.trim()) return [];
             let e = atlasFindExistingSku(t, n, !0),
@@ -14878,6 +14921,75 @@ Error generating stack: ` +
               window.setTimeout(() => {
                 p.current = !1;
               }, 260));
+            },
+          atlasCancelVoiceCapture = () => {
+            (atlasVoiceSessionRef.current += 1,
+              atlasVoiceStopFallbackRef.current &&
+                window.clearTimeout(atlasVoiceStopFallbackRef.current),
+              (atlasVoiceStopFallbackRef.current = null));
+            try {
+              atlasSpeechRef.current?.abort();
+            } catch {}
+            ((atlasSpeechRef.current = null),
+              (atlasVoiceTranscriptsRef.current = []),
+              (atlasVoiceStopRequestedRef.current = !1),
+              (atlasVoiceFinalizedRef.current = !0));
+          },
+          atlasProcessVoiceSearch = (e) => {
+            let s = [
+                ...new Set(
+                  (Array.isArray(e) ? e : [])
+                    .map((e) => String(e || ``).trim())
+                    .filter(Boolean),
+                ),
+              ],
+              o = [...new Set(s.map(atlasSpeechSkuFingerprint).filter(Boolean))];
+            if (!s.length || !o.length) {
+              (atlasSetVoiceCandidates([]),
+                atlasSetVoiceStatus({
+                  mode: `error`,
+                  message: `I didn’t hear a SKU. Tap the microphone and try again.`,
+                }));
+              return;
+            }
+            let h = o
+              .map((e) => atlasFindExistingSku(e, n, !0))
+              .find(Boolean);
+            if (h) {
+              (atlasSetVoiceStatus({
+                mode: `matched`,
+                message: `Searching for ${h.sku}…`,
+              }),
+                atlasSetVoiceCandidates([]),
+                r(h.sku),
+                window.setTimeout(() => f(h), 120));
+              return;
+            }
+            let g = atlasRankVoiceSkuCandidates(s, n),
+              v = o[0] || ``;
+            (v && r(v), u(!1), atlasSetVoiceCandidates(g));
+            g.length
+              ? atlasSetVoiceStatus({
+                  mode: `review`,
+                  message: `I heard “${s[0] || v}.” Choose the correct ATLAS SKU.`,
+                })
+              : atlasSetVoiceStatus({
+                  mode: `error`,
+                  message: `No likely ATLAS SKU was found. Try again or use the camera.`,
+                });
+          },
+          atlasFinishVoiceSearch = (e = atlasVoiceSessionRef.current) => {
+            if (
+              e !== atlasVoiceSessionRef.current ||
+              atlasVoiceFinalizedRef.current
+            )
+              return;
+            ((atlasVoiceFinalizedRef.current = !0),
+              atlasVoiceStopFallbackRef.current &&
+                window.clearTimeout(atlasVoiceStopFallbackRef.current),
+              (atlasVoiceStopFallbackRef.current = null),
+              (atlasSpeechRef.current = null),
+              atlasProcessVoiceSearch(atlasVoiceTranscriptsRef.current));
           },
           atlasStartVoice = () => {
             let e = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -14889,53 +15001,71 @@ Error generating stack: ` +
                 }));
               return;
             }
+            atlasVoiceSessionRef.current += 1;
             try {
               atlasSpeechRef.current?.abort();
             } catch {}
+            atlasVoiceStopFallbackRef.current &&
+              window.clearTimeout(atlasVoiceStopFallbackRef.current);
             let s = new e(),
-              c = !1;
+              c = atlasVoiceSessionRef.current;
             ((atlasSpeechRef.current = s),
+              (atlasVoiceTranscriptsRef.current = []),
+              (atlasVoiceStopRequestedRef.current = !1),
+              (atlasVoiceFinalizedRef.current = !1),
+              (atlasVoiceStopFallbackRef.current = null),
               (s.lang = `en-US`),
-              (s.continuous = !1),
-              (s.interimResults = !1),
+              (s.continuous = !0),
+              (s.interimResults = !0),
               (s.maxAlternatives = 5),
               atlasSetVoiceCandidates([]),
               atlasSetVoiceStatus({
                 mode: `listening`,
-                message: `Listening… Speak the SKU without dashes. Say “natural” for NATL.`,
+                message: `Listening… Speak the SKU, then tap the blue microphone again to search.`,
               }),
+              atlasPlayVoiceCue(`start`),
               (s.onresult = (e) => {
-                c = !0;
+                if (c !== atlasVoiceSessionRef.current) return;
                 let s = [];
-                for (let t = 0; t < e.results.length; t += 1)
-                  for (let n = 0; n < e.results[t].length; n += 1)
-                    s.push(e.results[t][n].transcript);
-                let o = [...new Set(s.map(atlasSpeechSkuFingerprint).filter(Boolean))],
-                  h = o
-                    .map((e) => atlasFindExistingSku(e, n, !0))
-                    .find(Boolean);
-                if (h) {
-                  (atlasSetVoiceStatus({ mode: `matched`, message: `Matched ${h.sku}` }),
-                    atlasSetVoiceCandidates([]),
-                    r(h.sku),
-                    window.setTimeout(() => f(h), 120));
-                  return;
+                for (let t = 0; t < 5; t += 1) {
+                  let n = [];
+                  for (let r = 0; r < e.results.length; r += 1) {
+                    let i = e.results[r][t] || e.results[r][0];
+                    i?.transcript && n.push(i.transcript);
+                  }
+                  n.length && s.push(n.join(` `).trim());
                 }
-                let g = atlasRankVoiceSkuCandidates(s, n),
-                  v = o[0] || ``;
-                (v && r(v), u(!1), atlasSetVoiceCandidates(g));
-                g.length
+                s.length &&
+                  (atlasVoiceTranscriptsRef.current = [
+                    ...new Set(s.map((e) => String(e || ``).trim()).filter(Boolean)),
+                  ]);
+                let t = atlasVoiceTranscriptsRef.current[0] || ``;
+                atlasVoiceStopRequestedRef.current
                   ? atlasSetVoiceStatus({
-                      mode: `review`,
-                      message: `I heard “${s[0] || v}.” Choose the correct ATLAS SKU.`,
+                      mode: `processing`,
+                      message: `Finishing the voice capture and searching ATLAS…`,
                     })
                   : atlasSetVoiceStatus({
-                      mode: `error`,
-                      message: `No likely ATLAS SKU was found. Try again or use the camera.`,
+                      mode: `listening`,
+                      message: t
+                        ? `Heard “${t}.” Tap the blue microphone again to search.`
+                        : `Listening… Speak the SKU, then tap the blue microphone again to search.`,
                     });
               }),
               (s.onerror = (e) => {
-                c = !0;
+                if (c !== atlasVoiceSessionRef.current) return;
+                if (
+                  atlasVoiceStopRequestedRef.current &&
+                  (e.error === `aborted` || e.error === `no-speech`)
+                ) {
+                  atlasFinishVoiceSearch(c);
+                  return;
+                }
+                ((atlasVoiceFinalizedRef.current = !0),
+                  (atlasSpeechRef.current = null),
+                  atlasVoiceStopFallbackRef.current &&
+                    window.clearTimeout(atlasVoiceStopFallbackRef.current),
+                  (atlasVoiceStopFallbackRef.current = null));
                 let t =
                   e.error === `not-allowed` || e.error === `service-not-allowed`
                     ? `Microphone access is off. Allow microphone access in browser settings, then try again.`
@@ -14946,17 +15076,79 @@ Error generating stack: ` +
                   atlasSetVoiceStatus({ mode: `error`, message: t }));
               }),
               (s.onend = () => {
-                atlasSpeechRef.current = null;
-                c ||
-                  atlasSetVoiceStatus({
-                    mode: `error`,
-                    message: `I didn’t hear a SKU. Tap the microphone and try again.`,
-                  });
-              }),
-              s.start());
+                if (c !== atlasVoiceSessionRef.current) return;
+                atlasSpeechRef.current === s && (atlasSpeechRef.current = null);
+                if (atlasVoiceStopRequestedRef.current) {
+                  atlasFinishVoiceSearch(c);
+                  return;
+                }
+                let e = atlasVoiceTranscriptsRef.current[0] || ``;
+                e
+                  ? atlasSetVoiceStatus({
+                      mode: `ready`,
+                      message: `Ready to search “${e}.” Tap the blue microphone again.`,
+                    })
+                  : atlasSetVoiceStatus({
+                      mode: `error`,
+                      message: `I didn’t hear a SKU. Tap the microphone and try again.`,
+                    });
+              }));
+            try {
+              s.start();
+            } catch {
+              ((atlasSpeechRef.current = null),
+                (atlasVoiceFinalizedRef.current = !0),
+                atlasSetVoiceStatus({
+                  mode: `error`,
+                  message: `Voice search could not start. Try again or use the camera.`,
+                }));
+            }
+          },
+          atlasStopVoiceAndSearch = () => {
+            let e = atlasVoiceSessionRef.current;
+            if (atlasVoiceStatus.mode === `processing`) return;
+            atlasPlayVoiceCue(`stop`);
+            if (atlasVoiceStatus.mode === `ready`) {
+              atlasFinishVoiceSearch(e);
+              return;
+            }
+            if (atlasVoiceStatus.mode !== `listening`) {
+              atlasStartVoice();
+              return;
+            }
+            ((atlasVoiceStopRequestedRef.current = !0),
+              atlasSetVoiceStatus({
+                mode: `processing`,
+                message: `Finishing the voice capture and searching ATLAS…`,
+              }));
+            let t = atlasSpeechRef.current;
+            if (!t) {
+              atlasFinishVoiceSearch(e);
+              return;
+            }
+            try {
+              t.stop();
+            } catch {
+              atlasFinishVoiceSearch(e);
+              return;
+            }
+            (atlasVoiceStopFallbackRef.current &&
+              window.clearTimeout(atlasVoiceStopFallbackRef.current),
+              (atlasVoiceStopFallbackRef.current = window.setTimeout(
+                () => atlasFinishVoiceSearch(e),
+                900,
+              )));
+          },
+          atlasToggleVoice = () => {
+            [`listening`, `ready`, `processing`].includes(atlasVoiceStatus.mode)
+              ? atlasStopVoiceAndSearch()
+              : atlasStartVoice();
           };
         ((0, C.useEffect)(
           () => () => {
+            atlasVoiceSessionRef.current += 1;
+            atlasVoiceStopFallbackRef.current &&
+              window.clearTimeout(atlasVoiceStopFallbackRef.current);
             try {
               atlasSpeechRef.current?.abort();
             } catch {}
@@ -14980,7 +15172,8 @@ Error generating stack: ` +
                   autoCorrect: `off`,
                   spellCheck: !1,
                   onChange: (e) => {
-                    (atlasSetVoiceCandidates([]),
+                    (atlasCancelVoiceCapture(),
+                      atlasSetVoiceCandidates([]),
                       atlasSetVoiceStatus({ mode: `idle`, message: `` }),
                       r(
                       atlasPreserveRawInput
@@ -15007,7 +15200,8 @@ Error generating stack: ` +
                       "aria-label": `Clear SKU`,
                       onMouseDown: (e) => e.preventDefault(),
                       onClick: () => {
-                        (r(``),
+                        (atlasCancelVoiceCapture(),
+                          r(``),
                           atlasSetVoiceCandidates([]),
                           atlasSetVoiceStatus({ mode: `idle`, message: `` }));
                       },
@@ -15015,12 +15209,29 @@ Error generating stack: ` +
                     })
                   : atlasEnableVoice
                     ? (0, T.jsx)(`button`, {
-                        className: `voice-button ${atlasVoiceStatus.mode === `listening` ? `is-listening` : ``}`,
+                        className: `voice-button ${
+                          atlasVoiceStatus.mode === `listening`
+                            ? `is-listening`
+                            : atlasVoiceStatus.mode === `ready`
+                              ? `is-ready`
+                              : atlasVoiceStatus.mode === `processing`
+                                ? `is-processing`
+                                : ``
+                        }`,
                         type: `button`,
-                        "aria-label": `Search SKU by voice`,
-                        "aria-pressed": atlasVoiceStatus.mode === `listening`,
+                        "aria-label":
+                          atlasVoiceStatus.mode === `listening`
+                            ? `Stop listening and search SKU`
+                            : atlasVoiceStatus.mode === `ready`
+                              ? `Search the spoken SKU`
+                              : atlasVoiceStatus.mode === `processing`
+                                ? `Finishing voice search`
+                                : `Search SKU by voice`,
+                        "aria-pressed": [`listening`, `ready`, `processing`].includes(
+                          atlasVoiceStatus.mode,
+                        ),
                         onMouseDown: (e) => e.preventDefault(),
-                        onClick: atlasStartVoice,
+                        onClick: atlasToggleVoice,
                         children: (0, T.jsx)(atlasMicrophoneGlyph, {}),
                       })
                     : null,
@@ -15029,7 +15240,9 @@ Error generating stack: ` +
                   type: `button`,
                   "aria-label": `Scan printed SKU with camera`,
                   onMouseDown: (e) => e.preventDefault(),
-                  onClick: a,
+                  onClick: () => {
+                    (atlasCancelVoiceCapture(), a());
+                  },
                   children: (0, T.jsx)(et, {}),
                 }),
                 l && t.trim()
@@ -29087,6 +29300,18 @@ Error generating stack: ` +
         box-shadow: 0 0 0 5px rgba(8, 112, 239, 0.14);
         animation: atlas-voice-pulse 1.25s ease-in-out infinite;
       }
+      .voice-button.is-ready,
+      .voice-button.is-processing {
+        color: #fff;
+        background: #0870ef;
+        box-shadow: 0 0 0 5px rgba(8, 112, 239, 0.12);
+      }
+      .voice-button.is-ready {
+        box-shadow: 0 0 0 2px #fff, 0 0 0 6px rgba(8, 112, 239, 0.16);
+      }
+      .voice-button.is-processing {
+        opacity: 0.82;
+      }
       .voice-glyph {
         position: relative;
         width: 16px;
@@ -29159,6 +29384,12 @@ Error generating stack: ` +
         line-height: 1.4;
       }
       .voice-status--listening {
+        color: #064ba9;
+        background: #eef6ff;
+        border-color: #b8d6fb;
+      }
+      .voice-status--ready,
+      .voice-status--processing {
         color: #064ba9;
         background: #eef6ff;
         border-color: #b8d6fb;

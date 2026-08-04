@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v87-image-cleanup-privacy-menu-brightness";
+const VERSION = "atlas-pwa-v88-voice-toggle-audio-search";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
