@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v86-about-card-proof-search-polish";
+const VERSION = "atlas-pwa-v87-image-cleanup-privacy-menu-brightness";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -15,14 +15,14 @@ const APP_SHELL = [
   "./atlas-warehouse-management.png",
   "./atlas-home-logo-v2.png",
   "./atlas-home-lockup-v3.png",
-  "./atlas-menu-warehouse-v1.webp?v=81",
+  "./atlas-menu-warehouse-v1.webp?v=87",
   "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",
   "./atlas-menu-lockup-v2.png?v=81",
   "./atlas-about-mark-v1.png?v=81",
-  "./atlas-about-hero-polished-v5.png?v=84",
-  "./atlas-about-inventory-v1.jpeg?v=85",
+  "./atlas-about-hero-polished-v6.png?v=87",
+  "./atlas-about-inventory-stylized-v2.webp?v=87",
   "./atlas-about-product-clear-trimmed.webp?v=86",
   "./atlas-about-product-clear-black-trimmed.webp?v=86",
 ];

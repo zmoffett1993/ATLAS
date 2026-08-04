@@ -22928,7 +22928,7 @@ Error generating stack: ` +
         modal.innerHTML = `
     <article class="atlas-story-card">
       <header class="atlas-story-hero">
-        <img class="atlas-story-hero-art" src="./atlas-about-hero-polished-v5.png?v=84" alt="" aria-hidden="true">
+        <img class="atlas-story-hero-art" src="./atlas-about-hero-polished-v6.png?v=87" alt="" aria-hidden="true">
         <button class="atlas-story-close" type="button" aria-label="Close About ATLAS"><span class="atlas-story-sr-only">Close About ATLAS</span></button>
         <div class="atlas-story-sr-only">
           <p>Created exclusively for Chubby Gorilla.</p>
@@ -22977,7 +22977,7 @@ Error generating stack: ` +
           <h2 id="atlas-about-proof-title">EVERY DETAIL BEGAN WITH THE WAY CHUBBY GORILLA WORKS.</h2>
           <p>FIND <span>·</span> MANAGE <span>·</span> DELIVER</p>
         </div>
-        <div class="atlas-story-proof-photo" role="img" aria-label="Chubby Gorilla inventory cartons stacked on pallets in warehouse racks">
+        <div class="atlas-story-proof-photo" role="img" aria-label="Stylized visualization of Chubby Gorilla inventory cartons stacked on pallets in warehouse racks">
           <div class="atlas-story-proof-card" aria-label="Example ATLAS product and warehouse location card">
             <div class="atlas-story-proof-product">
               <span class="atlas-story-proof-bottle"><img src="./atlas-about-product-clear-black-trimmed.webp?v=86" alt=""></span>
@@ -28452,11 +28452,12 @@ Error generating stack: ` +
         place-items: center;
       }
       .atlas-story-product-image img {
-        width: 100%;
-        height: 100%;
+        width: auto;
+        height: 70px;
+        max-width: 100%;
+        max-height: 70px;
         object-fit: contain;
-        transform: scale(1.04);
-        transform-origin: center;
+        transform: none;
         display: block;
       }
       .atlas-story-ui--location {
@@ -28646,8 +28647,8 @@ Error generating stack: ` +
         margin-left: -34px;
         background-image:
           linear-gradient(90deg, rgba(251, 250, 247, 0.96) 0%, rgba(251, 250, 247, 0.13) 34%, rgba(3, 20, 40, 0.03) 100%),
-          url("./atlas-about-inventory-v1.jpeg?v=85");
-        background-position: center, 64% 43%;
+          url("./atlas-about-inventory-stylized-v2.webp?v=87");
+        background-position: center, 64% 50%;
         background-size: cover;
       }
       .atlas-story-proof-card {
@@ -28864,6 +28865,10 @@ Error generating stack: ` +
           padding: 2px;
           border-radius: 6px;
         }
+        .atlas-story-product-image img {
+          height: 52px;
+          max-height: 52px;
+        }
         .atlas-story-ui small {
           font-size: 5px;
           letter-spacing: 0.11em;
@@ -28938,7 +28943,7 @@ Error generating stack: ` +
         .atlas-story-proof-photo {
           min-height: 250px;
           margin-left: -18px;
-          background-position: center, 63% 43%;
+          background-position: center, 64% 50%;
         }
         .atlas-story-proof-card {
           right: 8px;
@@ -29514,23 +29519,8 @@ Error generating stack: ` +
         z-index: 2;
         isolation: isolate;
         overflow: hidden;
-        background:
-          linear-gradient(
-            180deg,
-            rgba(0, 8, 18, 0.2) 0%,
-            rgba(0, 11, 24, 0.08) 46%,
-            rgba(1, 17, 31, 0.34) 100%
-          ),
-          linear-gradient(
-            90deg,
-            rgba(0, 7, 17, 0.34) 0%,
-            rgba(0, 12, 26, 0.08) 59%,
-            rgba(2, 20, 38, 0.06) 100%
-          ),
-          url("./atlas-menu-warehouse-v1.webp?v=72") center center / cover no-repeat;
-        box-shadow:
-          inset 0 -1px rgba(242, 227, 207, 0.18),
-          0 14px 28px rgba(0, 8, 18, 0.12);
+        background: url("./atlas-menu-warehouse-v1.webp?v=87") center center / cover no-repeat;
+        box-shadow: none;
       }
       .atlas-menu-lockup {
         width: 100%;
