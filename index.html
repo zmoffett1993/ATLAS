@@ -22928,7 +22928,7 @@ Error generating stack: ` +
         modal.innerHTML = `
     <article class="atlas-story-card">
       <header class="atlas-story-hero">
-        <img class="atlas-story-hero-art" src="./atlas-about-hero-polished-v4.png?v=82" alt="" aria-hidden="true">
+        <img class="atlas-story-hero-art" src="./atlas-about-hero-polished-v5.png?v=84" alt="" aria-hidden="true">
         <button class="atlas-story-close" type="button" aria-label="Close About ATLAS"><span class="atlas-story-sr-only">Close About ATLAS</span></button>
         <div class="atlas-story-sr-only">
           <p>Created exclusively for Chubby Gorilla.</p>
@@ -28296,6 +28296,7 @@ Error generating stack: ` +
       }
       .atlas-story-hero {
         position: relative;
+        z-index: 2;
         min-height: 0;
         padding: 0;
         overflow: visible;
@@ -28336,10 +28337,9 @@ Error generating stack: ` +
       }
       .atlas-story-close:hover,
       .atlas-story-close:focus-visible {
-        background: rgba(255, 255, 255, 0.14);
-        transform: scale(1.08);
-        outline: 2px solid rgba(255, 255, 255, 0.9);
-        outline-offset: 2px;
+        background: transparent;
+        transform: scale(1.05);
+        outline: 0;
       }
       .atlas-story-section-label {
         margin: 0;
@@ -28501,6 +28501,7 @@ Error generating stack: ` +
       }
       .atlas-story-builder {
         position: relative;
+        z-index: 1;
         min-height: 500px;
         padding: 126px 48px 62px;
         overflow: hidden;
@@ -28713,27 +28714,64 @@ Error generating stack: ` +
           border-width: 2px;
         }
         .atlas-story-builder {
-          min-height: 610px;
-          padding: 96px 28px 55px;
-          grid-template-columns: 1fr;
-          gap: 25px;
+          min-height: 500px;
+          padding: 96px 24px 52px;
+          grid-template-columns: minmax(0, 1.14fr) minmax(118px, 0.86fr);
+          align-items: center;
+          gap: 16px;
         }
         .atlas-story-builder-mark {
-          width: min(60vw, 240px);
-          grid-row: 1;
+          width: min(100%, 175px);
+          margin-right: 0;
         }
         .atlas-story-builder-copy {
-          grid-row: 2;
+          min-width: 0;
+        }
+        .atlas-story-builder h2 {
+          margin: 16px 0 13px;
+          font-size: clamp(17px, 4.8vw, 21px);
+          line-height: 1.27;
+        }
+        .atlas-story-builder-copy > p:not(.atlas-story-section-label):not(.atlas-story-signature) {
+          font-size: clamp(10.5px, 3vw, 13px);
+          line-height: 1.52;
+        }
+        .atlas-story-section-label {
+          font-size: 8px;
+        }
+        .atlas-story-signature {
+          margin-top: 18px;
+          font-size: 7px;
+          letter-spacing: 0.22em;
         }
         .atlas-story-finale {
-          padding: 38px 26px max(38px, calc(env(safe-area-inset-bottom) + 24px));
-          grid-template-columns: 1fr;
-          gap: 27px;
+          min-height: 180px;
+          padding: 30px 22px max(30px, calc(env(safe-area-inset-bottom) + 18px));
+          grid-template-columns: minmax(0, 1.3fr) minmax(120px, 0.7fr);
+          align-items: center;
+          gap: 14px;
+        }
+        .atlas-story-finale h2 {
+          font-size: clamp(15px, 4.25vw, 18px);
+          line-height: 1.18;
+        }
+        .atlas-story-finale p {
+          width: 100%;
+          margin: 13px 0 8px;
+          padding-bottom: 7px;
+          font-size: 5.5px;
+          letter-spacing: 0.13em;
+        }
+        .atlas-story-finale > div > span {
+          font-size: 5px;
+          letter-spacing: 0.12em;
         }
         .atlas-story-gorilla {
-          width: min(260px, 76%);
-          min-height: 68px;
-          justify-self: start;
+          width: 100%;
+          min-height: 58px;
+          padding: 10px;
+          justify-self: end;
+          border-radius: 12px;
         }
       }
       @media (max-width: 390px) {
@@ -28747,8 +28785,22 @@ Error generating stack: ` +
           font-size: 14px;
         }
         .atlas-story-builder {
-          padding-right: 22px;
-          padding-left: 22px;
+          padding-right: 18px;
+          padding-left: 18px;
+          grid-template-columns: minmax(0, 1.18fr) minmax(108px, 0.82fr);
+          gap: 12px;
+        }
+        .atlas-story-builder h2 {
+          font-size: 17px;
+        }
+        .atlas-story-builder-copy > p:not(.atlas-story-section-label):not(.atlas-story-signature) {
+          font-size: 10.5px;
+        }
+        .atlas-story-finale {
+          padding-right: 18px;
+          padding-left: 18px;
+          grid-template-columns: minmax(0, 1.34fr) minmax(108px, 0.66fr);
+          gap: 11px;
         }
       }
       @media (prefers-reduced-motion: reduce) {

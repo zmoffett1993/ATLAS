@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v83-voice-natural-hyphen-input";
+const VERSION = "atlas-pwa-v84-about-mobile-layout";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -21,7 +21,7 @@ const APP_SHELL = [
   "./atlas-menu-brand-lockup.png",
   "./atlas-menu-lockup-v2.png?v=81",
   "./atlas-about-mark-v1.png?v=81",
-  "./atlas-about-hero-polished-v4.png?v=82",
+  "./atlas-about-hero-polished-v5.png?v=84",
   "./atlas-about-inventory-polished-v3.png?v=82",
 ];
 
