@@ -14435,7 +14435,7 @@ Error generating stack: ` +
             description: `Safely remove an incorrect SKU from picker searches.`,
           },
         ];
-      function atlasCleanSkuText(e) {
+      function atlasCleanSkuInput(e) {
         return String(e ?? ``)
           .normalize(`NFKC`)
           .replace(/[\u200B-\u200D\u2060\uFEFF]/g, ``)
@@ -14444,7 +14444,11 @@ Error generating stack: ` +
           .replace(/\s+/g, ``)
           .replace(/[^A-Z0-9./-]/g, ``)
           .replace(/-+/g, `-`)
-          .replace(/^-+|-+$/g, ``)
+          .replace(/^-+/g, ``);
+      }
+      function atlasCleanSkuText(e) {
+        return atlasCleanSkuInput(e)
+          .replace(/-+$/g, ``)
           .replace(/-BK-BK$/g, `-BKBK`)
           .replace(/([0-9])0Z/g, `$1OZ`);
       }
@@ -14770,6 +14774,10 @@ Error generating stack: ` +
         for (let e = 0; e < t.length; e += 1) {
           let s = t[e];
           if (a.has(s)) continue;
+          if (s === `NATURAL` && e === t.length - 1) {
+            o += `NATL`;
+            continue;
+          }
           if (n[s] !== void 0 && t[e + 1] === `HUNDRED`) {
             let i = Number(n[s]) * 100;
             if (r[t[e + 2]] !== void 0) {
@@ -14894,7 +14902,7 @@ Error generating stack: ` +
               atlasSetVoiceCandidates([]),
               atlasSetVoiceStatus({
                 mode: `listening`,
-                message: `Listening… Speak the SKU without dashes.`,
+                message: `Listening… Speak the SKU without dashes. Say “natural” for NATL.`,
               }),
               (s.onresult = (e) => {
                 c = !0;
@@ -14977,7 +14985,7 @@ Error generating stack: ` +
                       r(
                       atlasPreserveRawInput
                         ? e.target.value
-                        : atlasCleanSkuText(e.target.value),
+                        : atlasCleanSkuInput(e.target.value),
                       ));
                   },
                   onFocus: () => u(!0),

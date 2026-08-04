@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v82-about-polished-images";
+const VERSION = "atlas-pwa-v83-voice-natural-hyphen-input";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
