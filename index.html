@@ -31840,8 +31840,8 @@ Error generating stack: ` +
         opacity: 1;
         visibility: visible;
         transition:
-          opacity 380ms cubic-bezier(0.22, 1, 0.36, 1),
-          visibility 0s linear 380ms;
+          opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+          visibility 0s linear 620ms;
         isolation: isolate;
       }
       #atlas-brand-splash::before,
@@ -31871,18 +31871,43 @@ Error generating stack: ` +
         pointer-events: none;
       }
       .atlas-brand-splash__inner {
+        position: relative;
         width: min(78vw, 410px);
         transform: translateY(-1.8vh);
         text-align: center;
-        animation: atlas-brand-splash-arrive 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: atlas-brand-splash-arrive 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .atlas-brand-splash__inner::before {
+        content: "";
+        position: absolute;
+        z-index: 0;
+        top: -4%;
+        left: 50%;
+        width: 62%;
+        aspect-ratio: 1;
+        pointer-events: none;
+        background: radial-gradient(
+          circle,
+          rgba(25, 151, 255, 0.22) 0%,
+          rgba(8, 107, 255, 0.1) 33%,
+          transparent 69%
+        );
+        filter: blur(10px);
+        opacity: 0;
+        transform: translate(-50%, -3%) scale(0.84);
+        animation: atlas-brand-mark-energize 720ms ease-out 840ms both;
       }
       .atlas-brand-splash__inner img {
+        position: relative;
+        z-index: 1;
         display: block;
         width: 100%;
         height: auto;
         filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.18));
       }
       .atlas-brand-splash__inner p {
+        position: relative;
+        z-index: 1;
         margin: clamp(17px, 3vh, 28px) 0 0;
         color: rgba(255, 255, 255, 0.82);
         font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -31891,8 +31916,11 @@ Error generating stack: ` +
         font-weight: 300;
         line-height: 1.2;
         letter-spacing: 0.14em;
+        animation: atlas-brand-tagline-resolve 560ms cubic-bezier(0.22, 1, 0.36, 1) 1460ms both;
       }
       .atlas-brand-splash__glow {
+        position: relative;
+        z-index: 1;
         display: block;
         width: min(80%, 310px);
         height: 2px;
@@ -31902,11 +31930,64 @@ Error generating stack: ` +
           0 0 9px rgba(8, 107, 255, 0.9),
           0 0 22px rgba(8, 107, 255, 0.56);
         border-radius: 999px;
+        overflow: visible;
         opacity: 0.88;
+        transform-origin: center;
+        animation: atlas-brand-line-activate 780ms cubic-bezier(0.22, 1, 0.36, 1) 560ms both;
+      }
+      .atlas-brand-splash__glow::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -10%;
+        width: 58px;
+        height: 14px;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 255, 255, 0.96) 0%,
+          rgba(157, 228, 255, 0.7) 22%,
+          rgba(8, 114, 255, 0.18) 48%,
+          transparent 72%
+        );
+        filter: blur(0.35px);
+        opacity: 0;
+        transform: translate(-50%, -50%);
+        animation: atlas-brand-line-sweep 620ms ease-out 920ms both;
       }
       @keyframes atlas-brand-splash-arrive {
         from { opacity: 0; transform: translateY(calc(-1.8vh + 10px)) scale(0.985); }
         to { opacity: 1; transform: translateY(-1.8vh) scale(1); }
+      }
+      @keyframes atlas-brand-line-activate {
+        0% { opacity: 0; transform: scaleX(0.04); }
+        58% { opacity: 1; }
+        100% { opacity: 0.88; transform: scaleX(1); }
+      }
+      @keyframes atlas-brand-line-sweep {
+        0% { left: -10%; opacity: 0; }
+        24% { opacity: 0.9; }
+        70% { opacity: 0.78; }
+        100% { left: 110%; opacity: 0; }
+      }
+      @keyframes atlas-brand-mark-energize {
+        0% { opacity: 0; transform: translate(-50%, -3%) scale(0.84); }
+        46% { opacity: 0.95; }
+        100% { opacity: 0; transform: translate(-50%, -3%) scale(1.04); }
+      }
+      @keyframes atlas-brand-tagline-resolve {
+        from {
+          opacity: 0;
+          filter: blur(1.5px);
+          letter-spacing: 0.19em;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          filter: blur(0);
+          letter-spacing: 0.14em;
+          transform: translateY(0);
+        }
       }
 
       /* Official logo hierarchy: portrait on Home, landscape on workspaces. */
@@ -32016,9 +32097,17 @@ Error generating stack: ` +
 
       @media (prefers-reduced-motion: reduce) {
         #atlas-brand-splash,
-        .atlas-brand-splash__inner {
+        .atlas-brand-splash__inner,
+        .atlas-brand-splash__inner p,
+        .atlas-brand-splash__glow,
+        .atlas-brand-splash__glow::after,
+        .atlas-brand-splash__inner::before {
           animation: none !important;
           transition: none !important;
+        }
+        .atlas-brand-splash__glow::after,
+        .atlas-brand-splash__inner::before {
+          display: none !important;
         }
       }
     </style>
@@ -32040,9 +32129,9 @@ Error generating stack: ` +
           splash.classList.add("is-leaving");
           splash.setAttribute("aria-hidden", "true");
           document.body.classList.remove("atlas-splash-active");
-          window.setTimeout(() => splash.remove(), 430);
+          window.setTimeout(() => splash.remove(), 660);
         };
-        window.setTimeout(dismissSplash, 2000);
+        window.setTimeout(dismissSplash, 2380);
 
         let queued = false;
         const activeView = () => {

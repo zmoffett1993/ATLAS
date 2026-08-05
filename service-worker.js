@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v99-smart-ocr-search";
+const VERSION = "atlas-pwa-v100-three-second-precision-splash";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
