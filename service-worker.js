@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v100-three-second-precision-splash";
+const VERSION = "atlas-pwa-v101-four-second-premium-splash-white-icon";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -8,11 +8,11 @@ const APP_SHELL = [
   "./manifest.webmanifest",
   "./product-images.json",
   "./product-images/cgasb1-60ml-cnl-owh.png",
-  "./atlas-icon-v2-180.png",
-  "./atlas-icon-v2-192.png",
-  "./atlas-icon-v2-512.png",
-  "./atlas-icon-v2-maskable-512.png",
-  "./atlas-favicon-v2-32.png",
+  "./atlas-icon-v2-180.png?v=101",
+  "./atlas-icon-v2-192.png?v=101",
+  "./atlas-icon-v2-512.png?v=101",
+  "./atlas-icon-v2-maskable-512.png?v=101",
+  "./atlas-favicon-v2-32.png?v=101",
   "./atlas-warehouse-management.png",
   "./atlas-home-logo-v2.png",
   "./atlas-home-lockup-v3.png",
