@@ -1,11 +1,11 @@
-const VERSION = "atlas-pwa-v106-section-root-navigation";
+const VERSION = "atlas-pwa-v107-android-launch-continuity";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./manifest.webmanifest",
+  "./manifest.webmanifest?v=107",
   "./product-images.json",
   "./product-images/cgasb1-60ml-cnl-owh.png",
   "./atlas-icon-v2-180.png?v=101",

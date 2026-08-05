@@ -15,7 +15,66 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="ATLAS" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="./manifest.webmanifest" />
+    <link id="atlas-app-manifest" rel="manifest" href="./manifest.webmanifest" />
+    <script>
+      (() => {
+        const isAndroid =
+          navigator.userAgentData?.platform === `Android` ||
+          /Android/i.test(navigator.userAgent || ``);
+        if (!isAndroid) return;
+        document.documentElement.classList.add(`atlas-android-launch`);
+        document
+          .getElementById(`atlas-app-manifest`)
+          ?.setAttribute(`href`, `./manifest.webmanifest?v=107`);
+      })();
+    </script>
+    <style id="atlas-android-launch-critical">
+      html.atlas-android-launch,
+      html.atlas-android-launch body {
+        min-height: 100%;
+        margin: 0;
+        background: #031023;
+      }
+      html.atlas-android-launch body.atlas-splash-active {
+        overflow: hidden;
+      }
+      html.atlas-android-launch #atlas-brand-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483646;
+        display: grid;
+        place-items: center;
+        min-height: 100dvh;
+        color: #fff;
+        background:
+          radial-gradient(circle at 50% 61%, rgba(8, 107, 255, 0.16), transparent 31%),
+          radial-gradient(circle at 50% -12%, rgba(44, 123, 255, 0.12), transparent 34%),
+          linear-gradient(155deg, #031023 0%, #061936 52%, #031126 100%);
+      }
+      html.atlas-android-launch
+        #atlas-brand-splash
+        .atlas-brand-splash__inner {
+        width: min(78vw, 410px);
+        opacity: 0;
+        transform: translateY(-1.8vh);
+        text-align: center;
+      }
+      html.atlas-android-launch
+        #atlas-brand-splash
+        .atlas-brand-splash__inner
+        img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html.atlas-android-launch
+          #atlas-brand-splash
+          .atlas-brand-splash__inner {
+          opacity: 1;
+        }
+      }
+    </style>
     <link
       rel="apple-touch-icon"
       sizes="180x180"
