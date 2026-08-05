@@ -17796,6 +17796,19 @@ Error generating stack: ` +
             t(`inventory`),
             window.scrollTo({ top: 0, behavior: `smooth` }));
         }
+        function atlasReturnToSectionRoot(e) {
+          const resetViewport = () => {
+            (window.scrollTo({ top: 0, left: 0, behavior: `auto` }),
+              (document.documentElement.scrollTop = 0),
+              (document.body.scrollTop = 0));
+          };
+          (Ge(),
+            y(null),
+            x(null),
+            t(e),
+            resetViewport(),
+            window.requestAnimationFrame(resetViewport));
+        }
         return (0, T.jsxs)(`div`, {
           className: `app-shell`,
           children: [
@@ -18224,7 +18237,7 @@ Error generating stack: ` +
                     type: `button`,
                     className: e === `home` ? `active` : ``,
                     "aria-current": e === `home` ? `page` : void 0,
-                    onClick: () => t(`home`),
+                    onClick: () => atlasReturnToSectionRoot(`home`),
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,
@@ -18237,7 +18250,7 @@ Error generating stack: ` +
                     type: `button`,
                     className: e === `aisles` ? `active` : ``,
                     "aria-current": e === `aisles` ? `page` : void 0,
-                    onClick: () => t(`aisles`),
+                    onClick: () => atlasReturnToSectionRoot(`aisles`),
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,
@@ -18250,7 +18263,7 @@ Error generating stack: ` +
                     type: `button`,
                     className: e === `inventory` ? `active` : ``,
                     "aria-current": e === `inventory` ? `page` : void 0,
-                    onClick: () => t(`inventory`),
+                    onClick: () => atlasReturnToSectionRoot(`inventory`),
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,

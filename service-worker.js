@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v105-narrow-single-sku-guide";
+const VERSION = "atlas-pwa-v106-section-root-navigation";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
