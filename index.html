@@ -17200,7 +17200,7 @@ Error generating stack: ` +
                   ((r.current.srcObject = t), await r.current.play()),
                 g(!0),
                 s(
-                  `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Scan SKU.`,
+                  `Place only one printed SKU inside the blue guide. Keep nearby SKUs outside the frame, avoid glare, wait for focus, then tap Scan SKU.`,
                 ));
             } catch {
               s(
@@ -17400,8 +17400,7 @@ Error generating stack: ` +
                 tessedit_char_whitelist: `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-./`,
                 preserve_interword_spaces: `0`,
               });
-              const guideCrop = { x: 0.025, y: 0.14, width: 0.95, height: 0.68 };
-              const expandedCrop = { x: 0, y: 0.06, width: 1, height: 0.88 };
+              const guideCrop = { x: 0.035, y: 0.325, width: 0.93, height: 0.35 };
               const scanPasses = [
                 {
                   label: `balanced guide`,
@@ -17425,8 +17424,8 @@ Error generating stack: ` +
                   pageMode: x.SINGLE_LINE,
                 },
                 {
-                  label: `expanded label`,
-                  crop: expandedCrop,
+                  label: `stacked label within guide`,
+                  crop: guideCrop,
                   angle: 0,
                   enhancement: `balanced`,
                   pageMode: x.SPARSE_TEXT,
@@ -17557,7 +17556,7 @@ Error generating stack: ` +
               l(0),
               N(!1),
               s(
-                `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Scan SKU.`,
+                `Place only one printed SKU inside the blue guide. Keep nearby SKUs outside the frame, avoid glare, wait for focus, then tap Scan SKU.`,
               ));
             if (e && h) await e.play().catch(() => {});
             return;
@@ -17586,7 +17585,7 @@ Error generating stack: ` +
                         children: `Scan Printed SKU`,
                       }),
                       (0, T.jsx)(`p`, {
-                        children: `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Scan SKU. ATLAS checks both single-line and multi-line labels.`,
+                        children: `Place only one printed SKU inside the blue guide. Keep nearby SKUs outside the frame, avoid glare, wait for focus, then tap Scan SKU. ATLAS checks both single-line and multi-line labels.`,
                       }),
                     ],
                   }),
@@ -20282,7 +20281,7 @@ Error generating stack: ` +
       .scan-shade {
         pointer-events: none;
         background: #02080f94;
-        height: 32%;
+        height: 32.5%;
         position: absolute;
         left: 0;
         right: 0;
@@ -20298,7 +20297,7 @@ Error generating stack: ` +
         border: 3px solid #fff;
         border-radius: 13px;
         position: absolute;
-        inset: 32% 5%;
+        inset: 32.5% 3.5%;
         box-shadow: 0 0 0 2px #125bd4cc;
       }
       .scan-frame span {
@@ -23136,12 +23135,12 @@ Error generating stack: ` +
         display: inline;
       }
 
-      /* Larger OCR guide captures both one-line box labels and stacked pallet labels. */
+      /* Focused OCR guide keeps adjacent order-sheet SKU rows outside the scan. */
       .scan-shade {
-        height: 20%;
+        height: 32.5%;
       }
       .scan-frame {
-        inset: 20% 3%;
+        inset: 32.5% 3.5%;
       }
 
       @media (max-height: 760px) {

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v104-focused-scan-sku-camera";
+const VERSION = "atlas-pwa-v105-narrow-single-sku-guide";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
