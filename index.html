@@ -18205,6 +18205,7 @@ Error generating stack: ` +
                   (0, T.jsxs)(`button`, {
                     type: `button`,
                     className: e === `home` ? `active` : ``,
+                    "aria-current": e === `home` ? `page` : void 0,
                     onClick: () => t(`home`),
                     children: [
                       (0, T.jsx)(`span`, {
@@ -18217,6 +18218,7 @@ Error generating stack: ` +
                   (0, T.jsxs)(`button`, {
                     type: `button`,
                     className: e === `aisles` ? `active` : ``,
+                    "aria-current": e === `aisles` ? `page` : void 0,
                     onClick: () => t(`aisles`),
                     children: [
                       (0, T.jsx)(`span`, {
@@ -18229,6 +18231,7 @@ Error generating stack: ` +
                   (0, T.jsxs)(`button`, {
                     type: `button`,
                     className: e === `inventory` ? `active` : ``,
+                    "aria-current": e === `inventory` ? `page` : void 0,
                     onClick: () => t(`inventory`),
                     children: [
                       (0, T.jsx)(`span`, {
@@ -21268,72 +21271,133 @@ Error generating stack: ` +
 
       /* Bottom navigation */
       .app-shell {
-        padding-bottom: 104px;
+        padding-bottom: 112px;
       }
       .bottom-nav {
         background: linear-gradient(
           180deg,
-          rgba(255, 255, 255, 0.965),
-          rgba(248, 250, 253, 0.985)
+          rgba(255, 255, 255, 0.985),
+          rgba(248, 250, 253, 0.995)
         );
         border-top: 1px solid #d6dee8;
-        box-shadow: 0 -10px 30px rgba(1, 22, 45, 0.09);
-        padding: 7px 12px calc(8px + env(safe-area-inset-bottom));
+        box-shadow:
+          0 -12px 32px rgba(1, 22, 45, 0.085),
+          inset 0 1px 0 rgba(255, 255, 255, 0.94);
+        padding: 7px 10px calc(8px + env(safe-area-inset-bottom));
+        isolation: isolate;
       }
       .bottom-nav-inner {
         max-width: 760px;
-        gap: 6px;
-      }
-      .bottom-nav button {
-        min-height: 66px;
-        color: #1d2e45;
-        border-radius: 15px;
-        gap: 4px;
-        padding: 4px 7px 3px;
-        font-size: 11.5px;
-        font-weight: 850;
-        letter-spacing: -0.012em;
-        transition:
-          color 0.18s ease,
-          transform 0.18s ease,
-          background 0.18s ease;
-      }
-      .bottom-nav button:hover {
-        color: #0759d6;
-        background: rgba(7, 89, 214, 0.035);
-      }
-      .bottom-nav button:active {
-        transform: scale(0.97);
-      }
-      .bottom-nav button.active {
-        color: #0759d6;
-        font-weight: 950;
-      }
-      .bottom-nav button.active:after {
-        display: none;
+        gap: 0;
       }
       .bottom-nav button {
         position: relative;
+        isolation: isolate;
+        min-width: 0;
+        min-height: 74px;
+        color: #1d2e45;
+        border-radius: 18px;
+        gap: 3px;
+        align-content: center;
+        padding: 6px 4px 5px;
+        font-size: 12.5px;
+        font-weight: 780;
+        letter-spacing: -0.01em;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        transition:
+          color 180ms ease,
+          transform 120ms ease;
+      }
+      .bottom-nav button::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: 3px 5px 2px;
+        pointer-events: none;
+        border: 1px solid transparent;
+        border-radius: 17px;
+        background: linear-gradient(180deg, #f1f6ff 0%, #e8f1ff 100%);
+        box-shadow:
+          0 5px 15px rgba(8, 107, 255, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        opacity: 0;
+        transform: scale(0.975);
+        transition:
+          opacity 180ms ease,
+          transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+          border-color 180ms ease,
+          box-shadow 180ms ease;
+      }
+      .bottom-nav button::after {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        top: 3px;
+        left: 22%;
+        right: 22%;
+        height: 3px;
+        pointer-events: none;
+        border-radius: 0 0 999px 999px;
+        background: linear-gradient(90deg, #0759d6, #1687ff, #0759d6);
+        box-shadow: 0 2px 7px rgba(8, 107, 255, 0.22);
+        opacity: 0;
+        transform: scaleX(0.7);
+        transition:
+          opacity 180ms ease,
+          transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .bottom-nav button:active {
+        transform: translateY(1px) scale(0.985);
+      }
+      .bottom-nav button.active {
+        color: #086bff;
+        font-weight: 900;
+      }
+      .bottom-nav button.active::before {
+        border-color: #cbdfff;
+        opacity: 1;
+        transform: scale(1);
+      }
+      .bottom-nav button.active::after {
+        opacity: 1;
+        transform: scaleX(1);
+      }
+      .bottom-nav button:focus-visible {
+        outline: 3px solid rgba(8, 107, 255, 0.38);
+        outline-offset: -4px;
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .bottom-nav button:not(.active):hover {
+          color: #0759d6;
+        }
+        .bottom-nav button:not(.active):hover::before {
+          border-color: rgba(203, 223, 255, 0.72);
+          opacity: 0.48;
+        }
       }
       .bottom-nav button > span:last-child {
         line-height: 1.15;
+        white-space: nowrap;
       }
       .nav-icon {
-        width: 43px;
-        height: 35px;
+        position: relative;
+        z-index: 1;
+        width: 44px;
+        height: 37px;
         color: #172b46;
         background: transparent;
-        border: 1px solid transparent;
+        border: 0;
         border-radius: 12px;
+        box-shadow: none;
         place-items: center;
         display: grid;
         line-height: 1;
         transition:
-          color 0.18s ease,
-          background 0.18s ease,
-          border-color 0.18s ease,
-          box-shadow 0.18s ease,
-          transform 0.18s ease;
+          color 180ms ease,
+          transform 180ms ease;
       }
       .nav-icon svg {
         width: 30px;
@@ -21344,11 +21408,9 @@ Error generating stack: ` +
         stroke-linejoin: round;
       }
       .bottom-nav button:not(.active) .nav-icon {
-        background: linear-gradient(145deg, #fff, #edf2f7);
-        border-color: #d8e1eb;
-        box-shadow:
-          0 4px 11px rgba(1, 22, 45, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
       }
       .nav-icon .nav-panel {
         fill: rgba(23, 43, 70, 0.07);
@@ -21367,16 +21429,32 @@ Error generating stack: ` +
         stroke: none;
       }
       .bottom-nav button.active .nav-icon {
-        color: #0759d6;
-        background: linear-gradient(145deg, #f2f7ff, #e1edff);
-        border-color: #cbdfff;
-        box-shadow:
-          0 6px 16px rgba(7, 89, 214, 0.17),
-          inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        transform: translateY(-1px);
+        color: #086bff;
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        transform: none;
       }
-      .bottom-nav button:hover .nav-icon {
-        color: #0759d6;
+      .bottom-nav button > span:last-child {
+        position: relative;
+        z-index: 1;
+      }
+      @media (max-width: 360px) {
+        .bottom-nav {
+          padding-right: 6px;
+          padding-left: 6px;
+        }
+        .bottom-nav button {
+          font-size: 11.5px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bottom-nav button,
+        .bottom-nav button::before,
+        .bottom-nav button::after,
+        .nav-icon {
+          transition: none !important;
+        }
       }
 
       /* Premium dark drawer */
