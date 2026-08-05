@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v98-android-voice-toggle";
+const VERSION = "atlas-pwa-v99-smart-ocr-search";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

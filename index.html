@@ -14603,6 +14603,81 @@ Error generating stack: ` +
         }
         return [...new Set(n.filter((e) => e.length >= 4))];
       }
+      function atlasOcrImageQualityAdvice(e) {
+        let t = e?.data;
+        if (!t?.length) return ``;
+        let n = 0,
+          r = 0,
+          i = 0,
+          a = 0,
+          sampleStride = Math.max(4, Math.floor(e.width / 240)) * 4;
+        for (let e = 0; e < t.length; e += sampleStride) {
+          let brightness =
+            0.299 * t[e] + 0.587 * t[e + 1] + 0.114 * t[e + 2];
+          ((n += brightness), (r += brightness * brightness), (i += 1));
+          if (e >= sampleStride) {
+            let n = e - sampleStride,
+              r = 0.299 * t[n] + 0.587 * t[n + 1] + 0.114 * t[n + 2];
+            a += Math.abs(brightness - r);
+          }
+        }
+        let s = n / Math.max(i, 1),
+          c = Math.sqrt(Math.max(0, r / Math.max(i, 1) - s * s)),
+          l = a / Math.max(i - 1, 1);
+        return s < 52
+          ? `The label looked dark. Add light and keep the phone parallel to the print.`
+          : s > 236
+            ? `The label looked overexposed. Tilt the box slightly away from overhead glare.`
+            : c < 24 || l < 4.5
+              ? `The label looked soft or low-contrast. Move closer, wait for focus, and hold the phone steady.`
+              : ``;
+      }
+      function atlasEnhanceOcrImage(e, t = `balanced`) {
+        let n = e.data,
+          r = Array(256).fill(0),
+          i = 0;
+        for (let e = 0; e < n.length; e += 4) {
+          let t = Math.max(
+            0,
+            Math.min(
+              255,
+              Math.round(0.299 * n[e] + 0.587 * n[e + 1] + 0.114 * n[e + 2]),
+            ),
+          );
+          ((r[t] += 1), (i += t));
+        }
+        let a = n.length / 4,
+          o = 0,
+          s = 0,
+          c = -1,
+          l = 148;
+        if (t === `threshold`) {
+          for (let e = 0; e < 256; e += 1) {
+            if (((o += r[e]), !o)) continue;
+            let t = a - o;
+            if (!t) break;
+            s += e * r[e];
+            let n = i - s,
+              u = s / o,
+              d = n / t,
+              f = o * t * (u - d) * (u - d);
+            f > c && ((c = f), (l = e));
+          }
+          l = Math.max(72, Math.min(210, l));
+        }
+        let u = t === `strong` ? 1.85 : 1.28;
+        for (let e = 0; e < n.length; e += 4) {
+          let r = 0.299 * n[e] + 0.587 * n[e + 1] + 0.114 * n[e + 2],
+            i =
+              t === `threshold`
+                ? r < l
+                  ? 0
+                  : 255
+                : Math.max(0, Math.min(255, (r - 128) * u + 128));
+          ((n[e] = i), (n[e + 1] = i), (n[e + 2] = i), (n[e + 3] = 255));
+        }
+        return e;
+      }
       async function Qe(e) {
         let t = 1e3,
           n = 0,
@@ -17078,7 +17153,7 @@ Error generating stack: ` +
                   ((r.current.srcObject = t), await r.current.play()),
                 g(!0),
                 s(
-                  `Center the printed SKU inside the blue guide, then tap Take SKU Photo.`,
+                  `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Take SKU Photo.`,
                 ));
             } catch {
               s(`Camera permission was not granted. Choose a photo instead.`);
@@ -17094,12 +17169,15 @@ Error generating stack: ` +
         function v(e) {
           const ignoredLabelText =
             /(?:\bCASE\s*)?(?:[QO0]TY|QUANTITY)\s*[:.-]?\s*.*$|\b(?:DATE|LOT|BATCH|PALLET|PACK|SETS?)\b.*$/i;
+          const printedSkuLabel =
+            /^\s*(?:PRINTED\s+)?(?:SKU|ITEM|PART|MODEL|PRODUCT|CODE)\s*[:#.-]?\s*/i;
           const cleanedLines = String(e || ``)
             .toUpperCase()
             .split(/\r?\n/)
             .map((line) =>
               line
                 .replace(ignoredLabelText, ``)
+                .replace(printedSkuLabel, ``)
                 .replace(/^\s*\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\s*$/, ``)
                 .trim(),
             )
@@ -17110,6 +17188,16 @@ Error generating stack: ` +
                 !/^\d[\d,.\s]*$/.test(line),
             );
           const candidates = new Set(Ze(cleanedLines.join(`\n`)));
+          const printedSkuPrefixes = [`SKU`, `ITEM`, `PART`, `MODEL`, `PRODUCT`, `CODE`];
+          for (const candidate of [...candidates]) {
+            for (const prefix of printedSkuPrefixes) {
+              if (
+                candidate.startsWith(prefix) &&
+                candidate.length - prefix.length >= 4
+              )
+                candidates.add(candidate.slice(prefix.length));
+            }
+          }
           for (let start = 0; start < cleanedLines.length; start += 1) {
             for (
               let count = 2;
@@ -17133,7 +17221,13 @@ Error generating stack: ` +
             const match = inventory.find(
               (item) => item.normalized === candidate,
             );
-            if (match) return { exact: match.sku, suggestions: [], raw: e };
+            if (match)
+              return {
+                exact: match.sku,
+                confidence: `exact`,
+                suggestions: [],
+                raw: e,
+              };
           }
           const ocrEquivalent = atlasOcrEquivalent;
           for (const candidate of normalizedCandidates) {
@@ -17145,6 +17239,7 @@ Error generating stack: ` +
             if (equivalentMatches.length === 1) {
               return {
                 exact: equivalentMatches[0].sku,
+                confidence: `ocr-equivalent`,
                 suggestions: [],
                 raw: e,
               };
@@ -17178,7 +17273,7 @@ Error generating stack: ` +
                 ratio: bestRatio,
               };
             })
-            .filter((item) => item.ratio <= 0.36)
+            .filter((item) => item.ratio <= 0.42)
             .sort(
               (left, right) =>
                 left.ratio - right.ratio ||
@@ -17216,19 +17311,10 @@ Error generating stack: ` +
           let o = i.current;
           if (o) {
             (f(!0), m(null), l(0), s(`Preparing the printed SKU…`));
+            let atlasOcrWorker = null;
             try {
-              let i = Math.floor(r * 0.025),
-                c = Math.floor(a * 0.15),
-                d = Math.floor(r * 0.95),
-                f = Math.floor(a * 0.65),
-                p = Math.min(1800, Math.max(1200, d * 1.5)),
-                h = Math.max(440, Math.floor((f / d) * p));
-              ((o.width = p), (o.height = h));
-              let g = o.getContext(`2d`, { willReadFrequently: !0 });
-              if (!g) throw Error(`The image could not be prepared.`);
               s(`Analyzing label angle and SKU characters…`);
               let recognitionPass = 0;
-              const scanAngles = [0, 6, -6];
               let {
                   createWorker: y,
                   OEM: b,
@@ -17244,8 +17330,8 @@ Error generating stack: ` +
                   },
                   void 0,
                   import.meta.url,
-                ),
-                S = await y(`eng`, b.LSTM_ONLY, {
+                );
+              atlasOcrWorker = await y(`eng`, b.LSTM_ONLY, {
                   workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/worker.min.js`,
                   langPath: `https://tessdata.projectnaptha.com/4.0.0`,
                   corePath: `https://cdn.jsdelivr.net/npm/tesseract.js-core@7`,
@@ -17254,58 +17340,141 @@ Error generating stack: ` +
                       l(
                         Math.round(
                           ((recognitionPass + (e.progress || 0)) /
-                            scanAngles.length) *
+                            6) *
                             100,
                         ),
                       );
                   },
                 });
+              let S = atlasOcrWorker;
               await S.setParameters({
-                tessedit_char_whitelist: `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.`,
-                tessedit_pageseg_mode: x.SPARSE_TEXT,
+                tessedit_char_whitelist: `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-./`,
                 preserve_interword_spaces: `0`,
               });
+              const guideCrop = { x: 0.025, y: 0.14, width: 0.95, height: 0.68 };
+              const expandedCrop = { x: 0, y: 0.06, width: 1, height: 0.88 };
+              const scanPasses = [
+                {
+                  label: `balanced guide`,
+                  crop: guideCrop,
+                  angle: 0,
+                  enhancement: `balanced`,
+                  pageMode: x.SPARSE_TEXT,
+                },
+                {
+                  label: `automatic black and white`,
+                  crop: guideCrop,
+                  angle: 0,
+                  enhancement: `threshold`,
+                  pageMode: x.SPARSE_TEXT,
+                },
+                {
+                  label: `single-line SKU`,
+                  crop: guideCrop,
+                  angle: 0,
+                  enhancement: `strong`,
+                  pageMode: x.SINGLE_LINE,
+                },
+                {
+                  label: `expanded label`,
+                  crop: expandedCrop,
+                  angle: 0,
+                  enhancement: `balanced`,
+                  pageMode: x.SPARSE_TEXT,
+                },
+                {
+                  label: `left label angle`,
+                  crop: guideCrop,
+                  angle: 6,
+                  enhancement: `strong`,
+                  pageMode: x.SPARSE_TEXT,
+                },
+                {
+                  label: `right label angle`,
+                  crop: guideCrop,
+                  angle: -6,
+                  enhancement: `strong`,
+                  pageMode: x.SPARSE_TEXT,
+                },
+              ];
               const readings = [];
+              let w = null,
+                scanQualityAdvice = ``;
               for (
                 let passIndex = 0;
-                passIndex < scanAngles.length;
+                passIndex < scanPasses.length;
                 passIndex += 1
               ) {
-                const angle = scanAngles[passIndex];
+                const pass = scanPasses[passIndex];
                 recognitionPass = passIndex;
                 s(
-                  `Reading SKU characters · angle ${passIndex + 1} of ${scanAngles.length}…`,
+                  `Reading SKU characters · ${passIndex + 1} of ${scanPasses.length}…`,
                 );
+                const cropX = Math.floor(r * pass.crop.x);
+                const cropY = Math.floor(a * pass.crop.y);
+                const cropWidth = Math.max(1, Math.floor(r * pass.crop.width));
+                const cropHeight = Math.max(1, Math.floor(a * pass.crop.height));
+                const outputWidth = Math.min(
+                  1800,
+                  Math.max(1200, Math.floor(cropWidth * 1.5)),
+                );
+                const outputHeight = Math.max(
+                  420,
+                  Math.floor((cropHeight / cropWidth) * outputWidth),
+                );
+                ((o.width = outputWidth), (o.height = outputHeight));
+                let g = o.getContext(`2d`, { willReadFrequently: !0 });
+                if (!g) throw Error(`The image could not be prepared.`);
                 g.setTransform(1, 0, 0, 1, 0, 0);
-                g.clearRect(0, 0, p, h);
+                g.clearRect(0, 0, outputWidth, outputHeight);
                 g.fillStyle = `#ffffff`;
-                g.fillRect(0, 0, p, h);
+                g.fillRect(0, 0, outputWidth, outputHeight);
                 g.save();
-                g.translate(p / 2, h / 2);
-                g.rotate((angle * Math.PI) / 180);
-                g.drawImage(t, i, c, d, f, -p / 2, -h / 2, p, h);
+                g.translate(outputWidth / 2, outputHeight / 2);
+                g.rotate((pass.angle * Math.PI) / 180);
+                g.drawImage(
+                  t,
+                  cropX,
+                  cropY,
+                  cropWidth,
+                  cropHeight,
+                  -outputWidth / 2,
+                  -outputHeight / 2,
+                  outputWidth,
+                  outputHeight,
+                );
                 g.restore();
-
-                const enhanced = g.getImageData(0, 0, p, h);
-                for (let pixel = 0; pixel < enhanced.data.length; pixel += 4) {
-                  const brightness =
-                    enhanced.data[pixel] * 0.299 +
-                    enhanced.data[pixel + 1] * 0.587 +
-                    enhanced.data[pixel + 2] * 0.114;
-                  const contrast = Math.max(
-                    0,
-                    Math.min(255, (brightness - 128) * 1.6 + 128),
-                  );
-                  enhanced.data[pixel] = contrast;
-                  enhanced.data[pixel + 1] = contrast;
-                  enhanced.data[pixel + 2] = contrast;
-                }
-                g.putImageData(enhanced, 0, 0);
+                const enhanced = g.getImageData(
+                  0,
+                  0,
+                  outputWidth,
+                  outputHeight,
+                );
+                if (!passIndex)
+                  scanQualityAdvice = atlasOcrImageQualityAdvice(enhanced);
+                g.putImageData(
+                  atlasEnhanceOcrImage(enhanced, pass.enhancement),
+                  0,
+                  0,
+                );
+                await S.setParameters({
+                  tessedit_pageseg_mode: pass.pageMode,
+                });
                 const passResult = await S.recognize(o);
-                readings.push(passResult.data.text || ``);
+                const passText = passResult.data.text || ``;
+                readings.push(passText);
+                const passMatch = v(passText);
+                if (
+                  passMatch.exact &&
+                  [`exact`, `ocr-equivalent`].includes(passMatch.confidence)
+                ) {
+                  w = passMatch;
+                  break;
+                }
               }
               await S.terminate();
-              let w = v(readings.join(`\n`));
+              atlasOcrWorker = null;
+              (l(100), w || (w = v(readings.join(`\n`))));
               (m(w),
                 w.exact
                   ? (s(`Exact ATLAS SKU found.`),
@@ -17317,7 +17486,7 @@ Error generating stack: ` +
                     : s(
                         w.suggestions.length
                           ? `ATLAS found possible matches. Confirm the correct SKU below.`
-                          : `No confident SKU match was found. Retake the photo or enter the SKU manually.`,
+                          : `No confident SKU match was found. Retake the photo or enter the SKU manually.${scanQualityAdvice ? ` ${scanQualityAdvice}` : ``}`,
                       ));
             } catch (e) {
               s(
@@ -17326,6 +17495,8 @@ Error generating stack: ` +
                   : `The printed SKU could not be read.`,
               );
             } finally {
+              atlasOcrWorker &&
+                (await atlasOcrWorker.terminate().catch(() => {}));
               f(!1);
             }
           }
@@ -17337,7 +17508,7 @@ Error generating stack: ` +
               l(0),
               N(!1),
               s(
-                `Center the printed SKU inside the blue guide, then tap Take SKU Photo.`,
+                `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Take SKU Photo.`,
               ));
             if (e && h) await e.play().catch(() => {});
             return;
@@ -17383,7 +17554,7 @@ Error generating stack: ` +
                         children: `Scan Printed SKU`,
                       }),
                       (0, T.jsx)(`p`, {
-                        children: `Take a clear photo of the printed SKU or choose an existing photo. ATLAS checks both single-line and multi-line labels.`,
+                        children: `Fill the blue guide with the printed SKU, avoid glare, and wait for focus. ATLAS checks both single-line and multi-line labels.`,
                       }),
                     ],
                   }),
