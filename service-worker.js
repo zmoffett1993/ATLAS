@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v95-recovery-inverted-aisle-maps";
+const VERSION = "atlas-pwa-v96-paired-picker-four-way-map";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

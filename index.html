@@ -15434,8 +15434,145 @@ Error generating stack: ` +
           ],
         });
       }
+      function atlasEscapeMapText(e) {
+        return String(e ?? ``).replace(
+          /[&<>"']/g,
+          (e) =>
+            ({
+              "&": `&amp;`,
+              "<": `&lt;`,
+              ">": `&gt;`,
+              '"': `&quot;`,
+              "'": `&#39;`,
+            })[e],
+        );
+      }
+      function atlasBuildPairedMapSvg(e, t) {
+        const n = Number(e),
+          r = String(t).toUpperCase(),
+          i = n === 21 ? 21 : n % 2 === 0 ? n - 1 : n,
+          a = n === 21 ? null : i + 1,
+          o = Je(i),
+          s = a ? Je(a) : [],
+          l = [`D`, `C`, `B`, `A`].filter(
+            (e) => o.includes(e) || s.includes(e),
+          ),
+          c = [],
+          d = `atlas-paired-${i}-${a || `floor`}`;
+        let u = 110;
+        l.forEach((e) => {
+          (c.push({ type: `section`, section: e, y: u, height: 250 }),
+            (u += 250));
+          if (e === `D`)
+            (c.push({
+              type: `driveway`,
+              label: `FORKLIFT DRIVEWAY 3`,
+              kind: `secondary`,
+              y: u,
+              height: 62,
+            }),
+              (u += 62));
+          if (e === `C`)
+            (c.push({
+              type: `driveway`,
+              label: `FORKLIFT DRIVEWAY 2`,
+              kind: `secondary`,
+              y: u,
+              height: 62,
+            }),
+              (u += 62));
+          if (e === `B`)
+            (c.push({
+              type: `driveway`,
+              label: `MAIN FORKLIFT DRIVEWAY`,
+              kind: `main`,
+              y: u,
+              height: 66,
+            }),
+              (u += 66));
+        });
+        const h = u + 54,
+          p = c.find(
+            (e) => e.type === `section` && e.section === r,
+          ),
+          m = c.find(
+            (e) => e.type === `driveway` && e.kind === `main`,
+          ),
+          g = n === i ? `left` : `right`,
+          f = g === `left` ? 203 : 397,
+          y = p ? p.y + p.height / 2 : 235,
+          b = m ? m.y + m.height / 2 : u - 33,
+          v = a
+            ? `Aisles ${i} and ${a}. Aisle ${i} is on the left and Aisle ${a} is on the right.`
+            : `Aisle 21 is on the left and the FLOOR open-storage area is on the right.`,
+          x = [];
+        x.push(`<svg class="atlas-paired-map-svg" viewBox="0 0 600 ${h}" role="img" aria-labelledby="${d}-title ${d}-desc">`);
+        x.push(`<title id="${d}-title">Picker map for ${a ? `Aisles ${i} and ${a}` : `Aisle 21 and FLOOR`}, selected ${n}${atlasEscapeMapText(r)}</title>`);
+        x.push(`<desc id="${d}-desc">${v} The center forklift aisle meets every horizontal driveway in an equal four-way intersection. Enter from the Main Forklift Driveway and follow the highlighted route to ${n}${atlasEscapeMapText(r)}.</desc>`);
+        x.push(`<defs>
+          <linearGradient id="${d}-selected" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2148c7"></stop><stop offset="0.52" stop-color="#1c3fb3"></stop><stop offset="1" stop-color="#163397"></stop></linearGradient>
+          <linearGradient id="${d}-drive" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#717a89"></stop><stop offset="1" stop-color="#60697a"></stop></linearGradient>
+          <linearGradient id="${d}-main" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1930"></stop><stop offset="1" stop-color="#051427"></stop></linearGradient>
+          <linearGradient id="${d}-lane" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5f8fb"></stop><stop offset="1" stop-color="#e5eaf1"></stop></linearGradient>
+          <linearGradient id="${d}-junction" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8d99a9"></stop><stop offset="1" stop-color="#748194"></stop></linearGradient>
+          <filter id="${d}-target-shadow" x="-30%" y="-20%" width="160%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#173fae" flood-opacity="0.18"></feDropShadow></filter>
+          <filter id="${d}-route-glow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#2478f3" flood-opacity="0.3"></feDropShadow></filter>
+          <marker id="${d}-route-head" markerWidth="34" markerHeight="34" refX="30" refY="17" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L32,17 L0,34 Z" fill="#2478f3"></path></marker>
+          <marker id="${d}-route-halo" markerWidth="42" markerHeight="42" refX="37" refY="21" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L39,21 L0,42 Z" fill="#ffffff"></path></marker>
+        </defs>`);
+        x.push(`<rect class="atlas-paired-shell" x="4" y="4" width="592" height="${h - 8}" rx="23"></rect>`);
+        x.push(`<text class="atlas-paired-back-label" x="300" y="28">BACK OF AISLES</text><path class="atlas-paired-back-arrow" d="M300 50V36M292 44l8-9 8 9"></path>`);
+        x.push(`<rect class="atlas-paired-column-head" x="36" y="58" width="190" height="38" rx="10"></rect><text class="atlas-paired-column-label" x="131" y="82">AISLE ${i} · LEFT</text>`);
+        x.push(`<rect class="atlas-paired-column-head" x="245" y="58" width="110" height="38" rx="10"></rect><text class="atlas-paired-column-label atlas-paired-column-label--center" x="300" y="81">MAIN AISLE</text>`);
+        x.push(`<rect class="atlas-paired-column-head" x="374" y="58" width="190" height="38" rx="10"></rect><text class="atlas-paired-column-label" x="469" y="82">${a ? `AISLE ${a} · RIGHT` : `FLOOR · RIGHT`}</text>`);
+        const w = c[0].y,
+          k = c[c.length - 1].y + c[c.length - 1].height;
+        x.push(`<rect class="atlas-paired-main-aisle" x="245" y="${w}" width="110" height="${k - w}" rx="16" fill="url(#${d}-lane)"></rect>`);
+        x.push(`<path class="atlas-paired-center-line" d="M300 ${k - 18}V${w + 18}"></path>`);
+        if (!a) {
+          x.push(`<rect class="atlas-paired-open-storage" x="374" y="${w + 8}" width="190" height="${k - w - 16}" rx="16"></rect>`);
+          const e = c.find(
+              (e) => e.type === `section` && e.section === `C`,
+            ),
+            t = e ? e.y + e.height / 2 : (w + k) / 2;
+          x.push(`<text class="atlas-paired-open-title" x="469" y="${t - 8}">FLOOR</text><text class="atlas-paired-open-copy" x="469" y="${t + 15}">OPEN STORAGE</text>`);
+        }
+        c.filter((e) => e.type === `section`).forEach((e) => {
+          const t = o.includes(e.section),
+            l = a && s.includes(e.section),
+            c = n === i && r === e.section,
+            u = n === a && r === e.section,
+            h = e.y + 8,
+            p = e.height - 16,
+            m = e.y + e.height / 2;
+          if (t) {
+            x.push(`<rect class="atlas-paired-rack${c ? ` is-selected` : ``}" x="36" y="${h}" width="190" height="${p}" rx="16"${c ? ` fill="url(#${d}-selected)" filter="url(#${d}-target-shadow)"` : ``}></rect>`);
+            x.push(`<text class="atlas-paired-section-code${c ? ` is-selected` : ``}" x="131" y="${m - 2}">${i}${e.section}</text><text class="atlas-paired-section-meta${c ? ` is-selected` : ``}" x="131" y="${m + 30}">SECTION ${e.section}</text>`);
+          }
+          if (l) {
+            x.push(`<rect class="atlas-paired-rack${u ? ` is-selected` : ``}" x="374" y="${h}" width="190" height="${p}" rx="16"${u ? ` fill="url(#${d}-selected)" filter="url(#${d}-target-shadow)"` : ``}></rect>`);
+            x.push(`<text class="atlas-paired-section-code${u ? ` is-selected` : ``}" x="469" y="${m - 2}">${a}${e.section}</text><text class="atlas-paired-section-meta${u ? ` is-selected` : ``}" x="469" y="${m + 30}">SECTION ${e.section}</text>`);
+          }
+        });
+        c.filter((e) => e.type === `driveway`).forEach((e) => {
+          const t = e.kind === `main` ? `${d}-main` : `${d}-drive`,
+            n = e.y + e.height / 2,
+            r = e.kind === `main` ? `MAIN FORKLIFT` : `FORKLIFT`,
+            i = e.kind === `main` ? `DRIVEWAY` : e.label.replace(`FORKLIFT `, ``);
+          x.push(`<rect class="atlas-paired-drive-arm" x="12" y="${e.y}" width="233" height="${e.height}" rx="12" fill="url(#${t})"></rect><rect class="atlas-paired-drive-arm" x="355" y="${e.y}" width="233" height="${e.height}" rx="12" fill="url(#${t})"></rect>`);
+          x.push(`<rect class="atlas-paired-junction" x="240" y="${e.y - 4}" width="120" height="${e.height + 8}" fill="url(#${d}-junction)"></rect>`);
+          x.push(`<text class="atlas-paired-drive-label" x="126" y="${n + 5}">${r}</text><text class="atlas-paired-drive-label" x="474" y="${n + 5}">${i}</text>`);
+          x.push(`<g class="atlas-paired-four-way" transform="translate(300 ${n})"><path d="M-30 0H30M-23-7l-8 7 8 7M23-7l8 7-8 7M0-20V20M-7-13l7-8 7 8M-7 13l7 8 7-8"></path></g>`);
+        });
+        const S = `M300 ${b} L300 ${y} L${f} ${y}`;
+        x.push(`<path class="atlas-paired-route-halo" d="${S}" marker-end="url(#${d}-route-halo)"></path><path class="atlas-paired-route-line" d="${S}" marker-end="url(#${d}-route-head)" filter="url(#${d}-route-glow)"></path>`);
+        x.push(`<rect class="atlas-paired-entry-badge" x="252" y="${b - 23}" width="96" height="46" rx="23"></rect><text class="atlas-paired-entry-label" x="300" y="${b + 4}">ENTER HERE</text>`);
+        x.push(`<text class="atlas-paired-front-label" x="300" y="${h - 18}">${(a || i) >= 10 ? `FRONT OF AISLES · STAGING` : `FRONT OF AISLES`}</text>`);
+        x.push(`</svg>`);
+        return x.join(``);
+      }
       function rt({ location: e }) {
-        let t = [...Je(Number(e.aisle))].reverse(),
+        let t = Number(e.aisle),
           n = String(e.section).toUpperCase();
         if (Number(e.aisle) === 23)
           return (0, T.jsxs)(`div`, {
@@ -15517,64 +15654,32 @@ Error generating stack: ` +
             ],
           });
         }
+        const r = t === 21 ? 21 : t % 2 === 0 ? t - 1 : t,
+          i = t === 21 ? null : r + 1,
+          a = i
+            ? `Aisles ${r} & ${i} warehouse layout`
+            : `Aisle 21 & Floor warehouse layout`;
         return (0, T.jsxs)(`div`, {
-          className: `map-panel`,
+          className: `map-panel atlas-paired-map-panel`,
           children: [
             (0, T.jsxs)(`div`, {
-              className: `map-title`,
+              className: `map-title atlas-paired-map-title`,
               children: [
-                (0, T.jsxs)(`strong`, {
-                  children: [`Aisle `, e.aisle, ` warehouse layout`],
+                (0, T.jsx)(`strong`, { children: a }),
+                (0, T.jsxs)(`span`, {
+                  children: [`Selected: `, t, n],
                 }),
-                (0, T.jsxs)(`span`, { children: [`Selected: `, n] }),
               ],
             }),
-            (0, T.jsxs)(`div`, {
-              className: `aisle-map`,
-              children: [
-                (0, T.jsx)(`div`, {
-                  className: `map-stack`,
-                  children: t.map((r, i) =>
-                    (0, T.jsxs)(
-                      `div`,
-                      {
-                        children: [
-                          (0, T.jsx)(`div`, {
-                            className: `map-section ${n === r ? `active` : ``}`,
-                            children: r,
-                          }),
-                          i < t.length - 1
-                            ? (0, T.jsx)(`div`, {
-                                className: `drive-lane ${i === t.length - 2 && Number(e.aisle) < 10 ? `main` : ``}`,
-                                children:
-                                  i === t.length - 2 && Number(e.aisle) < 10
-                                    ? `MAIN FORKLIFT DRIVEWAY`
-                                    : `FORKLIFT DRIVEWAY ${
-                                        Number(e.aisle) < 10
-                                          ? t.length - 1 - i
-                                          : t.length - i
-                                      }`,
-                              })
-                            : null,
-                        ],
-                      },
-                      r,
-                    ),
-                  ),
-                }),
-                (0, T.jsxs)(`div`, {
-                  className: `orientation`,
-                  children: [
-                    (0, T.jsxs)(`span`, {
-                      children: [`Back`, (0, T.jsx)(`br`, {}), `of Aisle`],
-                    }),
-                    (0, T.jsx)(`span`, { className: `orientation-line` }),
-                    (0, T.jsxs)(`span`, {
-                      children: [`Front`, (0, T.jsx)(`br`, {}), `of Aisle`],
-                    }),
-                  ],
-                }),
-              ],
+            (0, T.jsx)(`div`, {
+              className: `atlas-paired-picker-note`,
+              children: `PICKER VIEW · ENTER FROM MAIN FORKLIFT DRIVEWAY`,
+            }),
+            (0, T.jsx)(`div`, {
+              className: `atlas-paired-map-frame`,
+              dangerouslySetInnerHTML: {
+                __html: atlasBuildPairedMapSvg(t, n),
+              },
             }),
           ],
         });
@@ -20628,6 +20733,202 @@ Error generating stack: ` +
         border-color: #1c2f48;
       }
 
+      /* Paired picker-view warehouse map */
+      .atlas-paired-map-panel {
+        overflow: visible;
+      }
+      .atlas-paired-map-title strong {
+        color: #071a38;
+        font-size: 14px;
+        font-weight: 950;
+      }
+      .atlas-paired-map-title span {
+        color: #1d58c9;
+        font-size: 11px;
+        font-weight: 900;
+      }
+      .atlas-paired-picker-note {
+        margin: 4px 0 9px;
+        color: #68758a;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-align: center;
+      }
+      .atlas-paired-map-frame {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto;
+      }
+      .atlas-paired-map-svg {
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        display: block;
+        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+      .atlas-paired-shell {
+        fill: #fff;
+        stroke: #d5dbe5;
+        stroke-width: 1.5;
+        vector-effect: non-scaling-stroke;
+        filter: drop-shadow(0 5px 9px rgba(10, 29, 56, 0.08));
+      }
+      .atlas-paired-back-label,
+      .atlas-paired-front-label,
+      .atlas-paired-column-label,
+      .atlas-paired-drive-label,
+      .atlas-paired-entry-label,
+      .atlas-paired-open-title,
+      .atlas-paired-open-copy,
+      .atlas-paired-section-code,
+      .atlas-paired-section-meta {
+        text-anchor: middle;
+      }
+      .atlas-paired-back-label,
+      .atlas-paired-front-label {
+        fill: #071a38;
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.04em;
+      }
+      .atlas-paired-back-arrow {
+        fill: none;
+        stroke: #071a38;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .atlas-paired-column-head {
+        fill: #f0f4f8;
+        stroke: #d9e0ea;
+        stroke-width: 1;
+      }
+      .atlas-paired-column-label {
+        fill: #071a38;
+        font-size: 11.5px;
+        font-weight: 950;
+      }
+      .atlas-paired-column-label--center {
+        fill: #536176;
+        font-size: 9.5px;
+        letter-spacing: 0.04em;
+      }
+      .atlas-paired-main-aisle {
+        stroke: #cdd5e0;
+        stroke-width: 1.5;
+        vector-effect: non-scaling-stroke;
+      }
+      .atlas-paired-center-line {
+        fill: none;
+        stroke: #a9b5c5;
+        stroke-width: 2.5;
+        stroke-dasharray: 9 9;
+        stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+      }
+      .atlas-paired-rack:not(.is-selected) {
+        fill: #fff;
+      }
+      .atlas-paired-rack {
+        stroke: #d2d6df;
+        stroke-width: 1.5;
+        vector-effect: non-scaling-stroke;
+      }
+      .atlas-paired-rack.is-selected {
+        stroke: #163397;
+        stroke-width: 1.75;
+      }
+      .atlas-paired-section-code {
+        fill: #071a38;
+        font-size: 34px;
+        font-weight: 950;
+        letter-spacing: -0.02em;
+      }
+      .atlas-paired-section-meta {
+        fill: #68758a;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.09em;
+      }
+      .atlas-paired-section-code.is-selected,
+      .atlas-paired-section-meta.is-selected {
+        fill: #fff;
+      }
+      .atlas-paired-drive-label {
+        fill: #fff;
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.07em;
+      }
+      .atlas-paired-four-way path {
+        fill: none;
+        stroke: #fff;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        opacity: 0.74;
+        vector-effect: non-scaling-stroke;
+      }
+      .atlas-paired-route-halo,
+      .atlas-paired-route-line {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+      }
+      .atlas-paired-route-halo {
+        stroke: #fff;
+        stroke-width: 13;
+        opacity: 0.96;
+      }
+      .atlas-paired-route-line {
+        stroke: #2478f3;
+        stroke-width: 7;
+      }
+      .atlas-paired-entry-badge {
+        fill: #071a38;
+        stroke: #fff;
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+      }
+      .atlas-paired-entry-label {
+        fill: #fff;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.12em;
+      }
+      .atlas-paired-open-storage {
+        fill: #f5f7fa;
+        stroke: #cbd4df;
+        stroke-width: 1.5;
+        stroke-dasharray: 7 6;
+        vector-effect: non-scaling-stroke;
+      }
+      .atlas-paired-open-title {
+        fill: #263d5a;
+        font-size: 21px;
+        font-weight: 950;
+      }
+      .atlas-paired-open-copy {
+        fill: #68758a;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+      }
+
+      @media (max-width: 390px) {
+        .atlas-paired-map-title {
+          align-items: flex-start;
+          gap: 8px;
+        }
+        .atlas-paired-map-title strong {
+          max-width: 72%;
+          line-height: 1.18;
+        }
+      }
+
       /* Browse Aisles */
       .aisle-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -23243,54 +23544,70 @@ Error generating stack: ` +
             <span><small>PICK LOCATION</small><strong>AISLE 4</strong><em>SECTION A</em></span>
             <b>4A</b>
           </div>
-          <div class="atlas-story-ui atlas-story-ui--map" role="img" aria-label="ATLAS Aisle 4 warehouse layout shown from back to front: Section D, forklift driveway 3, Section C, forklift driveway 2, Section B, the main forklift driveway, and selected Section A">
+          <div class="atlas-story-ui atlas-story-ui--map" role="img" aria-label="ATLAS paired picker map for Aisles 3 and 4. Aisle 3 is on the left, Aisle 4 is on the right, the center aisle meets each forklift driveway in a shared four-way intersection, and 4A is selected from the Main Forklift Driveway entry.">
             <svg class="atlas-story-warehouse-plan" viewBox="0 0 240 112" aria-hidden="true">
               <defs>
-                <linearGradient id="atlasStorySelectedA" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stop-color="#0876ff"></stop>
-                  <stop offset="1" stop-color="#0646b8"></stop>
+                <linearGradient id="atlasStoryPairedSelected" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#2148c7"></stop>
+                  <stop offset="1" stop-color="#163397"></stop>
                 </linearGradient>
-                <linearGradient id="atlasStoryDrive" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0" stop-color="#0b2342"></stop>
-                  <stop offset="1" stop-color="#061a33"></stop>
+                <linearGradient id="atlasStoryPairedLane" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#f5f8fb"></stop>
+                  <stop offset="1" stop-color="#e5eaf1"></stop>
                 </linearGradient>
-                <marker id="atlasStoryArrow" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse">
-                  <path d="M0,0 L5,2.5 L0,5 Z" fill="#102846"></path>
+                <linearGradient id="atlasStoryPairedMain" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#0a1930"></stop>
+                  <stop offset="1" stop-color="#051427"></stop>
+                </linearGradient>
+                <linearGradient id="atlasStoryPairedJunction" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#8d99a9"></stop>
+                  <stop offset="1" stop-color="#748194"></stop>
+                </linearGradient>
+                <marker id="atlasStoryPairedRoute" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                  <path d="M0,0 L6,3 L0,6 Z" fill="#2478f3"></path>
                 </marker>
               </defs>
-              <rect class="atlas-story-plan-outline" x="5" y="5" width="230" height="102" rx="9"></rect>
-              <text class="atlas-story-map-title" x="15" y="18">AISLE 4 LAYOUT</text>
-              <rect class="atlas-story-map-selected-pill" x="164" y="9" width="61" height="13" rx="6.5"></rect>
-              <text class="atlas-story-map-selected-text" x="194.5" y="17.8">SELECTED: A</text>
+              <rect class="atlas-story-plan-outline" x="3" y="3" width="234" height="106" rx="9"></rect>
+              <text class="atlas-story-map-title" x="11" y="13">AISLES 3 &amp; 4</text>
+              <text class="atlas-story-paired-orientation" x="120" y="13">↑ BACK</text>
+              <rect class="atlas-story-map-selected-pill" x="184" y="6" width="46" height="10" rx="5"></rect>
+              <text class="atlas-story-map-selected-text" x="207" y="13.1">4A</text>
 
-              <g class="atlas-story-map-stack">
-                <rect class="atlas-story-map-section" x="15" y="26" width="170" height="11" rx="3"></rect>
-                <text class="atlas-story-map-section-label" x="100" y="34.5">D</text>
+              <text class="atlas-story-paired-head" x="51" y="23">3 · LEFT</text>
+              <text class="atlas-story-paired-head atlas-story-paired-head--center" x="120" y="23">MAIN</text>
+              <text class="atlas-story-paired-head" x="189" y="23">4 · RIGHT</text>
 
-                <rect class="atlas-story-map-drive" x="15" y="39" width="170" height="6" rx="2"></rect>
-                <text class="atlas-story-map-drive-label atlas-story-map-drive-label--small" x="100" y="43.7">FORKLIFT DRIVEWAY 3</text>
+              <rect class="atlas-story-paired-lane" x="101" y="26" width="38" height="78" rx="4" fill="url(#atlasStoryPairedLane)"></rect>
+              <path class="atlas-story-paired-centerline" d="M120 29V102"></path>
 
-                <rect class="atlas-story-map-section" x="15" y="47" width="170" height="11" rx="3"></rect>
-                <text class="atlas-story-map-section-label" x="100" y="55.5">C</text>
-
-                <rect class="atlas-story-map-drive" x="15" y="60" width="170" height="6" rx="2"></rect>
-                <text class="atlas-story-map-drive-label atlas-story-map-drive-label--small" x="100" y="64.7">FORKLIFT DRIVEWAY 2</text>
-
-                <rect class="atlas-story-map-section" x="15" y="68" width="170" height="11" rx="3"></rect>
-                <text class="atlas-story-map-section-label" x="100" y="76.5">B</text>
-
-                <rect class="atlas-story-map-drive atlas-story-map-drive--main" x="15" y="81" width="170" height="8" rx="2.5"></rect>
-                <text class="atlas-story-map-drive-label" x="100" y="87">MAIN FORKLIFT DRIVEWAY</text>
-
-                <rect class="atlas-story-map-section atlas-story-map-section--active" x="15" y="91" width="170" height="14" rx="3.5"></rect>
-                <text class="atlas-story-map-section-label atlas-story-map-section-label--active" x="100" y="101">A</text>
+              <g class="atlas-story-paired-racks">
+                <rect x="10" y="26" width="82" height="14" rx="3"></rect><text x="51" y="35">3D</text>
+                <rect x="148" y="26" width="82" height="14" rx="3"></rect><text x="189" y="35">4D</text>
+                <rect x="10" y="46" width="82" height="14" rx="3"></rect><text x="51" y="55">3C</text>
+                <rect x="148" y="46" width="82" height="14" rx="3"></rect><text x="189" y="55">4C</text>
+                <rect x="10" y="66" width="82" height="14" rx="3"></rect><text x="51" y="75">3B</text>
+                <rect x="148" y="66" width="82" height="14" rx="3"></rect><text x="189" y="75">4B</text>
+                <rect x="10" y="88" width="82" height="16" rx="3"></rect><text x="51" y="98">3A</text>
+                <rect class="atlas-story-paired-selected" x="148" y="88" width="82" height="16" rx="3" fill="url(#atlasStoryPairedSelected)"></rect><text class="atlas-story-paired-selected-label" x="189" y="98">4A</text>
               </g>
 
-              <g class="atlas-story-map-direction">
-                <text x="211" y="31">BACK</text>
-                <line x1="211" y1="39" x2="211" y2="91" marker-start="url(#atlasStoryArrow)" marker-end="url(#atlasStoryArrow)"></line>
-                <text x="211" y="103">FRONT</text>
+              <g class="atlas-story-paired-drives">
+                <rect x="6" y="40" width="95" height="6" rx="2"></rect><rect x="139" y="40" width="95" height="6" rx="2"></rect>
+                <rect x="6" y="60" width="95" height="6" rx="2"></rect><rect x="139" y="60" width="95" height="6" rx="2"></rect>
+                <rect class="atlas-story-paired-main" x="6" y="80" width="95" height="8" rx="2"></rect><rect class="atlas-story-paired-main" x="139" y="80" width="95" height="8" rx="2"></rect>
               </g>
+              <g class="atlas-story-paired-junctions">
+                <rect x="99" y="39" width="42" height="8" fill="url(#atlasStoryPairedJunction)"></rect>
+                <path d="M108 43h24M120 40v6"></path>
+                <rect x="99" y="59" width="42" height="8" fill="url(#atlasStoryPairedJunction)"></rect>
+                <path d="M108 63h24M120 60v6"></path>
+                <rect x="99" y="79" width="42" height="10" fill="url(#atlasStoryPairedJunction)"></rect>
+              </g>
+              <path class="atlas-story-paired-route-halo" d="M120 84V96H160"></path>
+              <path class="atlas-story-paired-route" d="M120 84V96H160" marker-end="url(#atlasStoryPairedRoute)"></path>
+              <rect class="atlas-story-paired-entry" x="108" y="81" width="24" height="6" rx="3"></rect>
+              <text class="atlas-story-paired-entry-label" x="120" y="85.4">ENTRY</text>
+              <text class="atlas-story-paired-front" x="120" y="108">FRONT</text>
             </svg>
           </div>
         </div>
@@ -25661,6 +25978,12 @@ Error generating stack: ` +
           cubic-bezier(0.22, 1, 0.36, 1) both;
         transform-origin: center;
       }
+      .map-panel.atlas-map-location-change .atlas-paired-rack.is-selected {
+        animation: atlas-map-section-change 280ms
+          cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
       .result-card .location-entry:not(.selected) > .location-card:active .location-badge {
         transform: scale(0.96);
       }
@@ -25728,7 +26051,8 @@ Error generating stack: ` +
         .atlas-location-hero.atlas-location-change .atlas-location-section,
         .atlas-location-hero.atlas-location-change .atlas-location-code,
         .map-panel.atlas-map-location-change .map-title span,
-        .map-panel.atlas-map-location-change .map-section.active {
+        .map-panel.atlas-map-location-change .map-section.active,
+        .map-panel.atlas-map-location-change .atlas-paired-rack.is-selected {
           animation: none;
         }
         .result-card .location-entry.atlas-wallet-in-flight {
@@ -25907,7 +26231,9 @@ Error generating stack: ` +
               if (!reduceMotion.matches) {
                 window.setTimeout(() => {
                   const activeSection =
-                    mapPanel?.querySelector(".map-section.active");
+                    mapPanel?.querySelector(
+                      ".map-section.active, .atlas-paired-rack.is-selected",
+                    );
                   if (!activeSection) return;
                   const viewportHeight =
                     window.visualViewport?.height || window.innerHeight;
@@ -29013,6 +29339,103 @@ Error generating stack: ` +
         stroke: #102846;
         stroke-width: 1.5;
         stroke-linecap: round;
+      }
+      .atlas-story-paired-orientation,
+      .atlas-story-paired-head,
+      .atlas-story-paired-front {
+        fill: #102846;
+        text-anchor: middle;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-weight: 950;
+      }
+      .atlas-story-paired-orientation {
+        font-size: 4.6px;
+        letter-spacing: 0.35px;
+      }
+      .atlas-story-paired-head {
+        font-size: 4.6px;
+        letter-spacing: 0.25px;
+      }
+      .atlas-story-paired-head--center {
+        fill: #68758a;
+        font-size: 3.8px;
+      }
+      .atlas-story-paired-front {
+        font-size: 3.8px;
+        letter-spacing: 0.35px;
+      }
+      .atlas-story-paired-lane {
+        stroke: #c5d1df;
+        stroke-width: 0.8;
+      }
+      .atlas-story-paired-centerline {
+        fill: none;
+        stroke: #a9b5c5;
+        stroke-width: 0.8;
+        stroke-dasharray: 3 2.4;
+      }
+      .atlas-story-paired-racks rect:not(.atlas-story-paired-selected) {
+        fill: #fff;
+      }
+      .atlas-story-paired-racks rect {
+        stroke: #c1cfdf;
+        stroke-width: 0.75;
+      }
+      .atlas-story-paired-racks text {
+        fill: #071b40;
+        text-anchor: middle;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 5.8px;
+        font-weight: 950;
+      }
+      .atlas-story-paired-racks .atlas-story-paired-selected {
+        stroke: #163397;
+        stroke-width: 0.9;
+        filter: drop-shadow(0 1px 1.5px rgba(6, 71, 174, 0.2));
+      }
+      .atlas-story-paired-racks .atlas-story-paired-selected-label {
+        fill: #fff;
+        font-size: 6.3px;
+      }
+      .atlas-story-paired-drives rect {
+        fill: #69798d;
+      }
+      .atlas-story-paired-drives .atlas-story-paired-main {
+        fill: url(#atlasStoryPairedMain);
+      }
+      .atlas-story-paired-junctions path {
+        fill: none;
+        stroke: #fff;
+        stroke-width: 0.75;
+        stroke-linecap: round;
+        opacity: 0.76;
+      }
+      .atlas-story-paired-route-halo,
+      .atlas-story-paired-route {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .atlas-story-paired-route-halo {
+        stroke: #fff;
+        stroke-width: 3.7;
+      }
+      .atlas-story-paired-route {
+        stroke: #2478f3;
+        stroke-width: 2;
+      }
+      .atlas-story-paired-entry {
+        fill: #071a38;
+        stroke: #fff;
+        stroke-width: 0.65;
+      }
+      .atlas-story-paired-entry-label {
+        fill: #fff;
+        text-anchor: middle;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        font-size: 2.55px;
+        font-weight: 950;
+        letter-spacing: 0.25px;
       }
       .atlas-story-builder {
         position: relative;
