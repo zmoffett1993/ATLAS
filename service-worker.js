@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v96-paired-picker-four-way-map";
+const VERSION = "atlas-pwa-v97-official-brand-system";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -16,6 +16,12 @@ const APP_SHELL = [
   "./atlas-warehouse-management.png",
   "./atlas-home-logo-v2.png",
   "./atlas-home-lockup-v3.png",
+  "./atlas-brand-portrait-light.svg?v=97",
+  "./atlas-brand-portrait-dark.svg?v=97",
+  "./atlas-brand-landscape-light.svg?v=97",
+  "./atlas-brand-landscape-dark.svg?v=97",
+  "./atlas-brand-mark-light.svg?v=97",
+  "./atlas-brand-mark-dark.svg?v=97",
   "./atlas-menu-warehouse-v1.webp?v=87",
   "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-header-v2.png",

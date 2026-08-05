@@ -30122,7 +30122,14 @@ Error generating stack: ` +
       }
     </style>
 </head>
-  <body>
+  <body class="atlas-splash-active">
+    <div id="atlas-brand-splash" role="status" aria-label="ATLAS Warehouse Management is opening">
+      <div class="atlas-brand-splash__inner">
+        <img src="./atlas-brand-portrait-dark.svg" alt="ATLAS Warehouse Management" />
+        <p>Excellence. Delivered.</p>
+        <span class="atlas-brand-splash__glow" aria-hidden="true"></span>
+      </div>
+    </div>
     <div id="root"></div>
   
     <style id="atlas-v1-0-2e1-motion-interaction">
@@ -31583,6 +31590,346 @@ Error generating stack: ` +
         });
         window.addEventListener("DOMContentLoaded", queue);
         queue();
+      })();
+    </script>
+
+
+    <style id="atlas-official-brand-system-v1">
+      :root {
+        --atlas-brand-navy: #061936;
+        --atlas-brand-blue: #086bff;
+      }
+
+      body.atlas-splash-active {
+        overflow: hidden;
+      }
+      #atlas-brand-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483646;
+        display: grid;
+        place-items: center;
+        min-height: 100dvh;
+        padding:
+          calc(30px + env(safe-area-inset-top))
+          24px
+          calc(30px + env(safe-area-inset-bottom));
+        overflow: hidden;
+        color: #fff;
+        background:
+          radial-gradient(circle at 50% 61%, rgba(8, 107, 255, 0.16), transparent 31%),
+          radial-gradient(circle at 50% -12%, rgba(44, 123, 255, 0.12), transparent 34%),
+          linear-gradient(155deg, #031023 0%, #061936 52%, #031126 100%);
+        opacity: 1;
+        visibility: visible;
+        transition:
+          opacity 380ms cubic-bezier(0.22, 1, 0.36, 1),
+          visibility 0s linear 380ms;
+        isolation: isolate;
+      }
+      #atlas-brand-splash::before,
+      #atlas-brand-splash::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      #atlas-brand-splash::before {
+        opacity: 0.19;
+        background-image: repeating-linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.018) 0 1px,
+          transparent 1px 7px
+        );
+      }
+      #atlas-brand-splash::after {
+        background:
+          linear-gradient(118deg, transparent 0 68%, rgba(69, 129, 223, 0.055) 68.15% 68.35%, transparent 68.5%),
+          linear-gradient(62deg, transparent 0 73%, rgba(69, 129, 223, 0.04) 73.15% 73.35%, transparent 73.5%);
+      }
+      #atlas-brand-splash.is-leaving {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .atlas-brand-splash__inner {
+        width: min(78vw, 410px);
+        transform: translateY(-1.8vh);
+        text-align: center;
+        animation: atlas-brand-splash-arrive 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .atlas-brand-splash__inner img {
+        display: block;
+        width: 100%;
+        height: auto;
+        filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.18));
+      }
+      .atlas-brand-splash__inner p {
+        margin: clamp(17px, 3vh, 28px) 0 0;
+        color: rgba(255, 255, 255, 0.82);
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        font-size: clamp(16px, 4.3vw, 22px);
+        font-style: italic;
+        font-weight: 300;
+        line-height: 1.2;
+        letter-spacing: 0.14em;
+      }
+      .atlas-brand-splash__glow {
+        display: block;
+        width: min(80%, 310px);
+        height: 2px;
+        margin: clamp(54px, 8vh, 82px) auto 0;
+        background: linear-gradient(90deg, transparent, #0872ff 37%, #9de4ff 50%, #0872ff 63%, transparent);
+        box-shadow:
+          0 0 9px rgba(8, 107, 255, 0.9),
+          0 0 22px rgba(8, 107, 255, 0.56);
+        border-radius: 999px;
+        opacity: 0.88;
+      }
+      @keyframes atlas-brand-splash-arrive {
+        from { opacity: 0; transform: translateY(calc(-1.8vh + 10px)) scale(0.985); }
+        to { opacity: 1; transform: translateY(-1.8vh) scale(1); }
+      }
+
+      /* Official logo hierarchy: portrait on Home, landscape on workspaces. */
+      .brand-header[data-atlas-brand-layout="portrait"] .atlas-logo-window {
+        width: min(82%, 330px) !important;
+        aspect-ratio: 640 / 600 !important;
+      }
+      .brand-header[data-atlas-brand-layout="landscape"] .atlas-logo-window {
+        width: min(100%, 620px) !important;
+        aspect-ratio: 1280 / 380 !important;
+      }
+      .brand-header[data-atlas-brand-layout="portrait"] .brand-title {
+        margin-top: 8px !important;
+      }
+      .brand-header[data-atlas-brand-layout="landscape"] .brand-title {
+        margin-top: 5px !important;
+      }
+      .brand-header[data-atlas-brand-layout="landscape"] {
+        padding-bottom: 14px;
+      }
+      .atlas-logo-window img[data-atlas-official-brand="true"] {
+        image-rendering: auto;
+      }
+
+      /* Official landscape lockup over the existing menu hero image. */
+      .atlas-menu-lockup {
+        aspect-ratio: 1280 / 380 !important;
+        background-image: url("./atlas-brand-landscape-dark.svg") !important;
+        background-position: left center !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+      }
+
+      /* About-page hero and structure remain untouched; only its brand mark is standardized. */
+      .atlas-story-brand-signature {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 285px);
+        margin: 0 auto;
+        text-align: center;
+      }
+      .atlas-story-brand-signature .atlas-story-builder-mark {
+        width: 100% !important;
+        max-width: none;
+        margin: 0 auto !important;
+        filter: drop-shadow(0 22px 34px rgba(5, 57, 125, 0.14));
+      }
+      .atlas-story-brand-promise {
+        margin: 14px 0 0;
+        color: #607795;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        font-size: clamp(10px, 1.7vw, 13px);
+        font-style: italic;
+        font-weight: 350;
+        letter-spacing: 0.12em;
+      }
+
+      /* Restrained icon-only branding for supporting states. */
+      .welcome-icon {
+        color: transparent !important;
+        font-size: 0 !important;
+        background-color: #eaf1ff !important;
+        background-image: url("./atlas-brand-mark-light.svg") !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        background-size: 35px 35px !important;
+      }
+      .atlas-empty-brand-mark {
+        display: block !important;
+        width: 39px;
+        height: 39px;
+        margin: 0 auto 12px;
+        object-fit: contain;
+      }
+      .atlas-scanner-brand-mark {
+        flex: 0 0 auto;
+        width: 35px;
+        height: 35px;
+        margin-top: 1px;
+        object-fit: contain;
+      }
+      .scanner-modal .modal-head > div {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      @media (max-width: 430px) {
+        .brand-header[data-atlas-brand-layout="portrait"] .atlas-logo-window {
+          width: min(86%, 285px) !important;
+        }
+        .brand-header[data-atlas-brand-layout="landscape"] .atlas-logo-window {
+          width: 100% !important;
+        }
+        .atlas-story-brand-signature {
+          width: min(100%, 175px);
+          margin-right: 0;
+        }
+        .atlas-story-brand-promise {
+          margin-top: 9px;
+          font-size: 8px;
+          letter-spacing: 0.095em;
+        }
+        .atlas-brand-splash__inner {
+          width: min(82vw, 350px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #atlas-brand-splash,
+        .atlas-brand-splash__inner {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+    <script id="atlas-official-brand-system-v1-script">
+      (() => {
+        const BRAND_VERSION = "97";
+        const ASSETS = {
+          portraitLight: `./atlas-brand-portrait-light.svg?v=${BRAND_VERSION}`,
+          portraitDark: `./atlas-brand-portrait-dark.svg?v=${BRAND_VERSION}`,
+          landscapeLight: `./atlas-brand-landscape-light.svg?v=${BRAND_VERSION}`,
+          landscapeDark: `./atlas-brand-landscape-dark.svg?v=${BRAND_VERSION}`,
+          markLight: `./atlas-brand-mark-light.svg?v=${BRAND_VERSION}`,
+        };
+
+        const splash = document.getElementById("atlas-brand-splash");
+        const dismissSplash = () => {
+          if (!splash || splash.dataset.dismissed === "true") return;
+          splash.dataset.dismissed = "true";
+          splash.classList.add("is-leaving");
+          splash.setAttribute("aria-hidden", "true");
+          document.body.classList.remove("atlas-splash-active");
+          window.setTimeout(() => splash.remove(), 430);
+        };
+        window.setTimeout(dismissSplash, 2000);
+
+        let queued = false;
+        const activeView = () => {
+          const label = document
+            .querySelector(".bottom-nav button.active")
+            ?.textContent?.trim()
+            .toLowerCase() || "home";
+          if (label.includes("browse")) return "aisles";
+          if (label.includes("inventory")) return "inventory";
+          return "home";
+        };
+
+        const applyHeaderBrand = () => {
+          const header = document.querySelector(".brand-header");
+          const image = document.querySelector(".atlas-logo-window img");
+          if (!header || !image) return;
+          const view = activeView();
+          const isHome = view === "home";
+          const src = isHome ? ASSETS.portraitLight : ASSETS.landscapeLight;
+          if (!image.src.includes(src.split("?")[0].replace("./", ""))) {
+            image.src = src;
+          }
+          image.alt = isHome
+            ? "ATLAS Warehouse Management"
+            : `ATLAS Warehouse Management — ${view === "aisles" ? "Browse Aisles" : "Inventory"}`;
+          image.dataset.atlasOfficialBrand = "true";
+          header.dataset.atlasBrandLayout = isHome ? "portrait" : "landscape";
+        };
+
+        const applyMenuBrand = () => {
+          const menuLockup = document.querySelector(".atlas-menu-lockup");
+          if (!menuLockup) return;
+          menuLockup.setAttribute("aria-label", "ATLAS Warehouse Management");
+          menuLockup.dataset.atlasOfficialBrand = "true";
+        };
+
+        const applyAboutBrand = () => {
+          const mark = document.querySelector(".atlas-story-builder-mark");
+          if (!mark) return;
+          mark.src = ASSETS.portraitLight;
+          mark.alt = "ATLAS Warehouse Management";
+          mark.removeAttribute("aria-hidden");
+          if (mark.parentElement?.classList.contains("atlas-story-brand-signature")) return;
+          const wrapper = document.createElement("div");
+          wrapper.className = "atlas-story-brand-signature";
+          const promise = document.createElement("p");
+          promise.className = "atlas-story-brand-promise";
+          promise.textContent = "Excellence. Delivered.";
+          mark.replaceWith(wrapper);
+          wrapper.append(mark, promise);
+        };
+
+        const applyEmptyStateBrand = () => {
+          document.querySelectorAll(".empty-state").forEach((state) => {
+            if (state.querySelector(":scope > .atlas-empty-brand-mark")) return;
+            const mark = document.createElement("img");
+            mark.className = "atlas-empty-brand-mark";
+            mark.src = ASSETS.markLight;
+            mark.alt = "";
+            mark.setAttribute("aria-hidden", "true");
+            state.prepend(mark);
+          });
+        };
+
+        const applyScannerBrand = () => {
+          document.querySelectorAll(".scanner-modal .modal-head").forEach((head) => {
+            if (head.querySelector(":scope > .atlas-scanner-brand-mark")) return;
+            const mark = document.createElement("img");
+            mark.className = "atlas-scanner-brand-mark";
+            mark.src = ASSETS.markLight;
+            mark.alt = "";
+            mark.setAttribute("aria-hidden", "true");
+            head.prepend(mark);
+          });
+        };
+
+        const applyBrandSystem = () => {
+          queued = false;
+          applyHeaderBrand();
+          applyMenuBrand();
+          applyAboutBrand();
+          applyEmptyStateBrand();
+          applyScannerBrand();
+        };
+        const queueBrandSystem = () => {
+          if (queued) return;
+          queued = true;
+          window.requestAnimationFrame(applyBrandSystem);
+        };
+
+        new MutationObserver(queueBrandSystem).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class", "src"],
+        });
+        document.addEventListener("click", (event) => {
+          if (event.target.closest?.(".bottom-nav button, .premium-drawer-link")) {
+            window.setTimeout(queueBrandSystem, 0);
+          }
+        });
+        window.addEventListener("DOMContentLoaded", queueBrandSystem);
+        window.addEventListener("pageshow", queueBrandSystem);
+        queueBrandSystem();
       })();
     </script>
 

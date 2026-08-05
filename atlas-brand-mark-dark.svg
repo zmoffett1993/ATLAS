@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-labelledby="title desc">
+  <title id="title">ATLAS mark</title>
+  <desc id="desc">Geometric ATLAS A mark with blue accent triangle.</desc>
+  <defs>
+    <linearGradient id="atlasBlueGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#20C7FF"/>
+      <stop offset="0.48" stop-color="#086BFF"/>
+      <stop offset="1" stop-color="#143BFF"/>
+    </linearGradient>
+  </defs>
+  <path fill="#FFFFFF" d="M200 24 376 354h-76L200 166 100 354H24L200 24Z"/>
+  <path fill="url(#atlasBlueGradient)" d="m200 222 61 116H139l61-116Z"/>
+</svg>
