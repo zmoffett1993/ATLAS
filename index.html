@@ -14855,6 +14855,24 @@ Error generating stack: ` +
         }
         return M(o);
       }
+      function atlasMergeVoiceTranscriptSegments(e, t) {
+        let n = (Array.isArray(e) ? e : [])
+            .map((e) => String(e || ``).trim())
+            .filter(Boolean),
+          r = (Array.isArray(t) ? t : [])
+            .map((e) => String(e || ``).trim())
+            .filter(Boolean);
+        if (!n.length) return [...new Set(r)].slice(0, 5);
+        if (!r.length) return [...new Set(n)].slice(0, 5);
+        let i = [];
+        for (let e = 0; e < Math.min(Math.max(n.length, r.length), 5); e += 1) {
+          let t = n[e] || n[0],
+            a = r[e] || r[0],
+            o = `${t} ${a}`.trim();
+          o && i.push(o);
+        }
+        return [...new Set(i)].slice(0, 5);
+      }
       function atlasRankVoiceSkuCandidates(e, t) {
         let n = [...new Set(e.map(atlasSpeechSkuFingerprint).filter(Boolean))];
         return t
@@ -14901,6 +14919,8 @@ Error generating stack: ` +
           m = (0, C.useRef)(null),
           atlasSpeechRef = (0, C.useRef)(null),
           atlasVoiceTranscriptsRef = (0, C.useRef)([]),
+          atlasVoiceCommittedTranscriptsRef = (0, C.useRef)([]),
+          atlasVoiceCurrentTranscriptsRef = (0, C.useRef)([]),
           atlasVoiceStopRequestedRef = (0, C.useRef)(!1),
           atlasVoiceFinalizedRef = (0, C.useRef)(!1),
           atlasVoiceStopFallbackRef = (0, C.useRef)(null),
@@ -14937,6 +14957,8 @@ Error generating stack: ` +
             } catch {}
             ((atlasSpeechRef.current = null),
               (atlasVoiceTranscriptsRef.current = []),
+              (atlasVoiceCommittedTranscriptsRef.current = []),
+              (atlasVoiceCurrentTranscriptsRef.current = []),
               (atlasVoiceStopRequestedRef.current = !1),
               (atlasVoiceFinalizedRef.current = !0));
           },
@@ -15018,6 +15040,18 @@ Error generating stack: ` +
             let s = new e(),
               c = atlasVoiceSessionRef.current,
               atlasAndroidRestartScheduled = !1,
+              atlasCommitAndroidVoiceSegment = () => {
+                if (!atlasAndroidVoice) return;
+                let e = atlasVoiceCurrentTranscriptsRef.current;
+                if (!e.length) return;
+                let t = atlasMergeVoiceTranscriptSegments(
+                  atlasVoiceCommittedTranscriptsRef.current,
+                  e,
+                );
+                ((atlasVoiceCommittedTranscriptsRef.current = t),
+                  (atlasVoiceTranscriptsRef.current = t),
+                  (atlasVoiceCurrentTranscriptsRef.current = []));
+              },
               atlasRestartAndroidRecognition = () => {
                 if (
                   !atlasAndroidVoice ||
@@ -15068,6 +15102,8 @@ Error generating stack: ` +
               };
             ((atlasSpeechRef.current = s),
               (atlasVoiceTranscriptsRef.current = []),
+              (atlasVoiceCommittedTranscriptsRef.current = []),
+              (atlasVoiceCurrentTranscriptsRef.current = []),
               (atlasVoiceStopRequestedRef.current = !1),
               (atlasVoiceFinalizedRef.current = !1),
               (atlasVoiceStopFallbackRef.current = null),
@@ -15091,10 +15127,18 @@ Error generating stack: ` +
                   }
                   n.length && s.push(n.join(` `).trim());
                 }
-                s.length &&
-                  (atlasVoiceTranscriptsRef.current = [
+                if (s.length) {
+                  let e = [
                     ...new Set(s.map((e) => String(e || ``).trim()).filter(Boolean)),
-                  ]);
+                  ];
+                  ((atlasVoiceCurrentTranscriptsRef.current = e),
+                    (atlasVoiceTranscriptsRef.current = atlasAndroidVoice
+                      ? atlasMergeVoiceTranscriptSegments(
+                          atlasVoiceCommittedTranscriptsRef.current,
+                          e,
+                        )
+                      : e));
+                }
                 let t = atlasVoiceTranscriptsRef.current[0] || ``;
                 atlasVoiceStopRequestedRef.current
                   ? atlasSetVoiceStatus({
@@ -15124,7 +15168,8 @@ Error generating stack: ` +
                   atlasAndroidVoice &&
                   (e.error === `aborted` || e.error === `no-speech`)
                 ) {
-                  ((atlasSpeechRef.current = null),
+                  (atlasCommitAndroidVoiceSegment(),
+                    (atlasSpeechRef.current = null),
                     atlasRestartAndroidRecognition());
                   return;
                 }
@@ -15149,6 +15194,7 @@ Error generating stack: ` +
               (s.onend = () => {
                 if (c !== atlasVoiceSessionRef.current) return;
                 atlasSpeechRef.current === s && (atlasSpeechRef.current = null);
+                atlasCommitAndroidVoiceSegment();
                 if (atlasVoiceStopRequestedRef.current) {
                   window.setTimeout(
                     () => atlasFinishVoiceSearch(c),

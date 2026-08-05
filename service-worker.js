@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v97-official-brand-system";
+const VERSION = "atlas-pwa-v98-android-voice-toggle";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
