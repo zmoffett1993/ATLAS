@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v101-four-second-premium-splash-white-icon";
+const VERSION = "atlas-pwa-v102-three-point-five-second-premium-splash-white-icon";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
