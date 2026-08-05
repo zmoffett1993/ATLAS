@@ -17118,10 +17118,57 @@ Error generating stack: ` +
               (a.current = null));
           }, []);
         (0, C.useEffect)(() => {
+          const root = document.documentElement,
+            viewport = window.visualViewport,
+            activeElement = document.activeElement,
+            syncViewport = () => {
+              const width = viewport?.width || window.innerWidth,
+                height = viewport?.height || window.innerHeight,
+                offsetTop = viewport?.offsetTop || 0,
+                offsetLeft = viewport?.offsetLeft || 0;
+              (root.style.setProperty(
+                `--atlas-scanner-viewport-width`,
+                `${Math.round(width)}px`,
+              ),
+                root.style.setProperty(
+                  `--atlas-scanner-viewport-height`,
+                  `${Math.round(height)}px`,
+                ),
+                root.style.setProperty(
+                  `--atlas-scanner-offset-top`,
+                  `${Math.round(offsetTop)}px`,
+                ),
+                root.style.setProperty(
+                  `--atlas-scanner-offset-left`,
+                  `${Math.round(offsetLeft)}px`,
+                ));
+            };
+          (typeof activeElement?.blur == `function` && activeElement.blur(),
+            root.classList.add(`atlas-scanner-open`),
+            document.body.classList.add(`atlas-scanner-open`),
+            syncViewport(),
+            viewport?.addEventListener(`resize`, syncViewport),
+            viewport?.addEventListener(`scroll`, syncViewport),
+            window.addEventListener(`orientationchange`, syncViewport));
+          return () => {
+            (viewport?.removeEventListener(`resize`, syncViewport),
+              viewport?.removeEventListener(`scroll`, syncViewport),
+              window.removeEventListener(`orientationchange`, syncViewport),
+              root.classList.remove(`atlas-scanner-open`),
+              document.body.classList.remove(`atlas-scanner-open`),
+              root.style.removeProperty(`--atlas-scanner-viewport-width`),
+              root.style.removeProperty(`--atlas-scanner-viewport-height`),
+              root.style.removeProperty(`--atlas-scanner-offset-top`),
+              root.style.removeProperty(`--atlas-scanner-offset-left`));
+          };
+        }, []);
+        (0, C.useEffect)(() => {
           let e = !1;
           async function t() {
             if (!navigator.mediaDevices?.getUserMedia) {
-              s(`Camera access is unavailable. Choose a photo instead.`);
+              s(
+                `Camera access is unavailable. Check browser camera permissions and try again.`,
+              );
               return;
             }
             try {
@@ -17153,10 +17200,12 @@ Error generating stack: ` +
                   ((r.current.srcObject = t), await r.current.play()),
                 g(!0),
                 s(
-                  `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Take SKU Photo.`,
+                  `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Scan SKU.`,
                 ));
             } catch {
-              s(`Camera permission was not granted. Choose a photo instead.`);
+              s(
+                `Camera access was not granted. Allow camera access in browser settings, then try again.`,
+              );
             }
           }
           return (
@@ -17486,7 +17535,7 @@ Error generating stack: ` +
                     : s(
                         w.suggestions.length
                           ? `ATLAS found possible matches. Confirm the correct SKU below.`
-                          : `No confident SKU match was found. Retake the photo or enter the SKU manually.${scanQualityAdvice ? ` ${scanQualityAdvice}` : ``}`,
+                          : `No confident SKU match was found. Scan again or enter the SKU manually.${scanQualityAdvice ? ` ${scanQualityAdvice}` : ``}`,
                       ));
             } catch (e) {
               s(
@@ -17508,7 +17557,7 @@ Error generating stack: ` +
               l(0),
               N(!1),
               s(
-                `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Take SKU Photo.`,
+                `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Scan SKU.`,
               ));
             if (e && h) await e.play().catch(() => {});
             return;
@@ -17516,25 +17565,8 @@ Error generating stack: ` +
           if (!e?.videoWidth || !e.videoHeight) return;
           (N(!0),
             e.pause(),
-            s(`Photo captured. Reading the printed SKU…`));
+            s(`Scan captured. Reading the printed SKU…`));
           await y(e, e.videoWidth, e.videoHeight);
-        }
-        function x(e) {
-          let t = e.target.files?.[0];
-          if (!t) return;
-          ((e.target.value = ``),
-            N(!0),
-            r.current?.pause(),
-            s(`Photo selected. Reading the printed SKU…`));
-          let n = new Image(),
-            o = URL.createObjectURL(t);
-          ((n.onload = () => {
-            (y(n, n.naturalWidth, n.naturalHeight), URL.revokeObjectURL(o));
-          }),
-            (n.onerror = () => {
-              (s(`That photo could not be opened.`), URL.revokeObjectURL(o));
-            }),
-            (n.src = o));
         }
         return (0, T.jsx)(`div`, {
           className: `modal-backdrop`,
@@ -17554,7 +17586,7 @@ Error generating stack: ` +
                         children: `Scan Printed SKU`,
                       }),
                       (0, T.jsx)(`p`, {
-                        children: `Fill the blue guide with the printed SKU, avoid glare, and wait for focus. ATLAS checks both single-line and multi-line labels.`,
+                        children: `Fill the blue guide with the printed SKU, avoid glare, wait for focus, then tap Scan SKU. ATLAS checks both single-line and multi-line labels.`,
                       }),
                     ],
                   }),
@@ -17575,7 +17607,7 @@ Error generating stack: ` +
                   (0, T.jsx)(`div`, {
                     className: `scan-frame`,
                     children: (0, T.jsx)(`span`, {
-                      children: k ? `PHOTO CAPTURED` : `PRINTED SKU`,
+                      children: k ? `SCAN CAPTURED` : `PRINTED SKU`,
                     }),
                   }),
                   h
@@ -17654,32 +17686,19 @@ Error generating stack: ` +
                     ],
                   })
                 : null,
-              (0, T.jsxs)(`div`, {
+              (0, T.jsx)(`div`, {
                 className: `scanner-actions`,
-                children: [
-                  (0, T.jsxs)(`label`, {
-                    className: `secondary-button`,
-                    children: [
-                      `Choose Existing Photo`,
-                      (0, T.jsx)(`input`, {
-                        type: `file`,
-                        accept: `image/*`,
-                        onChange: x,
-                      }),
-                    ],
-                  }),
-                  (0, T.jsx)(`button`, {
-                    className: `primary-button`,
-                    type: `button`,
-                    disabled: !h || d,
-                    onClick: b,
-                    children: d
-                      ? `Reading…`
-                      : k
-                        ? `Retake Photo`
-                        : `Take SKU Photo`,
-                  }),
-                ],
+                children: (0, T.jsx)(`button`, {
+                  className: `primary-button`,
+                  type: `button`,
+                  disabled: !h || d,
+                  onClick: b,
+                  children: d
+                    ? `Reading SKU…`
+                    : k
+                      ? `Scan Again`
+                      : `Scan SKU`,
+                }),
               }),
             ],
           }),
@@ -20391,18 +20410,22 @@ Error generating stack: ` +
         display: flex;
       }
       .scanner-actions {
-        grid-template-columns: 1fr 1.3fr;
-        gap: 9px;
-        padding: 11px 16px 17px;
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+        background: linear-gradient(180deg, #fff, #f8fafd);
+        border-top: 1px solid #dbe3ed;
+        box-shadow: 0 -9px 24px rgba(1, 22, 45, 0.07);
         display: grid;
       }
-      .scanner-actions .secondary-button,
       .scanner-actions .primary-button {
+        width: 100%;
+        min-height: 64px;
         text-align: center;
         line-height: 1.2;
-      }
-      .scanner-actions input {
-        display: none;
+        font-size: 17px;
+        font-weight: 900;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
       }
       .toast {
         z-index: 150;
@@ -20442,7 +20465,7 @@ Error generating stack: ` +
           padding: 11px;
         }
         .search-input {
-          font-size: 14px;
+          font-size: 16px;
         }
         .aisle-grid {
           grid-template-columns: repeat(3, 1fr);
@@ -20459,6 +20482,53 @@ Error generating stack: ` +
         .scanner-modal {
           border-radius: 22px 22px 0 0;
           max-height: 100vh;
+        }
+      }
+      html.atlas-scanner-open,
+      body.atlas-scanner-open {
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+      @media (max-width: 699px) {
+        html.atlas-scanner-open .modal-backdrop {
+          top: var(--atlas-scanner-offset-top, 0px);
+          right: auto;
+          bottom: auto;
+          left: var(--atlas-scanner-offset-left, 0px);
+          width: var(--atlas-scanner-viewport-width, 100vw);
+          height: var(--atlas-scanner-viewport-height, 100dvh);
+          padding: 0;
+          align-items: stretch;
+          overflow: hidden;
+        }
+        html.atlas-scanner-open .scanner-modal {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          max-height: 100%;
+          border-radius: 20px 20px 0 0;
+        }
+        html.atlas-scanner-open .scanner-modal .modal-head,
+        html.atlas-scanner-open .scanner-modal .scan-status,
+        html.atlas-scanner-open .scanner-modal .scanner-actions {
+          flex: 0 0 auto;
+        }
+        html.atlas-scanner-open .scanner-modal .camera-stage {
+          flex: 1 1 auto;
+          min-height: 150px;
+          aspect-ratio: auto;
+        }
+        html.atlas-scanner-open .scanner-modal .scan-results {
+          flex: 0 1 auto;
+          min-height: 0;
+          max-height: min(190px, 26dvh);
+        }
+        html.atlas-scanner-open .scanner-modal .scanner-actions {
+          position: sticky;
+          z-index: 4;
+          bottom: 0;
         }
       }
       @media (prefers-reduced-motion: reduce) {
