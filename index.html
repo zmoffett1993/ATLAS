@@ -32541,6 +32541,18 @@ Error generating stack: ` +
         color: #0d4d9f;
         background: #e9f1fb;
       }
+      .atlas-product-view-details .atlas-result-product-thumb {
+        overflow: hidden;
+        background: #f3f6fa;
+        border: 1px solid #e4eaf1;
+      }
+      .atlas-result-product-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 2px;
+        object-fit: contain;
+      }
       .atlas-pallet-guide-button .atlas-result-action-icon {
         color: #ffffff;
         background: rgba(255, 255, 255, 0.12);
@@ -32872,7 +32884,7 @@ Error generating stack: ` +
           gap: 7px;
         }
         .atlas-result-actions > button {
-          grid-template-columns: 27px minmax(0, 1fr) 10px !important;
+          grid-template-columns: 32px minmax(0, 1fr) 10px !important;
           gap: 6px !important;
           min-height: 56px !important;
           padding: 7px 8px !important;
@@ -32880,8 +32892,8 @@ Error generating stack: ` +
           font-size: 11px !important;
         }
         .atlas-result-action-icon {
-          width: 27px;
-          height: 27px;
+          width: 32px;
+          height: 32px;
           border-radius: 8px;
         }
         .atlas-result-action-icon svg {
@@ -32949,7 +32961,7 @@ Error generating stack: ` +
     </style>
     <script id="atlas-pallet-build-guide-behavior-v1">
       (() => {
-        const GUIDE_DATA_URL = "./pallet-guides.json?v=20260805-v3";
+        const GUIDE_DATA_URL = "./pallet-guides.json?v=20260805-v4";
         const SVG_NS = "http://www.w3.org/2000/svg";
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
         let guideData = { profiles: {}, skuAssignments: {} };
@@ -33033,15 +33045,31 @@ Error generating stack: ` +
             <path d="M3.5 19.5h17M6 19.5V21m12-1.5V21"></path>
           </svg>`;
 
-        const configureActionButton = (button, type) => {
+        const configureActionButton = (button, type, showcase) => {
           const isPallet = type === "pallet";
           const expected = isPallet ? "Pallet Guide" : "View Details";
-          if (button.dataset.atlasActionType === type) return;
+          const sourceImage = isPallet
+            ? null
+            : showcase?.querySelector(":scope > .atlas-product-media img");
+          const thumbnailSrc = sourceImage?.getAttribute("src") || "";
+          if (
+            button.dataset.atlasActionType === type &&
+            (isPallet || button.dataset.atlasThumbnailSrc === thumbnailSrc)
+          ) return;
           button.dataset.atlasActionType = type;
           button.innerHTML = `
-            <span class="atlas-result-action-icon">${isPallet ? palletIcon : detailsIcon}</span>
+            <span class="atlas-result-action-icon${isPallet ? "" : " atlas-result-product-thumb"}">${isPallet || !thumbnailSrc ? (isPallet ? palletIcon : detailsIcon) : ""}</span>
             <span class="atlas-result-action-label">${expected}</span>
             <i class="atlas-result-action-chevron" aria-hidden="true">›</i>`;
+          if (!isPallet) {
+            button.dataset.atlasThumbnailSrc = thumbnailSrc;
+            if (thumbnailSrc && sourceImage) {
+              const thumbnail = sourceImage.cloneNode(false);
+              thumbnail.alt = "";
+              thumbnail.removeAttribute("aria-label");
+              button.querySelector(".atlas-result-product-thumb")?.appendChild(thumbnail);
+            }
+          }
         };
 
         const restoreDefaultShowcase = (showcase) => {
@@ -33057,6 +33085,7 @@ Error generating stack: ` +
             detailsButton.innerHTML =
               '<span>View Product Details</span><i aria-hidden="true">›</i>';
             delete detailsButton.dataset.atlasActionType;
+            delete detailsButton.dataset.atlasThumbnailSrc;
           }
           row?.remove();
           if (showcase.classList.contains("atlas-has-pallet-guide")) {
@@ -33087,7 +33116,7 @@ Error generating stack: ` +
             showcase.appendChild(row);
           }
           if (detailsButton.parentElement !== row) row.appendChild(detailsButton);
-          configureActionButton(detailsButton, "details");
+          configureActionButton(detailsButton, "details", showcase);
 
           let palletButton = row.querySelector(".atlas-pallet-guide-button");
           if (!palletButton) {
@@ -33097,7 +33126,7 @@ Error generating stack: ` +
             palletButton.setAttribute("aria-haspopup", "dialog");
             row.appendChild(palletButton);
           }
-          configureActionButton(palletButton, "pallet");
+          configureActionButton(palletButton, "pallet", showcase);
           const palletButtonLabel = `Open pallet guide for ${guide.sku}`;
           if (palletButton.getAttribute("aria-label") !== palletButtonLabel) {
             palletButton.setAttribute("aria-label", palletButtonLabel);

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v110-pallet-spreadsheet-authority";
+const VERSION = "atlas-pwa-v111-pallet-basic-layouts";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
-  "./pallet-guides.json?v=20260805-v3",
+  "./pallet-guides.json?v=20260805-v4",
   "./product-images/cgasb1-60ml-cnl-owh.png",
   "./atlas-icon-v2-180.png?v=101",
   "./atlas-icon-v2-192.png?v=101",

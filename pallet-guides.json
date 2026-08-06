@@ -1,46 +1,5745 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-08-05",
+  "diagramPolicy": "basic-box-count-v1",
   "profiles": {
-    "cgub1-30mlsc-standard-v1": {
-      "status": "draft",
-      "familySku": "CGUB1-30MLSC",
+    "cgab1-10ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-10ML",
+      "totalCasesPerPallet": 49,
+      "casesPerLayer": 7,
+      "totalLayers": 7,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 7,
+          "diagram": {
+            "alt": "Basic box-count layout showing 7 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 20.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 48.25,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 75.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgab1-120ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-120ML",
       "totalCasesPerPallet": 24,
       "casesPerLayer": 6,
       "totalLayers": 4,
-      "layerVariants": {},
-      "layerSequence": []
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
     },
-    "cgapt5-116mm-standard-v1": {
-      "status": "draft",
+    "cgab1-16-5ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-16.5ML",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 6,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgab1-30ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-30ML",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 5,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgab1-30mlsc-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-30MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgab1-50ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-50ML",
+      "totalCasesPerPallet": 35,
+      "casesPerLayer": 5,
+      "totalLayers": 7,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgab1-60ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-60ML",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 5,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgab1-60mlm-basic-v1": {
+      "status": "published",
+      "familySku": "CGAB1-60MLM",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgabb1-1ltr-basic-v1": {
+      "status": "published",
+      "familySku": "CGABB1-1LTR",
+      "totalCasesPerPallet": 36,
+      "casesPerLayer": 6,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgabb1-250ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGABB1-250ML",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgabb1-500ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGABB1-500ML",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 6,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-10ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-10OZXL",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-18-5ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-18.5OZXL",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-1oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-1OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-21-5ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-21.5OZXL",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 6,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-2oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-2OZ",
+      "totalCasesPerPallet": 16,
+      "casesPerLayer": 4,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-3oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-3OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-4oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-4OZ",
+      "totalCasesPerPallet": 16,
+      "casesPerLayer": 4,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-510f-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-510F",
+      "totalCasesPerPallet": 54,
+      "casesPerLayer": 9,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-510r-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-510R",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 9,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-5oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-5OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-6oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-6OZ",
+      "totalCasesPerPallet": 16,
+      "casesPerLayer": 4,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-7-5ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-7.5OZXL",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgac1-8oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGAC1-8OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgapt5-116mm-basic-v1": {
+      "status": "published",
       "familySku": "CGAPT5-116MM",
       "totalCasesPerPallet": 25,
       "casesPerLayer": 5,
       "totalLayers": 5,
-      "layerVariants": {},
-      "layerSequence": []
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
     },
-    "cgapt5-116mml-standard-v1": {
-      "status": "draft",
+    "cgapt5-116mml-basic-v1": {
+      "status": "published",
       "familySku": "CGAPT5-116MML",
       "totalCasesPerPallet": 20,
       "casesPerLayer": 5,
       "totalLayers": 4,
-      "layerVariants": {},
-      "layerSequence": []
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgapt5-78mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGAPT5-78MM",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 6,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgapt5-78mml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAPT5-78MML",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 6,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgapt5-98mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGAPT5-98MM",
+      "totalCasesPerPallet": 25,
+      "casesPerLayer": 5,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgapt5-98mml-basic-v1": {
+      "status": "published",
+      "familySku": "CGAPT5-98MML",
+      "totalCasesPerPallet": 25,
+      "casesPerLayer": 5,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgasb1-30mlsc-basic-v1": {
+      "status": "published",
+      "familySku": "CGASB1-30MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgasb1-60ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGASB1-60ML",
+      "totalCasesPerPallet": 35,
+      "casesPerLayer": 7,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 7,
+          "diagram": {
+            "alt": "Basic box-count layout showing 7 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 20.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 48.25,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 75.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgasb1-60mlm-basic-v1": {
+      "status": "published",
+      "familySku": "CGASB1-60MLM",
+      "totalCasesPerPallet": 35,
+      "casesPerLayer": 7,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 7,
+          "diagram": {
+            "alt": "Basic box-count layout showing 7 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 20.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 48.25,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 75.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgat1-100mmf-basic-v1": {
+      "status": "published",
+      "familySku": "CGAT1-100MMF",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 12,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 12,
+          "diagram": {
+            "alt": "Basic box-count layout showing 12 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 34.25,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 61.5,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 88.75,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 7,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 34.25,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 61.5,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 88.75,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 7,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 34.25,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 61.5,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 88.75,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgat1-115mmf-basic-v1": {
+      "status": "published",
+      "familySku": "CGAT1-115MMF",
+      "totalCasesPerPallet": 60,
+      "casesPerLayer": 12,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 12,
+          "diagram": {
+            "alt": "Basic box-count layout showing 12 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 34.25,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 61.5,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 88.75,
+                "y": 7,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 7,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 34.25,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 61.5,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 88.75,
+                "y": 36.67,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 7,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 34.25,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 61.5,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              },
+              {
+                "x": 88.75,
+                "y": 66.33,
+                "width": 24.25,
+                "height": 26.67
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgat1-65mmf-basic-v1": {
+      "status": "published",
+      "familySku": "CGAT1-65MMF",
+      "totalCasesPerPallet": 63,
+      "casesPerLayer": 9,
+      "totalLayers": 7,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgat6-100mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGAT6-100MM",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 9,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgat6-113mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGAT6-113MM",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 9,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgat6-120mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGAT6-120MM",
+      "totalCasesPerPallet": 64,
+      "casesPerLayer": 8,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 8,
+          "diagram": {
+            "alt": "Basic box-count layout showing 8 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgpc5-40g-basic-v1": {
+      "status": "published",
+      "familySku": "CGPC5-40G",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-10ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-10ML",
+      "totalCasesPerPallet": 49,
+      "casesPerLayer": 7,
+      "totalLayers": 7,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 7,
+          "diagram": {
+            "alt": "Basic box-count layout showing 7 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 20.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 48.25,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 75.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-120ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-120ML",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-16-5ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-16.5ML",
+      "totalCasesPerPallet": 36,
+      "casesPerLayer": 6,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-30ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-30ML",
+      "totalCasesPerPallet": 35,
+      "casesPerLayer": 5,
+      "totalLayers": 7,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-30mlsc-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-30MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-50ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-50ML",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 5,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-60ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-60ML",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 5,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsb1-60mlm-basic-v1": {
+      "status": "published",
+      "familySku": "CGSB1-60MLM",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-10ozwm-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-10OZWM",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-10ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-10OZXL",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-18-5ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-18.5OZXL",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-21-5ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-21.5OZXL",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 6,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-2oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-2OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-2oztw-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-2OZTW",
+      "totalCasesPerPallet": 48,
+      "casesPerLayer": 8,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 8,
+          "diagram": {
+            "alt": "Basic box-count layout showing 8 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-30mlmtw-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-30MLMTW",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 9,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-3oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-3OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-4oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-4OZ",
+      "totalCasesPerPallet": 16,
+      "casesPerLayer": 4,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-510f-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-510F",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 9,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-510r-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-510R",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 9,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 9,
+          "diagram": {
+            "alt": "Basic box-count layout showing 9 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 37,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 7,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 43.67,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              },
+              {
+                "x": 80.33,
+                "y": 67,
+                "width": 32.67,
+                "height": 26
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-5oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-5OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-6oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-6OZ",
+      "totalCasesPerPallet": 16,
+      "casesPerLayer": 4,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-7-5ozxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-7.5OZXL",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsc1-8oz-basic-v1": {
+      "status": "published",
+      "familySku": "CGSC1-8OZ",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 4,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgsdcup5-20ml-cnl-basic-v1": {
+      "status": "published",
+      "familySku": "CGSDCUP5-20ML-CNL",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgssb1-60ml-basic-v1": {
+      "status": "published",
+      "familySku": "CGSSB1-60ML",
+      "totalCasesPerPallet": 35,
+      "casesPerLayer": 7,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 7,
+          "diagram": {
+            "alt": "Basic box-count layout showing 7 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 20.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 48.25,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 75.75,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgst1-115mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGST1-115MM",
+      "totalCasesPerPallet": 72,
+      "casesPerLayer": 8,
+      "totalLayers": 9,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 8,
+          "diagram": {
+            "alt": "Basic box-count layout showing 8 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgst1-65mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGST1-65MM",
+      "totalCasesPerPallet": 64,
+      "casesPerLayer": 8,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 8,
+          "diagram": {
+            "alt": "Basic box-count layout showing 8 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgst1-95mm-basic-v1": {
+      "status": "published",
+      "familySku": "CGST1-95MM",
+      "totalCasesPerPallet": 64,
+      "casesPerLayer": 8,
+      "totalLayers": 8,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 8,
+          "diagram": {
+            "alt": "Basic box-count layout showing 8 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 7,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 34.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              },
+              {
+                "x": 89.5,
+                "y": 52,
+                "width": 23.5,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgst1-95mmxl-basic-v1": {
+      "status": "published",
+      "familySku": "CGST1-95MMXL",
+      "totalCasesPerPallet": 60,
+      "casesPerLayer": 10,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 10,
+          "diagram": {
+            "alt": "Basic box-count layout showing 10 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 28.8,
+                "y": 7,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 50.6,
+                "y": 7,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 72.4,
+                "y": 7,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 94.2,
+                "y": 7,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 7,
+                "y": 51.5,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 28.8,
+                "y": 51.5,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 50.6,
+                "y": 51.5,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 72.4,
+                "y": 51.5,
+                "width": 18.8,
+                "height": 41.5
+              },
+              {
+                "x": 94.2,
+                "y": 51.5,
+                "width": 18.8,
+                "height": 41.5
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-10mlr-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-10MLR",
+      "totalCasesPerPallet": 25,
+      "casesPerLayer": 5,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-10mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-10MLV3",
+      "totalCasesPerPallet": 25,
+      "casesPerLayer": 5,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-120mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-120MLV3",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-15mlr-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-15MLR",
+      "totalCasesPerPallet": 36,
+      "casesPerLayer": 6,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-15mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-15MLV3",
+      "totalCasesPerPallet": 36,
+      "casesPerLayer": 6,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-200mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-200MLV3",
+      "totalCasesPerPallet": 16,
+      "casesPerLayer": 4,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 4,
+          "diagram": {
+            "alt": "Basic box-count layout showing 4 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 7,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 51,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-20mlr-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-20MLR",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 6,
+      "totalLayers": 5,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-20mlsc-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-20MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-20mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-20MLV3",
+      "totalCasesPerPallet": 36,
+      "casesPerLayer": 6,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-30mlr-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-30MLR",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 5,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-30mlsc-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-30MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-30mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-30MLV3",
+      "totalCasesPerPallet": 35,
+      "casesPerLayer": 5,
+      "totalLayers": 7,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-50mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-50MLV3",
+      "totalCasesPerPallet": 35,
+      "casesPerLayer": 5,
+      "totalLayers": 7,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-60mlm-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-60MLM",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-60mlsc-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-60MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-60mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-60MLV3",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 5,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-75mlsc-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-75MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 6,
+          "diagram": {
+            "alt": "Basic box-count layout showing 6 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 7,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
+    },
+    "cgub1-75mlv3-basic-v1": {
+      "status": "published",
+      "familySku": "CGUB1-75MLV3",
+      "totalCasesPerPallet": 30,
+      "casesPerLayer": 5,
+      "totalLayers": 6,
+      "layoutMode": "basic-count",
+      "layerVariants": {
+        "A": {
+          "cases": 5,
+          "diagram": {
+            "alt": "Basic box-count layout showing 5 boxes per layer",
+            "boxes": [
+              {
+                "x": 7,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 43.67,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 80.33,
+                "y": 7,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 25.33,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              },
+              {
+                "x": 62,
+                "y": 52,
+                "width": 32.67,
+                "height": 41
+              }
+            ]
+          }
+        }
+      },
+      "layerSequence": [
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A"
+      ]
     }
   },
   "skuAssignments": {
-    "CGAPT5-116MM-CNL-CNL": "cgapt5-116mm-standard-v1",
-    "CGAPT5-116MM-OBK-OBK": "cgapt5-116mm-standard-v1",
-    "CGAPT5-116MM-OWH-OWH": "cgapt5-116mm-standard-v1",
-    "CGAPT5-116MML-OBK-OBK": "cgapt5-116mml-standard-v1",
-    "CGUB1-30MLSC-0069": "cgub1-30mlsc-standard-v1",
-    "CGUB1-30MLSC-AMBK": "cgub1-30mlsc-standard-v1",
-    "CGUB1-30MLSC-BK": "cgub1-30mlsc-standard-v1",
-    "CGUB1-30MLSC-BKBK": "cgub1-30mlsc-standard-v1",
-    "CGUB1-30MLSC-NATL": "cgub1-30mlsc-standard-v1",
-    "CGUB1-30MLSC-WT-SOLID": "cgub1-30mlsc-standard-v1",
-    "CGUB1-30MLSC-WTC": "cgub1-30mlsc-standard-v1"
+    "CGAB1-10ML-CNL-OBK": "cgab1-10ml-basic-v1",
+    "CGAB1-10ML-CNL-OWH": "cgab1-10ml-basic-v1",
+    "CGAB1-10ML-OBK-OBK": "cgab1-10ml-basic-v1",
+    "CGAB1-10ML-OWH-OWH": "cgab1-10ml-basic-v1",
+    "CGAB1-120ML-CNL-OBK": "cgab1-120ml-basic-v1",
+    "CGAB1-120ML-OBK-OBK": "cgab1-120ml-basic-v1",
+    "CGAB1-120ML-OWH-OWH": "cgab1-120ml-basic-v1",
+    "CGAB1-16.5ML-CNL-OBK": "cgab1-16-5ml-basic-v1",
+    "CGAB1-16.5ML-CNL-OWH": "cgab1-16-5ml-basic-v1",
+    "CGAB1-16.5ML-OBK-OBK": "cgab1-16-5ml-basic-v1",
+    "CGAB1-16.5ML-OWH-OWH": "cgab1-16-5ml-basic-v1",
+    "CGAB1-30ML-CNL-OWH": "cgab1-30ml-basic-v1",
+    "CGAB1-30ML-OBK-OBK": "cgab1-30ml-basic-v1",
+    "CGAB1-30ML-OWH-OWH": "cgab1-30ml-basic-v1",
+    "CGAB1-30MLSC-CNL-OBK": "cgab1-30mlsc-basic-v1",
+    "CGAB1-30MLSC-CNL-OWH": "cgab1-30mlsc-basic-v1",
+    "CGAB1-30MLSC-OBK-OBK": "cgab1-30mlsc-basic-v1",
+    "CGAB1-30MLSC-OWH-OWH": "cgab1-30mlsc-basic-v1",
+    "CGAB1-50ML-CNL-OBK": "cgab1-50ml-basic-v1",
+    "CGAB1-50ML-CNL-OWH": "cgab1-50ml-basic-v1",
+    "CGAB1-50ML-OBK-OBK": "cgab1-50ml-basic-v1",
+    "CGAB1-50ML-OWH-OWH": "cgab1-50ml-basic-v1",
+    "CGAB1-60ML-0192": "cgab1-60ml-basic-v1",
+    "CGAB1-60ML-0579": "cgab1-60ml-basic-v1",
+    "CGAB1-60ML-CNL-OBK": "cgab1-60ml-basic-v1",
+    "CGAB1-60ML-CNL-OWH": "cgab1-60ml-basic-v1",
+    "CGAB1-60ML-OBK-OBK": "cgab1-60ml-basic-v1",
+    "CGAB1-60ML-OWH-OWH": "cgab1-60ml-basic-v1",
+    "CGAB1-60MLM-CNL-OBK": "cgab1-60mlm-basic-v1",
+    "CGAB1-60MLM-CNL-OWH": "cgab1-60mlm-basic-v1",
+    "CGAB1-60MLM-OBK-OBK": "cgab1-60mlm-basic-v1",
+    "CGAB1-60MLM-OWH-OWH": "cgab1-60mlm-basic-v1",
+    "CGABB1-1LTR-0082": "cgabb1-1ltr-basic-v1",
+    "CGABB1-1LTR-OBK-OBK": "cgabb1-1ltr-basic-v1",
+    "CGABB1-1LTR-OWH-OWH": "cgabb1-1ltr-basic-v1",
+    "CGABB1-250ML-OBK-OBK": "cgabb1-250ml-basic-v1",
+    "CGABB1-250ML-OWH-OWH": "cgabb1-250ml-basic-v1",
+    "CGABB1-500ML-0082": "cgabb1-500ml-basic-v1",
+    "CGABB1-500ML-OWH-OWH": "cgabb1-500ml-basic-v1",
+    "CGAC1-10OZXL-CNL-OBK": "cgac1-10ozxl-basic-v1",
+    "CGAC1-10OZXL-CNL-OWH": "cgac1-10ozxl-basic-v1",
+    "CGAC1-10OZXL-OBK-OBK": "cgac1-10ozxl-basic-v1",
+    "CGAC1-18.5OZXL-CNL-OBK": "cgac1-18-5ozxl-basic-v1",
+    "CGAC1-18.5OZXL-CNL-OWH": "cgac1-18-5ozxl-basic-v1",
+    "CGAC1-18.5OZXL-OBK-OBK": "cgac1-18-5ozxl-basic-v1",
+    "CGAC1-18.5OZXL-OWH-OWH": "cgac1-18-5ozxl-basic-v1",
+    "CGAC1-18.5OZXL-TBK-OBK": "cgac1-18-5ozxl-basic-v1",
+    "CGAC1-1OZ-CNL-OBK": "cgac1-1oz-basic-v1",
+    "CGAC1-1OZ-CNL-OWH": "cgac1-1oz-basic-v1",
+    "CGAC1-1OZ-OBK-OBK": "cgac1-1oz-basic-v1",
+    "CGAC1-1OZ-TAM-OBK": "cgac1-1oz-basic-v1",
+    "CGAC1-1OZ-TBK-OBK": "cgac1-1oz-basic-v1",
+    "CGAC1-21.5OZXL-CNL-OBK": "cgac1-21-5ozxl-basic-v1",
+    "CGAC1-21.5OZXL-CNL-OWH": "cgac1-21-5ozxl-basic-v1",
+    "CGAC1-21.5OZXL-OBK-OBK": "cgac1-21-5ozxl-basic-v1",
+    "CGAC1-21.5OZXL-OWH-OWH": "cgac1-21-5ozxl-basic-v1",
+    "CGAC1-2OZ-CNL-OBK": "cgac1-2oz-basic-v1",
+    "CGAC1-2OZ-CNL-OWH": "cgac1-2oz-basic-v1",
+    "CGAC1-2OZ-OBK-OBK": "cgac1-2oz-basic-v1",
+    "CGAC1-2OZ-OWH-OWH": "cgac1-2oz-basic-v1",
+    "CGAC1-2OZ-TAM-OBK": "cgac1-2oz-basic-v1",
+    "CGAC1-2OZ-TBK-OBK": "cgac1-2oz-basic-v1",
+    "CGAC1-3OZ-CNL-OBK": "cgac1-3oz-basic-v1",
+    "CGAC1-3OZ-CNL-OWH": "cgac1-3oz-basic-v1",
+    "CGAC1-3OZ-OBK-OBK": "cgac1-3oz-basic-v1",
+    "CGAC1-3OZ-OWH-OWH": "cgac1-3oz-basic-v1",
+    "CGAC1-3OZ-TAM-OBK": "cgac1-3oz-basic-v1",
+    "CGAC1-3OZ-TBK-OBK": "cgac1-3oz-basic-v1",
+    "CGAC1-4OZ-CNL-OBK": "cgac1-4oz-basic-v1",
+    "CGAC1-4OZ-OBK-OBK": "cgac1-4oz-basic-v1",
+    "CGAC1-4OZ-OWH-OWH": "cgac1-4oz-basic-v1",
+    "CGAC1-4OZ-TAM-OBK": "cgac1-4oz-basic-v1",
+    "CGAC1-4OZ-TBK-OBK": "cgac1-4oz-basic-v1",
+    "CGAC1-510F-CNL-OWH": "cgac1-510f-basic-v1",
+    "CGAC1-510F-OBK-OBK": "cgac1-510f-basic-v1",
+    "CGAC1-510F-OWH-OWH": "cgac1-510f-basic-v1",
+    "CGAC1-510R-CNL-OBK": "cgac1-510r-basic-v1",
+    "CGAC1-510R-CNL-OWH": "cgac1-510r-basic-v1",
+    "CGAC1-510R-OBK-OBK": "cgac1-510r-basic-v1",
+    "CGAC1-510R-OWH-OWH": "cgac1-510r-basic-v1",
+    "CGAC1-5OZ-CNL-OBK": "cgac1-5oz-basic-v1",
+    "CGAC1-5OZ-CNL-OWH": "cgac1-5oz-basic-v1",
+    "CGAC1-5OZ-OBK-OBK": "cgac1-5oz-basic-v1",
+    "CGAC1-5OZ-OWH-OWH": "cgac1-5oz-basic-v1",
+    "CGAC1-5OZ-TAM-OBK": "cgac1-5oz-basic-v1",
+    "CGAC1-5OZ-TBK-OBK": "cgac1-5oz-basic-v1",
+    "CGAC1-6OZ-CNL-OBK": "cgac1-6oz-basic-v1",
+    "CGAC1-6OZ-CNL-OWH": "cgac1-6oz-basic-v1",
+    "CGAC1-6OZ-OBK-OBK": "cgac1-6oz-basic-v1",
+    "CGAC1-6OZ-OWH-OWH": "cgac1-6oz-basic-v1",
+    "CGAC1-7.5OZXL-CNL-OWH": "cgac1-7-5ozxl-basic-v1",
+    "CGAC1-7.5OZXL-OBK-OBK": "cgac1-7-5ozxl-basic-v1",
+    "CGAC1-7.5OZXL-OWH-OWH": "cgac1-7-5ozxl-basic-v1",
+    "CGAC1-7.5OZXL-TAM-OBK": "cgac1-7-5ozxl-basic-v1",
+    "CGAC1-7.5OZXL-TBK-OBK": "cgac1-7-5ozxl-basic-v1",
+    "CGAC1-8OZ-CNL-OBK": "cgac1-8oz-basic-v1",
+    "CGAC1-8OZ-CNL-OWH": "cgac1-8oz-basic-v1",
+    "CGAC1-8OZ-OBK-OBK": "cgac1-8oz-basic-v1",
+    "CGAC1-8OZ-OWH-OWH": "cgac1-8oz-basic-v1",
+    "CGAC1-8OZ-TAM-OBK": "cgac1-8oz-basic-v1",
+    "CGAC1-8OZ-TBK-OBK": "cgac1-8oz-basic-v1",
+    "CGAPT5-116MM-CNL-CNL": "cgapt5-116mm-basic-v1",
+    "CGAPT5-116MM-OBK-OBK": "cgapt5-116mm-basic-v1",
+    "CGAPT5-116MM-OWH-OWH": "cgapt5-116mm-basic-v1",
+    "CGAPT5-116MML-OBK-OBK": "cgapt5-116mml-basic-v1",
+    "CGAPT5-78MM-CNL-CNL": "cgapt5-78mm-basic-v1",
+    "CGAPT5-78MM-OBK-OBK": "cgapt5-78mm-basic-v1",
+    "CGAPT5-78MM-OWH-OWH": "cgapt5-78mm-basic-v1",
+    "CGAPT5-98MM-CNL-CNL": "cgapt5-98mm-basic-v1",
+    "CGAPT5-98MM-OBK-OBK": "cgapt5-98mm-basic-v1",
+    "CGAPT5-98MM-OWH-OWH": "cgapt5-98mm-basic-v1",
+    "CGAPT5-98MML-CNL-CNL": "cgapt5-98mml-basic-v1",
+    "CGAPT5-98MML-OBK-OBK": "cgapt5-98mml-basic-v1",
+    "CGASB1-30MLSC-CNL-CNL": "cgasb1-30mlsc-basic-v1",
+    "CGASB1-30MLSC-CNL-OBK": "cgasb1-30mlsc-basic-v1",
+    "CGASB1-30MLSC-OBK-OBK": "cgasb1-30mlsc-basic-v1",
+    "CGASB1-30MLSC-OWH-OWH": "cgasb1-30mlsc-basic-v1",
+    "CGASB1-60ML-CNL-CNL": "cgasb1-60ml-basic-v1",
+    "CGASB1-60ML-CNL-OBK": "cgasb1-60ml-basic-v1",
+    "CGASB1-60ML-CNL-OWH": "cgasb1-60ml-basic-v1",
+    "CGASB1-60ML-OBK-OBK": "cgasb1-60ml-basic-v1",
+    "CGASB1-60ML-OWH-OWH": "cgasb1-60ml-basic-v1",
+    "CGASB1-60MLM-CNL-CNL": "cgasb1-60mlm-basic-v1",
+    "CGASB1-60MLM-CNL-OBK": "cgasb1-60mlm-basic-v1",
+    "CGASB1-60MLM-CNL-OWH": "cgasb1-60mlm-basic-v1",
+    "CGASB1-60MLM-OBK-OBK": "cgasb1-60mlm-basic-v1",
+    "CGASB1-60MLM-OWH-OWH": "cgasb1-60mlm-basic-v1",
+    "CGAT1-100MMF-CNL-OBK": "cgat1-100mmf-basic-v1",
+    "CGAT1-100MMF-CNL-OWH": "cgat1-100mmf-basic-v1",
+    "CGAT1-100MMF-OBK-OBK": "cgat1-100mmf-basic-v1",
+    "CGAT1-100MMF-OWH-OWH": "cgat1-100mmf-basic-v1",
+    "CGAT1-115MMF-CNL-OBK": "cgat1-115mmf-basic-v1",
+    "CGAT1-115MMF-CNL-OWH": "cgat1-115mmf-basic-v1",
+    "CGAT1-115MMF-OBK-OBK": "cgat1-115mmf-basic-v1",
+    "CGAT1-115MMF-OWH-OWH": "cgat1-115mmf-basic-v1",
+    "CGAT1-65MMF-CNL-OBK": "cgat1-65mmf-basic-v1",
+    "CGAT1-65MMF-OBK-OBK": "cgat1-65mmf-basic-v1",
+    "CGAT1-65MMF-OWH-OWH": "cgat1-65mmf-basic-v1",
+    "CGAT6-100MM-CNL-OBK": "cgat6-100mm-basic-v1",
+    "CGAT6-100MM-OBK-OBK": "cgat6-100mm-basic-v1",
+    "CGAT6-100MM-OWH-OWH": "cgat6-100mm-basic-v1",
+    "CGAT6-100MM-TAM-OBK": "cgat6-100mm-basic-v1",
+    "CGAT6-100MM-TBK-OBK": "cgat6-100mm-basic-v1",
+    "CGAT6-113MM-CNL-OBK": "cgat6-113mm-basic-v1",
+    "CGAT6-113MM-OBK-OBK": "cgat6-113mm-basic-v1",
+    "CGAT6-113MM-OWH-OWH": "cgat6-113mm-basic-v1",
+    "CGAT6-113MM-TAM-OBK": "cgat6-113mm-basic-v1",
+    "CGAT6-113MM-TBK-OBK": "cgat6-113mm-basic-v1",
+    "CGAT6-120MM-0146": "cgat6-120mm-basic-v1",
+    "CGAT6-120MM-CNL-OBK": "cgat6-120mm-basic-v1",
+    "CGAT6-120MM-CNL-OWH": "cgat6-120mm-basic-v1",
+    "CGAT6-120MM-OBK-OBK": "cgat6-120mm-basic-v1",
+    "CGAT6-120MM-OWH-OWH": "cgat6-120mm-basic-v1",
+    "CGAT6-120MM-TAM-OBK": "cgat6-120mm-basic-v1",
+    "CGAT6-120MM-TBK-OBK": "cgat6-120mm-basic-v1",
+    "CGPC5-40G-OBK-OBK": "cgpc5-40g-basic-v1",
+    "CGPC5-40G-OWH-OWH": "cgpc5-40g-basic-v1",
+    "CGSB1-10ML-OBK-OBK": "cgsb1-10ml-basic-v1",
+    "CGSB1-120ML-CNL-OBK": "cgsb1-120ml-basic-v1",
+    "CGSB1-120ML-CNL-OWH": "cgsb1-120ml-basic-v1",
+    "CGSB1-120ML-OBK-OBK": "cgsb1-120ml-basic-v1",
+    "CGSB1-120ML-OWH-OWH": "cgsb1-120ml-basic-v1",
+    "CGSB1-16.5ML-CNL-OBK": "cgsb1-16-5ml-basic-v1",
+    "CGSB1-16.5ML-CNL-OWH": "cgsb1-16-5ml-basic-v1",
+    "CGSB1-16.5ML-OBK-OBK": "cgsb1-16-5ml-basic-v1",
+    "CGSB1-16.5ML-OWH-OWH": "cgsb1-16-5ml-basic-v1",
+    "CGSB1-30ML-CNL-OBK": "cgsb1-30ml-basic-v1",
+    "CGSB1-30ML-CNL-OWH": "cgsb1-30ml-basic-v1",
+    "CGSB1-30ML-OBK-OBK": "cgsb1-30ml-basic-v1",
+    "CGSB1-30ML-OWH-OWH": "cgsb1-30ml-basic-v1",
+    "CGSB1-30MLSC-CNL-OBK": "cgsb1-30mlsc-basic-v1",
+    "CGSB1-30MLSC-CNL-OWH": "cgsb1-30mlsc-basic-v1",
+    "CGSB1-30MLSC-OBK-OBK": "cgsb1-30mlsc-basic-v1",
+    "CGSB1-30MLSC-OWH-OWH": "cgsb1-30mlsc-basic-v1",
+    "CGSB1-50ML-CNL-OBK": "cgsb1-50ml-basic-v1",
+    "CGSB1-50ML-CNL-OWH": "cgsb1-50ml-basic-v1",
+    "CGSB1-50ML-OBK-OBK": "cgsb1-50ml-basic-v1",
+    "CGSB1-50ML-OWH-OWH": "cgsb1-50ml-basic-v1",
+    "CGSB1-60ML-CNL-OBK": "cgsb1-60ml-basic-v1",
+    "CGSB1-60ML-CNL-OWH": "cgsb1-60ml-basic-v1",
+    "CGSB1-60ML-OBK-OBK": "cgsb1-60ml-basic-v1",
+    "CGSB1-60ML-OWH-OWH": "cgsb1-60ml-basic-v1",
+    "CGSB1-60MLM-0232": "cgsb1-60mlm-basic-v1",
+    "CGSB1-60MLM-CNL-OBK": "cgsb1-60mlm-basic-v1",
+    "CGSB1-60MLM-CNL-OWH": "cgsb1-60mlm-basic-v1",
+    "CGSB1-60MLM-OBK-OBK": "cgsb1-60mlm-basic-v1",
+    "CGSB1-60MLM-OWH-OWH": "cgsb1-60mlm-basic-v1",
+    "CGSC1-10OZWM-CNL-OBK": "cgsc1-10ozwm-basic-v1",
+    "CGSC1-10OZWM-CNL-OWH": "cgsc1-10ozwm-basic-v1",
+    "CGSC1-10OZWM-OBK-OBK": "cgsc1-10ozwm-basic-v1",
+    "CGSC1-10OZXL-CNL-OBK": "cgsc1-10ozxl-basic-v1",
+    "CGSC1-10OZXL-OBK-OBK": "cgsc1-10ozxl-basic-v1",
+    "CGSC1-10OZXL-OWH-OWH": "cgsc1-10ozxl-basic-v1",
+    "CGSC1-18.5OZXL-CNL-OBK": "cgsc1-18-5ozxl-basic-v1",
+    "CGSC1-18.5OZXL-CNL-OWH": "cgsc1-18-5ozxl-basic-v1",
+    "CGSC1-18.5OZXL-OBK-OBK": "cgsc1-18-5ozxl-basic-v1",
+    "CGSC1-18.5OZXL-OWH-OWH": "cgsc1-18-5ozxl-basic-v1",
+    "CGSC1-21.5OZXL-CNL-OBK": "cgsc1-21-5ozxl-basic-v1",
+    "CGSC1-21.5OZXL-CNL-OWH": "cgsc1-21-5ozxl-basic-v1",
+    "CGSC1-21.5OZXL-OBK-OBK": "cgsc1-21-5ozxl-basic-v1",
+    "CGSC1-21.5OZXL-OWH-OWH": "cgsc1-21-5ozxl-basic-v1",
+    "CGSC1-2OZ-CNL-OBK": "cgsc1-2oz-basic-v1",
+    "CGSC1-2OZ-CNL-OWH": "cgsc1-2oz-basic-v1",
+    "CGSC1-2OZ-OBK-OBK": "cgsc1-2oz-basic-v1",
+    "CGSC1-2OZ-OWH-OWH": "cgsc1-2oz-basic-v1",
+    "CGSC1-2OZ-TW-CNL-OWH": "cgsc1-2oztw-basic-v1",
+    "CGSC1-2OZ-TW-OBK-OBK": "cgsc1-2oztw-basic-v1",
+    "CGSC1-2OZ-TW-OWH-OWH": "cgsc1-2oztw-basic-v1",
+    "CGSC1-30MLM-TW-CNL-OBK": "cgsc1-30mlmtw-basic-v1",
+    "CGSC1-30MLM-TW-CNL-OWH": "cgsc1-30mlmtw-basic-v1",
+    "CGSC1-30MLM-TW-OBK-OBK": "cgsc1-30mlmtw-basic-v1",
+    "CGSC1-30MLM-TW-OWH-OWH": "cgsc1-30mlmtw-basic-v1",
+    "CGSC1-3OZ-0241": "cgsc1-3oz-basic-v1",
+    "CGSC1-3OZ-0362": "cgsc1-3oz-basic-v1",
+    "CGSC1-3OZ-CNL-OBK": "cgsc1-3oz-basic-v1",
+    "CGSC1-3OZ-CNL-OWH": "cgsc1-3oz-basic-v1",
+    "CGSC1-3OZ-OBK-OBK": "cgsc1-3oz-basic-v1",
+    "CGSC1-3OZ-OWH-OWH": "cgsc1-3oz-basic-v1",
+    "CGSC1-4OZ-CNL-OBK": "cgsc1-4oz-basic-v1",
+    "CGSC1-4OZ-CNL-OWH": "cgsc1-4oz-basic-v1",
+    "CGSC1-4OZ-OBK-OBK": "cgsc1-4oz-basic-v1",
+    "CGSC1-4OZ-OWH-OWH": "cgsc1-4oz-basic-v1",
+    "CGSC1-510F-CNL-OBK": "cgsc1-510f-basic-v1",
+    "CGSC1-510F-CNL-OWH": "cgsc1-510f-basic-v1",
+    "CGSC1-510F-OBK-OBK": "cgsc1-510f-basic-v1",
+    "CGSC1-510F-OWH-OWH": "cgsc1-510f-basic-v1",
+    "CGSC1-510R-CNL-OBK": "cgsc1-510r-basic-v1",
+    "CGSC1-510R-CNL-OWH": "cgsc1-510r-basic-v1",
+    "CGSC1-510R-OBK-OBK": "cgsc1-510r-basic-v1",
+    "CGSC1-510R-OWH-OWH": "cgsc1-510r-basic-v1",
+    "CGSC1-5OZ-CNL-OBK": "cgsc1-5oz-basic-v1",
+    "CGSC1-5OZ-CNL-OWH": "cgsc1-5oz-basic-v1",
+    "CGSC1-5OZ-OBK-OBK": "cgsc1-5oz-basic-v1",
+    "CGSC1-5OZ-OWH-OWH": "cgsc1-5oz-basic-v1",
+    "CGSC1-6OZ-CNL-OBK": "cgsc1-6oz-basic-v1",
+    "CGSC1-6OZ-CNL-OWH": "cgsc1-6oz-basic-v1",
+    "CGSC1-6OZ-OBK-OBK": "cgsc1-6oz-basic-v1",
+    "CGSC1-6OZ-OWH-OWH": "cgsc1-6oz-basic-v1",
+    "CGSC1-7.5OZXL-CNL-OBK": "cgsc1-7-5ozxl-basic-v1",
+    "CGSC1-7.5OZXL-CNL-OWH": "cgsc1-7-5ozxl-basic-v1",
+    "CGSC1-7.5OZXL-OBK-OBK": "cgsc1-7-5ozxl-basic-v1",
+    "CGSC1-7.5OZXL-OWH-OWH": "cgsc1-7-5ozxl-basic-v1",
+    "CGSC1-8OZ-CNL-OBK": "cgsc1-8oz-basic-v1",
+    "CGSC1-8OZ-CNL-OWH": "cgsc1-8oz-basic-v1",
+    "CGSC1-8OZ-OBK-OBK": "cgsc1-8oz-basic-v1",
+    "CGSC1-8OZ-OWH-OWH": "cgsc1-8oz-basic-v1",
+    "CGSSB1-60ML-CNL-CNL": "cgssb1-60ml-basic-v1",
+    "CGSSB1-60ML-CNL-OBK": "cgssb1-60ml-basic-v1",
+    "CGSSB1-60ML-CNL-OWH": "cgssb1-60ml-basic-v1",
+    "CGSSB1-60ML-OBK-OBK": "cgssb1-60ml-basic-v1",
+    "CGSSB1-60ML-OWH-OWH": "cgssb1-60ml-basic-v1",
+    "CGST1-115MM-CNL-OBK": "cgst1-115mm-basic-v1",
+    "CGST1-115MM-OBK-OBK": "cgst1-115mm-basic-v1",
+    "CGST1-115MM-OWH-OWH": "cgst1-115mm-basic-v1",
+    "CGST1-65MM-CNL-OWH": "cgst1-65mm-basic-v1",
+    "CGST1-65MM-OBK-OBK": "cgst1-65mm-basic-v1",
+    "CGST1-65MM-OWH-OWH": "cgst1-65mm-basic-v1",
+    "CGST1-95MM-0230": "cgst1-95mm-basic-v1",
+    "CGST1-95MM-0381": "cgst1-95mm-basic-v1",
+    "CGST1-95MM-CNL-OWH": "cgst1-95mm-basic-v1",
+    "CGST1-95MM-OBK-OBK": "cgst1-95mm-basic-v1",
+    "CGST1-95MM-OWH-OWH": "cgst1-95mm-basic-v1",
+    "CGUB1-10MLR-BK": "cgub1-10mlr-basic-v1",
+    "CGUB1-10MLR-BKBK": "cgub1-10mlr-basic-v1",
+    "CGUB1-10MLR-NATL": "cgub1-10mlr-basic-v1",
+    "CGUB1-10MLR-WTC": "cgub1-10mlr-basic-v1",
+    "CGUB1-10MLV3-0240": "cgub1-10mlv3-basic-v1",
+    "CGUB1-10MLV3-AMBK": "cgub1-10mlv3-basic-v1",
+    "CGUB1-10MLV3-BK": "cgub1-10mlv3-basic-v1",
+    "CGUB1-10MLV3-BK-SOLID": "cgub1-10mlv3-basic-v1",
+    "CGUB1-10MLV3-BKBK": "cgub1-10mlv3-basic-v1",
+    "CGUB1-10MLV3-NATL": "cgub1-10mlv3-basic-v1",
+    "CGUB1-10MLV3-WT-SOLID": "cgub1-10mlv3-basic-v1",
+    "CGUB1-10MLV3-WTC": "cgub1-10mlv3-basic-v1",
+    "CGUB1-120MLV3-AMBK": "cgub1-120mlv3-basic-v1",
+    "CGUB1-120MLV3-BK": "cgub1-120mlv3-basic-v1",
+    "CGUB1-120MLV3-BK-SOLID": "cgub1-120mlv3-basic-v1",
+    "CGUB1-120MLV3-BKBK": "cgub1-120mlv3-basic-v1",
+    "CGUB1-120MLV3-NATL": "cgub1-120mlv3-basic-v1",
+    "CGUB1-120MLV3-WT-SOLID": "cgub1-120mlv3-basic-v1",
+    "CGUB1-15MLR-BK": "cgub1-15mlr-basic-v1",
+    "CGUB1-15MLR-BKBK": "cgub1-15mlr-basic-v1",
+    "CGUB1-15MLR-NATL": "cgub1-15mlr-basic-v1",
+    "CGUB1-15MLR-WTC": "cgub1-15mlr-basic-v1",
+    "CGUB1-15MLV3-AMBK": "cgub1-15mlv3-basic-v1",
+    "CGUB1-15MLV3-BK": "cgub1-15mlv3-basic-v1",
+    "CGUB1-15MLV3-BKBK": "cgub1-15mlv3-basic-v1",
+    "CGUB1-15MLV3-WT-SOLID": "cgub1-15mlv3-basic-v1",
+    "CGUB1-15MLV3-WTC": "cgub1-15mlv3-basic-v1",
+    "CGUB1-200MLV3-BK": "cgub1-200mlv3-basic-v1",
+    "CGUB1-200MLV3-NATL": "cgub1-200mlv3-basic-v1",
+    "CGUB1-20MLSC-BK": "cgub1-20mlsc-basic-v1",
+    "CGUB1-20MLV3-BK-SOLID": "cgub1-20mlv3-basic-v1",
+    "CGUB1-20MLV3-BKBK": "cgub1-20mlv3-basic-v1",
+    "CGUB1-20MLV3-NATL": "cgub1-20mlv3-basic-v1",
+    "CGUB1-20MLV3-WT-SOLID": "cgub1-20mlv3-basic-v1",
+    "CGUB1-20MLV3-WTC": "cgub1-20mlv3-basic-v1",
+    "CGUB1-30MLR-BK": "cgub1-30mlr-basic-v1",
+    "CGUB1-30MLR-BKBK": "cgub1-30mlr-basic-v1",
+    "CGUB1-30MLR-NATL": "cgub1-30mlr-basic-v1",
+    "CGUB1-30MLR-WTC": "cgub1-30mlr-basic-v1",
+    "CGUB1-30MLSC-0069": "cgub1-30mlsc-basic-v1",
+    "CGUB1-30MLSC-AMBK": "cgub1-30mlsc-basic-v1",
+    "CGUB1-30MLSC-BK": "cgub1-30mlsc-basic-v1",
+    "CGUB1-30MLSC-BKBK": "cgub1-30mlsc-basic-v1",
+    "CGUB1-30MLSC-NATL": "cgub1-30mlsc-basic-v1",
+    "CGUB1-30MLSC-WT-SOLID": "cgub1-30mlsc-basic-v1",
+    "CGUB1-30MLSC-WTC": "cgub1-30mlsc-basic-v1",
+    "CGUB1-30MLV3-AMBK": "cgub1-30mlv3-basic-v1",
+    "CGUB1-30MLV3-BK": "cgub1-30mlv3-basic-v1",
+    "CGUB1-30MLV3-BKBK": "cgub1-30mlv3-basic-v1",
+    "CGUB1-30MLV3-NATL": "cgub1-30mlv3-basic-v1",
+    "CGUB1-30MLV3-WT-SOLID": "cgub1-30mlv3-basic-v1",
+    "CGUB1-30MLV3-WTC": "cgub1-30mlv3-basic-v1",
+    "CGUB1-50MLV3-AMBK": "cgub1-50mlv3-basic-v1",
+    "CGUB1-50MLV3-BK": "cgub1-50mlv3-basic-v1",
+    "CGUB1-50MLV3-BK-SOLID": "cgub1-50mlv3-basic-v1",
+    "CGUB1-50MLV3-BKBK": "cgub1-50mlv3-basic-v1",
+    "CGUB1-50MLV3-NATL": "cgub1-50mlv3-basic-v1",
+    "CGUB1-50MLV3-WT-SOLID": "cgub1-50mlv3-basic-v1",
+    "CGUB1-60MLM-AMBK": "cgub1-60mlm-basic-v1",
+    "CGUB1-60MLM-BK": "cgub1-60mlm-basic-v1",
+    "CGUB1-60MLM-BKBK": "cgub1-60mlm-basic-v1",
+    "CGUB1-60MLM-NATL": "cgub1-60mlm-basic-v1",
+    "CGUB1-60MLM-WTC": "cgub1-60mlm-basic-v1",
+    "CGUB1-60MLSC-BK": "cgub1-60mlsc-basic-v1",
+    "CGUB1-60MLSC-BKBK": "cgub1-60mlsc-basic-v1",
+    "CGUB1-60MLSC-NATL": "cgub1-60mlsc-basic-v1",
+    "CGUB1-60MLV3-0008": "cgub1-60mlv3-basic-v1",
+    "CGUB1-60MLV3-AMBK": "cgub1-60mlv3-basic-v1",
+    "CGUB1-60MLV3-BK": "cgub1-60mlv3-basic-v1",
+    "CGUB1-60MLV3-BKBK": "cgub1-60mlv3-basic-v1",
+    "CGUB1-60MLV3-NATL": "cgub1-60mlv3-basic-v1",
+    "CGUB1-60MLV3-SOLID": "cgub1-60mlv3-basic-v1",
+    "CGUB1-60MLV3-WTC": "cgub1-60mlv3-basic-v1",
+    "CGUB1-75MLSC-BK": "cgub1-75mlsc-basic-v1",
+    "CGUB1-75MLSC-WT-SOLID": "cgub1-75mlsc-basic-v1",
+    "CGUB1-75MLSC-WTC": "cgub1-75mlsc-basic-v1"
   }
 }
