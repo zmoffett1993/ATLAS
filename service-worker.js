@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v111-pallet-basic-layouts";
+const VERSION = "atlas-pwa-v112-results-focus-map-disclosure";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

@@ -26654,6 +26654,7 @@ Error generating stack: ` +
 
               if (!reduceMotion.matches) {
                 window.setTimeout(() => {
+                  if (!mapPanel?.classList.contains("is-expanded")) return;
                   const activeSection =
                     mapPanel?.querySelector(
                       ".map-section.active, .atlas-paired-rack.is-selected",
@@ -33396,6 +33397,436 @@ Error generating stack: ` +
         });
         window.addEventListener("DOMContentLoaded", queueEnhancement);
         queueEnhancement();
+      })();
+    </script>
+
+    <style id="atlas-results-focus-and-map-disclosure-v1">
+      /* August 5, 2026 — keep picker results focused; reveal the map only on request. */
+      .brand-header,
+      .brand-title,
+      .brand-top .cg-lockup,
+      .atlas-results-mode-label {
+        transition:
+          padding 360ms cubic-bezier(0.22, 1, 0.36, 1),
+          margin 360ms cubic-bezier(0.22, 1, 0.36, 1),
+          max-height 360ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 220ms ease,
+          transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+          visibility 0s linear 0s;
+      }
+      .brand-title {
+        max-height: 370px;
+        overflow: hidden;
+      }
+      .atlas-results-mode-label {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: 1;
+        color: #07182a;
+        font-size: clamp(10px, 2.9vw, 12px);
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: 0.155em;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transform: translate(-50%, calc(-50% + 5px));
+      }
+      html.atlas-results-focused .brand-header {
+        padding-top: calc(10px + env(safe-area-inset-top)) !important;
+        padding-bottom: 9px !important;
+      }
+      html.atlas-results-focused .brand-top {
+        min-height: 44px;
+      }
+      html.atlas-results-focused .brand-top .cg-lockup {
+        position: absolute !important;
+        pointer-events: none;
+        opacity: 0 !important;
+        visibility: hidden;
+        transform: translateY(-7px) scale(0.96);
+      }
+      html.atlas-results-focused .brand-title,
+      html.atlas-results-focused
+        .brand-header[data-atlas-brand-layout="portrait"]
+        .brand-title {
+        max-height: 0 !important;
+        margin-top: 0 !important;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(-9px) scale(0.985);
+      }
+      html.atlas-results-focused .atlas-results-mode-label {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%);
+      }
+      html.atlas-results-focused .home-view {
+        padding-top: 10px;
+      }
+
+      .atlas-map-disclosure-button {
+        width: 100%;
+        min-height: 56px;
+        margin: 0;
+        padding: 10px 14px;
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) 12px;
+        align-items: center;
+        gap: 10px;
+        color: #071b34;
+        cursor: pointer;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #cfd9e6;
+        border-radius: 13px;
+        box-shadow:
+          0 5px 16px rgba(1, 22, 45, 0.075),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        text-align: left;
+        scroll-margin-top: calc(76px + env(safe-area-inset-top));
+        transition:
+          color 170ms ease,
+          background 170ms ease,
+          border-color 170ms ease,
+          box-shadow 170ms ease,
+          transform 150ms ease;
+      }
+      .atlas-map-disclosure-button:hover {
+        border-color: #aebed1;
+        box-shadow:
+          0 7px 19px rgba(1, 22, 45, 0.095),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      }
+      .atlas-map-disclosure-button:active {
+        transform: translateY(1px) scale(0.996);
+      }
+      .atlas-map-disclosure-button:focus-visible {
+        outline: 3px solid rgba(8, 107, 255, 0.2);
+        outline-offset: 2px;
+        border-color: #086bff;
+      }
+      .atlas-map-disclosure-icon {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        color: #0d47a1;
+        background: #edf4ff;
+        border: 1px solid #d7e6fb;
+        border-radius: 10px;
+      }
+      .atlas-map-disclosure-icon svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .atlas-map-disclosure-label {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+      .atlas-map-disclosure-label strong {
+        font-size: 11px;
+        font-weight: 950;
+        line-height: 1.1;
+        letter-spacing: 0.055em;
+        text-transform: uppercase;
+      }
+      .atlas-map-disclosure-label small {
+        color: #60738a;
+        font-size: 9px;
+        font-weight: 750;
+        line-height: 1.1;
+      }
+      .atlas-map-disclosure-chevron {
+        color: #4f6b8a;
+        font-size: 20px;
+        font-style: normal;
+        line-height: 1;
+        transform: rotate(90deg);
+        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .atlas-map-disclosure-button[aria-expanded="true"] {
+        color: #fff;
+        background: linear-gradient(145deg, #0b315c 0%, #071b34 100%);
+        border-color: #071b34;
+        box-shadow: 0 9px 22px rgba(1, 25, 53, 0.2);
+      }
+      .atlas-map-disclosure-button[aria-expanded="true"]
+        .atlas-map-disclosure-icon {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+      .atlas-map-disclosure-button[aria-expanded="true"]
+        .atlas-map-disclosure-label
+        small,
+      .atlas-map-disclosure-button[aria-expanded="true"]
+        .atlas-map-disclosure-chevron {
+        color: #bfd2e8;
+      }
+      .atlas-map-disclosure-button[aria-expanded="true"]
+        .atlas-map-disclosure-chevron {
+        transform: rotate(-90deg);
+      }
+      .result-card .map-panel.atlas-collapsible-map {
+        box-sizing: border-box;
+        height: 0;
+        min-height: 0 !important;
+        margin-top: 0 !important;
+        overflow: hidden;
+        pointer-events: none;
+        opacity: 0;
+        border-width: 0;
+        transform: translateY(-5px);
+        transition:
+          height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          margin 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 220ms ease,
+          transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          border-width 0s linear 420ms;
+      }
+      .result-card .map-panel.atlas-collapsible-map.is-expanded {
+        margin-top: 12px !important;
+        pointer-events: auto;
+        opacity: 1;
+        border-width: 1px;
+        transform: translateY(0);
+        transition:
+          height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          margin 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 260ms ease 70ms,
+          transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          border-width 0s;
+      }
+      @media (max-width: 430px) {
+        .atlas-results-mode-label {
+          font-size: 10px;
+          letter-spacing: 0.125em;
+        }
+        .atlas-map-disclosure-button {
+          min-height: 54px;
+          grid-template-columns: 34px minmax(0, 1fr) 10px;
+          gap: 9px;
+          padding: 9px 12px;
+        }
+        .atlas-map-disclosure-icon {
+          width: 34px;
+          height: 34px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .brand-header,
+        .brand-title,
+        .brand-top .cg-lockup,
+        .atlas-results-mode-label,
+        .atlas-map-disclosure-button,
+        .atlas-map-disclosure-chevron,
+        .result-card .map-panel.atlas-collapsible-map,
+        .result-card .map-panel.atlas-collapsible-map.is-expanded {
+          transition: none !important;
+        }
+      }
+    </style>
+    <script id="atlas-results-focus-and-map-disclosure-behavior-v1">
+      (() => {
+        const root = document.documentElement;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const mapIcon = `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m3.5 6.5 5-2.5 7 2.5 5-2.5v13.5l-5 2.5-7-2.5-5 2.5z"></path>
+            <path d="M8.5 4v13.5M15.5 6.5V20"></path>
+          </svg>`;
+        let queued = false;
+        let lastFocusedSku = "";
+
+        const ensureResultsLabel = () => {
+          const top = document.querySelector(".brand-top");
+          if (!top) return;
+          let label = top.querySelector(":scope > .atlas-results-mode-label");
+          if (!label) {
+            label = document.createElement("div");
+            label.className = "atlas-results-mode-label";
+            label.textContent = "WAREHOUSE MANAGEMENT";
+            label.setAttribute("aria-hidden", "true");
+            top.appendChild(label);
+          }
+        };
+
+        const setMapState = (resultCard, mapPanel, button, expanded, immediate) => {
+          resultCard.dataset.atlasMapExpanded = String(expanded);
+          mapPanel.classList.add("atlas-collapsible-map");
+          mapPanel.classList.toggle("is-expanded", expanded);
+          mapPanel.setAttribute("aria-hidden", String(!expanded));
+          button.setAttribute("aria-expanded", String(expanded));
+          button.querySelector(".atlas-map-disclosure-label strong").textContent =
+            expanded ? "Hide Warehouse Map" : "View Warehouse Map";
+          button.querySelector(".atlas-map-disclosure-label small").textContent =
+            expanded ? "Return to essential pick information" : "Show aisle and section layout";
+
+          if (immediate || reduceMotion.matches) {
+            mapPanel.style.height = expanded ? "auto" : "0px";
+            return;
+          }
+          if (expanded) {
+            mapPanel.style.height = "0px";
+            window.requestAnimationFrame(() => {
+              mapPanel.style.height = `${mapPanel.scrollHeight}px`;
+              window.setTimeout(() => {
+                if (mapPanel.classList.contains("is-expanded")) {
+                  mapPanel.style.height = "auto";
+                }
+              }, 440);
+            });
+          } else {
+            const currentHeight = mapPanel.getBoundingClientRect().height;
+            mapPanel.style.height = `${currentHeight}px`;
+            void mapPanel.offsetHeight;
+            window.requestAnimationFrame(() => {
+              mapPanel.style.height = "0px";
+            });
+          }
+        };
+
+        const ensureMapDisclosure = (resultCard) => {
+          const mapPanel = resultCard.querySelector(".map-panel");
+          if (!mapPanel) return;
+          let button = resultCard.querySelector(".atlas-map-disclosure-button");
+          if (!button) {
+            button = document.createElement("button");
+            button.type = "button";
+            button.className = "atlas-map-disclosure-button";
+            button.innerHTML = `
+              <span class="atlas-map-disclosure-icon">${mapIcon}</span>
+              <span class="atlas-map-disclosure-label"><strong>View Warehouse Map</strong><small>Show aisle and section layout</small></span>
+              <i class="atlas-map-disclosure-chevron" aria-hidden="true">›</i>`;
+          }
+          if (button.nextElementSibling !== mapPanel) {
+            mapPanel.insertAdjacentElement("beforebegin", button);
+          }
+          if (!mapPanel.id) {
+            mapPanel.id = `atlas-warehouse-map-${Math.random().toString(36).slice(2, 9)}`;
+          }
+          button.setAttribute("aria-controls", mapPanel.id);
+          button.setAttribute("aria-label", "View warehouse map for this pick location");
+          const expanded = resultCard.dataset.atlasMapExpanded === "true";
+          const stateAlreadyApplied =
+            mapPanel.classList.contains("atlas-collapsible-map") &&
+            mapPanel.classList.contains("is-expanded") === expanded &&
+            button.getAttribute("aria-expanded") === String(expanded);
+          if (!stateAlreadyApplied) {
+            setMapState(resultCard, mapPanel, button, expanded, true);
+          }
+        };
+
+        const focusNewResult = (resultCard, sku) => {
+          if (!resultCard || !sku || sku === lastFocusedSku) return;
+          lastFocusedSku = sku;
+          const active = document.activeElement;
+          if (active instanceof HTMLElement) active.blur();
+          const positionResult = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+          window.requestAnimationFrame(() => {
+            positionResult();
+            window.requestAnimationFrame(positionResult);
+          });
+        };
+
+        const sync = () => {
+          queued = false;
+          ensureResultsLabel();
+          const resultCard = document.querySelector(".home-view .result-card");
+          const sku = resultCard
+            ?.querySelector(".sku-copy strong")
+            ?.textContent?.trim() || "";
+          const focused = Boolean(resultCard && sku);
+          root.classList.toggle("atlas-results-focused", focused);
+          document
+            .querySelector(".atlas-results-mode-label")
+            ?.setAttribute("aria-hidden", String(!focused));
+          if (!focused) {
+            lastFocusedSku = "";
+            return;
+          }
+          ensureMapDisclosure(resultCard);
+          focusNewResult(resultCard, sku);
+        };
+
+        const queue = () => {
+          if (queued) return;
+          queued = true;
+          window.requestAnimationFrame(sync);
+        };
+
+        document.addEventListener("click", (event) => {
+          const mapButton = event.target.closest?.(".atlas-map-disclosure-button");
+          if (mapButton) {
+            const resultCard = mapButton.closest(".result-card");
+            const mapPanel = resultCard?.querySelector(".map-panel");
+            if (!resultCard || !mapPanel) return;
+            const expanded = resultCard.dataset.atlasMapExpanded !== "true";
+            setMapState(resultCard, mapPanel, mapButton, expanded, false);
+            mapButton.setAttribute(
+              "aria-label",
+              expanded
+                ? "Hide warehouse map for this pick location"
+                : "View warehouse map for this pick location",
+            );
+            if (expanded) {
+              window.setTimeout(() => {
+                mapButton.scrollIntoView({
+                  behavior: reduceMotion.matches ? "auto" : "smooth",
+                  block: "start",
+                });
+              }, 70);
+            }
+            return;
+          }
+
+          const navigation = event.target.closest?.(
+            ".bottom-nav button, .premium-drawer-link",
+          );
+          if (!navigation) return;
+          const label =
+            navigation.dataset.nav || navigation.textContent?.trim() || "";
+          if (!/^home$/i.test(label)) return;
+          window.setTimeout(() => {
+            const input = document.querySelector(".home-view .search-input");
+            if (input instanceof HTMLInputElement && input.value) {
+              const setter = Object.getOwnPropertyDescriptor(
+                HTMLInputElement.prototype,
+                "value",
+              )?.set;
+              setter?.call(input, "");
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+            input?.blur();
+            root.classList.remove("atlas-results-focused");
+            lastFocusedSku = "";
+            window.scrollTo({ top: 0, left: 0, behavior: reduceMotion.matches ? "auto" : "smooth" });
+          }, 0);
+        });
+
+        new MutationObserver(queue).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class", "data-sku"],
+        });
+        window.addEventListener("resize", () => {
+          document
+            .querySelectorAll(".map-panel.atlas-collapsible-map.is-expanded")
+            .forEach((panel) => {
+              panel.style.height = "auto";
+            });
+        }, { passive: true });
+        window.addEventListener("DOMContentLoaded", queue);
+        window.addEventListener("pageshow", queue);
+        queue();
       })();
     </script>
 
