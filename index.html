@@ -17943,23 +17943,11 @@ Error generating stack: ` +
                                 (0, T.jsxs)(`div`, {
                                   className: `result-body`,
                                   children: [
-                                    (0, T.jsxs)(`button`, {
+                                    (0, T.jsx)(`div`, {
                                       className: `sku-copy`,
-                                      type: `button`,
-                                      onClick: async () => {
-                                        (await navigator.clipboard?.writeText(
-                                          u.sku,
-                                        ),
-                                          te(`✓ SKU copied`));
-                                      },
-                                      children: [
-                                        (0, T.jsx)(`strong`, {
-                                          children: u.sku,
-                                        }),
-                                        (0, T.jsx)(`span`, {
-                                          children: `Tap to copy`,
-                                        }),
-                                      ],
+                                      children: (0, T.jsx)(`strong`, {
+                                        children: u.sku,
+                                      }),
                                     }),
                                     (0, T.jsx)(`div`, {
                                       className: `location-list`,
@@ -32455,6 +32443,930 @@ Error generating stack: ` +
         window.addEventListener("DOMContentLoaded", queueBrandSystem);
         window.addEventListener("pageshow", queueBrandSystem);
         queueBrandSystem();
+      })();
+    </script>
+
+    <style id="atlas-pallet-build-guide-v1">
+      /* ATLAS Pallet Build Guide — exact-SKU, published-guide experience. */
+      .result-card .sku-copy {
+        cursor: default !important;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+      .result-card .sku-copy:active {
+        transform: none !important;
+      }
+
+      .result-card .atlas-product-showcase.atlas-has-pallet-guide {
+        display: block !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        cursor: default !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+      .result-card .atlas-product-showcase.atlas-has-pallet-guide:active {
+        transform: none !important;
+      }
+      .result-card .atlas-product-showcase.atlas-has-pallet-guide
+        > .atlas-product-media,
+      .result-card .atlas-product-showcase.atlas-has-pallet-guide
+        > .atlas-product-copy {
+        display: none !important;
+      }
+      .atlas-result-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        width: 100%;
+      }
+      .atlas-result-actions > button {
+        position: relative;
+        display: grid !important;
+        grid-template-columns: 30px minmax(0, 1fr) 13px !important;
+        align-items: center !important;
+        gap: 8px !important;
+        width: 100% !important;
+        min-width: 0;
+        min-height: 58px !important;
+        margin: 0 !important;
+        padding: 8px 10px !important;
+        border-radius: 14px !important;
+        box-shadow: 0 8px 19px rgba(7, 31, 67, 0.08) !important;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px !important;
+        font-weight: 950 !important;
+        line-height: 1.1 !important;
+        letter-spacing: -0.01em !important;
+        text-align: left !important;
+        transition:
+          transform 150ms ease,
+          box-shadow 180ms ease,
+          border-color 180ms ease !important;
+      }
+      .atlas-result-actions > .atlas-product-view-details {
+        color: #0b376f !important;
+        background: linear-gradient(145deg, #ffffff, #f5f8fc) !important;
+        border: 1px solid #c4d3e5 !important;
+      }
+      .atlas-pallet-guide-button {
+        color: #ffffff;
+        background:
+          radial-gradient(circle at 90% 0, rgba(43, 112, 220, 0.45), transparent 44%),
+          linear-gradient(145deg, #0d3d7d, #061c3e) !important;
+        border: 1px solid #123f7a !important;
+        box-shadow:
+          0 10px 22px rgba(6, 29, 65, 0.19),
+          inset 0 1px 0 rgba(255, 255, 255, 0.13) !important;
+      }
+      .atlas-result-actions > button:active {
+        transform: scale(0.982) !important;
+      }
+      .atlas-result-actions > button:focus-visible {
+        outline: 3px solid rgba(8, 107, 255, 0.28) !important;
+        outline-offset: 3px !important;
+      }
+      .atlas-result-action-icon {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+      }
+      .atlas-product-view-details .atlas-result-action-icon {
+        color: #0d4d9f;
+        background: #e9f1fb;
+      }
+      .atlas-pallet-guide-button .atlas-result-action-icon {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .atlas-result-action-icon svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+      .atlas-result-action-label {
+        min-width: 0;
+        overflow-wrap: normal;
+      }
+      .atlas-result-action-chevron {
+        justify-self: end;
+        color: currentColor;
+        font-size: 21px;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 1;
+        opacity: 0.78;
+      }
+
+      .atlas-pallet-guide-backdrop {
+        position: fixed;
+        z-index: 12500;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding:
+          max(15px, env(safe-area-inset-top))
+          14px
+          max(15px, env(safe-area-inset-bottom));
+        background: rgba(2, 14, 32, 0.5);
+        -webkit-backdrop-filter: blur(12px) saturate(0.86);
+        backdrop-filter: blur(12px) saturate(0.86);
+        animation: atlas-pallet-backdrop-in 230ms ease-out both;
+      }
+      .atlas-pallet-guide-backdrop.is-closing {
+        animation: atlas-pallet-backdrop-out 190ms ease-in both;
+      }
+      .atlas-pallet-guide-modal {
+        position: relative;
+        width: min(94vw, 640px);
+        max-height: min(90dvh, 840px);
+        overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        color: #0a1d37;
+        background: #f5f7fa;
+        border: 1px solid rgba(200, 213, 229, 0.96);
+        border-radius: 28px;
+        box-shadow:
+          0 34px 86px rgba(1, 12, 29, 0.39),
+          0 5px 18px rgba(1, 12, 29, 0.14);
+        animation: atlas-pallet-modal-in 330ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        scrollbar-width: thin;
+        scrollbar-color: #b9c8d9 transparent;
+      }
+      .atlas-pallet-guide-backdrop.is-closing .atlas-pallet-guide-modal {
+        animation: atlas-pallet-modal-out 190ms ease-in both;
+      }
+      .atlas-pallet-guide-close {
+        position: absolute;
+        z-index: 4;
+        top: 16px;
+        right: 16px;
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        color: #ffffff;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        box-shadow: none;
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        font-size: 25px;
+        font-weight: 400;
+        line-height: 1;
+      }
+      .atlas-pallet-guide-close:focus-visible {
+        outline: 3px solid rgba(255, 255, 255, 0.62);
+        outline-offset: 2px;
+      }
+      .atlas-pallet-guide-hero {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        padding: 30px 72px 29px 27px;
+        color: #ffffff;
+        background:
+          radial-gradient(circle at 88% 7%, rgba(34, 112, 235, 0.58), transparent 39%),
+          linear-gradient(145deg, #0b3c7d 0%, #061e43 62%, #051731 100%);
+        border-radius: 27px 27px 24px 24px;
+      }
+      .atlas-pallet-guide-hero::after {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        right: -45px;
+        bottom: -84px;
+        width: 190px;
+        height: 190px;
+        border: 24px solid rgba(255, 255, 255, 0.045);
+        border-radius: 50%;
+      }
+      .atlas-pallet-guide-kicker {
+        display: block;
+        margin-bottom: 11px;
+        color: #a9c9fa;
+        font-size: 9px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+      .atlas-pallet-guide-title {
+        margin: 0;
+        color: #ffffff;
+        font-size: clamp(21px, 5.5vw, 31px);
+        font-weight: 950;
+        line-height: 1.1;
+        letter-spacing: -0.028em;
+        overflow-wrap: anywhere;
+      }
+      .atlas-pallet-guide-content {
+        display: grid;
+        gap: 18px;
+        padding: 20px;
+      }
+      .atlas-pallet-guide-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+      }
+      .atlas-pallet-guide-metric {
+        min-width: 0;
+        min-height: 102px;
+        padding: 15px 9px 13px;
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid #d9e2ec;
+        border-radius: 16px;
+        box-shadow: 0 7px 19px rgba(8, 32, 67, 0.055);
+      }
+      .atlas-pallet-guide-metric span {
+        display: block;
+        min-height: 24px;
+        color: #63748a;
+        font-size: 8px;
+        font-weight: 950;
+        line-height: 1.25;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .atlas-pallet-guide-metric strong {
+        display: block;
+        margin-top: 6px;
+        color: #081f41;
+        font-size: clamp(27px, 7vw, 37px);
+        font-weight: 1000;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+      .atlas-pallet-guide-diagrams {
+        display: grid;
+        gap: 12px;
+      }
+      .atlas-pallet-guide-section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 3px;
+      }
+      .atlas-pallet-guide-section-head span {
+        color: #0e55b6;
+        font-size: 9px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .atlas-pallet-guide-layer-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr));
+        gap: 11px;
+      }
+      .atlas-pallet-guide-layer {
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid #d7e1ec;
+        border-radius: 19px;
+        box-shadow: 0 8px 22px rgba(7, 31, 67, 0.065);
+      }
+      .atlas-pallet-guide-layer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 13px 15px 11px;
+        border-bottom: 1px solid #e3e9f0;
+      }
+      .atlas-pallet-guide-layer-head strong {
+        color: #0a294f;
+        font-size: 13px;
+        font-weight: 950;
+      }
+      .atlas-pallet-guide-layer-head span {
+        color: #60738a;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .atlas-pallet-guide-diagram {
+        display: grid;
+        place-items: center;
+        padding: 15px;
+        background:
+          linear-gradient(rgba(12, 65, 135, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(12, 65, 135, 0.025) 1px, transparent 1px),
+          #f8fafc;
+        background-size: 18px 18px;
+      }
+      .atlas-pallet-guide-diagram svg {
+        display: block;
+        width: min(100%, 330px);
+        height: auto;
+        filter: drop-shadow(0 9px 13px rgba(8, 28, 57, 0.08));
+      }
+      .atlas-pallet-outline {
+        fill: #e7edf4;
+        stroke: #a7b8ca;
+        stroke-width: 1.3;
+      }
+      .atlas-pallet-case {
+        fill: #ffffff;
+        stroke: #0e58bd;
+        stroke-width: 1.5;
+      }
+      .atlas-pallet-case.is-flipped {
+        fill: #dceaff;
+        stroke: #083e89;
+      }
+      .atlas-pallet-case-mark {
+        stroke: #77a6e4;
+        stroke-width: 1.25;
+      }
+      .atlas-pallet-case-mark.is-flipped {
+        stroke: #0b4c9e;
+      }
+      .atlas-pallet-guide-sequence {
+        padding: 15px;
+        background: #ffffff;
+        border: 1px solid #d7e1ec;
+        border-radius: 17px;
+        box-shadow: 0 7px 18px rgba(7, 31, 67, 0.05);
+      }
+      .atlas-pallet-guide-sequence > span {
+        display: block;
+        margin-bottom: 10px;
+        color: #586c83;
+        font-size: 8px;
+        font-weight: 950;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .atlas-pallet-guide-sequence-list {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+      }
+      .atlas-pallet-guide-sequence-chip {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        min-width: 36px;
+        height: 36px;
+        color: #ffffff;
+        background: linear-gradient(145deg, #0e58bd, #073474);
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .atlas-pallet-guide-sequence-arrow {
+        flex: 0 0 auto;
+        color: #8090a3;
+        font-size: 16px;
+      }
+      body.atlas-pallet-guide-open {
+        overflow: hidden;
+      }
+      body.atlas-pallet-guide-open .atlas-pick-reminder {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transform: translate(-50%, -10px) scale(0.985) !important;
+      }
+      @keyframes atlas-pallet-backdrop-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes atlas-pallet-backdrop-out {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      @keyframes atlas-pallet-modal-in {
+        from { opacity: 0; transform: translateY(13px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes atlas-pallet-modal-out {
+        from { opacity: 1; transform: translateY(0) scale(1); }
+        to { opacity: 0; transform: translateY(8px) scale(0.99); }
+      }
+      @media (max-width: 460px) {
+        .atlas-result-actions {
+          gap: 7px;
+        }
+        .atlas-result-actions > button {
+          grid-template-columns: 27px minmax(0, 1fr) 10px !important;
+          gap: 6px !important;
+          min-height: 56px !important;
+          padding: 7px 8px !important;
+          border-radius: 13px !important;
+          font-size: 11px !important;
+        }
+        .atlas-result-action-icon {
+          width: 27px;
+          height: 27px;
+          border-radius: 8px;
+        }
+        .atlas-result-action-icon svg {
+          width: 16px;
+          height: 16px;
+        }
+        .atlas-pallet-guide-modal {
+          width: calc(100vw - 20px);
+          max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+          border-radius: 24px;
+        }
+        .atlas-pallet-guide-hero {
+          padding: 27px 62px 25px 21px;
+          border-radius: 23px 23px 21px 21px;
+        }
+        .atlas-pallet-guide-close {
+          top: 12px;
+          right: 12px;
+          width: 39px;
+          height: 39px;
+        }
+        .atlas-pallet-guide-content {
+          gap: 15px;
+          padding: 15px;
+        }
+        .atlas-pallet-guide-metrics {
+          gap: 7px;
+        }
+        .atlas-pallet-guide-metric {
+          min-height: 92px;
+          padding: 13px 6px 11px;
+          border-radius: 14px;
+        }
+        .atlas-pallet-guide-metric span {
+          min-height: 22px;
+          font-size: 7px;
+          letter-spacing: 0.09em;
+        }
+        .atlas-pallet-guide-metric strong {
+          font-size: 29px;
+        }
+        .atlas-pallet-guide-diagram {
+          padding: 12px;
+        }
+      }
+      @media (max-width: 350px) {
+        .atlas-result-actions > button {
+          grid-template-columns: minmax(0, 1fr) 9px !important;
+          font-size: 10px !important;
+        }
+        .atlas-result-action-icon {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-result-actions > button,
+        .atlas-pallet-guide-backdrop,
+        .atlas-pallet-guide-backdrop.is-closing,
+        .atlas-pallet-guide-modal,
+        .atlas-pallet-guide-backdrop.is-closing .atlas-pallet-guide-modal {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+    <script id="atlas-pallet-build-guide-behavior-v1">
+      (() => {
+        const GUIDE_DATA_URL = "./pallet-guides.json?v=20260805-v3";
+        const SVG_NS = "http://www.w3.org/2000/svg";
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        let guideData = { profiles: {}, skuAssignments: {} };
+        let dataReady = false;
+        let enhancementQueued = false;
+        let returnFocus = null;
+
+        const normalizeSku = (value) =>
+          String(value || "")
+            .normalize("NFKC")
+            .replace(/[\u2010-\u2015\u2212]/g, "-")
+            .replace(/\s+/g, "")
+            .toUpperCase();
+
+        const isPositiveInteger = (value) =>
+          Number.isInteger(Number(value)) && Number(value) > 0;
+
+        const resolvePublishedGuide = (sku) => {
+          const canonicalSku = normalizeSku(sku);
+          const profileId = guideData.skuAssignments?.[canonicalSku];
+          const profile = profileId ? guideData.profiles?.[profileId] : null;
+          if (!profile || profile.status !== "published") return null;
+
+          const totalCases = Number(profile.totalCasesPerPallet);
+          const sequence = Array.isArray(profile.layerSequence)
+            ? profile.layerSequence.map((item) => String(item))
+            : [];
+          const variants = profile.layerVariants || {};
+          if (!isPositiveInteger(totalCases) || sequence.length === 0) return null;
+          if (
+            profile.totalLayers != null &&
+            Number(profile.totalLayers) !== sequence.length
+          ) return null;
+
+          let reconciledCases = 0;
+          const usedVariantIds = [];
+          for (const variantId of sequence) {
+            const variant = variants[variantId];
+            const boxes = variant?.diagram?.boxes;
+            if (
+              !variant ||
+              !isPositiveInteger(variant.cases) ||
+              !Array.isArray(boxes) ||
+              boxes.length !== Number(variant.cases)
+            ) return null;
+            if (!usedVariantIds.includes(variantId)) usedVariantIds.push(variantId);
+            reconciledCases += Number(variant.cases);
+          }
+          if (reconciledCases !== totalCases) return null;
+          const distinctLayerCases = [
+            ...new Set(sequence.map((variantId) => Number(variants[variantId].cases))),
+          ];
+          if (
+            profile.casesPerLayer != null &&
+            distinctLayerCases.length === 1 &&
+            Number(profile.casesPerLayer) !== distinctLayerCases[0]
+          ) return null;
+
+          return {
+            profileId,
+            sku: canonicalSku,
+            totalCases,
+            totalLayers: sequence.length,
+            sequence,
+            variants,
+            usedVariantIds,
+          };
+        };
+
+        const detailsIcon = `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 6.5 12 3l7 3.5v10L12 21l-7-4.5z"></path>
+            <path d="m5 6.5 7 4 7-4M12 10.5V21"></path>
+          </svg>`;
+        const palletIcon = `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="4" width="6" height="6" rx="1"></rect>
+            <rect x="13" y="4" width="6" height="6" rx="1"></rect>
+            <rect x="5" y="11" width="6" height="6" rx="1"></rect>
+            <rect x="13" y="11" width="6" height="6" rx="1"></rect>
+            <path d="M3.5 19.5h17M6 19.5V21m12-1.5V21"></path>
+          </svg>`;
+
+        const configureActionButton = (button, type) => {
+          const isPallet = type === "pallet";
+          const expected = isPallet ? "Pallet Guide" : "View Details";
+          if (button.dataset.atlasActionType === type) return;
+          button.dataset.atlasActionType = type;
+          button.innerHTML = `
+            <span class="atlas-result-action-icon">${isPallet ? palletIcon : detailsIcon}</span>
+            <span class="atlas-result-action-label">${expected}</span>
+            <i class="atlas-result-action-chevron" aria-hidden="true">›</i>`;
+        };
+
+        const restoreDefaultShowcase = (showcase) => {
+          const row = showcase.querySelector(":scope > .atlas-result-actions");
+          const detailsButton =
+            row?.querySelector(".atlas-product-view-details") ||
+            showcase.querySelector(".atlas-product-view-details");
+          const copy = showcase.querySelector(":scope > .atlas-product-copy");
+          if (detailsButton && copy && detailsButton.parentElement !== copy) {
+            copy.appendChild(detailsButton);
+          }
+          if (detailsButton?.dataset.atlasActionType) {
+            detailsButton.innerHTML =
+              '<span>View Product Details</span><i aria-hidden="true">›</i>';
+            delete detailsButton.dataset.atlasActionType;
+          }
+          row?.remove();
+          if (showcase.classList.contains("atlas-has-pallet-guide")) {
+            showcase.classList.remove("atlas-has-pallet-guide");
+          }
+          if (showcase.hasAttribute("data-atlas-pallet-profile")) {
+            showcase.removeAttribute("data-atlas-pallet-profile");
+          }
+          if (showcase.getAttribute("aria-label") !== "Product identification") {
+            showcase.setAttribute("aria-label", "Product identification");
+          }
+        };
+
+        const enhanceShowcase = (showcase) => {
+          const sku = normalizeSku(showcase.dataset.sku);
+          const guide = dataReady ? resolvePublishedGuide(sku) : null;
+          if (!guide) {
+            restoreDefaultShowcase(showcase);
+            return;
+          }
+
+          const detailsButton = showcase.querySelector(".atlas-product-view-details");
+          if (!detailsButton) return;
+          let row = showcase.querySelector(":scope > .atlas-result-actions");
+          if (!row) {
+            row = document.createElement("div");
+            row.className = "atlas-result-actions";
+            showcase.appendChild(row);
+          }
+          if (detailsButton.parentElement !== row) row.appendChild(detailsButton);
+          configureActionButton(detailsButton, "details");
+
+          let palletButton = row.querySelector(".atlas-pallet-guide-button");
+          if (!palletButton) {
+            palletButton = document.createElement("button");
+            palletButton.type = "button";
+            palletButton.className = "atlas-pallet-guide-button";
+            palletButton.setAttribute("aria-haspopup", "dialog");
+            row.appendChild(palletButton);
+          }
+          configureActionButton(palletButton, "pallet");
+          const palletButtonLabel = `Open pallet guide for ${guide.sku}`;
+          if (palletButton.getAttribute("aria-label") !== palletButtonLabel) {
+            palletButton.setAttribute("aria-label", palletButtonLabel);
+          }
+          if (!showcase.classList.contains("atlas-has-pallet-guide")) {
+            showcase.classList.add("atlas-has-pallet-guide");
+          }
+          if (showcase.dataset.atlasPalletProfile !== guide.profileId) {
+            showcase.dataset.atlasPalletProfile = guide.profileId;
+          }
+          if (showcase.getAttribute("aria-label") !== "SKU actions") {
+            showcase.setAttribute("aria-label", "SKU actions");
+          }
+        };
+
+        const enhance = () => {
+          enhancementQueued = false;
+          document
+            .querySelectorAll(".home-view .result-card .atlas-product-showcase")
+            .forEach(enhanceShowcase);
+        };
+        const queueEnhancement = () => {
+          if (enhancementQueued) return;
+          enhancementQueued = true;
+          window.requestAnimationFrame(enhance);
+        };
+
+        const numberAttribute = (value, fallback, min, max) => {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed)) return fallback;
+          return Math.min(max, Math.max(min, parsed));
+        };
+
+        const createLayerDiagram = (variant) => {
+          const svg = document.createElementNS(SVG_NS, "svg");
+          svg.setAttribute("viewBox", "0 0 120 100");
+          svg.setAttribute("role", "img");
+          svg.setAttribute(
+            "aria-label",
+            variant.diagram?.alt || `Top view showing ${variant.cases} boxes`,
+          );
+
+          const pallet = document.createElementNS(SVG_NS, "rect");
+          pallet.setAttribute("x", "2");
+          pallet.setAttribute("y", "2");
+          pallet.setAttribute("width", "116");
+          pallet.setAttribute("height", "96");
+          pallet.setAttribute("rx", "4");
+          pallet.setAttribute("class", "atlas-pallet-outline");
+          svg.appendChild(pallet);
+
+          variant.diagram.boxes.forEach((box) => {
+            const x = numberAttribute(box.x, 5, 3, 110);
+            const y = numberAttribute(box.y, 5, 3, 90);
+            const width = numberAttribute(box.width, 20, 3, 114 - x);
+            const height = numberAttribute(box.height, 20, 3, 94 - y);
+            const flipped = Boolean(box.flipped);
+            const rect = document.createElementNS(SVG_NS, "rect");
+            rect.setAttribute("x", String(x));
+            rect.setAttribute("y", String(y));
+            rect.setAttribute("width", String(width));
+            rect.setAttribute("height", String(height));
+            rect.setAttribute("rx", "2.3");
+            rect.setAttribute(
+              "class",
+              `atlas-pallet-case${flipped ? " is-flipped" : ""}`,
+            );
+            svg.appendChild(rect);
+
+            const mark = document.createElementNS(SVG_NS, "line");
+            if (width >= height) {
+              mark.setAttribute("x1", String(x + width * 0.24));
+              mark.setAttribute("x2", String(x + width * 0.76));
+              mark.setAttribute("y1", String(y + height / 2));
+              mark.setAttribute("y2", String(y + height / 2));
+            } else {
+              mark.setAttribute("x1", String(x + width / 2));
+              mark.setAttribute("x2", String(x + width / 2));
+              mark.setAttribute("y1", String(y + height * 0.24));
+              mark.setAttribute("y2", String(y + height * 0.76));
+            }
+            mark.setAttribute(
+              "class",
+              `atlas-pallet-case-mark${flipped ? " is-flipped" : ""}`,
+            );
+            svg.appendChild(mark);
+          });
+          return svg;
+        };
+
+        const closePalletGuide = () => {
+          const backdrop = document.querySelector(".atlas-pallet-guide-backdrop");
+          if (!backdrop || backdrop.classList.contains("is-closing")) return;
+          const finish = () => {
+            backdrop.remove();
+            document.body.classList.remove("atlas-pallet-guide-open");
+            returnFocus?.focus?.({ preventScroll: true });
+            returnFocus = null;
+          };
+          if (reduceMotion.matches) {
+            finish();
+            return;
+          }
+          backdrop.classList.add("is-closing");
+          window.setTimeout(finish, 190);
+        };
+
+        const openPalletGuide = (guide, trigger) => {
+          closePalletGuide();
+          returnFocus = trigger;
+          const layerCases = [
+            ...new Set(guide.sequence.map((id) => Number(guide.variants[id].cases))),
+          ];
+          const casesPerLayer = layerCases.join(" / ");
+
+          const backdrop = document.createElement("div");
+          backdrop.className = "atlas-pallet-guide-backdrop";
+          backdrop.setAttribute("role", "presentation");
+          backdrop.innerHTML = `
+            <article
+              class="atlas-pallet-guide-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="atlas-pallet-guide-title"
+            >
+              <button class="atlas-pallet-guide-close" type="button" aria-label="Close pallet guide">×</button>
+              <header class="atlas-pallet-guide-hero">
+                <span class="atlas-pallet-guide-kicker">Pallet Build Guide</span>
+                <h2 class="atlas-pallet-guide-title" id="atlas-pallet-guide-title"></h2>
+              </header>
+              <div class="atlas-pallet-guide-content">
+                <section class="atlas-pallet-guide-metrics" aria-label="Pallet totals">
+                  <div class="atlas-pallet-guide-metric"><span>Total Boxes<br>Per Pallet</span><strong></strong></div>
+                  <div class="atlas-pallet-guide-metric"><span>Boxes<br>Per Layer</span><strong></strong></div>
+                  <div class="atlas-pallet-guide-metric"><span>Number<br>Of Layers</span><strong></strong></div>
+                </section>
+                <section class="atlas-pallet-guide-diagrams" aria-label="Visual layer diagram">
+                  <div class="atlas-pallet-guide-section-head"><span>Visual Layer Diagram</span></div>
+                  <div class="atlas-pallet-guide-layer-grid"></div>
+                </section>
+              </div>
+            </article>`;
+
+          backdrop.querySelector(".atlas-pallet-guide-title").textContent = guide.sku;
+          const metricValues = backdrop.querySelectorAll(
+            ".atlas-pallet-guide-metric strong",
+          );
+          metricValues[0].textContent = String(guide.totalCases);
+          metricValues[1].textContent = casesPerLayer;
+          metricValues[2].textContent = String(guide.totalLayers);
+
+          const layerGrid = backdrop.querySelector(".atlas-pallet-guide-layer-grid");
+          const multipleVariants = guide.usedVariantIds.length > 1;
+          guide.usedVariantIds.forEach((variantId) => {
+            const variant = guide.variants[variantId];
+            const layer = document.createElement("article");
+            layer.className = "atlas-pallet-guide-layer";
+            layer.innerHTML = `
+              <div class="atlas-pallet-guide-layer-head">
+                <strong></strong><span></span>
+              </div>
+              <div class="atlas-pallet-guide-diagram"></div>`;
+            layer.querySelector("strong").textContent = multipleVariants
+              ? `Layer ${variantId}`
+              : "Every Layer";
+            layer.querySelector("span").textContent = `${variant.cases} boxes`;
+            layer
+              .querySelector(".atlas-pallet-guide-diagram")
+              .appendChild(createLayerDiagram(variant));
+            layerGrid.appendChild(layer);
+          });
+
+          if (multipleVariants) {
+            const sequence = document.createElement("section");
+            sequence.className = "atlas-pallet-guide-sequence";
+            sequence.innerHTML = `
+              <span>Layer Sequence</span>
+              <div class="atlas-pallet-guide-sequence-list"></div>`;
+            const list = sequence.querySelector(".atlas-pallet-guide-sequence-list");
+            guide.sequence.forEach((variantId, index) => {
+              const chip = document.createElement("b");
+              chip.className = "atlas-pallet-guide-sequence-chip";
+              chip.textContent = variantId;
+              chip.setAttribute("aria-label", `Layer ${index + 1}: pattern ${variantId}`);
+              list.appendChild(chip);
+              if (index < guide.sequence.length - 1) {
+                const arrow = document.createElement("i");
+                arrow.className = "atlas-pallet-guide-sequence-arrow";
+                arrow.setAttribute("aria-hidden", "true");
+                arrow.textContent = "→";
+                list.appendChild(arrow);
+              }
+            });
+            backdrop.querySelector(".atlas-pallet-guide-content").appendChild(sequence);
+          }
+
+          backdrop
+            .querySelector(".atlas-pallet-guide-close")
+            .addEventListener("click", closePalletGuide);
+          backdrop.addEventListener("click", (event) => {
+            if (event.target === backdrop) closePalletGuide();
+          });
+          document.body.appendChild(backdrop);
+          document.body.classList.add("atlas-pallet-guide-open");
+          backdrop.querySelector(".atlas-pallet-guide-close").focus({
+            preventScroll: true,
+          });
+        };
+
+        fetch(GUIDE_DATA_URL, { cache: "no-cache" })
+          .then((response) => {
+            if (!response.ok) throw new Error("Pallet guide data unavailable");
+            return response.json();
+          })
+          .then((payload) => {
+            guideData = {
+              profiles: payload?.profiles || {},
+              skuAssignments: payload?.skuAssignments || {},
+            };
+          })
+          .catch(() => {
+            guideData = { profiles: {}, skuAssignments: {} };
+          })
+          .finally(() => {
+            dataReady = true;
+            queueEnhancement();
+          });
+
+        document.addEventListener("click", (event) => {
+          const button = event.target.closest?.(".atlas-pallet-guide-button");
+          if (!button) return;
+          const showcase = button.closest(".atlas-product-showcase");
+          const guide = resolvePublishedGuide(showcase?.dataset.sku);
+          if (guide) openPalletGuide(guide, button);
+        });
+        document.addEventListener("keydown", (event) => {
+          const modal = document.querySelector(".atlas-pallet-guide-modal");
+          if (!modal) return;
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closePalletGuide();
+            return;
+          }
+          if (event.key !== "Tab") return;
+          const focusable = Array.from(
+            modal.querySelectorAll(
+              'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter((node) => !node.hidden);
+          if (focusable.length === 0) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        });
+
+        new MutationObserver(queueEnhancement).observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class", "data-sku"],
+        });
+        window.addEventListener("DOMContentLoaded", queueEnhancement);
+        queueEnhancement();
       })();
     </script>
 

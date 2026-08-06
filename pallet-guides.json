@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-05",
+  "profiles": {
+    "cgub1-30mlsc-standard-v1": {
+      "status": "draft",
+      "familySku": "CGUB1-30MLSC",
+      "totalCasesPerPallet": 24,
+      "casesPerLayer": 6,
+      "totalLayers": 4,
+      "layerVariants": {},
+      "layerSequence": []
+    },
+    "cgapt5-116mm-standard-v1": {
+      "status": "draft",
+      "familySku": "CGAPT5-116MM",
+      "totalCasesPerPallet": 25,
+      "casesPerLayer": 5,
+      "totalLayers": 5,
+      "layerVariants": {},
+      "layerSequence": []
+    },
+    "cgapt5-116mml-standard-v1": {
+      "status": "draft",
+      "familySku": "CGAPT5-116MML",
+      "totalCasesPerPallet": 20,
+      "casesPerLayer": 5,
+      "totalLayers": 4,
+      "layerVariants": {},
+      "layerSequence": []
+    }
+  },
+  "skuAssignments": {
+    "CGAPT5-116MM-CNL-CNL": "cgapt5-116mm-standard-v1",
+    "CGAPT5-116MM-OBK-OBK": "cgapt5-116mm-standard-v1",
+    "CGAPT5-116MM-OWH-OWH": "cgapt5-116mm-standard-v1",
+    "CGAPT5-116MML-OBK-OBK": "cgapt5-116mml-standard-v1",
+    "CGUB1-30MLSC-0069": "cgub1-30mlsc-standard-v1",
+    "CGUB1-30MLSC-AMBK": "cgub1-30mlsc-standard-v1",
+    "CGUB1-30MLSC-BK": "cgub1-30mlsc-standard-v1",
+    "CGUB1-30MLSC-BKBK": "cgub1-30mlsc-standard-v1",
+    "CGUB1-30MLSC-NATL": "cgub1-30mlsc-standard-v1",
+    "CGUB1-30MLSC-WT-SOLID": "cgub1-30mlsc-standard-v1",
+    "CGUB1-30MLSC-WTC": "cgub1-30mlsc-standard-v1"
+  }
+}
