@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v117-access-management";
+const VERSION = "atlas-pwa-v120-desktop-corrections";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,6 +7,8 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=117",
   "./atlas-dashboard.js?v=117",
+  "./atlas-desktop.css?v=120",
+  "./atlas-desktop.js?v=120",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
   "./pallet-guides.json?v=20260805-v4",

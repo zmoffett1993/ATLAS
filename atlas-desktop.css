@@ -1,0 +1,726 @@
+/* ATLAS desktop workspace
+   This file is intentionally inert on touch/mobile devices. The existing
+   picker experience remains the source of truth below this desktop query. */
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  :root {
+    --atlas-desktop-sidebar: 264px;
+    --atlas-desktop-topbar: 76px;
+    --atlas-desktop-canvas: #eef3f8;
+    --atlas-desktop-panel: #ffffff;
+    --atlas-desktop-line: #d8e2ed;
+    --atlas-desktop-ink: #0b2341;
+    --atlas-desktop-muted: #687b90;
+    --atlas-dashboard-sidebar: var(--atlas-desktop-sidebar);
+  }
+
+  html.atlas-desktop,
+  html.atlas-desktop body {
+    min-width: 1024px;
+    min-height: 100%;
+    background: var(--atlas-desktop-canvas) !important;
+  }
+
+  html.atlas-desktop body {
+    padding-left: var(--atlas-desktop-sidebar) !important;
+    overflow-x: hidden;
+  }
+
+  html.atlas-desktop body > #root,
+  html.atlas-desktop.atlas-menu-open body > #root {
+    min-height: 100vh;
+    transform: none !important;
+  }
+
+  html.atlas-desktop .app-shell {
+    min-height: 100vh;
+    padding: var(--atlas-desktop-topbar) 0 40px !important;
+  }
+
+  html.atlas-desktop .screen,
+  html.atlas-desktop.atlas-dashboard-open #root .screen {
+    width: min(calc(100% - 48px), 1480px) !important;
+    max-width: 1480px !important;
+    min-height: calc(100vh - var(--atlas-desktop-topbar) - 40px) !important;
+    margin: 24px auto 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Permanent supervisor navigation */
+  html.atlas-desktop .premium-menu-button,
+  html.atlas-desktop #root .bottom-nav,
+  html.atlas-desktop .premium-drawer-close.atlas-menu-close {
+    display: none !important;
+  }
+
+  html.atlas-desktop .premium-drawer-backdrop.atlas-menu-backdrop,
+  html.atlas-desktop .premium-drawer-backdrop.atlas-menu-backdrop.open {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    z-index: 90 !important;
+    width: var(--atlas-desktop-sidebar) !important;
+    height: 100vh !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: transparent !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    transition: none !important;
+  }
+
+  html.atlas-desktop .premium-drawer.atlas-menu-drawer,
+  html.atlas-desktop .premium-drawer-backdrop.open .premium-drawer.atlas-menu-drawer {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    width: var(--atlas-desktop-sidebar) !important;
+    max-width: none !important;
+    height: 100vh !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    transform: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    color: #fff !important;
+    background:
+      radial-gradient(circle at 42% 4%, rgba(38, 126, 235, 0.2), transparent 23%),
+      linear-gradient(180deg, #08294e 0%, #061d38 48%, #04162b 100%) !important;
+    box-shadow: 12px 0 34px rgba(3, 24, 48, 0.15) !important;
+  }
+
+  html.atlas-desktop .atlas-menu-brand {
+    min-height: 168px !important;
+    padding: 40px 24px 28px !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    aspect-ratio: auto !important;
+    background: transparent !important;
+  }
+
+  html.atlas-desktop .atlas-menu-lockup {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    aspect-ratio: 1199 / 327 !important;
+    background-image: url("./atlas-menu-lockup-v2.png?v=70") !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    background-size: contain !important;
+  }
+
+  html.atlas-desktop .atlas-menu-lockup-row,
+  html.atlas-desktop .atlas-menu-purpose {
+    visibility: hidden !important;
+  }
+
+  html.atlas-desktop .premium-drawer-nav.atlas-menu-nav {
+    min-height: 0 !important;
+    padding: 8px 13px 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active {
+    min-height: 55px !important;
+    margin: 0 !important;
+    padding: 0 14px !important;
+    grid-template-columns: 34px minmax(0, 1fr) 14px !important;
+    gap: 11px !important;
+    color: rgba(240, 247, 255, 0.72) !important;
+    border: 1px solid transparent !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:hover {
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    background: rgba(255, 255, 255, 0.07) !important;
+  }
+
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active,
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link[data-action="dashboard"].is-active {
+    color: #fff !important;
+    border-color: rgba(89, 164, 255, 0.28) !important;
+    background: linear-gradient(90deg, #125fc9, #1975e9) !important;
+    box-shadow: 0 10px 22px rgba(0, 75, 164, 0.28) !important;
+  }
+
+  html.atlas-desktop .atlas-menu-icon {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  html.atlas-desktop .atlas-menu-label {
+    font-size: 12px !important;
+    font-weight: 760 !important;
+    letter-spacing: 0.075em !important;
+    text-shadow: none !important;
+  }
+
+  html.atlas-desktop .atlas-menu-chevron {
+    color: rgba(255, 255, 255, 0.38) !important;
+    filter: none !important;
+  }
+
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link[data-action="about"] {
+    margin-top: auto !important;
+  }
+
+  html.atlas-desktop .atlas-menu-footer {
+    min-height: 84px !important;
+    margin: 0 !important;
+    padding: 18px 27px 24px !important;
+    gap: 5px !important;
+    color: rgba(222, 235, 249, 0.54) !important;
+    text-shadow: none !important;
+  }
+
+  html.atlas-desktop .atlas-menu-footer strong,
+  html.atlas-desktop .atlas-menu-footer span {
+    font-size: 8px !important;
+    letter-spacing: 0.18em !important;
+  }
+
+  /* Desktop command bar */
+  .atlas-desktop-topbar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: var(--atlas-desktop-sidebar);
+    z-index: 78;
+    height: var(--atlas-desktop-topbar);
+    padding: 0 clamp(24px, 3vw, 48px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    color: var(--atlas-desktop-ink);
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid var(--atlas-desktop-line);
+    box-shadow: 0 5px 18px rgba(10, 37, 69, 0.035);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  .atlas-desktop-topbar__context {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .atlas-desktop-topbar__context span {
+    color: #1871dc;
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .atlas-desktop-topbar__context strong {
+    overflow: hidden;
+    color: #0b294b;
+    font-size: 20px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .atlas-desktop-topbar__actions,
+  .atlas-desktop-topbar__status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .atlas-desktop-topbar__status {
+    min-height: 40px;
+    padding: 0 13px;
+    color: #526b85;
+    border: 1px solid #d8e3ee;
+    border-radius: 11px;
+    background: #f8fbfe;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .atlas-desktop-topbar__status i {
+    width: 8px;
+    height: 8px;
+    border-radius: 99px;
+    background: #1b9a60;
+    box-shadow: 0 0 0 4px rgba(27, 154, 96, 0.11);
+  }
+
+  html.atlas-offline .atlas-desktop-topbar__status i {
+    background: #c84747;
+    box-shadow: 0 0 0 4px rgba(200, 71, 71, 0.11);
+  }
+
+  .atlas-desktop-topbar button {
+    min-height: 40px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #143555;
+    cursor: pointer;
+    border: 1px solid #d3dfeb;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 780;
+    box-shadow: 0 3px 10px rgba(8, 35, 67, 0.045);
+  }
+
+  .atlas-desktop-topbar button:hover {
+    color: #0f5fbf;
+    border-color: #b8cbe0;
+    background: #f9fcff;
+  }
+
+  .atlas-desktop-topbar button.is-active {
+    color: #fff;
+    border-color: #1266d4;
+    background: linear-gradient(135deg, #105bc2, #1977e9);
+    box-shadow: 0 8px 20px rgba(13, 89, 190, 0.2);
+  }
+
+  .atlas-desktop-topbar svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  html.atlas-desktop.atlas-dashboard-open .atlas-desktop-topbar {
+    display: none;
+  }
+
+  /* Shared desktop page canvas */
+  html.atlas-desktop #root .brand-header {
+    min-height: 182px !important;
+    margin: 0 !important;
+    padding: 26px 34px 58px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 18px 48px rgba(4, 31, 60, 0.16) !important;
+  }
+
+  html.atlas-desktop #root .brand-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+
+  html.atlas-desktop #root .brand-top {
+    min-height: 48px;
+  }
+
+  html.atlas-desktop #root .brand-title {
+    max-height: 120px;
+    margin-top: 16px !important;
+  }
+
+  html.atlas-desktop #root .brand-header .atlas-logo-window,
+  html.atlas-desktop #root .brand-header[data-atlas-brand-layout="portrait"] .atlas-logo-window,
+  html.atlas-desktop #root .brand-header[data-atlas-brand-layout="landscape"] .atlas-logo-window {
+    width: min(520px, 48vw) !important;
+    max-width: 520px !important;
+    aspect-ratio: 1280 / 380 !important;
+  }
+
+  html.atlas-desktop #root .brand-header .atlas-logo-window img {
+    width: 100% !important;
+    height: 100% !important;
+    content: url("./atlas-brand-landscape-light.svg?v=120");
+    object-fit: contain !important;
+  }
+
+  html.atlas-desktop #root .workspace {
+    width: 100%;
+    padding: 26px 6px 40px !important;
+  }
+
+  html.atlas-desktop #root .home-view {
+    padding-top: 0 !important;
+  }
+
+  html.atlas-desktop #root .home-search-panel {
+    width: min(880px, calc(100% - 64px));
+    margin: -38px auto 0 !important;
+    padding: 17px 18px !important;
+    border: 1px solid #d5e0eb !important;
+    border-radius: 17px !important;
+    box-shadow: 0 14px 38px rgba(4, 29, 57, 0.12) !important;
+  }
+
+  html.atlas-desktop #root .search-input {
+    height: 58px !important;
+    padding-right: 104px !important;
+    border-radius: 12px !important;
+    font-size: 16px !important;
+  }
+
+  html.atlas-desktop #root .search-clear,
+  html.atlas-desktop #root .camera-button,
+  html.atlas-desktop #root .voice-button {
+    top: 11px !important;
+  }
+
+  html.atlas-desktop #root .recent-section {
+    width: min(1180px, 100%);
+    margin: 0 auto;
+  }
+
+  html.atlas-desktop #root .recent-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  html.atlas-desktop #root .welcome-card {
+    width: min(880px, 100%);
+    margin: 24px auto 0 !important;
+    padding: 38px 28px !important;
+    border-style: solid !important;
+  }
+
+  /* Desktop SKU result workspace */
+  html.atlas-desktop #root .result-card {
+    width: min(1260px, 100%);
+    margin: 22px auto 0 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 15px 44px rgba(15, 46, 80, 0.1) !important;
+  }
+
+  html.atlas-desktop #root .result-top {
+    min-height: 58px;
+    padding: 0 24px !important;
+  }
+
+  html.atlas-desktop #root .result-body {
+    padding: 24px !important;
+    display: grid !important;
+    grid-template-columns: minmax(340px, 0.88fr) minmax(430px, 1.12fr) !important;
+    align-items: start;
+    gap: 20px 24px !important;
+  }
+
+  html.atlas-desktop #root .result-body > .sku-copy {
+    grid-column: 1 / -1;
+    margin: 0 !important;
+  }
+
+  html.atlas-desktop #root .result-card .sku-copy strong {
+    font-size: clamp(24px, 2vw, 31px) !important;
+  }
+
+  html.atlas-desktop #root .result-body > .location-list {
+    grid-column: 1;
+    grid-row: auto;
+    align-self: start;
+    margin: 0 !important;
+  }
+
+  html.atlas-desktop #root .result-body > .atlas-product-showcase {
+    grid-column: 2;
+    align-self: start;
+    margin: 0 !important;
+    min-height: 100%;
+  }
+
+  html.atlas-desktop #root .result-body > .atlas-map-disclosure-button,
+  html.atlas-desktop #root .result-body > .map-panel,
+  html.atlas-desktop #root .result-body > .empty-state {
+    grid-column: 1 / -1;
+  }
+
+  html.atlas-desktop #root .location-entry {
+    padding: 12px !important;
+    border-radius: 13px !important;
+  }
+
+  html.atlas-desktop #root .location-card {
+    min-height: 62px;
+  }
+
+  html.atlas-desktop #root .location-badge {
+    width: 62px !important;
+    height: 62px !important;
+  }
+
+  html.atlas-desktop #root .atlas-product-showcase {
+    grid-template-columns: minmax(180px, 0.74fr) minmax(260px, 1.26fr) !important;
+    gap: 20px !important;
+    padding: 20px !important;
+    border-radius: 15px !important;
+  }
+
+  html.atlas-desktop #root .atlas-product-media {
+    min-height: 250px !important;
+  }
+
+  html.atlas-desktop #root .atlas-product-media img {
+    height: 248px !important;
+  }
+
+  html.atlas-desktop #root .atlas-result-actions > button {
+    grid-template-columns: 54px minmax(0, 1fr) 18px !important;
+    min-height: 76px !important;
+    gap: 13px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+  }
+
+  html.atlas-desktop #root .atlas-result-action-icon {
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 12px !important;
+  }
+
+  html.atlas-desktop #root .atlas-result-product-thumb {
+    overflow: hidden !important;
+    background: #eef3f8 !important;
+  }
+
+  html.atlas-desktop #root .atlas-result-product-thumb img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    padding: 5px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: scale(1.65) !important;
+    transform-origin: center !important;
+  }
+
+  html.atlas-desktop #root .atlas-pallet-guide-button .atlas-result-action-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  html.atlas-desktop #root .atlas-map-disclosure-button {
+    min-height: 60px;
+  }
+
+  html.atlas-desktop #root .map-panel.atlas-collapsible-map.is-expanded {
+    padding: 22px !important;
+    border: 1px solid #d5e0eb !important;
+    border-radius: 15px !important;
+    background: #f9fbfd !important;
+  }
+
+  html.atlas-desktop #root .atlas-paired-map-frame {
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  html.atlas-desktop.atlas-results-focused #root .brand-header {
+    min-height: 76px !important;
+    padding: 13px 30px !important;
+  }
+
+  html.atlas-desktop.atlas-results-focused #root .brand-top {
+    min-height: 48px !important;
+  }
+
+  html.atlas-desktop.atlas-results-focused #root .home-search-panel {
+    margin-top: 18px !important;
+  }
+
+  /* Browse Aisles */
+  html.atlas-desktop.atlas-view-aisles #root .workspace,
+  html.atlas-desktop.atlas-view-inventory #root .workspace {
+    padding: 32px 12px 42px !important;
+  }
+
+  html.atlas-desktop #root .page-title {
+    margin: 0 0 5px !important;
+    color: #0c2a4d !important;
+    font-size: 30px !important;
+    letter-spacing: -0.025em !important;
+  }
+
+  html.atlas-desktop #root .page-subtitle {
+    max-width: 720px;
+    margin-bottom: 25px !important;
+    font-size: 14px !important;
+  }
+
+  html.atlas-desktop.atlas-view-aisles #root .aisle-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+    gap: 11px !important;
+  }
+
+  html.atlas-desktop.atlas-view-aisles #root .aisle-grid button {
+    min-height: 58px !important;
+    border-radius: 11px !important;
+  }
+
+  html.atlas-desktop.atlas-view-aisles #root .aisle-card {
+    margin-top: 22px;
+    padding: 23px !important;
+    border-radius: 17px !important;
+    box-shadow: 0 13px 38px rgba(15, 46, 80, 0.075) !important;
+  }
+
+  html.atlas-desktop.atlas-view-aisles #root .aisle-card .aisle-section {
+    min-height: 76px;
+  }
+
+  /* Inventory command center and workflows */
+  html.atlas-desktop.atlas-view-inventory #root .inventory-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 15px !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .inventory-action {
+    min-height: 142px !important;
+    padding: 22px !important;
+    align-items: center !important;
+    border-radius: 15px !important;
+    box-shadow: 0 10px 28px rgba(15, 46, 80, 0.06) !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .inventory-icon {
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 14px !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .inventory-copy strong {
+    font-size: 16px !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .workflow-card {
+    width: min(1120px, 100%) !important;
+    max-width: none !important;
+    margin: 18px auto 0 !important;
+    padding: 26px !important;
+    border-radius: 17px !important;
+    box-shadow: 0 14px 38px rgba(15, 46, 80, 0.075) !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 17px !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .manage-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .primary-button,
+  html.atlas-desktop.atlas-view-inventory #root .danger-primary-button {
+    min-height: 50px;
+  }
+
+  /* Desktop modals and scanner */
+  html.atlas-desktop .modal-backdrop {
+    padding: 36px !important;
+    align-items: center !important;
+  }
+
+  html.atlas-desktop .scanner-modal {
+    width: min(920px, calc(100vw - var(--atlas-desktop-sidebar) - 80px)) !important;
+    max-width: 920px !important;
+    max-height: calc(100vh - 72px) !important;
+    border-radius: 20px !important;
+  }
+
+  html.atlas-desktop .camera-stage {
+    min-height: 420px;
+  }
+
+  html.atlas-desktop .atlas-product-modal,
+  html.atlas-desktop .atlas-pallet-guide-modal,
+  html.atlas-desktop .atlas-story-card {
+    max-width: min(1040px, calc(100vw - var(--atlas-desktop-sidebar) - 80px)) !important;
+  }
+
+  html.atlas-desktop .atlas-pallet-guide-content {
+    padding: 30px 34px 36px !important;
+  }
+
+  html.atlas-desktop .atlas-pallet-guide-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  html.atlas-desktop .atlas-pallet-guide-layer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Dashboard alignment with the permanent navigation */
+  html.atlas-desktop.atlas-dashboard-open body {
+    padding-left: var(--atlas-desktop-sidebar) !important;
+  }
+
+  html.atlas-desktop .atlas-dashboard-shell {
+    width: min(100%, 1540px) !important;
+    padding: 32px clamp(28px, 3.2vw, 54px) 52px !important;
+  }
+
+  html.atlas-desktop .atlas-dashboard-main-grid {
+    grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.78fr) !important;
+  }
+
+  html.atlas-desktop .atlas-dashboard-summary {
+    gap: 16px !important;
+  }
+
+  html.atlas-desktop .atlas-dashboard-card {
+    min-height: 140px !important;
+  }
+
+  html.atlas-desktop .atlas-account-list {
+    max-height: calc(100vh - 390px);
+    overflow: auto;
+  }
+
+  @media (max-width: 1240px) {
+    .atlas-desktop-topbar__status {
+      display: none;
+    }
+
+    html.atlas-desktop #root .result-body {
+      grid-template-columns: minmax(300px, 0.82fr) minmax(390px, 1.18fr) !important;
+      gap: 18px !important;
+    }
+
+    html.atlas-desktop #root .atlas-product-showcase {
+      grid-template-columns: 160px minmax(0, 1fr) !important;
+    }
+
+    html.atlas-desktop.atlas-view-aisles #root .aisle-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atlas-desktop-topbar {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
