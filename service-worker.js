@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v114-compact-inventory-back-button";
+const VERSION = "atlas-pwa-v115-inventory-menu-order";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
