@@ -17,6 +17,14 @@
     activities: [],
     history: [],
     normalized: [],
+    view: "operations",
+    currentProfile: null,
+    adminUsers: [],
+    adminUsersLoaded: false,
+    adminLoading: false,
+    adminError: "",
+    adminNotice: "",
+    accountModal: null,
     lastSync: null,
     session: null,
     accessRequired: false,
@@ -129,6 +137,16 @@
       return { key: "location", label: "Restored location", color: "#168552", operational: action.includes("LOCATION_RESTORE") };
     if (action.includes("CORRECT") || reasonText.includes("different location"))
       return { key: "location", label: "Corrected location", color: "#d98900", operational: true };
+    if (action === "USER_CREATED")
+      return { key: "access", label: "Created ATLAS account", color: "#168552", operational: true };
+    if (action === "USER_UPDATED")
+      return { key: "access", label: "Updated account access", color: "#1467dd", operational: true };
+    if (action === "USER_PASSWORD_CHANGED")
+      return { key: "access", label: "Changed account password", color: "#7957d5", operational: true };
+    if (action === "USER_DEACTIVATED")
+      return { key: "access", label: "Deactivated ATLAS account", color: "#d33a3a", operational: true };
+    if (action === "USER_REACTIVATED")
+      return { key: "access", label: "Reactivated ATLAS account", color: "#168552", operational: true };
     if (action === "INSERT")
       return { key: "audit", label: "Imported location", color: "#8795a6", operational: false };
     if (action === "DELETE")
@@ -153,6 +171,8 @@
       oldRecord.sku ||
       row.sku ||
       skuById.get(row.sku_id)?.sku ||
+      newRecord.email ||
+      oldRecord.email ||
       "Unknown SKU";
     const employee =
       row.employee_name ||
@@ -174,6 +194,10 @@
     }
     if (meta.key === "delete") detail = "Marked inactive; history retained";
     if (meta.key === "pick") detail = location !== "—" ? `Location ${location}` : meta.label;
+    if (meta.key === "access") {
+      const role = newRecord.role || oldRecord.role;
+      detail = row.reason || (role ? `Role: ${role}` : meta.label);
+    }
 
     return {
       id: `${source}-${row.id}`,
@@ -225,6 +249,12 @@
 
   const readTable = async (name, token) =>
     api(`/rest/v1/${name}?select=*&limit=5000`, { token });
+
+  const adminApi = (action, payload = {}) =>
+    api("/functions/v1/atlas-user-admin", {
+      method: "POST",
+      body: { action, ...payload },
+    });
 
   const mount = () => {
     if (state.mounted) return;
@@ -324,6 +354,11 @@
       state.activities = protectedResults[0].status === "fulfilled" ? protectedResults[0].value : [];
       state.history = protectedResults[1].status === "fulfilled" ? protectedResults[1].value : [];
       state.profiles = protectedResults[2].status === "fulfilled" ? protectedResults[2].value : [];
+      state.currentProfile =
+        state.profiles.find((profile) => profile.user_id === state.session?.user?.id) || null;
+      if (state.currentProfile?.role !== "admin" && state.view === "access") {
+        state.view = "operations";
+      }
 
       const protectedErrors = protectedResults
         .slice(0, 2)
@@ -361,6 +396,26 @@
       else state.error = error instanceof Error ? error.message : "The dashboard data could not be loaded.";
     } finally {
       state.loading = false;
+      render();
+    }
+  };
+
+  const loadAdminUsers = async ({ preserveNotice = false } = {}) => {
+    if (state.adminLoading || state.currentProfile?.role !== "admin") return;
+    state.adminLoading = true;
+    state.adminError = "";
+    if (!preserveNotice) state.adminNotice = "";
+    render();
+    try {
+      const result = await adminApi("list");
+      state.adminUsers = (result.users || []).sort((left, right) =>
+        String(left.display_name || left.email).localeCompare(String(right.display_name || right.email)),
+      );
+      state.adminUsersLoaded = true;
+    } catch (error) {
+      state.adminError = error instanceof Error ? error.message : "ATLAS accounts could not be loaded.";
+    } finally {
+      state.adminLoading = false;
       render();
     }
   };
@@ -433,6 +488,7 @@
       ["edit", "SKU edits", "#d98900"],
       ["pick", "Pick First", "#7957d5"],
       ["location", "Location", "#d33a3a"],
+      ["access", "Accounts", "#0b8a9f"],
     ];
     const counts = Object.fromEntries(definitions.map(([key]) => [key, rows.filter((row) => row.key === key).length]));
     const max = Math.max(1, ...Object.values(counts));
@@ -449,6 +505,106 @@
       <div class="atlas-dashboard-person"><span class="atlas-dashboard-avatar">${escapeHtml(initials(name))}</span><span><strong>${escapeHtml(name)}</strong><small>Recorded activity</small></span><span>${count}</span></div>`).join("");
   };
 
+  const accountDate = (value) => {
+    const date = parseDate(value);
+    if (!date) return "Never";
+    return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const roleLabel = (role) =>
+    ({ admin: "Administrator", supervisor: "Supervisor", picker: "Picker" })[role] || "Picker";
+
+  const renderAccountModal = () => {
+    if (!state.accountModal) return "";
+    const mode = state.accountModal.mode;
+    const user = state.adminUsers.find((item) => item.id === state.accountModal.userId);
+    if (mode !== "create" && !user) return "";
+    if (mode === "confirm-status") {
+      const nextActive = !user.active;
+      return `
+        <div class="atlas-account-modal-backdrop" data-account-modal-backdrop>
+          <section class="atlas-account-modal atlas-account-confirm" role="dialog" aria-modal="true" aria-labelledby="atlasAccountConfirmTitle">
+            <button type="button" class="atlas-account-modal-close" data-account-close aria-label="Close">×</button>
+            <span class="atlas-account-modal-icon ${nextActive ? "is-success" : "is-danger"}" aria-hidden="true">${nextActive ? "✓" : "!"}</span>
+            <h2 id="atlasAccountConfirmTitle">${nextActive ? "Reactivate" : "Deactivate"} ${escapeHtml(user.display_name || user.email)}?</h2>
+            <p>${nextActive ? "This person will be able to sign in again with their existing role." : "This immediately blocks sign-in without deleting the account or its history."}</p>
+            <div class="atlas-account-modal-actions">
+              <button type="button" class="atlas-dashboard-button" data-account-close>Cancel</button>
+              <button type="button" class="atlas-dashboard-button ${nextActive ? "atlas-dashboard-button--primary" : "atlas-dashboard-button--danger"}" data-account-status data-user-id="${escapeHtml(user.id)}" data-active="${nextActive}">${nextActive ? "Reactivate Account" : "Deactivate Account"}</button>
+            </div>
+          </section>
+        </div>`;
+    }
+    const isCreate = mode === "create";
+    return `
+      <div class="atlas-account-modal-backdrop" data-account-modal-backdrop>
+        <section class="atlas-account-modal" role="dialog" aria-modal="true" aria-labelledby="atlasAccountModalTitle">
+          <button type="button" class="atlas-account-modal-close" data-account-close aria-label="Close">×</button>
+          <p class="atlas-dashboard-eyebrow">ADMINISTRATOR CONTROL</p>
+          <h2 id="atlasAccountModalTitle">${isCreate ? "Add ATLAS Account" : "Manage Account"}</h2>
+          <p>${isCreate ? "Create a private sign-in and choose exactly what this employee can access." : `Update ${escapeHtml(user.display_name || user.email)} without opening Supabase.`}</p>
+          <form class="atlas-account-form" data-${isCreate ? "account-create" : "account-update"}>
+            ${isCreate ? "" : `<input type="hidden" name="user_id" value="${escapeHtml(user.id)}">`}
+            <div class="atlas-account-form-grid">
+              <label><span>Display name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required></label>
+              <label><span>Login email</span><input type="email" name="email" value="${escapeHtml(isCreate ? "" : user.email)}" autocomplete="off" required></label>
+              <label><span>ATLAS role</span><select name="role" required>
+                ${["picker", "supervisor", "admin"].map((role) => `<option value="${role}" ${!isCreate && user.role === role ? "selected" : ""}>${roleLabel(role)}</option>`).join("")}
+              </select></label>
+              ${isCreate ? `<label><span>Temporary password</span><input type="password" name="password" minlength="10" autocomplete="new-password" required><small>At least 10 characters</small></label>` : ""}
+            </div>
+            <p class="atlas-account-form-message" data-account-message></p>
+            <div class="atlas-account-modal-actions">
+              <button type="button" class="atlas-dashboard-button" data-account-close>Cancel</button>
+              <button type="submit" class="atlas-dashboard-button atlas-dashboard-button--primary">${isCreate ? "Create Account" : "Save Changes"}</button>
+            </div>
+          </form>
+          ${isCreate ? "" : `
+            <div class="atlas-account-security">
+              <div><h3>Account Security</h3><p>Set a temporary password or block this account from signing in.</p></div>
+              <form data-account-password>
+                <input type="hidden" name="user_id" value="${escapeHtml(user.id)}">
+                <label><span>New temporary password</span><input type="password" name="password" minlength="10" autocomplete="new-password" required></label>
+                <button type="submit" class="atlas-dashboard-button">Change Password</button>
+              </form>
+              <button type="button" class="atlas-dashboard-button ${user.active ? "atlas-dashboard-button--danger-ghost" : "atlas-dashboard-button--success-ghost"}" data-account-confirm-status data-user-id="${escapeHtml(user.id)}" ${user.is_current ? "disabled title=\"You cannot deactivate your own account\"" : ""}>${user.active ? "Deactivate Account" : "Reactivate Account"}</button>
+            </div>`}
+        </section>
+      </div>`;
+  };
+
+  const renderAccessManagement = () => {
+    const active = state.adminUsers.filter((user) => user.active).length;
+    const supervisors = state.adminUsers.filter((user) => user.active && user.role === "supervisor").length;
+    const admins = state.adminUsers.filter((user) => user.active && user.role === "admin").length;
+    const rows = state.adminUsers.map((user) => `
+      <article class="atlas-account-row ${user.active ? "" : "is-disabled"}">
+        <span class="atlas-dashboard-avatar">${escapeHtml(initials(user.display_name || user.email))}</span>
+        <span class="atlas-account-identity"><strong>${escapeHtml(user.display_name || "Unnamed account")}${user.is_current ? " <small>(You)</small>" : ""}</strong><span>${escapeHtml(user.email)}</span></span>
+        <span class="atlas-account-role is-${escapeHtml(user.role)}">${escapeHtml(roleLabel(user.role))}</span>
+        <span class="atlas-account-status"><i class="${user.active ? "is-active" : ""}"></i>${user.active ? "Active" : "Deactivated"}</span>
+        <span class="atlas-account-last"><small>Last sign-in</small><strong>${escapeHtml(accountDate(user.last_sign_in_at))}</strong></span>
+        <button type="button" class="atlas-dashboard-button" data-account-edit data-user-id="${escapeHtml(user.id)}">Manage</button>
+      </article>`).join("");
+    return `
+      <section class="atlas-access-management" aria-label="ATLAS access management">
+        ${state.adminNotice ? `<div class="atlas-account-notice is-success">${escapeHtml(state.adminNotice)}</div>` : ""}
+        ${state.adminError ? `<div class="atlas-account-notice is-error">${escapeHtml(state.adminError)}</div>` : ""}
+        <div class="atlas-access-summary">
+          <article><span>Active Accounts</span><strong>${active}</strong></article>
+          <article><span>Supervisors</span><strong>${supervisors}</strong></article>
+          <article><span>Administrators</span><strong>${admins}</strong></article>
+        </div>
+        <article class="atlas-dashboard-panel atlas-account-panel">
+          <header class="atlas-dashboard-panel-head"><div><h2>ATLAS Accounts</h2><p>Roles, sign-in status, and employee identity</p></div><span class="atlas-account-secure">ADMIN ONLY</span></header>
+          <div class="atlas-account-list">
+            ${state.adminLoading && !state.adminUsersLoaded ? renderLoading() : rows || `<div class="atlas-dashboard-empty"><strong>No accounts found</strong><p>Add the first managed ATLAS account.</p></div>`}
+          </div>
+        </article>
+      </section>
+      ${renderAccountModal()}`;
+  };
+
   const renderDashboard = () => {
     const rows = visibleRows();
     const operationalRows = rowsInRange().filter((row) => row.operational);
@@ -460,21 +616,26 @@
     const created = operationalRows.filter((row) => row.key === "create").length;
     const rangeLabel = state.range === "all" ? "All recorded history" : `Last ${state.range} days`;
     const sessionName = state.session?.user?.email || "Supervisor";
-    return `
+    const isAdmin = state.currentProfile?.role === "admin";
+    const accessView = state.view === "access" && isAdmin;
+    const header = `
       <header class="atlas-dashboard-header">
-        <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>Operations Dashboard</h1><p class="atlas-dashboard-subtitle">Warehouse activity, inventory changes, and SKU oversight in one clear operational view.</p></div>
+        <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${accessView ? "Access Management" : "Operations Dashboard"}</h1><p class="atlas-dashboard-subtitle">${accessView ? "Manage employee identities, passwords, roles, and dashboard permissions securely from ATLAS." : "Warehouse activity, inventory changes, and SKU oversight in one clear operational view."}</p></div>
         <div class="atlas-dashboard-header-actions">
-          <select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
+          ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : `<select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
             <option value="7" ${state.range === "7" ? "selected" : ""}>Last 7 days</option>
             <option value="30" ${state.range === "30" ? "selected" : ""}>Last 30 days</option>
             <option value="90" ${state.range === "90" ? "selected" : ""}>Last 90 days</option>
             <option value="all" ${state.range === "all" ? "selected" : ""}>All history</option>
           </select>
-          <button class="atlas-dashboard-button" type="button" data-export>Export CSV</button>
+          <button class="atlas-dashboard-button" type="button" data-export>Export CSV</button>`}
           ${state.session ? `<button class="atlas-dashboard-button" type="button" data-sign-out title="${escapeHtml(sessionName)}">Sign out</button>` : ""}
         </div>
       </header>
-      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>Live Supabase data · ${escapeHtml(state.lastSync ? `Updated ${formatDateTime(state.lastSync, true)}` : "Ready")}</span></div>
+      ${isAdmin ? `<nav class="atlas-dashboard-tabs" aria-label="Dashboard sections"><button type="button" data-dashboard-view="operations" class="${accessView ? "" : "is-active"}">Operations</button><button type="button" data-dashboard-view="access" class="${accessView ? "is-active" : ""}">Access Management</button></nav>` : ""}
+      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : `Live Supabase data · ${escapeHtml(state.lastSync ? `Updated ${formatDateTime(state.lastSync, true)}` : "Ready")}`}</span></div>`;
+    if (accessView) return `${header}${renderAccessManagement()}`;
+    return `${header}
       <section class="atlas-dashboard-summary" aria-label="Operational summary">
         ${renderSummaryCard("Active SKUs", activeSkus, "Current picker inventory", "□", "#1467dd", "#eaf3ff")}
         ${renderSummaryCard("Inventory Moves", moves, rangeLabel, "⇄", "#1467dd", "#eaf3ff")}
@@ -483,7 +644,7 @@
       </section>
       <section class="atlas-dashboard-main-grid">
         <article class="atlas-dashboard-panel">
-          <header class="atlas-dashboard-panel-head"><div><h2>Activity Timeline</h2><p>${(state.filter === "all" ? rows.length : visibleOperationalRows.length).toLocaleString()} matching records</p></div><div class="atlas-dashboard-tools"><label class="atlas-dashboard-search"><input type="search" data-search value="${escapeHtml(state.search)}" placeholder="Search SKU or employee" aria-label="Search activity"></label><select class="atlas-dashboard-filter" data-filter aria-label="Activity type"><option value="operational" ${state.filter === "operational" ? "selected" : ""}>Operational</option><option value="move" ${state.filter === "move" ? "selected" : ""}>Moves</option><option value="create" ${state.filter === "create" ? "selected" : ""}>New SKUs</option><option value="edit" ${state.filter === "edit" ? "selected" : ""}>SKU edits</option><option value="pick" ${state.filter === "pick" ? "selected" : ""}>Pick First</option><option value="location" ${state.filter === "location" ? "selected" : ""}>Locations</option><option value="all" ${state.filter === "all" ? "selected" : ""}>Full audit</option></select></div></header>
+          <header class="atlas-dashboard-panel-head"><div><h2>Activity Timeline</h2><p>${(state.filter === "all" ? rows.length : visibleOperationalRows.length).toLocaleString()} matching records</p></div><div class="atlas-dashboard-tools"><label class="atlas-dashboard-search"><input type="search" data-search value="${escapeHtml(state.search)}" placeholder="Search SKU or employee" aria-label="Search activity"></label><select class="atlas-dashboard-filter" data-filter aria-label="Activity type"><option value="operational" ${state.filter === "operational" ? "selected" : ""}>Operational</option><option value="move" ${state.filter === "move" ? "selected" : ""}>Moves</option><option value="create" ${state.filter === "create" ? "selected" : ""}>New SKUs</option><option value="edit" ${state.filter === "edit" ? "selected" : ""}>SKU edits</option><option value="pick" ${state.filter === "pick" ? "selected" : ""}>Pick First</option><option value="location" ${state.filter === "location" ? "selected" : ""}>Locations</option><option value="access" ${state.filter === "access" ? "selected" : ""}>Account access</option><option value="all" ${state.filter === "all" ? "selected" : ""}>Full audit</option></select></div></header>
           <div class="atlas-dashboard-feed">${renderFeed(rows)}</div>
         </article>
         <aside class="atlas-dashboard-side">
@@ -528,12 +689,46 @@
   };
 
   const handleClick = (event) => {
+    if (event.target.matches?.("[data-account-modal-backdrop]")) {
+      state.accountModal = null;
+      render();
+      return;
+    }
     const button = event.target.closest("button");
     if (!button) return;
     if (button.matches("[data-mobile-menu]")) showMenu();
     else if (button.matches("[data-mobile-refresh], [data-retry]")) loadData();
     else if (button.matches("[data-export]")) exportCsv();
     else if (button.matches("[data-sign-out]")) signOut();
+    else if (button.matches("[data-dashboard-view]")) {
+      const view = button.dataset.dashboardView;
+      if (view === "access" && state.currentProfile?.role !== "admin") return;
+      state.view = view === "access" ? "access" : "operations";
+      state.accountModal = null;
+      render();
+      if (state.view === "access" && !state.adminUsersLoaded) loadAdminUsers();
+    } else if (button.matches("[data-account-add]")) {
+      state.accountModal = { mode: "create" };
+      state.adminError = "";
+      render();
+    } else if (button.matches("[data-account-edit]")) {
+      state.accountModal = { mode: "edit", userId: button.dataset.userId };
+      state.adminError = "";
+      render();
+    } else if (button.matches("[data-account-close]")) {
+      state.accountModal = null;
+      render();
+    } else if (button.matches("[data-account-confirm-status]")) {
+      state.accountModal = { mode: "confirm-status", userId: button.dataset.userId };
+      render();
+    } else if (button.matches("[data-account-status]")) {
+      runAdminAction("status", {
+        user_id: button.dataset.userId,
+        active: button.dataset.active === "true",
+      });
+    } else if (button.matches("[data-account-refresh]")) {
+      loadAdminUsers();
+    }
   };
 
   const handleInput = (event) => {
@@ -586,14 +781,75 @@
     state.activities = [];
     state.history = [];
     state.normalized = [];
+    state.currentProfile = null;
+    state.view = "operations";
+    state.adminUsers = [];
+    state.adminUsersLoaded = false;
+    state.accountModal = null;
     if (token) api("/auth/v1/logout", { token, method: "POST" }).catch(() => {});
     await loadData();
   };
 
+  const runAdminAction = async (action, payload, form = null) => {
+    if (state.adminLoading) return;
+    const message = form?.querySelector("[data-account-message]");
+    const submit = form?.querySelector('button[type="submit"]');
+    if (message) message.textContent = "";
+    if (submit) {
+      submit.disabled = true;
+      submit.dataset.originalText = submit.textContent;
+      submit.textContent = "Saving…";
+    }
+    state.adminLoading = true;
+    state.adminError = "";
+    try {
+      const result = await adminApi(action, payload);
+      state.adminNotice = result.message || "The ATLAS account was updated.";
+      state.accountModal = null;
+      state.adminLoading = false;
+      await loadAdminUsers({ preserveNotice: true });
+      await loadData();
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "The account change could not be completed.";
+      state.adminError = text;
+      if (message) message.textContent = text;
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = submit.dataset.originalText || "Save";
+      }
+      state.adminLoading = false;
+      render();
+    }
+  };
+
   const handleSubmit = (event) => {
-    if (!event.target.matches("[data-sign-in]")) return;
-    event.preventDefault();
-    signIn(event.target);
+    const form = event.target;
+    if (form.matches("[data-sign-in]")) {
+      event.preventDefault();
+      signIn(form);
+    } else if (form.matches("[data-account-create]")) {
+      event.preventDefault();
+      runAdminAction("create", {
+        display_name: form.elements.display_name.value,
+        email: form.elements.email.value,
+        role: form.elements.role.value,
+        password: form.elements.password.value,
+      }, form);
+    } else if (form.matches("[data-account-update]")) {
+      event.preventDefault();
+      runAdminAction("update", {
+        user_id: form.elements.user_id.value,
+        display_name: form.elements.display_name.value,
+        email: form.elements.email.value,
+        role: form.elements.role.value,
+      }, form);
+    } else if (form.matches("[data-account-password]")) {
+      event.preventDefault();
+      runAdminAction("password", {
+        user_id: form.elements.user_id.value,
+        password: form.elements.password.value,
+      }, form);
+    }
   };
 
   const connectMenu = () => {
