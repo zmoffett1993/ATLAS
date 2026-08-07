@@ -16,6 +16,7 @@
     <meta name="apple-mobile-web-app-title" content="ATLAS" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link id="atlas-app-manifest" rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./atlas-dashboard.css?v=116" />
     <script>
       (() => {
         const isAndroid =
@@ -24804,8 +24805,11 @@ Error generating stack: ` +
       const syncPremiumDrawerActiveState = () => {
         const activeLabel = document.querySelector(".bottom-nav button.active")?.textContent?.trim() || "Home";
         document.querySelectorAll(".premium-drawer-link").forEach((link) => {
+          const isDashboard = link.dataset.action === "dashboard";
           const linkLabel = link.dataset.nav || (link.dataset.action === "about" ? "About ATLAS" : "");
-          const isActive = linkLabel === activeLabel;
+          const isActive = isDashboard
+            ? document.documentElement.classList.contains("atlas-dashboard-open")
+            : linkLabel === activeLabel && !document.documentElement.classList.contains("atlas-dashboard-open");
           link.classList.toggle("is-active", isActive);
           if (isActive) link.setAttribute("aria-current", "page");
           else link.removeAttribute("aria-current");
@@ -24898,6 +24902,13 @@ Error generating stack: ` +
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="m12 3.25 8 4.25-8 4.25L4 7.5l8-4.25Z"/><path d="m4 7.5 8 4.25 8-4.25v9L12 20.75 4 16.5v-9Z"/><path d="M12 11.75v9M8 5.4l8 4.25"/></svg>
           </span>
           <span class="atlas-menu-label">INVENTORY</span>
+          <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
+        </button>
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-action="dashboard">
+          <span class="atlas-menu-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/><rect x="3" y="10" width="3" height="10" rx="1"/><rect x="9" y="4" width="3" height="16" rx="1"/><rect x="15" y="13" width="3" height="7" rx="1"/></svg>
+          </span>
+          <span class="atlas-menu-label">DASHBOARD</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
         <button class="premium-drawer-link atlas-menu-item" type="button" data-action="about">
@@ -33736,6 +33747,8 @@ Error generating stack: ` +
         queue();
       })();
     </script>
+
+    <script src="./atlas-dashboard.js?v=116" defer></script>
 
 </body>
 </html>
