@@ -14464,12 +14464,6 @@ Error generating stack: ` +
             description: `Keep product in both locations or move all product to a new location.`,
           },
           {
-            id: `clear`,
-            icon: `⊘`,
-            title: `Temporarily Clear Location`,
-            description: `Hide an empty location from pickers without deleting its assignment.`,
-          },
-          {
             id: `pick`,
             icon: `★`,
             title: `Manage Pick First`,
@@ -16052,6 +16046,12 @@ Error generating stack: ` +
           [x, S] = (0, C.useState)(``),
           [w, ee] = (0, C.useState)(!1),
           [te, E] = (0, C.useState)(null);
+        let N = o?.locations.find(
+          (e) =>
+            e.is_active !== !1 &&
+            Number(e.aisle) === p &&
+            String(e.section).toUpperCase() === h,
+        );
         ((0, C.useEffect)(() => {
           let e = window.setTimeout(
             () => v(localStorage.getItem(`atlasEmployee`) || ``),
@@ -16080,6 +16080,7 @@ Error generating stack: ` +
               text: `Enter at least two letters for the employee name or initials.`,
             });
           if (
+            d &&
             o.locations.some(
               (e) =>
                 e.is_active !== !1 &&
@@ -16089,12 +16090,17 @@ Error generating stack: ` +
           )
             return E({
               type: `error`,
-              text: `This SKU already has that active aisle and section.`,
+              text: `This SKU already has that active aisle and section. Choose Move All Product to consolidate it there.`,
             });
           if (!d && !l)
             return E({
               type: `error`,
               text: `Choose the original location for the full move.`,
+            });
+          if (!d && N?.id === l)
+            return E({
+              type: `error`,
+              text: `The destination is the same as the original location. Choose a different location.`,
             });
           (ee(!0), localStorage.setItem(`atlasEmployee`, _.trim()));
           try {
@@ -16110,17 +16116,28 @@ Error generating stack: ` +
                   type: `success`,
                   text: `${o.sku} is now active in both its original location and ${qe({ aisle: p, section: h })}.`,
                 }))
-              : (await $e(`move_inventory_location`, {
-                  p_location_id: l,
-                  p_new_aisle: p,
-                  p_new_section: h,
-                  p_employee_name: _.trim(),
-                  p_reason: `Move all product — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
-                }),
-                E({
-                  type: `success`,
-                  text: `${o.sku} was fully moved to ${qe({ aisle: p, section: h })}. The original location is no longer active.`,
-                })),
+              : N
+                ? (await $e(`consolidate_inventory_location`, {
+                    p_source_location_id: l,
+                    p_destination_location_id: N.id,
+                    p_employee_name: _.trim(),
+                    p_reason: `Move all product — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
+                  }),
+                  E({
+                    type: `success`,
+                    text: `${o.sku} was consolidated into ${qe(N)}. The original location is no longer active.`,
+                  }))
+                : (await $e(`move_inventory_location`, {
+                    p_location_id: l,
+                    p_new_aisle: p,
+                    p_new_section: h,
+                    p_employee_name: _.trim(),
+                    p_reason: `Move all product — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
+                  }),
+                  E({
+                    type: `success`,
+                    text: `${o.sku} was fully moved to ${qe({ aisle: p, section: h })}. The original location is no longer active.`,
+                  })),
               await t());
           } catch (e) {
             E({
@@ -16311,131 +16328,6 @@ Error generating stack: ` +
                           ? `Confirm Both Locations`
                           : `Confirm Full Move`,
                     }),
-                  ],
-                })
-              : null,
-          ],
-        });
-      }
-      function ut({ items: e, reload: t, openScanner: n }) {
-        let [r, i] = (0, C.useState)(``),
-          [a, o] = (0, C.useState)(null),
-          [s, c] = (0, C.useState)(``),
-          [l, u] = (0, C.useState)(``),
-          [d, f] = (0, C.useState)(null);
-        ((0, C.useEffect)(() => {
-          let e = window.setTimeout(
-            () => c(localStorage.getItem(`atlasEmployee`) || ``),
-            0,
-          );
-          return () => window.clearTimeout(e);
-        }, []),
-          (0, C.useEffect)(() => {
-            if (!a) return;
-            let t = e.find((e) => e.id === a.id);
-            if (!t || t === a) return;
-            let n = window.setTimeout(() => o(t), 0);
-            return () => window.clearTimeout(n);
-          }, [e, a]));
-        async function p(e) {
-          if ((f(null), s.trim().length < 2))
-            return f({
-              type: `error`,
-              text: `Enter your employee name or initials first.`,
-            });
-          let n = e.is_active === !1;
-          (u(e.id), localStorage.setItem(`atlasEmployee`, s.trim()));
-          try {
-            (await $e(`set_inventory_location_active`, {
-              p_location_id: e.id,
-              p_is_active: n,
-              p_employee_name: s.trim(),
-              p_reason: n
-                ? `Location restored to picker results`
-                : `Location temporarily cleared`,
-            }),
-              f({
-                type: `success`,
-                text: `${qe(e)} is now ${n ? `active` : `hidden from pickers`}.`,
-              }),
-              await t());
-          } catch (e) {
-            f({
-              type: `error`,
-              text:
-                e instanceof Error
-                  ? e.message
-                  : `The location could not be updated.`,
-            });
-          } finally {
-            u(``);
-          }
-        }
-        return (0, T.jsxs)(`div`, {
-          className: `workflow-card`,
-          children: [
-            (0, T.jsx)(at, {
-              title: `Search for the SKU`,
-              items: e,
-              value: r,
-              selected: a,
-              setValue: i,
-              setSelected: o,
-              openScanner: n,
-            }),
-            a
-              ? (0, T.jsxs)(T.Fragment, {
-                  children: [
-                    (0, T.jsx)(st, { value: s, onChange: c }),
-                    (0, T.jsx)(`div`, {
-                      className: `manage-list`,
-                      children: Ye(a.locations).map((e) => {
-                        let t = e.is_active !== !1;
-                        return (0, T.jsxs)(
-                          `div`,
-                          {
-                            className: `manage-row ${t ? `` : `inactive`}`,
-                            children: [
-                              (0, T.jsx)(`div`, {
-                                className: `manage-location`,
-                                children: qe(e),
-                              }),
-                              (0, T.jsxs)(`div`, {
-                                className: `manage-copy`,
-                                children: [
-                                  (0, T.jsx)(`strong`, {
-                                    children: t
-                                      ? `Active Location`
-                                      : `Temporarily Cleared`,
-                                  }),
-                                  (0, T.jsx)(`span`, {
-                                    children: t
-                                      ? `Visible to pickers`
-                                      : `Hidden from Home and Browse Aisles`,
-                                  }),
-                                ],
-                              }),
-                              (0, T.jsx)(`button`, {
-                                type: `button`,
-                                className: t
-                                  ? `danger-button`
-                                  : `restore-button`,
-                                disabled: l === e.id,
-                                onClick: () => p(e),
-                                children:
-                                  l === e.id
-                                    ? `Saving…`
-                                    : t
-                                      ? `Clear`
-                                      : `Restore`,
-                              }),
-                            ],
-                          },
-                          e.id,
-                        );
-                      }),
-                    }),
-                    (0, T.jsx)(ct, { message: d }),
                   ],
                 })
               : null,
@@ -17111,7 +17003,8 @@ Error generating stack: ` +
                   className: `back-button`,
                   type: `button`,
                   onClick: () => n(null),
-                  children: `‹ Inventory`,
+                  "aria-label": `Back to Inventory`,
+                  children: `‹ Back to Inventory`,
                 }),
                 (0, T.jsxs)(`div`, {
                   className: `workflow-heading`,
@@ -17135,9 +17028,6 @@ Error generating stack: ` +
                       openScanner: i,
                       initialSku: a,
                     })
-                  : null,
-                t === `clear`
-                  ? (0, T.jsx)(ut, { items: e, reload: r, openScanner: i })
                   : null,
                 t === `pick`
                   ? (0, T.jsx)(dt, { items: e, reload: r, openScanner: i })
@@ -19929,14 +19819,27 @@ Error generating stack: ` +
         line-height: 1.4;
       }
       .back-button {
-        color: var(--atlas-blue);
+        width: 100%;
+        min-height: 58px;
+        color: #fff;
         cursor: pointer;
-        background: 0 0;
-        border: 0;
-        margin-bottom: 14px;
-        padding: 0;
-        font-size: 13px;
+        background: linear-gradient(135deg, #075fd0, #0049aa);
+        border: 1px solid rgba(0, 42, 102, 0.92);
+        border-radius: 15px;
+        box-shadow: 0 9px 18px rgba(0, 72, 170, 0.2);
+        margin: 0 0 18px;
+        padding: 12px 20px;
+        text-align: left;
+        font-size: 16px;
         font-weight: 850;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+        touch-action: manipulation;
+      }
+      .back-button:active { transform: scale(0.985); }
+      .back-button:focus-visible {
+        outline: 3px solid rgba(27, 111, 255, 0.4);
+        outline-offset: 3px;
       }
       .workflow-heading {
         align-items: center;
