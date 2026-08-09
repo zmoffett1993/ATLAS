@@ -34443,7 +34443,7 @@ Error generating stack: ` +
       })();
     </script>
 
-    <style id="atlas-context-aware-inventory-shortcuts-v3">
+    <style id="atlas-context-aware-inventory-shortcuts-v4">
       .atlas-sku-quick-actions {
         margin-top: 12px;
         display: grid;
@@ -35048,6 +35048,33 @@ Error generating stack: ` +
         > .location-entry:not(.selected) {
         padding: 0 !important;
       }
+      html.atlas-desktop body #root .result-card
+        .atlas-result-actions
+        > button {
+        transition:
+          transform 170ms ease,
+          box-shadow 190ms ease,
+          border-color 190ms ease,
+          background 190ms ease !important;
+      }
+      html.atlas-desktop body #root .result-card
+        .atlas-result-actions
+        > .atlas-product-view-details {
+        box-shadow:
+          0 9px 21px rgba(45, 111, 210, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      }
+      html.atlas-desktop body #root .result-card
+        .atlas-result-actions
+        > .atlas-pallet-guide-button {
+        box-shadow:
+          0 10px 23px rgba(13, 61, 125, 0.24),
+          inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+      }
+      html.atlas-desktop body #root .result-card
+        .atlas-result-action-chevron {
+        transition: transform 180ms ease, opacity 180ms ease;
+      }
       html.atlas-desktop body #root .result-card .atlas-quick-action-grid {
         width: 100% !important;
         max-width: none !important;
@@ -35129,6 +35156,38 @@ Error generating stack: ` +
       }
       @media (hover: hover) and (pointer: fine) {
         html.atlas-desktop body #root .result-card
+          .atlas-result-actions
+          > button:hover {
+          transform: translateY(-2px) !important;
+        }
+        html.atlas-desktop body #root .result-card
+          .atlas-result-actions
+          > .atlas-product-view-details:hover {
+          background: linear-gradient(145deg, #ffffff, #f0f6ff) !important;
+          border-color: #9ebbe1 !important;
+          box-shadow:
+            0 13px 27px rgba(45, 111, 210, 0.19),
+            inset 0 1px 0 rgba(255, 255, 255, 0.96) !important;
+        }
+        html.atlas-desktop body #root .result-card
+          .atlas-result-actions
+          > .atlas-pallet-guide-button:hover {
+          background:
+            radial-gradient(circle at 90% 0, rgba(58, 132, 240, 0.5), transparent 44%),
+            linear-gradient(145deg, #124b95, #082a58) !important;
+          border-color: #1f5dab !important;
+          box-shadow:
+            0 14px 29px rgba(13, 61, 125, 0.31),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+        }
+        html.atlas-desktop body #root .result-card
+          .atlas-result-actions
+          > button:hover
+          .atlas-result-action-chevron {
+          transform: translateX(3px);
+          opacity: 1;
+        }
+        html.atlas-desktop body #root .result-card
           .atlas-quick-action-grid
           > button:hover {
           transform: translateY(-2px);
@@ -35154,6 +35213,11 @@ Error generating stack: ` +
           .atlas-quick-action-arrow {
           transform: translateX(3px);
           opacity: 1;
+        }
+        html.atlas-desktop body #root .result-card
+          .atlas-result-actions
+          > button:active {
+          transform: translateY(0) scale(0.985) !important;
         }
       }
       @media (max-width: 390px) {

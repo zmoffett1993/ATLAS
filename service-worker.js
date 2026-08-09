@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v124-desktop-quick-action-cards";
+const VERSION = "atlas-pwa-v125-desktop-reference-button-hover";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
