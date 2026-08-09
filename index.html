@@ -14465,6 +14465,12 @@ Error generating stack: ` +
             description: `Keep product in both locations or move all product to a new location.`,
           },
           {
+            id: `clear`,
+            icon: `○`,
+            title: `Cleared Locations`,
+            description: `Mark an empty pick location cleared, restore it, or undo a recent change.`,
+          },
+          {
             id: `create`,
             icon: `+`,
             title: `Create New SKU`,
@@ -14605,6 +14611,16 @@ Error generating stack: ` +
         return Number(e.aisle) === 23
           ? `SR`
           : `${e.aisle}${String(e.section).toUpperCase()}`;
+      }
+      function atlasContextLocationCode(e) {
+        let t = Number(e?.aisle),
+          n = String(e?.section || ``).toUpperCase();
+        if (t === 23) return `SR ${n}`;
+        if (t === 22)
+          return `FLOOR ${
+            { A: `LEFT`, B: `MIDDLE`, C: `RIGHT` }[n] || n
+          }`;
+        return `${t}${n}`;
       }
       function atlasPickerLocationTitle(e) {
         return Number(e.aisle) === 23
@@ -14768,6 +14784,78 @@ Error generating stack: ` +
         }
         return await n.json();
       }
+      function atlasInventorySession() {
+        try {
+          return JSON.parse(
+            sessionStorage.getItem(`atlas-dashboard-session-v1`) || `null`,
+          );
+        } catch {
+          return null;
+        }
+      }
+      function atlasCanPerformInventoryAction(e) {
+        let t = atlasInventorySession(),
+          n = window.atlasPermissions || t?.permissions || t?.user?.permissions;
+        if (!n || typeof n !== `object`) return !0;
+        if (n.manage_inventory === !1 || n.inventory === !1) return !1;
+        let r =
+          e === `move`
+            ? [`move_inventory`, `move_sku`, `move`]
+            : [`clear_locations`, `mark_location_empty`, `clear`];
+        return !r.some((e) => n[e] === !1);
+      }
+      async function atlasSetInventoryLocationActive({
+        locationId: e,
+        isActive: t,
+        employee: n,
+        reason: r,
+      }) {
+        if (!e) throw Error(`Choose a warehouse location first.`);
+        let i = atlasInventorySession(),
+          a = i?.access_token || He,
+          o = { apikey: He, Authorization: `Bearer ${a}` },
+          s = await fetch(
+            `${Ve}/rest/v1/locations?select=id,is_active&id=eq.${encodeURIComponent(e)}&limit=1`,
+            { headers: o },
+          ),
+          c = await s.json().catch(() => []);
+        if (!s.ok)
+          throw Error(c?.message || `The current location status could not be verified.`);
+        if (!c?.[0]) throw Error(`This warehouse location no longer exists.`);
+        if (Boolean(c[0].is_active) === Boolean(t))
+          return { duplicate: !0, location: c[0] };
+        let l = await fetch(`${Ve}/rest/v1/rpc/set_inventory_location_active`, {
+            method: `POST`,
+            headers: {
+              ...o,
+              "Content-Type": `application/json`,
+              Prefer: `return=minimal`,
+            },
+            body: JSON.stringify({
+              p_location_id: e,
+              p_is_active: Boolean(t),
+              p_employee_name: String(n || ``).trim(),
+              p_reason: String(r || ``).trim(),
+            }),
+          }),
+          u = await l.json().catch(() => null);
+        if (!l.ok) {
+          if (l.status === 404 || u?.code === `PGRST202`)
+            throw Error(
+              `The ATLAS inventory database upgrade must be installed before this action can save.`,
+            );
+          throw Error(
+            u?.message || u?.hint || `The location status could not be updated.`,
+          );
+        }
+        window.dispatchEvent(
+          new CustomEvent(`atlas:cleared-locations-updated`, {
+            detail: { locationId: e, isActive: Boolean(t) },
+          }),
+        );
+        return { duplicate: !1, result: u };
+      }
+      window.atlasSetInventoryLocationActive = atlasSetInventoryLocationActive;
       function et() {
         return (0, T.jsx)(`span`, {
           className: `camera-glyph`,
@@ -16038,7 +16126,11 @@ Error generating stack: ` +
         let [i, a] = (0, C.useState)(r?.sku || ``),
           [o, s] = (0, C.useState)(r),
           c = Ye(o?.locations.filter((e) => e.is_active !== !1) || []),
-          [l, u] = (0, C.useState)(c[0]?.id || ``),
+          [l, u] = (0, C.useState)(
+            c.some((e) => e.id === r?.atlasInitialSourceLocationId)
+              ? r.atlasInitialSourceLocationId
+              : c[0]?.id || ``,
+          ),
           [d, f] = (0, C.useState)(!0),
           [p, m] = (0, C.useState)(1),
           [h, g] = (0, C.useState)(`A`),
@@ -16062,9 +16154,17 @@ Error generating stack: ` +
         }, []),
           (0, C.useEffect)(() => {
             let e = Ye(o?.locations.filter((e) => e.is_active !== !1) || []),
-              t = window.setTimeout(() => u(e[0]?.id || ``), 0);
+              t = window.setTimeout(
+                () =>
+                  u(
+                    e.some((e) => e.id === r?.atlasInitialSourceLocationId)
+                      ? r.atlasInitialSourceLocationId
+                      : e[0]?.id || ``,
+                  ),
+                0,
+              );
             return () => window.clearTimeout(t);
-          }, [o]),
+          }, [o, r?.atlasInitialSourceLocationId]),
           (0, C.useEffect)(() => {
             if (!o) return;
             let t = e.find((e) => e.id === o.id);
@@ -16943,6 +17043,363 @@ Error generating stack: ` +
           ],
         });
       }
+      function atlasClearedLocationsWorkflow({
+        items: e,
+        reload: t,
+        openScanner: n,
+        initialSku: r,
+      }) {
+        let [i, a] = (0, C.useState)(r?.sku || ``),
+          [o, s] = (0, C.useState)(r || null),
+          [l, u] = (0, C.useState)(
+            r?.atlasInitialSourceLocationId || ``,
+          ),
+          [d, f] = (0, C.useState)(
+            r?.atlasInitialSourceLocationId ? `clear` : null,
+          ),
+          [p, m] = (0, C.useState)(``),
+          [h, g] = (0, C.useState)(!1),
+          [_, v] = (0, C.useState)(null),
+          [y, b] = (0, C.useState)(null),
+          x = Ye(o?.locations.filter((e) => e.is_active !== !1) || []),
+          S = Ye(o?.locations.filter((e) => e.is_active === !1) || []),
+          w = [...x, ...S].find((e) => e.id === l) || null,
+          ee = e
+            .flatMap((e) =>
+              e.locations
+                .filter((e) => e.is_active === !1)
+                .map((t) => ({ sku: e, location: t })),
+            )
+            .sort(
+              (e, t) =>
+                Number(e.location.aisle) - Number(t.location.aisle) ||
+                String(e.location.section).localeCompare(
+                  String(t.location.section),
+                ) ||
+                e.sku.sku.localeCompare(t.sku.sku),
+            );
+        ((0, C.useEffect)(() => {
+          let e = window.setTimeout(
+            () => m(localStorage.getItem(`atlasEmployee`) || ``),
+            0,
+          );
+          return () => window.clearTimeout(e);
+        }, []),
+          (0, C.useEffect)(() => {
+            if (!o) return;
+            let t = e.find((e) => e.id === o.id);
+            if (!t || t === o) return;
+            let n = window.setTimeout(() => s(t), 0);
+            return () => window.clearTimeout(n);
+          }, [e, o]));
+        async function te(e, n, r = !1) {
+          if (!atlasCanPerformInventoryAction(`clear`))
+            return v({
+              type: `error`,
+              text: `Your ATLAS account does not have permission to change cleared locations.`,
+            });
+          if (p.trim().length < 2)
+            return v({
+              type: `error`,
+              text: `Enter at least two letters for the employee name or initials.`,
+            });
+          (g(!0), v(null), localStorage.setItem(`atlasEmployee`, p.trim()));
+          try {
+            let i = await atlasSetInventoryLocationActive({
+              locationId: e.id,
+              isActive: n,
+              employee: p.trim(),
+              reason: n
+                ? r
+                  ? `Undo cleared location`
+                  : `Location restored from Cleared Locations`
+                : `Location marked empty by picker`,
+            });
+            if (i.duplicate) {
+              v({
+                type: `success`,
+                text: `${atlasContextLocationCode(e)} was already ${n ? `active` : `listed as cleared`}. No duplicate update was created.`,
+              });
+              await t();
+              return;
+            }
+            (b({ location: e, restoreTo: !n }),
+              f(null),
+              v({
+                type: `success`,
+                text: n
+                  ? `${atlasContextLocationCode(e)} was restored to active picker locations.`
+                  : `${atlasContextLocationCode(e)} was marked empty and moved to Cleared Locations.`,
+              }),
+              await t());
+          } catch (e) {
+            v({
+              type: `error`,
+              text:
+                e instanceof Error
+                  ? e.message
+                  : `The cleared-location update could not be saved.`,
+            });
+          } finally {
+            g(!1);
+          }
+        }
+        let E = (e, t) => {
+          (s(e), a(e.sku), u(t.id), f(t.is_active === !1 ? `restore` : `clear`));
+        };
+        return (0, T.jsxs)(`div`, {
+          className: `workflow-card atlas-cleared-workflow`,
+          children: [
+            (0, T.jsx)(at, {
+              title: `Search for a SKU location`,
+              items: e,
+              value: i,
+              selected: o,
+              setValue: a,
+              setSelected: s,
+              openScanner: n,
+            }),
+            (0, T.jsx)(st, { value: p, onChange: m }),
+            d && w
+              ? (0, T.jsxs)(`section`, {
+                  className: `atlas-clear-confirmation`,
+                  children: [
+                    (0, T.jsx)(`span`, {
+                      children:
+                        d === `clear`
+                          ? `MARK LOCATION EMPTY`
+                          : `RESTORE LOCATION`,
+                    }),
+                    (0, T.jsx)(`strong`, {
+                      children: `${o?.sku || ``} · ${atlasContextLocationCode(w)}`,
+                    }),
+                    (0, T.jsx)(`p`, {
+                      children:
+                        d === `clear`
+                          ? `This location will stop appearing in picker results and will be tracked under Cleared Locations.`
+                          : `This location will return to active picker results.`,
+                    }),
+                    (0, T.jsxs)(`div`, {
+                      className: `atlas-clear-confirmation-actions`,
+                      children: [
+                        (0, T.jsx)(`button`, {
+                          type: `button`,
+                          className: `primary-button`,
+                          disabled: h,
+                          onClick: () => te(w, d === `restore`),
+                          children: h
+                            ? `Saving…`
+                            : d === `clear`
+                              ? `Confirm Location Empty`
+                              : `Restore Location`,
+                        }),
+                        (0, T.jsx)(`button`, {
+                          type: `button`,
+                          className: `secondary-button`,
+                          disabled: h,
+                          onClick: () => f(null),
+                          children: `Cancel`,
+                        }),
+                      ],
+                    }),
+                  ],
+                })
+              : null,
+            (0, T.jsx)(ct, { message: _ }),
+            y && _?.type === `success`
+              ? (0, T.jsx)(`button`, {
+                  type: `button`,
+                  className: `atlas-cleared-undo`,
+                  disabled: h,
+                  onClick: () => te(y.location, y.restoreTo, !0),
+                  children: `Undo Last Change`,
+                })
+              : null,
+            o && x.length
+              ? (0, T.jsxs)(`section`, {
+                  className: `atlas-cleared-section`,
+                  children: [
+                    (0, T.jsx)(`h3`, { children: `Active locations for this SKU` }),
+                    (0, T.jsx)(`div`, {
+                      className: `atlas-cleared-list`,
+                      children: x.map((e) =>
+                        (0, T.jsxs)(
+                          `button`,
+                          {
+                            type: `button`,
+                            onClick: () => E(o, e),
+                            children: [
+                              (0, T.jsx)(`strong`, {
+                                children: atlasContextLocationCode(e),
+                              }),
+                              (0, T.jsx)(`span`, {
+                                children: e.pick_first
+                                  ? `Pick First · Mark empty`
+                                  : `Mark location empty`,
+                              }),
+                            ],
+                          },
+                          e.id,
+                        ),
+                      ),
+                    }),
+                  ],
+                })
+              : null,
+            (0, T.jsxs)(`section`, {
+              className: `atlas-cleared-section`,
+              children: [
+                (0, T.jsxs)(`div`, {
+                  className: `atlas-cleared-section-heading`,
+                  children: [
+                    (0, T.jsx)(`h3`, { children: `Cleared Locations` }),
+                    (0, T.jsx)(`span`, { children: ee.length }),
+                  ],
+                }),
+                ee.length
+                  ? (0, T.jsx)(`div`, {
+                      className: `atlas-cleared-list atlas-cleared-list--global`,
+                      children: ee.map(({ sku: e, location: t }) =>
+                        (0, T.jsxs)(
+                          `button`,
+                          {
+                            type: `button`,
+                            onClick: () => E(e, t),
+                            children: [
+                              (0, T.jsx)(`strong`, {
+                                children: atlasContextLocationCode(t),
+                              }),
+                              (0, T.jsxs)(`span`, {
+                                children: [e.sku, ` · Restore`],
+                              }),
+                            ],
+                          },
+                          `${e.id}-${t.id}`,
+                        ),
+                      ),
+                    })
+                  : (0, T.jsx)(`p`, {
+                      className: `workflow-note`,
+                      children: `No cleared locations are currently waiting to be reused.`,
+                    }),
+              ],
+            }),
+          ],
+        });
+      }
+      function atlasSkuQuickActions({ location: e, onMove: t, onClear: n }) {
+        let r = atlasCanPerformInventoryAction(`move`),
+          i = atlasCanPerformInventoryAction(`clear`);
+        if (!e || (!r && !i)) return null;
+        return (0, T.jsxs)(`section`, {
+          className: `atlas-sku-quick-actions`,
+          "aria-label": `Inventory shortcuts`,
+          children: [
+            (0, T.jsxs)(`div`, {
+              className: `atlas-quick-location-context`,
+              children: [
+                (0, T.jsx)(`span`, { children: `SELECTED SOURCE LOCATION` }),
+                (0, T.jsx)(`strong`, {
+                  children: atlasContextLocationCode(e),
+                }),
+              ],
+            }),
+            (0, T.jsxs)(`div`, {
+              className: `atlas-quick-action-grid`,
+              children: [
+                r
+                  ? (0, T.jsxs)(`button`, {
+                      type: `button`,
+                      onClick: t,
+                      children: [
+                        (0, T.jsx)(`span`, {
+                          className: `atlas-quick-action-icon`,
+                          children: `⇄`,
+                        }),
+                        (0, T.jsx)(`strong`, { children: `Move This SKU` }),
+                      ],
+                    })
+                  : null,
+                i
+                  ? (0, T.jsxs)(`button`, {
+                      type: `button`,
+                      onClick: n,
+                      children: [
+                        (0, T.jsx)(`span`, {
+                          className: `atlas-quick-action-icon`,
+                          children: `○`,
+                        }),
+                        (0, T.jsx)(`strong`, {
+                          children: `Mark Location Empty`,
+                        }),
+                      ],
+                    })
+                  : null,
+              ],
+            }),
+          ],
+        });
+      }
+      function atlasQuickLocationSelector({
+        locations: e,
+        action: t,
+        onChoose: n,
+        onClose: r,
+      }) {
+        return (0, T.jsx)(`div`, {
+          className: `atlas-quick-selector-backdrop`,
+          role: `dialog`,
+          "aria-modal": `true`,
+          "aria-labelledby": `atlas-quick-selector-title`,
+          children: (0, T.jsxs)(`section`, {
+            className: `atlas-quick-selector`,
+            children: [
+              (0, T.jsx)(`span`, {
+                className: `atlas-quick-selector-kicker`,
+                children: `CHOOSE SOURCE LOCATION`,
+              }),
+              (0, T.jsx)(`h2`, {
+                id: `atlas-quick-selector-title`,
+                children:
+                  t === `move`
+                    ? `Which location are you moving?`
+                    : `Which location is empty?`,
+              }),
+              (0, T.jsx)(`div`, {
+                className: `atlas-quick-selector-list`,
+                children: e.map((e, t) =>
+                  (0, T.jsxs)(
+                    `button`,
+                    {
+                      type: `button`,
+                      className: e.pick_first ? `is-pick-first` : ``,
+                      onClick: () => n(e),
+                      children: [
+                        (0, T.jsx)(`strong`, {
+                          children: atlasContextLocationCode(e),
+                        }),
+                        (0, T.jsx)(`span`, {
+                          children: e.pick_first
+                            ? `★ Pick First location`
+                            : atlasPickerLocationTitle(e),
+                        }),
+                        (0, T.jsx)(`i`, { children: `›` }),
+                      ],
+                    },
+                    e.id,
+                  ),
+                ),
+              }),
+              (0, T.jsx)(`button`, {
+                type: `button`,
+                className: `atlas-quick-selector-cancel`,
+                onClick: r,
+                children: `Cancel`,
+              }),
+            ],
+          }),
+        });
+      }
       function pt({
         items: e,
         action: t,
@@ -17024,6 +17481,14 @@ Error generating stack: ` +
                 }),
                 t === `move`
                   ? (0, T.jsx)(lt, {
+                      items: e,
+                      reload: r,
+                      openScanner: i,
+                      initialSku: a,
+                    })
+                  : null,
+                t === `clear`
+                  ? (0, T.jsx)(atlasClearedLocationsWorkflow, {
                       items: e,
                       reload: r,
                       openScanner: i,
@@ -17667,6 +18132,10 @@ Error generating stack: ` +
           [b, x] = (0, C.useState)(null),
           [S, w] = (0, C.useState)(null),
           [ee, te] = (0, C.useState)(``),
+          [atlasLocationExplicitlySelected, atlasSetLocationExplicitlySelected] =
+            (0, C.useState)(!1),
+          [atlasQuickActionPending, atlasSetQuickActionPending] =
+            (0, C.useState)(null),
           E = (0, C.useCallback)(async () => {
             r(`loading`);
             try {
@@ -17726,6 +18195,8 @@ Error generating stack: ` +
             d(e),
             l(e.sku),
             _(Ye(e.locations.filter((e) => e.is_active !== !1))[0]?.id || null),
+            atlasSetLocationExplicitlySelected(!1),
+            atlasSetQuickActionPending(null),
             t(`home`),
             ne(e),
             window.scrollTo({ top: 0, behavior: `smooth` }));
@@ -17745,6 +18216,24 @@ Error generating stack: ` +
             y(`move`),
             t(`inventory`),
             window.scrollTo({ top: 0, behavior: `smooth` }));
+        }
+        function atlasOpenQuickAction(e, n) {
+          if (!u || !n || !atlasCanPerformInventoryAction(e)) return;
+          let r = { ...u, atlasInitialSourceLocationId: n.id };
+          (x(r),
+            y(e === `move` ? `move` : `clear`),
+            atlasSetQuickActionPending(null),
+            atlasSetLocationExplicitlySelected(!0),
+            t(`inventory`),
+            window.scrollTo({ top: 0, behavior: `smooth` }));
+        }
+        function atlasRequestQuickAction(e) {
+          if (!oe || !atlasCanPerformInventoryAction(e)) return;
+          if (ae.length > 1 && !atlasLocationExplicitlySelected) {
+            atlasSetQuickActionPending(e);
+            return;
+          }
+          atlasOpenQuickAction(e, oe);
         }
         function atlasReturnToSectionRoot(e) {
           const resetViewport = () => {
@@ -17852,7 +18341,9 @@ Error generating stack: ` +
                                                 className: `location-card`,
                                                 type: `button`,
                                                 onClick: () => {
-                                                  (_(e.id), Ge());
+                                                  (_(e.id),
+                                                    atlasSetLocationExplicitlySelected(!0),
+                                                    Ge());
                                                 },
                                                 children: [
                                                   (0, T.jsx)(`span`, {
@@ -17921,7 +18412,18 @@ Error generating stack: ` +
                                       ),
                                     }),
                                     oe
-                                      ? (0, T.jsx)(rt, { location: oe })
+                                      ? (0, T.jsxs)(T.Fragment, {
+                                          children: [
+                                            (0, T.jsx)(rt, { location: oe }),
+                                            (0, T.jsx)(atlasSkuQuickActions, {
+                                              location: oe,
+                                              onMove: () =>
+                                                atlasRequestQuickAction(`move`),
+                                              onClear: () =>
+                                                atlasRequestQuickAction(`clear`),
+                                            }),
+                                          ],
+                                        })
                                       : (0, T.jsxs)(`div`, {
                                           className: `empty-state compact`,
                                           children: [
@@ -18155,7 +18657,7 @@ Error generating stack: ` +
                         items: i,
                         action: v,
                         setAction: (e) => {
-                          (y(e), e !== `move` && x(null));
+                          (y(e), ![`move`, `clear`].includes(e) && x(null));
                         },
                         reload: E,
                         openScanner: re,
@@ -18215,6 +18717,15 @@ Error generating stack: ` +
             }),
             S
               ? (0, T.jsx)(mt, { request: S, items: i, onClose: () => w(null) })
+              : null,
+            atlasQuickActionPending
+              ? (0, T.jsx)(atlasQuickLocationSelector, {
+                  locations: ae,
+                  action: atlasQuickActionPending,
+                  onChoose: (e) =>
+                    atlasOpenQuickAction(atlasQuickActionPending, e),
+                  onClose: () => atlasSetQuickActionPending(null),
+                })
               : null,
             ee
               ? (0, T.jsx)(`div`, {
@@ -24763,11 +25274,11 @@ Error generating stack: ` +
             removeButton.disabled = true;
             removeButton.textContent = "Removing…";
             try {
-              await atlasPostRpc("set_inventory_location_active", {
-                p_location_id: sourceLocation.id,
-                p_is_active: false,
-                p_employee_name: employee,
-                p_reason: "Product not found after checking all applicable levels",
+              await window.atlasSetInventoryLocationActive({
+                locationId: sourceLocation.id,
+                isActive: false,
+                employee,
+                reason: "Product not found after checking all applicable levels",
               });
               showSuccess(
                 `${clickedLocationCode} removed`,
@@ -33747,6 +34258,316 @@ Error generating stack: ` +
         queue();
       })();
     </script>
+
+    <style id="atlas-context-aware-inventory-shortcuts-v1">
+      .atlas-sku-quick-actions {
+        margin-top: 12px;
+        display: grid;
+        gap: 9px;
+      }
+      .atlas-quick-location-context {
+        min-height: 34px;
+        padding: 7px 11px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #52677f;
+        background: #f4f7fb;
+        border: 1px solid #dbe3ed;
+        border-radius: 10px;
+      }
+      .atlas-quick-location-context span {
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.11em;
+      }
+      .atlas-quick-location-context strong {
+        color: #0b315c;
+        font-size: 15px;
+        font-weight: 950;
+        letter-spacing: 0.04em;
+      }
+      .atlas-quick-action-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .atlas-quick-action-grid > button {
+        min-width: 0;
+        min-height: 76px;
+        padding: 12px 9px;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 5px;
+        color: #fff;
+        cursor: pointer;
+        background: linear-gradient(145deg, #123d70 0%, #071b34 100%);
+        border: 1px solid #071b34;
+        border-radius: 16px;
+        box-shadow:
+          0 8px 18px rgba(3, 26, 54, 0.17),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        font: inherit;
+        text-align: center;
+        transition: transform 140ms ease, box-shadow 170ms ease;
+      }
+      .atlas-quick-action-grid > button:last-child {
+        color: #0b315c;
+        background: linear-gradient(180deg, #ffffff 0%, #eef4fb 100%);
+        border-color: #b9c9db;
+        box-shadow: 0 7px 17px rgba(7, 39, 76, 0.1);
+      }
+      .atlas-quick-action-grid > button:active {
+        transform: translateY(1px) scale(0.988);
+      }
+      .atlas-quick-action-grid > button:focus-visible {
+        outline: 3px solid rgba(8, 107, 255, 0.25);
+        outline-offset: 2px;
+      }
+      .atlas-quick-action-grid strong {
+        max-width: 100%;
+        font-size: clamp(11px, 3.1vw, 13px);
+        font-weight: 950;
+        line-height: 1.12;
+      }
+      .atlas-quick-action-icon {
+        font-size: 23px;
+        font-weight: 850;
+        line-height: 1;
+      }
+
+      .atlas-quick-selector-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 9995;
+        padding: 18px;
+        display: grid;
+        place-items: end center;
+        background: rgba(3, 18, 35, 0.62);
+        backdrop-filter: blur(8px);
+      }
+      .atlas-quick-selector {
+        width: min(100%, 470px);
+        max-height: min(76vh, 620px);
+        padding: 21px 18px calc(18px + env(safe-area-inset-bottom));
+        overflow: auto;
+        color: #071b34;
+        background: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 24px;
+        box-shadow: 0 24px 70px rgba(0, 16, 35, 0.35);
+      }
+      .atlas-quick-selector-kicker {
+        color: #1764cc;
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: 0.13em;
+      }
+      .atlas-quick-selector h2 {
+        margin: 7px 0 15px;
+        font-size: 21px;
+        line-height: 1.15;
+      }
+      .atlas-quick-selector-list {
+        display: grid;
+        gap: 9px;
+      }
+      .atlas-quick-selector-list button {
+        min-height: 68px;
+        padding: 11px 13px;
+        display: grid;
+        grid-template-columns: 60px minmax(0, 1fr) 16px;
+        align-items: center;
+        gap: 9px;
+        color: #102c4b;
+        cursor: pointer;
+        background: #f7f9fc;
+        border: 1px solid #d9e2ed;
+        border-radius: 14px;
+        font: inherit;
+        text-align: left;
+      }
+      .atlas-quick-selector-list button.is-pick-first {
+        background: #edf4ff;
+        border-color: #7eaaf1;
+        box-shadow: inset 3px 0 0 #086bff;
+      }
+      .atlas-quick-selector-list strong {
+        font-size: 18px;
+        font-weight: 950;
+      }
+      .atlas-quick-selector-list span {
+        color: #526b85;
+        font-size: 11px;
+        font-weight: 750;
+      }
+      .atlas-quick-selector-list i {
+        color: #56708d;
+        font-size: 22px;
+        font-style: normal;
+      }
+      .atlas-quick-selector-cancel {
+        width: 100%;
+        min-height: 52px;
+        margin-top: 12px;
+        color: #536a83;
+        cursor: pointer;
+        background: transparent;
+        border: 0;
+        border-radius: 12px;
+        font: inherit;
+        font-weight: 850;
+      }
+
+      .atlas-cleared-workflow {
+        display: grid;
+        gap: 16px;
+      }
+      .atlas-clear-confirmation {
+        padding: 17px;
+        display: grid;
+        gap: 8px;
+        color: #102c4b;
+        background: linear-gradient(180deg, #eef5ff 0%, #f8fbff 100%);
+        border: 1px solid #a9c4e9;
+        border-radius: 17px;
+        box-shadow: inset 4px 0 0 #086bff;
+      }
+      .atlas-clear-confirmation > span {
+        color: #1764cc;
+        font-size: 9px;
+        font-weight: 950;
+        letter-spacing: 0.13em;
+      }
+      .atlas-clear-confirmation > strong {
+        font-size: 19px;
+        font-weight: 950;
+      }
+      .atlas-clear-confirmation p {
+        margin: 0;
+        color: #536b84;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .atlas-clear-confirmation-actions {
+        margin-top: 5px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(90px, 0.7fr);
+        gap: 9px;
+      }
+      .atlas-clear-confirmation-actions .primary-button,
+      .atlas-clear-confirmation-actions .secondary-button {
+        width: 100%;
+        min-height: 52px;
+        margin: 0;
+      }
+      .atlas-cleared-undo {
+        min-height: 48px;
+        padding: 10px 16px;
+        color: #0d54b5;
+        cursor: pointer;
+        background: #edf4ff;
+        border: 1px solid #9dbdea;
+        border-radius: 13px;
+        font: inherit;
+        font-weight: 900;
+      }
+      .atlas-cleared-section {
+        display: grid;
+        gap: 9px;
+      }
+      .atlas-cleared-section h3 {
+        margin: 0;
+        color: #193956;
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.035em;
+        text-transform: uppercase;
+      }
+      .atlas-cleared-section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .atlas-cleared-section-heading span {
+        min-width: 28px;
+        padding: 4px 8px;
+        color: #fff;
+        background: #0b315c;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 900;
+        text-align: center;
+      }
+      .atlas-cleared-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+      }
+      .atlas-cleared-list button {
+        min-width: 0;
+        min-height: 62px;
+        padding: 10px 11px;
+        display: grid;
+        align-content: center;
+        gap: 3px;
+        color: #163758;
+        cursor: pointer;
+        background: #fff;
+        border: 1px solid #ced9e5;
+        border-radius: 13px;
+        box-shadow: 0 5px 13px rgba(3, 28, 57, 0.07);
+        font: inherit;
+        text-align: left;
+      }
+      .atlas-cleared-list button strong {
+        font-size: 16px;
+        font-weight: 950;
+      }
+      .atlas-cleared-list button span {
+        overflow: hidden;
+        color: #5b7088;
+        font-size: 10px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .atlas-cleared-list--global {
+        max-height: 430px;
+        padding: 1px 3px 7px 1px;
+        overflow-y: auto;
+      }
+      @media (min-width: 700px) {
+        .atlas-quick-selector-backdrop {
+          place-items: center;
+        }
+        .atlas-quick-action-grid > button {
+          min-height: 82px;
+        }
+        .atlas-cleared-list {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 390px) {
+        .atlas-quick-action-grid {
+          gap: 8px;
+        }
+        .atlas-quick-action-grid > button {
+          min-height: 72px;
+          border-radius: 14px;
+        }
+        .atlas-clear-confirmation-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-quick-action-grid > button {
+          transition: none;
+        }
+      }
+    </style>
 
     <link rel="stylesheet" href="./atlas-desktop.css?v=120" />
     <script src="./atlas-dashboard.js?v=117" defer></script>

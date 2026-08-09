@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v120-desktop-corrections";
+const VERSION = "atlas-pwa-v121-context-inventory-shortcuts";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
