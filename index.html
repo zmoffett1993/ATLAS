@@ -17310,6 +17310,7 @@ Error generating stack: ` +
                 r
                   ? (0, T.jsxs)(`button`, {
                       type: `button`,
+                      className: `atlas-quick-action-move`,
                       onClick: t,
                       children: [
                         (0, T.jsx)(`span`, {
@@ -17323,6 +17324,7 @@ Error generating stack: ` +
                 i
                   ? (0, T.jsxs)(`button`, {
                       type: `button`,
+                      className: `atlas-quick-action-clear`,
                       onClick: n,
                       children: [
                         (0, T.jsx)(`span`, {
@@ -34411,7 +34413,7 @@ Error generating stack: ` +
       })();
     </script>
 
-    <style id="atlas-context-aware-inventory-shortcuts-v1">
+    <style id="atlas-context-aware-inventory-shortcuts-v2">
       .atlas-sku-quick-actions {
         margin-top: 12px;
         display: grid;
@@ -34453,23 +34455,30 @@ Error generating stack: ` +
         place-items: center;
         align-content: center;
         gap: 5px;
-        color: #fff;
         cursor: pointer;
-        background: linear-gradient(145deg, #123d70 0%, #071b34 100%);
-        border: 1px solid #071b34;
         border-radius: 16px;
-        box-shadow:
-          0 8px 18px rgba(3, 26, 54, 0.17),
-          inset 0 1px 0 rgba(255, 255, 255, 0.12);
         font: inherit;
         text-align: center;
         transition: transform 140ms ease, box-shadow 170ms ease;
       }
-      .atlas-quick-action-grid > button:last-child {
+      .atlas-quick-action-grid > .atlas-quick-action-move {
+        color: #ffffff;
+        background: linear-gradient(145deg, #0f5ccb 0%, #174ea6 100%);
+        border: 1px solid #0d4fae;
+        box-shadow:
+          0 10px 23px rgba(15, 92, 203, 0.26),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+      .atlas-quick-action-grid > .atlas-quick-action-clear {
         color: #0b315c;
-        background: linear-gradient(180deg, #ffffff 0%, #eef4fb 100%);
-        border-color: #b9c9db;
-        box-shadow: 0 7px 17px rgba(7, 39, 76, 0.1);
+        background: #eaf3ff;
+        border: 1px solid #2d6fd2;
+        box-shadow:
+          0 8px 19px rgba(45, 111, 210, 0.14),
+          inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      }
+      .atlas-quick-action-grid > .atlas-quick-action-clear .atlas-quick-action-icon {
+        color: #2d6fd2;
       }
       .atlas-quick-action-grid > button:active {
         transform: translateY(1px) scale(0.988);

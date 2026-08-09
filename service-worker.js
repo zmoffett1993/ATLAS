@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v122-primary-location-hierarchy";
+const VERSION = "atlas-pwa-v123-quick-action-color-hierarchy";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
