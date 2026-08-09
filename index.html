@@ -14468,7 +14468,7 @@ Error generating stack: ` +
             id: `clear`,
             icon: `○`,
             title: `Mark Location Empty`,
-            description: `Clear an empty pick location, review Cleared Locations, restore it, or undo a recent change.`,
+            description: `Clear an empty pick location, preserve its history, or undo a recent change.`,
           },
           {
             id: `create`,
@@ -17063,21 +17063,7 @@ Error generating stack: ` +
           [y, b] = (0, C.useState)(null),
           x = Ye(o?.locations.filter((e) => e.is_active !== !1) || []),
           S = Ye(o?.locations.filter((e) => e.is_active === !1) || []),
-          w = [...x, ...S].find((e) => e.id === l) || null,
-          ee = e
-            .flatMap((e) =>
-              e.locations
-                .filter((e) => e.is_active === !1)
-                .map((t) => ({ sku: e, location: t })),
-            )
-            .sort(
-              (e, t) =>
-                Number(e.location.aisle) - Number(t.location.aisle) ||
-                String(e.location.section).localeCompare(
-                  String(t.location.section),
-                ) ||
-                e.sku.sku.localeCompare(t.sku.sku),
-            );
+          w = [...x, ...S].find((e) => e.id === l) || null;
         ((0, C.useEffect)(() => {
           let e = window.setTimeout(
             () => m(localStorage.getItem(`atlasEmployee`) || ``),
@@ -17246,44 +17232,6 @@ Error generating stack: ` +
                   ],
                 })
               : null,
-            (0, T.jsxs)(`section`, {
-              className: `atlas-cleared-section`,
-              children: [
-                (0, T.jsxs)(`div`, {
-                  className: `atlas-cleared-section-heading`,
-                  children: [
-                    (0, T.jsx)(`h3`, { children: `Cleared Locations` }),
-                    (0, T.jsx)(`span`, { children: ee.length }),
-                  ],
-                }),
-                ee.length
-                  ? (0, T.jsx)(`div`, {
-                      className: `atlas-cleared-list atlas-cleared-list--global`,
-                      children: ee.map(({ sku: e, location: t }) =>
-                        (0, T.jsxs)(
-                          `button`,
-                          {
-                            type: `button`,
-                            onClick: () => E(e, t),
-                            children: [
-                              (0, T.jsx)(`strong`, {
-                                children: atlasContextLocationCode(t),
-                              }),
-                              (0, T.jsxs)(`span`, {
-                                children: [e.sku, ` · Restore`],
-                              }),
-                            ],
-                          },
-                          `${e.id}-${t.id}`,
-                        ),
-                      ),
-                    })
-                  : (0, T.jsx)(`p`, {
-                      className: `workflow-note`,
-                      children: `No cleared locations are currently waiting to be reused.`,
-                    }),
-              ],
-            }),
           ],
         });
       }

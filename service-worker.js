@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v125-desktop-reference-button-hover";
+const VERSION = "atlas-pwa-v126-inventory-cleared-list-removed";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
