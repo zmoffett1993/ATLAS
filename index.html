@@ -14467,8 +14467,8 @@ Error generating stack: ` +
           {
             id: `clear`,
             icon: `○`,
-            title: `Cleared Locations`,
-            description: `Mark an empty pick location cleared, restore it, or undo a recent change.`,
+            title: `Mark Location Empty`,
+            description: `Clear an empty pick location, review Cleared Locations, restore it, or undo a recent change.`,
           },
           {
             id: `create`,
@@ -17400,6 +17400,61 @@ Error generating stack: ` +
           }),
         });
       }
+      function atlasPrimaryLocationConfirmation({
+        location: e,
+        onConfirm: t,
+        onCancel: n,
+      }) {
+        if (!e) return null;
+        let r = atlasContextLocationCode(e);
+        return (0, T.jsx)(`div`, {
+          className: `atlas-primary-confirmation-backdrop`,
+          role: `dialog`,
+          "aria-modal": `true`,
+          "aria-labelledby": `atlas-primary-confirmation-title`,
+          children: (0, T.jsxs)(`section`, {
+            className: `atlas-primary-confirmation`,
+            children: [
+              (0, T.jsx)(`span`, {
+                className: `atlas-primary-confirmation-kicker`,
+                children: `CONFIRM PRIMARY LOCATION`,
+              }),
+              (0, T.jsxs)(`h2`, {
+                id: `atlas-primary-confirmation-title`,
+                children: [`Make `, r, ` the New Primary Location?`],
+              }),
+              (0, T.jsxs)(`p`, {
+                children: [
+                  `This will move `,
+                  (0, T.jsx)(`strong`, { children: r }),
+                  ` to the top of this SKU’s location list and make it the selected location for picking.`,
+                ],
+              }),
+              (0, T.jsx)(`div`, {
+                className: `atlas-primary-pick-first-note`,
+                children: `This will not change any Pick First setting.`,
+              }),
+              (0, T.jsxs)(`div`, {
+                className: `atlas-primary-confirmation-actions`,
+                children: [
+                  (0, T.jsxs)(`button`, {
+                    type: `button`,
+                    className: `atlas-primary-confirm-button`,
+                    onClick: t,
+                    children: [`Make `, r, ` Primary`],
+                  }),
+                  (0, T.jsx)(`button`, {
+                    type: `button`,
+                    className: `atlas-primary-cancel-button`,
+                    onClick: n,
+                    children: `Cancel`,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        });
+      }
       function pt({
         items: e,
         action: t,
@@ -18136,6 +18191,10 @@ Error generating stack: ` +
             (0, C.useState)(!1),
           [atlasQuickActionPending, atlasSetQuickActionPending] =
             (0, C.useState)(null),
+          [atlasMoreLocationsExpanded, atlasSetMoreLocationsExpanded] =
+            (0, C.useState)(!1),
+          [atlasPrimaryCandidate, atlasSetPrimaryCandidate] =
+            (0, C.useState)(null),
           E = (0, C.useCallback)(async () => {
             r(`loading`);
             try {
@@ -18197,6 +18256,8 @@ Error generating stack: ` +
             _(Ye(e.locations.filter((e) => e.is_active !== !1))[0]?.id || null),
             atlasSetLocationExplicitlySelected(!1),
             atlasSetQuickActionPending(null),
+            atlasSetMoreLocationsExpanded(!1),
+            atlasSetPrimaryCandidate(null),
             t(`home`),
             ne(e),
             window.scrollTo({ top: 0, behavior: `smooth` }));
@@ -18229,11 +18290,15 @@ Error generating stack: ` +
         }
         function atlasRequestQuickAction(e) {
           if (!oe || !atlasCanPerformInventoryAction(e)) return;
-          if (ae.length > 1 && !atlasLocationExplicitlySelected) {
-            atlasSetQuickActionPending(e);
-            return;
-          }
           atlasOpenQuickAction(e, oe);
+        }
+        function atlasConfirmPrimaryLocation() {
+          if (!atlasPrimaryCandidate) return;
+          (_(atlasPrimaryCandidate.id),
+            atlasSetLocationExplicitlySelected(!0),
+            atlasSetMoreLocationsExpanded(!1),
+            atlasSetPrimaryCandidate(null),
+            Ge());
         }
         function atlasReturnToSectionRoot(e) {
           const resetViewport = () => {
@@ -18330,8 +18395,13 @@ Error generating stack: ` +
                                       }),
                                     }),
                                     (0, T.jsx)(`div`, {
-                                      className: `location-list`,
-                                      children: ae.map((e) =>
+                                      className: `location-list ${
+                                        atlasMoreLocationsExpanded
+                                          ? `atlas-locations-expanded`
+                                          : `atlas-locations-collapsed`
+                                      }`,
+                                      children: [
+                                        ae.map((e) =>
                                         (0, T.jsxs)(
                                           `div`,
                                           {
@@ -18341,8 +18411,8 @@ Error generating stack: ` +
                                                 className: `location-card`,
                                                 type: `button`,
                                                 onClick: () => {
-                                                  (_(e.id),
-                                                    atlasSetLocationExplicitlySelected(!0),
+                                                  if (oe?.id === e.id) return;
+                                                  (atlasSetPrimaryCandidate(e),
                                                     Ge());
                                                 },
                                                 children: [
@@ -18409,7 +18479,35 @@ Error generating stack: ` +
                                           },
                                           e.id,
                                         ),
-                                      ),
+                                        ),
+                                        ae.length > 1
+                                          ? (0, T.jsxs)(`button`, {
+                                              type: `button`,
+                                              className: `atlas-more-locations-toggle`,
+                                              "aria-expanded":
+                                                atlasMoreLocationsExpanded,
+                                              onClick: () =>
+                                                atlasSetMoreLocationsExpanded(
+                                                  !atlasMoreLocationsExpanded,
+                                                ),
+                                              children: [
+                                                (0, T.jsx)(`strong`, {
+                                                  children:
+                                                    atlasMoreLocationsExpanded
+                                                      ? `Show Fewer Locations`
+                                                      : `View ${ae.length - 1} More Location${ae.length - 1 === 1 ? `` : `s`}`,
+                                                }),
+                                                (0, T.jsx)(`span`, {
+                                                  "aria-hidden": `true`,
+                                                  children:
+                                                    atlasMoreLocationsExpanded
+                                                      ? `▴`
+                                                      : `▾`,
+                                                }),
+                                              ],
+                                            })
+                                          : null,
+                                      ],
                                     }),
                                     oe
                                       ? (0, T.jsxs)(T.Fragment, {
@@ -18725,6 +18823,13 @@ Error generating stack: ` +
                   onChoose: (e) =>
                     atlasOpenQuickAction(atlasQuickActionPending, e),
                   onClose: () => atlasSetQuickActionPending(null),
+                })
+              : null,
+            atlasPrimaryCandidate
+              ? (0, T.jsx)(atlasPrimaryLocationConfirmation, {
+                  location: atlasPrimaryCandidate,
+                  onConfirm: atlasConfirmPrimaryLocation,
+                  onCancel: () => atlasSetPrimaryCandidate(null),
                 })
               : null,
             ee
@@ -26693,71 +26798,96 @@ Error generating stack: ` +
         const ensureLocationHero = (resultCard) => {
           const entries = resultCard.querySelectorAll(".location-entry");
           entries.forEach((entry) => {
-            if (!entry.classList.contains("selected")) {
-              entry.querySelector(":scope > .atlas-location-hero")?.remove();
+            const isPrimary = entry.classList.contains("selected");
+            const original = entry.querySelector(":scope > .location-card");
+            if (!original) return;
+            const locationCode =
+              original.querySelector(".location-badge")?.textContent?.trim() || "";
+            const locationDescription =
+              original.querySelector(".location-copy strong")?.textContent?.trim() || "";
+            const match = locationDescription.match(
+              /Aisle\s+(.+?)\s+·\s+Section\s+([^·]+)/i,
+            );
+            const samplesMatch = locationDescription.match(
+              /Samples Rack\s+·\s+Section\s+([AB])/i,
+            );
+            const isSamplesRack = Boolean(samplesMatch);
+            const aisle = isSamplesRack
+              ? "SAMPLES RACK"
+              : match?.[1]?.trim() || locationCode.replace(/\D+.*$/, "") || "—";
+            const section = isSamplesRack
+              ? samplesMatch?.[1]?.toUpperCase() || "—"
+              : match?.[2]?.trim() || locationCode.replace(/^\d+/, "") || "—";
+            const isPickFirst = Boolean(original.querySelector(".pick-first-badge"));
+            const signature = [
+              locationCode,
+              aisle,
+              section,
+              isPickFirst,
+              isPrimary,
+            ].join("|");
+            let hero = entry.querySelector(":scope > .atlas-location-hero");
+            if (!hero) {
+              hero = document.createElement("div");
+              hero.className = "atlas-location-hero";
+              entry.insertBefore(hero, original);
+            }
+            hero.classList.toggle("atlas-location-hero--primary", isPrimary);
+            hero.classList.toggle("atlas-location-hero--secondary", !isPrimary);
+            if (isPrimary) {
+              hero.setAttribute("aria-live", "polite");
+              hero.removeAttribute("role");
+              hero.removeAttribute("tabindex");
+              hero.removeAttribute("aria-label");
+              hero.onclick = null;
+              hero.onkeydown = null;
+            } else {
+              hero.removeAttribute("aria-live");
+              hero.setAttribute("role", "button");
+              hero.setAttribute("tabindex", "0");
+              hero.setAttribute(
+                "aria-label",
+                `Select ${locationCode} as the new Primary Location`,
+              );
+              hero.onclick = () => original.click();
+              hero.onkeydown = (event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                original.click();
+              };
+            }
+            if (hero.dataset.signature === signature) return;
+            hero.dataset.signature = signature;
+            hero.innerHTML = `
+              <div>
+                <span class="atlas-location-label">${isPrimary ? "PRIMARY LOCATION" : "PICK LOCATION"}</span>
+                <strong class="atlas-location-aisle"></strong>
+                <span class="atlas-location-section"></span>
+              </div>
+              <div class="atlas-location-side">
+                <strong class="atlas-location-code"></strong>
+              </div>`;
+            setText(
+              hero.querySelector(".atlas-location-aisle"),
+              isSamplesRack ? "SAMPLES RACK" : `AISLE ${aisle}`,
+            );
+            setText(hero.querySelector(".atlas-location-section"), `SECTION ${section}`);
+            const heroCode = hero.querySelector(".atlas-location-code");
+            if (isSamplesRack) {
+              heroCode.classList.add("atlas-samples-rack-code");
+              heroCode.innerHTML = `<span>SR</span><span>${section}</span>`;
+              heroCode.setAttribute("aria-label", `Samples Rack Section ${section}`);
+            } else {
+              heroCode.classList.remove("atlas-samples-rack-code");
+              setText(heroCode, locationCode);
+            }
+            if (isPickFirst) {
+              const chip = document.createElement("span");
+              chip.className = "atlas-pick-first-chip";
+              chip.textContent = "★ PICK FIRST";
+              hero.querySelector(".atlas-location-side").appendChild(chip);
             }
           });
-          const selected = resultCard.querySelector(".location-entry.selected");
-          if (!selected) return;
-          const original = selected.querySelector(":scope > .location-card");
-          if (!original) return;
-          const locationCode =
-            original.querySelector(".location-badge")?.textContent?.trim() || "";
-          const locationDescription =
-            original.querySelector(".location-copy strong")?.textContent?.trim() || "";
-          const match = locationDescription.match(
-            /Aisle\s+(.+?)\s+·\s+Section\s+([^·]+)/i,
-          );
-          const samplesMatch = locationDescription.match(
-            /Samples Rack\s+·\s+Section\s+([AB])/i,
-          );
-          const isSamplesRack = Boolean(samplesMatch);
-          const aisle = isSamplesRack
-            ? "SAMPLES RACK"
-            : match?.[1]?.trim() || locationCode.replace(/\D+.*$/, "") || "—";
-          const section = isSamplesRack
-            ? samplesMatch?.[1]?.toUpperCase() || "—"
-            : match?.[2]?.trim() || locationCode.replace(/^\d+/, "") || "—";
-          const isPickFirst = Boolean(original.querySelector(".pick-first-badge"));
-          const signature = [locationCode, aisle, section, isPickFirst].join("|");
-          let hero = selected.querySelector(":scope > .atlas-location-hero");
-          if (!hero) {
-            hero = document.createElement("div");
-            hero.className = "atlas-location-hero";
-            hero.setAttribute("aria-live", "polite");
-            selected.insertBefore(hero, original);
-          }
-          if (hero.dataset.signature === signature) return;
-          hero.dataset.signature = signature;
-          hero.innerHTML = `
-            <div>
-              <span class="atlas-location-label">PICK LOCATION</span>
-              <strong class="atlas-location-aisle"></strong>
-              <span class="atlas-location-section"></span>
-            </div>
-            <div class="atlas-location-side">
-              <strong class="atlas-location-code"></strong>
-            </div>`;
-          setText(
-            hero.querySelector(".atlas-location-aisle"),
-            isSamplesRack ? "SAMPLES RACK" : `AISLE ${aisle}`,
-          );
-          setText(hero.querySelector(".atlas-location-section"), `SECTION ${section}`);
-          const heroCode = hero.querySelector(".atlas-location-code");
-          if (isSamplesRack) {
-            heroCode.classList.add("atlas-samples-rack-code");
-            heroCode.innerHTML = `<span>SR</span><span>${section}</span>`;
-            heroCode.setAttribute("aria-label", `Samples Rack Section ${section}`);
-          } else {
-            heroCode.classList.remove("atlas-samples-rack-code");
-            setText(heroCode, locationCode);
-          }
-          if (isPickFirst) {
-            const chip = document.createElement("span");
-            chip.className = "atlas-pick-first-chip";
-            chip.textContent = "★ PICK FIRST";
-            hero.querySelector(".atlas-location-side").appendChild(chip);
-          }
         };
 
         const enhanceResult = () => {
@@ -27117,7 +27247,7 @@ Error generating stack: ` +
           "click",
           (event) => {
             const locationCard = event.target.closest(
-              ".result-card .location-entry:not(.selected) > .location-card",
+              ".atlas-disable-legacy-location-transition",
             );
             if (!locationCard) return;
             const resultCard = locationCard.closest(".result-card");
@@ -32292,6 +32422,10 @@ Error generating stack: ` +
     </style>
     <script id="atlas-approved-picker-speed-workflow-behavior-v1">
       (() => {
+        document
+          .querySelectorAll(".atlas-pick-reminder")
+          .forEach((node) => node.remove());
+        return;
         const reduceMotion = window.matchMedia(
           "(prefers-reduced-motion: reduce)",
         );
@@ -32309,7 +32443,7 @@ Error generating stack: ` +
             <small>PICK LOCATION</small>
             <strong></strong>
           </span>`;
-        document.body.appendChild(reminder);
+        /* The duplicate floating SKU / Pick Location reminder is intentionally removed. */
 
         const setText = (node, value) => {
           if (node && node.textContent !== value) node.textContent = value;
@@ -34125,6 +34259,8 @@ Error generating stack: ` +
         const ensureMapDisclosure = (resultCard) => {
           const mapPanel = resultCard.querySelector(".map-panel");
           if (!mapPanel) return;
+          const showcase = resultCard.querySelector(".atlas-product-showcase");
+          const quickActions = resultCard.querySelector(".atlas-sku-quick-actions");
           let button = resultCard.querySelector(".atlas-map-disclosure-button");
           if (!button) {
             button = document.createElement("button");
@@ -34135,8 +34271,24 @@ Error generating stack: ` +
               <span class="atlas-map-disclosure-label"><strong>View Warehouse Map</strong><small>Show aisle and section layout</small></span>
               <i class="atlas-map-disclosure-chevron" aria-hidden="true">›</i>`;
           }
+          if (
+            showcase &&
+            quickActions &&
+            showcase.nextElementSibling !== quickActions
+          ) {
+            showcase.insertAdjacentElement("afterend", quickActions);
+          }
+          if (quickActions && quickActions.nextElementSibling !== button) {
+            quickActions.insertAdjacentElement("afterend", button);
+          } else if (
+            !quickActions &&
+            showcase &&
+            showcase.nextElementSibling !== button
+          ) {
+            showcase.insertAdjacentElement("afterend", button);
+          }
           if (button.nextElementSibling !== mapPanel) {
-            mapPanel.insertAdjacentElement("beforebegin", button);
+            button.insertAdjacentElement("afterend", mapPanel);
           }
           if (!mapPanel.id) {
             mapPanel.id = `atlas-warehouse-map-${Math.random().toString(36).slice(2, 9)}`;
@@ -34565,6 +34717,311 @@ Error generating stack: ` +
       @media (prefers-reduced-motion: reduce) {
         .atlas-quick-action-grid > button {
           transition: none;
+        }
+      }
+    </style>
+
+    <style id="atlas-primary-location-hierarchy-v1">
+      /* August 9, 2026 — compact Primary Location hierarchy and safe promotion. */
+      .atlas-pick-reminder {
+        display: none !important;
+      }
+      .result-card .location-list.has-alternate-locations::before,
+      .result-card .location-list::before {
+        content: none !important;
+        display: none !important;
+      }
+      .result-card .location-list.atlas-locations-collapsed,
+      .result-card .location-list.atlas-locations-expanded {
+        gap: 0 !important;
+      }
+      .result-card .location-list.atlas-locations-collapsed
+        > .location-entry:not(.selected) {
+        display: none !important;
+      }
+      .result-card .location-list.atlas-locations-expanded
+        > .location-entry:not(.selected) {
+        order: 0;
+        display: block !important;
+        overflow: hidden;
+        padding: 0 !important;
+        background: #ffffff !important;
+        border: 1px solid #164eb5 !important;
+        border-radius: 15px !important;
+        box-shadow: 0 9px 24px rgba(6, 55, 151, 0.14) !important;
+        margin-top: 10px !important;
+      }
+      .result-card .location-list.atlas-locations-expanded
+        > .location-entry:not(.selected)
+        > .location-card {
+        display: none !important;
+      }
+      .result-card .location-list.atlas-locations-expanded
+        > .location-entry:not(.selected)
+        > .atlas-location-hero {
+        display: grid !important;
+      }
+      .result-card .location-list.atlas-locations-expanded
+        > .location-entry:not(.selected)
+        > .missing-button {
+        display: none !important;
+      }
+      .result-card .location-list.atlas-locations-expanded
+        > .location-entry:not(.selected)
+        + .location-entry:not(.selected) {
+        margin-top: 10px;
+      }
+      .atlas-location-hero--secondary {
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .atlas-location-hero--secondary::before {
+        content: "SELECT";
+        position: absolute;
+        z-index: 2;
+        right: 14px;
+        bottom: 11px;
+        padding: 5px 7px;
+        color: #d5e5ff;
+        background: rgba(3, 31, 78, 0.28);
+        border: 1px solid rgba(211, 229, 255, 0.28);
+        border-radius: 7px;
+        font-size: 7px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: 0.12em;
+      }
+      .atlas-location-hero--secondary:focus-visible {
+        outline: 4px solid rgba(8, 107, 255, 0.26);
+        outline-offset: 3px;
+      }
+      .atlas-location-hero--secondary:active {
+        filter: brightness(0.97) saturate(0.98);
+        transform: scale(0.993);
+      }
+      .atlas-more-locations-toggle {
+        order: 1;
+        width: 100%;
+        min-height: 46px;
+        margin-top: 9px;
+        padding: 9px 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: #164875;
+        cursor: pointer;
+        background: linear-gradient(180deg, #ffffff 0%, #f3f7fb 100%);
+        border: 1px solid #b9c9da;
+        border-radius: 12px;
+        box-shadow: 0 5px 13px rgba(5, 34, 68, 0.07);
+        font: inherit;
+      }
+      .atlas-more-locations-toggle strong {
+        font-size: 11px;
+        font-weight: 950;
+        line-height: 1.1;
+      }
+      .atlas-more-locations-toggle span {
+        color: #47739e;
+        font-size: 13px;
+        line-height: 1;
+      }
+      .atlas-more-locations-toggle:active {
+        background: #eaf1f8;
+        transform: translateY(1px);
+      }
+      .atlas-more-locations-toggle:focus-visible {
+        outline: 3px solid rgba(8, 107, 255, 0.2);
+        outline-offset: 2px;
+      }
+
+      .atlas-primary-confirmation-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 10010;
+        padding: 16px;
+        display: grid;
+        place-items: end center;
+        background: rgba(2, 17, 35, 0.66);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      .atlas-primary-confirmation {
+        position: relative;
+        isolation: isolate;
+        width: min(100%, 490px);
+        padding: 23px 20px calc(19px + env(safe-area-inset-bottom));
+        overflow: hidden;
+        color: #0b2646;
+        background: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.84);
+        border-radius: 24px;
+        box-shadow: 0 28px 80px rgba(0, 14, 34, 0.38);
+      }
+      .atlas-primary-confirmation::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        top: -78px;
+        right: -62px;
+        width: 190px;
+        height: 190px;
+        background: radial-gradient(circle, rgba(8, 107, 255, 0.16), transparent 68%);
+      }
+      .atlas-primary-confirmation-kicker {
+        display: block;
+        color: #0b63df;
+        font-size: 9px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: 0.15em;
+      }
+      .atlas-primary-confirmation h2 {
+        margin: 9px 0 10px;
+        color: #071f3f;
+        font-size: clamp(22px, 6vw, 29px);
+        font-weight: 1000;
+        line-height: 1.1;
+        letter-spacing: -0.035em;
+      }
+      .atlas-primary-confirmation p {
+        margin: 0;
+        color: #506780;
+        font-size: 14px;
+        line-height: 1.52;
+      }
+      .atlas-primary-confirmation p strong {
+        color: #0d50af;
+        font-weight: 950;
+      }
+      .atlas-primary-pick-first-note {
+        margin-top: 14px;
+        padding: 11px 12px;
+        color: #5d4400;
+        background: #fff8df;
+        border: 1px solid #ead798;
+        border-radius: 11px;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1.35;
+      }
+      .atlas-primary-confirmation-actions {
+        margin-top: 17px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(92px, 0.7fr);
+        gap: 9px;
+      }
+      .atlas-primary-confirmation-actions button {
+        min-height: 54px;
+        padding: 10px 13px;
+        cursor: pointer;
+        border-radius: 13px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 950;
+      }
+      .atlas-primary-confirm-button {
+        color: #ffffff;
+        background: linear-gradient(145deg, #0b63df 0%, #073c94 100%);
+        border: 1px solid #073c94;
+        box-shadow: 0 9px 21px rgba(7, 70, 165, 0.23);
+      }
+      .atlas-primary-cancel-button {
+        color: #4e6680;
+        background: #f4f7fa;
+        border: 1px solid #cbd7e3;
+      }
+      .atlas-primary-confirmation-actions button:focus-visible {
+        outline: 3px solid rgba(8, 107, 255, 0.24);
+        outline-offset: 2px;
+      }
+
+      .result-card .atlas-sku-quick-actions {
+        margin: 13px 0 12px !important;
+      }
+      .result-card .atlas-quick-action-grid {
+        width: min(100%, 360px) !important;
+        margin: 0 auto !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: stretch;
+      }
+      .result-card .atlas-quick-action-grid > button {
+        width: 100% !important;
+        min-height: 0 !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1 !important;
+        padding: 14px 10px !important;
+        border-radius: 19px !important;
+      }
+      .result-card .atlas-quick-action-grid strong {
+        font-size: clamp(12px, 3.4vw, 14px) !important;
+        line-height: 1.16 !important;
+      }
+      .result-card .atlas-quick-action-icon {
+        font-size: 29px;
+      }
+      .result-card .atlas-map-disclosure-button {
+        margin-top: 0 !important;
+      }
+      @media (min-width: 700px) {
+        .atlas-primary-confirmation-backdrop {
+          place-items: center;
+        }
+        .result-card .atlas-quick-action-grid {
+          width: 370px !important;
+        }
+      }
+      html.atlas-desktop body #root .result-card .result-body {
+        width: min(100%, 980px);
+        margin-inline: auto;
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+      html.atlas-desktop body #root .result-card .result-body
+        > .sku-copy,
+      html.atlas-desktop body #root .result-card .result-body
+        > .location-list,
+      html.atlas-desktop body #root .result-card .result-body
+        > .atlas-product-showcase,
+      html.atlas-desktop body #root .result-card .result-body
+        > .atlas-sku-quick-actions,
+      html.atlas-desktop body #root .result-card .result-body
+        > .atlas-map-disclosure-button,
+      html.atlas-desktop body #root .result-card .result-body
+        > .map-panel,
+      html.atlas-desktop body #root .result-card .result-body
+        > .empty-state {
+        grid-column: 1 !important;
+        grid-row: auto !important;
+      }
+      html.atlas-desktop body #root .result-card .location-entry.selected,
+      html.atlas-desktop body #root .result-card
+        .location-list.atlas-locations-expanded
+        > .location-entry:not(.selected) {
+        padding: 0 !important;
+      }
+      @media (max-width: 390px) {
+        .atlas-primary-confirmation-backdrop {
+          padding: 9px;
+        }
+        .atlas-primary-confirmation {
+          padding: 20px 16px calc(15px + env(safe-area-inset-bottom));
+          border-radius: 21px;
+        }
+        .atlas-primary-confirmation-actions {
+          grid-template-columns: 1fr;
+        }
+        .result-card .atlas-quick-action-grid {
+          width: min(100%, 336px) !important;
+          gap: 8px !important;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .atlas-location-hero--secondary,
+        .atlas-more-locations-toggle,
+        .atlas-primary-confirmation-actions button {
+          transition: none !important;
         }
       }
     </style>
