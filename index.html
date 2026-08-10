@@ -14468,7 +14468,7 @@ Error generating stack: ` +
             id: `clear`,
             icon: `○`,
             title: `Mark Location Empty`,
-            description: `Clear an empty pick location, preserve its history, or undo a recent change.`,
+            description: `Remove a SKU from an empty warehouse location while preserving its location history.`,
           },
           {
             id: `create`,
@@ -16978,6 +16978,68 @@ Error generating stack: ` +
           ],
         });
       }
+      function atlasClearProductSummary({ sku: e, description: t, locationCount: n }) {
+        let [r, i] = (0, C.useState)(``);
+        return (
+          (0, C.useEffect)(() => {
+            if (!e) return void i(``);
+            let t = !0;
+            return (
+              i(``),
+              fetch(`./product-images.json?v=20260803-product-profiles-102e`, {
+                cache: `no-cache`,
+              })
+                .then((e) => (e.ok ? e.json() : {}))
+                .then((n) => {
+                  let r = n?.products || n || {},
+                    a = r?.[e] || r?.[String(e).toUpperCase()] || null;
+                  t && i(a?.image_url || a?.image || ``);
+                })
+                .catch(() => t && i(``)),
+              () => {
+                t = !1;
+              }
+            );
+          }, [e]),
+          (0, T.jsxs)(`section`, {
+            className: `atlas-clear-product-summary`,
+            "aria-label": `Selected product`,
+            children: [
+              r
+                ? (0, T.jsx)(`img`, {
+                    className: `atlas-clear-product-image`,
+                    src: r,
+                    alt: `${e} product image`,
+                  })
+                : (0, T.jsx)(`span`, {
+                    className: `atlas-clear-product-image atlas-clear-product-image--placeholder`,
+                    "aria-hidden": `true`,
+                    children: `SKU`,
+                  }),
+              (0, T.jsxs)(`div`, {
+                children: [
+                  (0, T.jsx)(`strong`, { children: e }),
+                  (0, T.jsx)(`p`, {
+                    children: t || `Warehouse inventory item`,
+                  }),
+                  (0, T.jsx)(`span`, {
+                    children: `${n} active ${n === 1 ? `location` : `locations`}`,
+                  }),
+                ],
+              }),
+            ],
+          })
+        );
+      }
+      function atlasClearLocationMeta(e) {
+        let t = Number(e?.aisle),
+          n = String(e?.section || ``).toUpperCase();
+        return t === 22
+          ? `Overflow Floor · ${{ A: `Left`, B: `Middle`, C: `Right` }[n] || n}`
+          : t === 23
+            ? `Samples Rack · Section ${n}`
+            : `Aisle ${t} · Section ${n}`;
+      }
       function atlasClearedLocationsWorkflow({
         items: e,
         reload: t,
@@ -16986,19 +17048,15 @@ Error generating stack: ` +
       }) {
         let [i, a] = (0, C.useState)(r?.sku || ``),
           [o, s] = (0, C.useState)(r || null),
-          [l, u] = (0, C.useState)(
-            r?.atlasInitialSourceLocationId || ``,
-          ),
-          [d, f] = (0, C.useState)(
-            r?.atlasInitialSourceLocationId ? `clear` : null,
-          ),
+          [l, u] = (0, C.useState)(``),
+          [d, f] = (0, C.useState)(null),
           [p, m] = (0, C.useState)(``),
           [h, g] = (0, C.useState)(!1),
           [_, v] = (0, C.useState)(null),
           [y, b] = (0, C.useState)(null),
           x = Ye(o?.locations.filter((e) => e.is_active !== !1) || []),
-          S = Ye(o?.locations.filter((e) => e.is_active === !1) || []),
-          w = [...x, ...S].find((e) => e.id === l) || null;
+          S = x.find((e) => e.id === l) || null,
+          w = p.trim().length >= 2;
         ((0, C.useEffect)(() => {
           let e = window.setTimeout(
             () => m(localStorage.getItem(`atlasEmployee`) || ``),
@@ -17012,8 +17070,20 @@ Error generating stack: ` +
             if (!t || t === o) return;
             let n = window.setTimeout(() => s(t), 0);
             return () => window.clearTimeout(n);
-          }, [e, o]));
-        async function te(e, n, r = !1) {
+          }, [e, o]),
+          (0, C.useEffect)(() => {
+            if (!o) return;
+            let e =
+                o.id === r?.id &&
+                x.some((e) => e.id === r?.atlasInitialSourceLocationId)
+                  ? r.atlasInitialSourceLocationId
+                  : ``,
+              t = window.setTimeout(() => {
+                (u(e), f(null), v(null), b(null));
+              }, 0);
+            return () => window.clearTimeout(t);
+          }, [o?.id, r?.id, r?.atlasInitialSourceLocationId]));
+        async function ee(e, n, r = !1) {
           if (!atlasCanPerformInventoryAction(`clear`))
             return v({
               type: `error`,
@@ -17044,13 +17114,13 @@ Error generating stack: ` +
               await t();
               return;
             }
-            (b({ location: e, restoreTo: !n }),
+            (b(r ? null : { location: e, restoreTo: !n }),
               f(null),
               v({
                 type: `success`,
                 text: n
                   ? `${atlasContextLocationCode(e)} was restored to active picker locations.`
-                  : `${atlasContextLocationCode(e)} was marked empty and moved to Cleared Locations.`,
+                  : `${atlasContextLocationCode(e)} has been marked empty.`,
               }),
               await t());
           } catch (e) {
@@ -17065,108 +17135,228 @@ Error generating stack: ` +
             g(!1);
           }
         }
-        let E = (e, t) => {
-          (s(e), a(e.sku), u(t.id), f(t.is_active === !1 ? `restore` : `clear`));
+        let te = (e) => {
+          (u(e.id), f(`clear`), v(null), b(null));
         };
         return (0, T.jsxs)(`div`, {
           className: `workflow-card atlas-cleared-workflow`,
           children: [
-            (0, T.jsx)(at, {
-              title: `Search for a SKU location`,
-              items: e,
-              value: i,
-              selected: o,
-              setValue: a,
-              setSelected: s,
-              openScanner: n,
-            }),
-            (0, T.jsx)(st, { value: p, onChange: m }),
-            d && w
-              ? (0, T.jsxs)(`section`, {
-                  className: `atlas-clear-confirmation`,
+            (0, T.jsxs)(`section`, {
+              className: `atlas-clear-step atlas-clear-step--search`,
+              children: [
+                (0, T.jsxs)(`div`, {
+                  className: `atlas-clear-step-heading`,
                   children: [
-                    (0, T.jsx)(`span`, {
-                      children:
-                        d === `clear`
-                          ? `MARK LOCATION EMPTY`
-                          : `RESTORE LOCATION`,
-                    }),
-                    (0, T.jsx)(`strong`, {
-                      children: `${o?.sku || ``} · ${atlasContextLocationCode(w)}`,
-                    }),
-                    (0, T.jsx)(`p`, {
-                      children:
-                        d === `clear`
-                          ? `This location will stop appearing in picker results and will be tracked under Cleared Locations.`
-                          : `This location will return to active picker results.`,
-                    }),
+                    (0, T.jsx)(`span`, { children: `1` }),
+                    (0, T.jsx)(`h3`, { children: `Search for a SKU` }),
+                  ],
+                }),
+                (0, T.jsx)(at, {
+                  title: `Search SKU`,
+                  items: e,
+                  value: i,
+                  selected: o,
+                  setValue: a,
+                  setSelected: s,
+                  openScanner: n,
+                }),
+                o
+                  ? (0, T.jsx)(atlasClearProductSummary, {
+                      sku: o.sku,
+                      description: o.description,
+                      locationCount: x.length,
+                    })
+                  : null,
+              ],
+            }),
+            o
+              ? (0, T.jsxs)(`section`, {
+                  className: `atlas-clear-step atlas-clear-step--locations`,
+                  children: [
                     (0, T.jsxs)(`div`, {
-                      className: `atlas-clear-confirmation-actions`,
+                      className: `atlas-clear-step-heading`,
                       children: [
-                        (0, T.jsx)(`button`, {
-                          type: `button`,
-                          className: `primary-button`,
-                          disabled: h,
-                          onClick: () => te(w, d === `restore`),
-                          children: h
-                            ? `Saving…`
-                            : d === `clear`
-                              ? `Confirm Location Empty`
-                              : `Restore Location`,
+                        (0, T.jsx)(`span`, { children: `2` }),
+                        (0, T.jsx)(`h3`, {
+                          children: `Active Locations for this SKU`,
                         }),
-                        (0, T.jsx)(`button`, {
-                          type: `button`,
-                          className: `secondary-button`,
-                          disabled: h,
-                          onClick: () => f(null),
-                          children: `Cancel`,
+                      ],
+                    }),
+                    x.length
+                      ? (0, T.jsx)(`div`, {
+                          className: `atlas-clear-location-list`,
+                          children: x.map((e) => {
+                            let t = atlasContextLocationCode(e);
+                            return (0, T.jsxs)(
+                              `article`,
+                              {
+                                className: `atlas-clear-location-card ${e.id === l ? `is-selected` : ``}`,
+                                children: [
+                                  (0, T.jsxs)(`div`, {
+                                    className: `atlas-clear-location-copy`,
+                                    children: [
+                                      (0, T.jsx)(`strong`, { children: t }),
+                                      (0, T.jsx)(`span`, {
+                                        children: atlasClearLocationMeta(e),
+                                      }),
+                                      (0, T.jsx)(`small`, {
+                                        children: `Currently assigned to this SKU`,
+                                      }),
+                                    ],
+                                  }),
+                                  (0, T.jsxs)(`button`, {
+                                    type: `button`,
+                                    className: `atlas-clear-select-button`,
+                                    disabled: h,
+                                    onClick: () => te(e),
+                                    children: [`Mark `, t, ` Empty`],
+                                  }),
+                                ],
+                              },
+                              e.id,
+                            );
+                          }),
+                        })
+                      : (0, T.jsx)(`p`, {
+                          className: `atlas-clear-empty-state`,
+                          children: `No active warehouse locations are assigned to this SKU.`,
+                        }),
+                  ],
+                })
+              : null,
+            d === `clear` && S
+              ? (0, T.jsxs)(`section`, {
+                  className: `atlas-clear-step atlas-clear-step--confirm`,
+                  children: [
+                    (0, T.jsxs)(`div`, {
+                      className: `atlas-clear-step-heading`,
+                      children: [
+                        (0, T.jsx)(`span`, { children: `3` }),
+                        (0, T.jsx)(`h3`, { children: `Confirm` }),
+                      ],
+                    }),
+                    (0, T.jsxs)(`section`, {
+                      className: `atlas-clear-confirmation`,
+                      children: [
+                        (0, T.jsxs)(`div`, {
+                          className: `atlas-clear-confirmation-copy`,
+                          children: [
+                            (0, T.jsx)(`span`, { children: `FINAL CHECK` }),
+                            (0, T.jsx)(`strong`, {
+                              children: `Mark location ${atlasContextLocationCode(S)} empty?`,
+                            }),
+                            (0, T.jsx)(`p`, {
+                              children: `This will remove ${o?.sku || ``} from location ${atlasContextLocationCode(S)}. Location history will be preserved.`,
+                            }),
+                            (0, T.jsxs)(`dl`, {
+                              children: [
+                                (0, T.jsxs)(`div`, {
+                                  children: [
+                                    (0, T.jsx)(`dt`, { children: `SKU being affected` }),
+                                    (0, T.jsx)(`dd`, { children: o?.sku || `` }),
+                                  ],
+                                }),
+                                (0, T.jsxs)(`div`, {
+                                  children: [
+                                    (0, T.jsx)(`dt`, { children: `Location being affected` }),
+                                    (0, T.jsx)(`dd`, {
+                                      children: atlasContextLocationCode(S),
+                                    }),
+                                  ],
+                                }),
+                              ],
+                            }),
+                          ],
+                        }),
+                        (0, T.jsxs)(`div`, {
+                          className: `atlas-clear-confirmation-actions`,
+                          children: [
+                            (0, T.jsx)(`button`, {
+                              type: `button`,
+                              className: `secondary-button`,
+                              disabled: h,
+                              onClick: () => f(null),
+                              children: `Cancel`,
+                            }),
+                            (0, T.jsx)(`button`, {
+                              type: `button`,
+                              className: `primary-button`,
+                              disabled: h || !w,
+                              onClick: () => ee(S, !1),
+                              title: w
+                                ? `Confirm and mark this location empty`
+                                : `Enter employee initials before confirming`,
+                              children: h ? `Marking Empty…` : `Confirm & Mark Empty`,
+                            }),
+                          ],
                         }),
                       ],
                     }),
                   ],
                 })
               : null,
-            (0, T.jsx)(ct, { message: _ }),
+            _?.type === `error` ? (0, T.jsx)(ct, { message: _ }) : null,
             y && _?.type === `success`
-              ? (0, T.jsx)(`button`, {
-                  type: `button`,
-                  className: `atlas-cleared-undo`,
-                  disabled: h,
-                  onClick: () => te(y.location, y.restoreTo, !0),
-                  children: `Undo Last Change`,
-                })
-              : null,
-            o && x.length
               ? (0, T.jsxs)(`section`, {
-                  className: `atlas-cleared-section`,
+                  className: `atlas-clear-success`,
                   children: [
-                    (0, T.jsx)(`h3`, { children: `Active locations for this SKU` }),
-                    (0, T.jsx)(`div`, {
-                      className: `atlas-cleared-list`,
-                      children: x.map((e) =>
-                        (0, T.jsxs)(
-                          `button`,
-                          {
-                            type: `button`,
-                            onClick: () => E(o, e),
-                            children: [
-                              (0, T.jsx)(`strong`, {
-                                children: atlasContextLocationCode(e),
-                              }),
-                              (0, T.jsx)(`span`, {
-                                children: e.pick_first
-                                  ? `Pick First · Mark empty`
-                                  : `Mark location empty`,
-                              }),
-                            ],
-                          },
-                          e.id,
-                        ),
-                      ),
+                    (0, T.jsx)(`span`, {
+                      className: `atlas-clear-success-icon`,
+                      "aria-hidden": `true`,
+                      children: `✓`,
+                    }),
+                    (0, T.jsxs)(`div`, {
+                      children: [
+                        (0, T.jsx)(`strong`, {
+                          children: `Location ${atlasContextLocationCode(y.location)} marked empty`,
+                        }),
+                        (0, T.jsx)(`p`, {
+                          children: `${o?.sku || ``} has been removed from this location.`,
+                        }),
+                      ],
+                    }),
+                    (0, T.jsx)(`button`, {
+                      type: `button`,
+                      className: `atlas-cleared-undo`,
+                      disabled: h,
+                      onClick: () => ee(y.location, y.restoreTo, !0),
+                      children: `Undo`,
                     }),
                   ],
                 })
-              : null,
+              : _?.type === `success`
+                ? (0, T.jsx)(ct, { message: _ })
+                : null,
+            (0, T.jsxs)(`footer`, {
+              className: `atlas-clear-employee-status`,
+              children: w
+                ? [
+                    (0, T.jsx)(`strong`, { children: `Employee: ${p.trim()}` }),
+                    (0, T.jsx)(`span`, { children: `•` }),
+                    (0, T.jsx)(`span`, {
+                      children: `All actions are logged and can be reviewed in location history.`,
+                    }),
+                  ]
+                : [
+                    (0, T.jsx)(`label`, {
+                      children: [
+                        (0, T.jsx)(`span`, {
+                          children: `Employee initials required before confirmation`,
+                        }),
+                        (0, T.jsx)(`input`, {
+                          value: p,
+                          maxLength: 60,
+                          autoComplete: `name`,
+                          placeholder: `Example: ZM`,
+                          onChange: (e) => m(e.target.value),
+                        }),
+                      ],
+                    }),
+                    (0, T.jsx)(`small`, {
+                      children: `Saved on this device for your next inventory update.`,
+                    }),
+                  ],
+            }),
           ],
         });
       }
@@ -34550,38 +34740,256 @@ Error generating stack: ` +
 
       .atlas-cleared-workflow {
         display: grid;
-        gap: 16px;
+        gap: 0;
+      }
+      .atlas-clear-step {
+        display: grid;
+        gap: 15px;
+      }
+      .atlas-clear-step + .atlas-clear-step {
+        margin-top: 26px;
+        padding-top: 26px;
+        border-top: 1px solid #e4ebf2;
+      }
+      .atlas-clear-step-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+      .atlas-clear-step-heading > span {
+        width: 30px;
+        height: 30px;
+        flex: 0 0 auto;
+        color: #fff;
+        background: linear-gradient(145deg, #1673e9, #075ac7);
+        border-radius: 50%;
+        font-size: 14px;
+        font-weight: 950;
+        display: grid;
+        place-items: center;
+      }
+      .atlas-clear-step-heading h3 {
+        margin: 0;
+        color: #0b2341;
+        font-size: clamp(17px, 2.4vw, 21px);
+        font-weight: 900;
+        letter-spacing: -0.018em;
+      }
+      .atlas-clear-workflow .inventory-sku-search {
+        width: min(100%, 900px);
+        margin: 0 auto;
+      }
+      .atlas-clear-workflow .inventory-sku-search .selected-sku {
+        display: none;
+      }
+      .atlas-clear-product-summary {
+        min-height: 104px;
+        padding: 15px 17px;
+        display: grid;
+        grid-template-columns: 68px minmax(0, 1fr);
+        align-items: center;
+        gap: 15px;
+        color: #102c4b;
+        background: #fff;
+        border: 1px solid #d8e1ea;
+        border-radius: 15px;
+      }
+      .atlas-clear-product-image {
+        width: 68px;
+        height: 76px;
+        object-fit: contain;
+        object-position: center;
+        display: block;
+      }
+      .atlas-clear-product-image--placeholder {
+        color: #5d7591;
+        background: #f1f5f9;
+        border: 1px solid #dbe4ee;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: 0.1em;
+        display: grid;
+        place-items: center;
+      }
+      .atlas-clear-product-summary strong,
+      .atlas-clear-product-summary p,
+      .atlas-clear-product-summary span {
+        display: block;
+      }
+      .atlas-clear-product-summary strong {
+        overflow-wrap: anywhere;
+        color: #071b40;
+        font-size: clamp(15px, 2.5vw, 19px);
+        font-weight: 950;
+      }
+      .atlas-clear-product-summary p {
+        margin: 6px 0 8px;
+        color: #526980;
+        font-size: 13px;
+        line-height: 1.42;
+      }
+      .atlas-clear-product-summary span {
+        width: max-content;
+        max-width: 100%;
+        padding: 4px 8px;
+        overflow: hidden;
+        color: #0757c6;
+        background: #e9f2ff;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .atlas-clear-location-list {
+        display: grid;
+        gap: 11px;
+      }
+      .atlas-clear-location-card {
+        min-width: 0;
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+        color: #102c4b;
+        background: #fff;
+        border: 1px solid #d7e0e9;
+        border-radius: 15px;
+        box-shadow: 0 6px 16px rgba(4, 31, 61, 0.055);
+        transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      }
+      .atlas-clear-location-card.is-selected {
+        border-color: #86afe6;
+        box-shadow: 0 9px 23px rgba(8, 82, 177, 0.12);
+      }
+      .atlas-clear-location-copy {
+        min-width: 0;
+        display: grid;
+        gap: 4px;
+      }
+      .atlas-clear-location-copy strong {
+        color: #071b40;
+        font-size: clamp(24px, 4.5vw, 32px);
+        font-weight: 950;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
+      }
+      .atlas-clear-location-copy span {
+        color: #263d5a;
+        font-size: 13px;
+        font-weight: 760;
+      }
+      .atlas-clear-location-copy small {
+        margin-top: 2px;
+        color: #176d3a;
+        font-size: 11px;
+        font-weight: 760;
+      }
+      .atlas-clear-select-button {
+        width: 100%;
+        min-height: 52px;
+        padding: 11px 15px;
+        align-self: center;
+        color: #a32632;
+        cursor: pointer;
+        background: #fff;
+        border: 1.5px solid #ca4c58;
+        border-radius: 11px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 950;
+        letter-spacing: 0.018em;
+        text-transform: uppercase;
+        transition: color 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      }
+      .atlas-clear-select-button:hover,
+      .atlas-clear-select-button:focus-visible {
+        color: #8d1723;
+        background: #fff7f7;
+        border-color: #a32632;
+        box-shadow: 0 7px 17px rgba(163, 38, 50, 0.12);
+        outline: 0;
+      }
+      .atlas-clear-select-button:active {
+        transform: translateY(1px) scale(0.99);
+      }
+      .atlas-clear-select-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .atlas-clear-empty-state {
+        margin: 0;
+        padding: 16px;
+        color: #627890;
+        background: #f7f9fb;
+        border: 1px dashed #cbd7e4;
+        border-radius: 13px;
+        font-size: 13px;
+        line-height: 1.45;
       }
       .atlas-clear-confirmation {
-        padding: 17px;
+        padding: 18px;
         display: grid;
-        gap: 8px;
+        gap: 18px;
         color: #102c4b;
         background: linear-gradient(180deg, #eef5ff 0%, #f8fbff 100%);
-        border: 1px solid #a9c4e9;
+        border: 1px solid #b8d3f5;
         border-radius: 17px;
-        box-shadow: inset 4px 0 0 #086bff;
+        box-shadow: inset 4px 0 0 #086bff, 0 8px 20px rgba(8, 87, 190, 0.055);
       }
-      .atlas-clear-confirmation > span {
+      .atlas-clear-confirmation-copy {
+        min-width: 0;
+      }
+      .atlas-clear-confirmation-copy > span {
+        display: block;
         color: #1764cc;
         font-size: 9px;
         font-weight: 950;
         letter-spacing: 0.13em;
       }
-      .atlas-clear-confirmation > strong {
-        font-size: 19px;
+      .atlas-clear-confirmation-copy > strong {
+        display: block;
+        margin-top: 7px;
+        color: #071b40;
+        font-size: clamp(18px, 3vw, 23px);
         font-weight: 950;
       }
-      .atlas-clear-confirmation p {
-        margin: 0;
+      .atlas-clear-confirmation-copy > p {
+        margin: 7px 0 0;
         color: #536b84;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .atlas-clear-confirmation dl {
+        margin: 14px 0 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .atlas-clear-confirmation dl > div {
+        min-width: 0;
+        padding: 9px 10px;
+        background: rgba(255, 255, 255, 0.76);
+        border: 1px solid rgba(166, 196, 231, 0.74);
+        border-radius: 10px;
+      }
+      .atlas-clear-confirmation dt {
+        color: #617791;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .atlas-clear-confirmation dd {
+        margin: 5px 0 0;
+        overflow-wrap: anywhere;
+        color: #0b315c;
         font-size: 12px;
-        line-height: 1.45;
+        font-weight: 900;
       }
       .atlas-clear-confirmation-actions {
-        margin-top: 5px;
         display: grid;
-        grid-template-columns: minmax(0, 1.5fr) minmax(90px, 0.7fr);
+        grid-template-columns: 1fr 1.55fr;
         gap: 9px;
       }
       .atlas-clear-confirmation-actions .primary-button,
@@ -34590,81 +34998,106 @@ Error generating stack: ` +
         min-height: 52px;
         margin: 0;
       }
-      .atlas-cleared-undo {
-        min-height: 48px;
-        padding: 10px 16px;
-        color: #0d54b5;
-        cursor: pointer;
-        background: #edf4ff;
-        border: 1px solid #9dbdea;
-        border-radius: 13px;
-        font: inherit;
-        font-weight: 900;
-      }
-      .atlas-cleared-section {
-        display: grid;
-        gap: 9px;
-      }
-      .atlas-cleared-section h3 {
-        margin: 0;
-        color: #193956;
-        font-size: 12px;
-        font-weight: 950;
-        letter-spacing: 0.035em;
+      .atlas-clear-confirmation-actions .primary-button {
         text-transform: uppercase;
       }
-      .atlas-cleared-section-heading {
-        display: flex;
+      .atlas-clear-success {
+        margin-top: 22px;
+        padding: 15px 16px;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
         align-items: center;
-        justify-content: space-between;
+        gap: 11px;
+        color: #0e4e2a;
+        background: #f1faf4;
+        border: 1px solid #b9dfc4;
+        border-radius: 15px;
       }
-      .atlas-cleared-section-heading span {
-        min-width: 28px;
-        padding: 4px 8px;
+      .atlas-clear-success-icon {
+        width: 38px;
+        height: 38px;
         color: #fff;
-        background: #0b315c;
-        border-radius: 999px;
-        font-size: 10px;
+        background: #1d7b45;
+        border-radius: 50%;
+        font-size: 21px;
         font-weight: 900;
-        text-align: center;
-      }
-      .atlas-cleared-list {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 9px;
+        place-items: center;
       }
-      .atlas-cleared-list button {
-        min-width: 0;
-        min-height: 62px;
-        padding: 10px 11px;
-        display: grid;
-        align-content: center;
-        gap: 3px;
-        color: #163758;
-        cursor: pointer;
-        background: #fff;
-        border: 1px solid #ced9e5;
-        border-radius: 13px;
-        box-shadow: 0 5px 13px rgba(3, 28, 57, 0.07);
-        font: inherit;
-        text-align: left;
+      .atlas-clear-success strong,
+      .atlas-clear-success p {
+        display: block;
       }
-      .atlas-cleared-list button strong {
-        font-size: 16px;
+      .atlas-clear-success strong {
+        color: #135d33;
+        font-size: 14px;
         font-weight: 950;
       }
-      .atlas-cleared-list button span {
-        overflow: hidden;
-        color: #5b7088;
-        font-size: 10px;
-        font-weight: 700;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      .atlas-clear-success p {
+        margin: 4px 0 0;
+        color: #35714d;
+        font-size: 12px;
+        line-height: 1.42;
       }
-      .atlas-cleared-list--global {
-        max-height: 430px;
-        padding: 1px 3px 7px 1px;
-        overflow-y: auto;
+      .atlas-cleared-undo {
+        min-height: 48px;
+        padding: 10px 15px;
+        grid-column: 1 / -1;
+        color: #0d54b5;
+        cursor: pointer;
+        background: #fff;
+        border: 1px solid #8aafe2;
+        border-radius: 10px;
+        font: inherit;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .atlas-clear-employee-status {
+        min-height: 54px;
+        margin-top: 24px;
+        padding: 13px 15px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: #53687f;
+        background: #f7f9fb;
+        border: 1px solid #e0e7ee;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .atlas-clear-employee-status > strong {
+        color: #314963;
+        font-weight: 900;
+      }
+      .atlas-clear-employee-status > label {
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(112px, 170px);
+        align-items: center;
+        gap: 10px;
+      }
+      .atlas-clear-employee-status label > span {
+        color: #53687f;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .atlas-clear-employee-status input {
+        min-height: 38px;
+        padding: 8px 10px;
+        color: #102c4b;
+        background: #fff;
+        border: 1px solid #bdcddd;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 760;
+      }
+      .atlas-clear-employee-status > small {
+        width: 100%;
+        color: #718398;
+        font-size: 10px;
       }
       @media (min-width: 700px) {
         .atlas-quick-selector-backdrop {
@@ -34673,8 +35106,33 @@ Error generating stack: ` +
         .atlas-quick-action-grid > button {
           min-height: 82px;
         }
-        .atlas-cleared-list {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+        .atlas-clear-location-card {
+          grid-template-columns: minmax(0, 1fr) minmax(210px, 270px);
+          align-items: center;
+          gap: 22px;
+          padding: 18px 20px;
+        }
+        .atlas-clear-select-button {
+          width: auto;
+          min-width: 210px;
+        }
+        .atlas-clear-confirmation {
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+        }
+        .atlas-clear-confirmation-actions {
+          min-width: min(100%, 348px);
+          grid-template-columns: auto minmax(192px, 1fr);
+        }
+        .atlas-clear-success {
+          grid-template-columns: 38px minmax(0, 1fr) auto;
+        }
+        .atlas-cleared-undo {
+          grid-column: auto;
+          min-width: 112px;
+        }
+        .atlas-clear-employee-status {
+          margin-top: 26px;
         }
       }
       @media (max-width: 390px) {
@@ -34688,9 +35146,15 @@ Error generating stack: ` +
         .atlas-clear-confirmation-actions {
           grid-template-columns: 1fr;
         }
+        .atlas-clear-confirmation dl,
+        .atlas-clear-employee-status > label {
+          grid-template-columns: 1fr;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
-        .atlas-quick-action-grid > button {
+        .atlas-quick-action-grid > button,
+        .atlas-clear-location-card,
+        .atlas-clear-select-button {
           transition: none;
         }
       }
