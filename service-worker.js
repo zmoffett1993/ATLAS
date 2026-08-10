@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v126-inventory-cleared-list-removed";
+const VERSION = "atlas-pwa-v127-move-inventory-streamlined";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

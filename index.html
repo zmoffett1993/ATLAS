@@ -16135,8 +16135,6 @@ Error generating stack: ` +
           [p, m] = (0, C.useState)(1),
           [h, g] = (0, C.useState)(`A`),
           [_, v] = (0, C.useState)(``),
-          [y, b] = (0, C.useState)(`Inventory was relocated`),
-          [x, S] = (0, C.useState)(``),
           [w, ee] = (0, C.useState)(!1),
           [te, E] = (0, C.useState)(null);
         let N = o?.locations.find(
@@ -16211,7 +16209,7 @@ Error generating stack: ` +
                   p_new_aisle: p,
                   p_new_section: h,
                   p_employee_name: _.trim(),
-                  p_reason: `Keep product in both locations — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
+                  p_reason: `Keep product in both locations`,
                 }),
                 E({
                   type: `success`,
@@ -16222,7 +16220,7 @@ Error generating stack: ` +
                     p_source_location_id: l,
                     p_destination_location_id: N.id,
                     p_employee_name: _.trim(),
-                    p_reason: `Move all product — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
+                    p_reason: `Move all product`,
                   }),
                   E({
                     type: `success`,
@@ -16233,7 +16231,7 @@ Error generating stack: ` +
                     p_new_aisle: p,
                     p_new_section: h,
                     p_employee_name: _.trim(),
-                    p_reason: `Move all product — ${y}${x.trim() ? ` — ${x.trim()}` : ``}`,
+                    p_reason: `Move all product`,
                   }),
                   E({
                     type: `success`,
@@ -16373,51 +16371,6 @@ Error generating stack: ` +
                       onSection: g,
                     }),
                     (0, T.jsx)(st, { value: _, onChange: v }),
-                    (0, T.jsxs)(`label`, {
-                      className: `field`,
-                      children: [
-                        (0, T.jsx)(`span`, { children: `Reason` }),
-                        (0, T.jsxs)(`select`, {
-                          value: y,
-                          onChange: (e) => b(e.target.value),
-                          children: [
-                            (0, T.jsx)(`option`, {
-                              children: `Inventory was relocated`,
-                            }),
-                            (0, T.jsx)(`option`, {
-                              children: `Product found in a different location`,
-                            }),
-                            (0, T.jsx)(`option`, {
-                              children: `Current active locations are full`,
-                            }),
-                            (0, T.jsx)(`option`, {
-                              children: `Location entered incorrectly`,
-                            }),
-                            (0, T.jsx)(`option`, {
-                              children: `Replenishment moved the product`,
-                            }),
-                            (0, T.jsx)(`option`, { children: `Other` }),
-                          ],
-                        }),
-                      ],
-                    }),
-                    (0, T.jsxs)(`label`, {
-                      className: `field`,
-                      children: [
-                        (0, T.jsxs)(`span`, {
-                          children: [
-                            `Details `,
-                            (0, T.jsx)(`em`, { children: `optional` }),
-                          ],
-                        }),
-                        (0, T.jsx)(`textarea`, {
-                          value: x,
-                          maxLength: 180,
-                          placeholder: `Add a short explanation.`,
-                          onChange: (e) => S(e.target.value),
-                        }),
-                      ],
-                    }),
                     (0, T.jsx)(ct, { message: te }),
                     (0, T.jsx)(`button`, {
                       className: `primary-button`,
