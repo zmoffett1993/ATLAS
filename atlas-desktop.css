@@ -801,8 +801,15 @@
     text-rendering: optimizeLegibility;
   }
 
+  html.atlas-desktop .atlas-story-system::before {
+    right: 24%;
+    bottom: -4px;
+    left: 24%;
+  }
+
   html.atlas-desktop .atlas-story-builder {
-    padding-block: 64px !important;
+    padding-top: 76px !important;
+    padding-bottom: 64px !important;
   }
 
   html.atlas-desktop .atlas-story-builder h2 {
@@ -831,6 +838,10 @@
   }
 
   /* Dashboard alignment with the permanent navigation */
+  html.atlas-desktop .atlas-dashboard-access-logo {
+    content: url("./atlas-brand-landscape-light.svg?v=130");
+  }
+
   html.atlas-desktop.atlas-dashboard-open body {
     padding-left: var(--atlas-desktop-sidebar) !important;
   }
