@@ -779,15 +779,20 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* About is a reading surface: the brand stays crisp without decorative glow. */
   html.atlas-desktop .atlas-story-system::before {
-    right: 24%;
-    bottom: -4px;
-    left: 24%;
+    display: none;
   }
 
   html.atlas-desktop .atlas-story-builder {
-    padding-top: 76px !important;
-    padding-bottom: 64px !important;
+    padding: 80px 56px 66px !important;
+    gap: clamp(42px, 6vw, 78px) !important;
+    background: #fffefa !important;
+  }
+
+  html.atlas-desktop .atlas-story-brand-signature,
+  html.atlas-desktop .atlas-story-builder-mark {
+    filter: none !important;
   }
 
   html.atlas-desktop .atlas-story-builder h2 {
