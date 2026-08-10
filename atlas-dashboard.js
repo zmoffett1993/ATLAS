@@ -456,7 +456,7 @@
 
   const renderAccess = () => `
     <div class="atlas-dashboard-access">
-      <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS Warehouse Management">
+      <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-light.svg?v=131" alt="ATLAS Warehouse Management">
       <p class="atlas-dashboard-eyebrow">AUTHORIZED ACCESS</p>
       <h2>Supervisor sign in</h2>
       <p>Operational history includes employee names and detailed inventory changes. Sign in with an ATLAS supervisor or administrator account to continue.</p>

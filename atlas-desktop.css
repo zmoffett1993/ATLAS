@@ -131,28 +131,6 @@
     box-shadow: none !important;
   }
 
-  /* Preserve the approved shared/mobile menu markup while presenting the
-     workflow-first hierarchy in the permanent desktop navigation. */
-  html.atlas-desktop .atlas-menu-nav [data-nav="Home"] {
-    order: 1;
-  }
-
-  html.atlas-desktop .atlas-menu-nav [data-nav="Browse Aisles"] {
-    order: 2;
-  }
-
-  html.atlas-desktop .atlas-menu-nav [data-nav="Inventory"] {
-    order: 3;
-  }
-
-  html.atlas-desktop .atlas-menu-nav [data-action="dashboard"] {
-    order: 4;
-  }
-
-  html.atlas-desktop .atlas-menu-nav [data-action="about"] {
-    order: 5;
-  }
-
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
@@ -838,10 +816,6 @@
   }
 
   /* Dashboard alignment with the permanent navigation */
-  html.atlas-desktop .atlas-dashboard-access-logo {
-    content: url("./atlas-brand-landscape-light.svg?v=130");
-  }
-
   html.atlas-desktop.atlas-dashboard-open body {
     padding-left: var(--atlas-desktop-sidebar) !important;
   }
