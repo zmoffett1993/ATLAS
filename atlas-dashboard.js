@@ -40,6 +40,18 @@
         ],
     );
 
+  const passwordField = ({ name = "password", autocomplete, minlength = 0 }) => `
+    <div class="atlas-password-field">
+      <input type="password" name="${escapeHtml(name)}" autocomplete="${escapeHtml(autocomplete)}" ${minlength ? `minlength="${minlength}"` : ""} required>
+      <button type="button" class="atlas-password-toggle" data-password-toggle aria-label="Show password" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+          <circle cx="12" cy="12" r="2.6"></circle>
+          <path class="atlas-password-eye-slash" d="m4 4 16 16"></path>
+        </svg>
+      </button>
+    </div>`;
+
   const safeJson = (value) => {
     if (!value) return {};
     if (typeof value === "object") return value;
@@ -144,9 +156,11 @@
     if (action === "USER_PASSWORD_CHANGED")
       return { key: "access", label: "Changed account password", color: "#7957d5", operational: true };
     if (action === "USER_DEACTIVATED")
-      return { key: "access", label: "Deactivated ATLAS account", color: "#d33a3a", operational: true };
+      return { key: "access", label: "Blocked account sign-in (legacy)", color: "#d33a3a", operational: true };
     if (action === "USER_REACTIVATED")
       return { key: "access", label: "Reactivated ATLAS account", color: "#168552", operational: true };
+    if (action === "USER_DELETED")
+      return { key: "access", label: "Deleted ATLAS account", color: "#d33a3a", operational: true };
     if (action === "INSERT")
       return { key: "audit", label: "Imported location", color: "#8795a6", operational: false };
     if (action === "DELETE")
@@ -442,13 +456,13 @@
 
   const renderAccess = () => `
     <div class="atlas-dashboard-access">
-      <div class="atlas-dashboard-access-mark">A</div>
+      <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS Warehouse Management">
       <p class="atlas-dashboard-eyebrow">AUTHORIZED ACCESS</p>
       <h2>Supervisor sign in</h2>
       <p>Operational history includes employee names and detailed inventory changes. Sign in with an ATLAS supervisor or administrator account to continue.</p>
       <form class="atlas-dashboard-access-form" data-sign-in>
         <label><span>Email address</span><input type="email" name="email" autocomplete="username" required></label>
-        <label><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+        <label><span>Password</span>${passwordField({ autocomplete: "current-password" })}</label>
         <p class="atlas-dashboard-access-message" data-access-message></p>
         <button class="atlas-dashboard-button atlas-dashboard-button--primary" type="submit">Open Dashboard</button>
       </form>
@@ -519,18 +533,17 @@
     const mode = state.accountModal.mode;
     const user = state.adminUsers.find((item) => item.id === state.accountModal.userId);
     if (mode !== "create" && !user) return "";
-    if (mode === "confirm-status") {
-      const nextActive = !user.active;
+    if (mode === "confirm-delete") {
       return `
         <div class="atlas-account-modal-backdrop" data-account-modal-backdrop>
           <section class="atlas-account-modal atlas-account-confirm" role="dialog" aria-modal="true" aria-labelledby="atlasAccountConfirmTitle">
             <button type="button" class="atlas-account-modal-close" data-account-close aria-label="Close">×</button>
-            <span class="atlas-account-modal-icon ${nextActive ? "is-success" : "is-danger"}" aria-hidden="true">${nextActive ? "✓" : "!"}</span>
-            <h2 id="atlasAccountConfirmTitle">${nextActive ? "Reactivate" : "Deactivate"} ${escapeHtml(user.display_name || user.email)}?</h2>
-            <p>${nextActive ? "This person will be able to sign in again with their existing role." : "This immediately blocks sign-in without deleting the account or its history."}</p>
+            <span class="atlas-account-modal-icon is-danger" aria-hidden="true">!</span>
+            <h2 id="atlasAccountConfirmTitle">Delete this account permanently?</h2>
+            <p><strong>${escapeHtml(user.display_name || user.email)}</strong> will no longer be able to sign in. This action cannot be undone. Historical warehouse activity will remain intact.</p>
             <div class="atlas-account-modal-actions">
               <button type="button" class="atlas-dashboard-button" data-account-close>Cancel</button>
-              <button type="button" class="atlas-dashboard-button ${nextActive ? "atlas-dashboard-button--primary" : "atlas-dashboard-button--danger"}" data-account-status data-user-id="${escapeHtml(user.id)}" data-active="${nextActive}">${nextActive ? "Reactivate Account" : "Deactivate Account"}</button>
+              <button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger" data-account-delete data-user-id="${escapeHtml(user.id)}">Delete Account</button>
             </div>
           </section>
         </div>`;
@@ -551,7 +564,7 @@
               <label><span>ATLAS role</span><select name="role" required>
                 ${["picker", "supervisor", "admin"].map((role) => `<option value="${role}" ${!isCreate && user.role === role ? "selected" : ""}>${roleLabel(role)}</option>`).join("")}
               </select></label>
-              ${isCreate ? `<label><span>Temporary password</span><input type="password" name="password" minlength="10" autocomplete="new-password" required><small>At least 10 characters</small></label>` : ""}
+              ${isCreate ? `<label><span>Password</span>${passwordField({ autocomplete: "new-password", minlength: 10 })}<small>At least 10 characters</small></label>` : ""}
             </div>
             <p class="atlas-account-form-message" data-account-message></p>
             <div class="atlas-account-modal-actions">
@@ -561,13 +574,13 @@
           </form>
           ${isCreate ? "" : `
             <div class="atlas-account-security">
-              <div><h3>Account Security</h3><p>Set a temporary password or block this account from signing in.</p></div>
+              <div><h3>Change Password</h3><p>Set a new sign-in password for this account.</p></div>
               <form data-account-password>
                 <input type="hidden" name="user_id" value="${escapeHtml(user.id)}">
-                <label><span>New temporary password</span><input type="password" name="password" minlength="10" autocomplete="new-password" required></label>
+                <label><span>New password</span>${passwordField({ autocomplete: "new-password", minlength: 10 })}</label>
                 <button type="submit" class="atlas-dashboard-button">Change Password</button>
               </form>
-              <button type="button" class="atlas-dashboard-button ${user.active ? "atlas-dashboard-button--danger-ghost" : "atlas-dashboard-button--success-ghost"}" data-account-confirm-status data-user-id="${escapeHtml(user.id)}" ${user.is_current ? "disabled title=\"You cannot deactivate your own account\"" : ""}>${user.active ? "Deactivate Account" : "Reactivate Account"}</button>
+              <button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger-ghost" data-account-confirm-delete data-user-id="${escapeHtml(user.id)}" ${user.is_current ? "disabled title=\"You cannot delete your own account\"" : ""}>Delete Account</button>
             </div>`}
         </section>
       </div>`;
@@ -582,7 +595,7 @@
         <span class="atlas-dashboard-avatar">${escapeHtml(initials(user.display_name || user.email))}</span>
         <span class="atlas-account-identity"><strong>${escapeHtml(user.display_name || "Unnamed account")}${user.is_current ? " <small>(You)</small>" : ""}</strong><span>${escapeHtml(user.email)}</span></span>
         <span class="atlas-account-role is-${escapeHtml(user.role)}">${escapeHtml(roleLabel(user.role))}</span>
-        <span class="atlas-account-status"><i class="${user.active ? "is-active" : ""}"></i>${user.active ? "Active" : "Deactivated"}</span>
+        <span class="atlas-account-status"><i class="${user.active ? "is-active" : ""}"></i>${user.active ? "Active" : "Inactive (legacy)"}</span>
         <span class="atlas-account-last"><small>Last sign-in</small><strong>${escapeHtml(accountDate(user.last_sign_in_at))}</strong></span>
         <button type="button" class="atlas-dashboard-button" data-account-edit data-user-id="${escapeHtml(user.id)}">Manage</button>
       </article>`).join("");
@@ -696,7 +709,15 @@
     }
     const button = event.target.closest("button");
     if (!button) return;
-    if (button.matches("[data-mobile-menu]")) showMenu();
+    if (button.matches("[data-password-toggle]")) {
+      const input = button.closest(".atlas-password-field")?.querySelector("input");
+      if (!input) return;
+      const showPassword = input.type === "password";
+      input.type = showPassword ? "text" : "password";
+      button.setAttribute("aria-pressed", String(showPassword));
+      button.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
+      input.focus({ preventScroll: true });
+    } else if (button.matches("[data-mobile-menu]")) showMenu();
     else if (button.matches("[data-mobile-refresh], [data-retry]")) loadData();
     else if (button.matches("[data-export]")) exportCsv();
     else if (button.matches("[data-sign-out]")) signOut();
@@ -718,14 +739,13 @@
     } else if (button.matches("[data-account-close]")) {
       state.accountModal = null;
       render();
-    } else if (button.matches("[data-account-confirm-status]")) {
-      state.accountModal = { mode: "confirm-status", userId: button.dataset.userId };
+    } else if (button.matches("[data-account-confirm-delete]")) {
+      state.accountModal = { mode: "confirm-delete", userId: button.dataset.userId };
       render();
-    } else if (button.matches("[data-account-status]")) {
-      runAdminAction("status", {
-        user_id: button.dataset.userId,
-        active: button.dataset.active === "true",
-      });
+    } else if (button.matches("[data-account-delete]")) {
+      button.disabled = true;
+      button.textContent = "Deleting…";
+      runAdminAction("delete", { user_id: button.dataset.userId });
     } else if (button.matches("[data-account-refresh]")) {
       loadAdminUsers();
     }

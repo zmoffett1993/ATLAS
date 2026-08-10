@@ -179,7 +179,7 @@
   }
 
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link[data-action="about"] {
-    margin-top: auto !important;
+    margin-top: 0 !important;
   }
 
   html.atlas-desktop .atlas-menu-footer {
@@ -195,6 +195,18 @@
   html.atlas-desktop .atlas-menu-footer span {
     font-size: 8px !important;
     letter-spacing: 0.18em !important;
+  }
+
+  html.atlas-desktop .atlas-menu-footer .atlas-footer-brand > span {
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.16em !important;
+  }
+
+  html.atlas-desktop .atlas-menu-footer .atlas-footer-brand > small {
+    font-size: 7px !important;
+    font-weight: 720 !important;
+    letter-spacing: 0.105em !important;
   }
 
   /* Desktop command bar */
@@ -375,9 +387,14 @@
 
   html.atlas-desktop #root .search-input {
     height: 58px !important;
-    padding-right: 104px !important;
+    padding-right: 54px !important;
     border-radius: 12px !important;
     font-size: 16px !important;
+  }
+
+  html.atlas-desktop #root .camera-button,
+  html.atlas-desktop #root .voice-button {
+    display: none !important;
   }
 
   html.atlas-desktop #root .search-clear,
@@ -551,7 +568,7 @@
   /* Browse Aisles */
   html.atlas-desktop.atlas-view-aisles #root .workspace,
   html.atlas-desktop.atlas-view-inventory #root .workspace {
-    padding: 32px 12px 42px !important;
+    padding: 32px 0 42px !important;
   }
 
   html.atlas-desktop #root .page-title {
@@ -590,6 +607,8 @@
 
   /* Inventory command center and workflows */
   html.atlas-desktop.atlas-view-inventory #root .inventory-grid {
+    width: min(1280px, 100%);
+    margin-inline: auto;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 15px !important;
   }
@@ -613,12 +632,18 @@
   }
 
   html.atlas-desktop.atlas-view-inventory #root .workflow-card {
-    width: min(1120px, 100%) !important;
+    width: min(1240px, 100%) !important;
     max-width: none !important;
     margin: 18px auto 0 !important;
     padding: 26px !important;
     border-radius: 17px !important;
     box-shadow: 0 14px 38px rgba(15, 46, 80, 0.075) !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .workflow-card > .sku-search-field,
+  html.atlas-desktop.atlas-view-inventory #root .workflow-card > .inventory-sku-search {
+    width: min(760px, 100%) !important;
+    margin-inline: auto !important;
   }
 
   html.atlas-desktop.atlas-view-inventory #root .form-grid {
@@ -671,6 +696,83 @@
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
+  /* Product Details uses a desktop showroom layout while mobile keeps the
+     approved stacked presentation. */
+  html.atlas-desktop .atlas-product-detail-modal {
+    width: min(1000px, calc(100vw - var(--atlas-desktop-sidebar) - 80px)) !important;
+    max-height: min(88vh, 820px) !important;
+  }
+
+  html.atlas-desktop .atlas-product-detail-content {
+    display: grid !important;
+    grid-template-columns: minmax(430px, 1.08fr) minmax(340px, 0.92fr) !important;
+    align-items: stretch !important;
+  }
+
+  html.atlas-desktop .atlas-product-detail-image,
+  html.atlas-desktop .atlas-product-detail-image.atlas-studio-light,
+  html.atlas-desktop .atlas-product-detail-image.atlas-studio-contrast,
+  html.atlas-desktop .atlas-product-detail-image.atlas-studio-warm {
+    min-height: 560px !important;
+    height: 100% !important;
+    border-radius: 29px 34px 34px 29px !important;
+  }
+
+  html.atlas-desktop .atlas-product-gallery-slide img,
+  html.atlas-desktop .atlas-product-detail-image > img,
+  html.atlas-desktop .atlas-product-detail-image.atlas-studio-light img,
+  html.atlas-desktop .atlas-product-detail-image.atlas-studio-contrast img,
+  html.atlas-desktop .atlas-product-detail-image.atlas-studio-warm img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    padding: 48px 42px 44px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: none !important;
+  }
+
+  html.atlas-desktop .atlas-product-detail-copy {
+    align-self: center !important;
+    padding: 48px 42px !important;
+  }
+
+  /* Sharper desktop type without changing the approved About-page copy. */
+  html.atlas-desktop .atlas-story-card {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  html.atlas-desktop .atlas-story-builder {
+    padding-block: 64px !important;
+  }
+
+  html.atlas-desktop .atlas-story-builder h2 {
+    font-size: clamp(30px, 2.55vw, 39px) !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.026em !important;
+  }
+
+  html.atlas-desktop .atlas-story-builder-copy > p:not(.atlas-story-section-label):not(.atlas-story-signature) {
+    max-width: 690px !important;
+    color: #3e5168 !important;
+    font-size: 17px !important;
+    font-weight: 520 !important;
+    line-height: 1.72 !important;
+  }
+
+  html.atlas-desktop .atlas-story-proof-copy h2 {
+    font-size: clamp(26px, 2.15vw, 34px) !important;
+    line-height: 1.2 !important;
+  }
+
+  html.atlas-desktop .atlas-story-proof-copy p,
+  html.atlas-desktop .atlas-story-finale p {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+
   /* Dashboard alignment with the permanent navigation */
   html.atlas-desktop.atlas-dashboard-open body {
     padding-left: var(--atlas-desktop-sidebar) !important;
@@ -714,6 +816,25 @@
 
     html.atlas-desktop.atlas-view-aisles #root .aisle-grid {
       grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @media (max-width: 1120px) {
+    html.atlas-desktop .atlas-product-detail-content {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    html.atlas-desktop .atlas-product-detail-image,
+    html.atlas-desktop .atlas-product-detail-image.atlas-studio-light,
+    html.atlas-desktop .atlas-product-detail-image.atlas-studio-contrast,
+    html.atlas-desktop .atlas-product-detail-image.atlas-studio-warm {
+      min-height: 430px !important;
+      height: 430px !important;
+      border-radius: 29px 29px 34px 34px !important;
+    }
+
+    html.atlas-desktop .atlas-product-detail-copy {
+      padding: 34px 38px 42px !important;
     }
   }
 

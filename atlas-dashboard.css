@@ -19,7 +19,7 @@
 /* New ATLAS navigation surface. Mobile remains a drawer; desktop becomes a
    permanent operational sidebar without changing picker workflows. */
 html.atlas-dashboard-open .atlas-menu-drawer .premium-drawer-link[data-action="about"] {
-  margin-top: auto !important;
+  margin-top: 0 !important;
 }
 
 html.atlas-dashboard-open .atlas-menu-drawer .premium-drawer-link[data-action="dashboard"].is-active {
@@ -279,7 +279,7 @@ html.atlas-dashboard-open .atlas-menu-drawer .premium-drawer-link[data-action="d
   }
 
   html.atlas-dashboard-open .atlas-menu-drawer .premium-drawer-link[data-action="about"] {
-    margin-top: max(22px, calc(100dvh - 548px)) !important;
+    margin-top: 0 !important;
   }
 
   html.atlas-dashboard-open .atlas-menu-footer {
@@ -809,17 +809,14 @@ html.atlas-dashboard-open #root {
   box-shadow: 0 22px 60px rgba(9, 35, 66, 0.12);
 }
 
-.atlas-dashboard-access-mark {
-  width: 52px;
-  height: 52px;
-  margin-bottom: 18px;
-  color: #fff;
-  border-radius: 16px;
-  background: linear-gradient(145deg, #0a315e, #0f65cf);
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  font-weight: 800;
+.atlas-dashboard-access-logo {
+  display: block;
+  width: min(100%, 315px);
+  height: auto;
+  aspect-ratio: 1280 / 380;
+  margin: 0 0 22px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 .atlas-dashboard-access h2 {
@@ -856,6 +853,60 @@ html.atlas-dashboard-open #root {
   border-radius: 10px;
   color: #153252;
   background: #fbfdff;
+}
+
+.atlas-password-field {
+  position: relative;
+  min-width: 0;
+}
+
+.atlas-password-field > input {
+  padding-right: 48px !important;
+}
+
+.atlas-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: #637991;
+  cursor: pointer;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.atlas-password-toggle:hover {
+  color: #125fbf;
+  background: #edf5ff;
+}
+
+.atlas-password-toggle:focus-visible {
+  outline: 2px solid rgba(20, 103, 221, 0.34);
+  outline-offset: 0;
+}
+
+.atlas-password-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.atlas-password-eye-slash {
+  opacity: 0;
+}
+
+.atlas-password-toggle[aria-pressed="true"] .atlas-password-eye-slash {
+  opacity: 1;
 }
 
 .atlas-dashboard-access-message {
@@ -1269,6 +1320,10 @@ html.atlas-dashboard-open #root {
 .atlas-account-confirm .atlas-account-modal-actions {
   justify-content: center;
   margin-top: 22px;
+}
+
+.atlas-account-confirm > p strong {
+  color: #304e70;
 }
 
 @media (max-width: 1180px) {

@@ -1,13 +1,13 @@
-const VERSION = "atlas-pwa-v127-move-inventory-streamlined";
+const VERSION = "atlas-pwa-v128-ui-account-polish";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=117",
-  "./atlas-dashboard.js?v=117",
-  "./atlas-desktop.css?v=120",
+  "./atlas-dashboard.css?v=128",
+  "./atlas-dashboard.js?v=128",
+  "./atlas-desktop.css?v=128",
   "./atlas-desktop.js?v=120",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
@@ -24,7 +24,7 @@ const APP_SHELL = [
   "./atlas-brand-portrait-light.svg?v=97",
   "./atlas-brand-portrait-dark.svg?v=97",
   "./atlas-brand-landscape-light.svg?v=97",
-  "./atlas-brand-landscape-dark.svg?v=97",
+  "./atlas-brand-landscape-dark.svg?v=128",
   "./atlas-brand-mark-light.svg?v=97",
   "./atlas-brand-mark-dark.svg?v=97",
   "./atlas-menu-warehouse-v1.webp?v=87",
