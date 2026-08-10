@@ -131,6 +131,28 @@
     box-shadow: none !important;
   }
 
+  /* Preserve the approved shared/mobile menu markup while presenting the
+     workflow-first hierarchy in the permanent desktop navigation. */
+  html.atlas-desktop .atlas-menu-nav [data-nav="Home"] {
+    order: 1;
+  }
+
+  html.atlas-desktop .atlas-menu-nav [data-nav="Browse Aisles"] {
+    order: 2;
+  }
+
+  html.atlas-desktop .atlas-menu-nav [data-nav="Inventory"] {
+    order: 3;
+  }
+
+  html.atlas-desktop .atlas-menu-nav [data-action="dashboard"] {
+    order: 4;
+  }
+
+  html.atlas-desktop .atlas-menu-nav [data-action="about"] {
+    order: 5;
+  }
+
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
@@ -484,19 +506,47 @@
     height: 62px !important;
   }
 
-  html.atlas-desktop #root .atlas-product-showcase {
-    grid-template-columns: minmax(180px, 0.74fr) minmax(260px, 1.26fr) !important;
-    gap: 20px !important;
-    padding: 20px !important;
+  html.atlas-desktop #root .result-card .atlas-product-showcase:not(.atlas-has-pallet-guide) {
+    grid-template-columns: 58px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 14px !important;
+    min-height: 78px !important;
+    padding: 10px 14px !important;
     border-radius: 15px !important;
   }
 
-  html.atlas-desktop #root .atlas-product-media {
-    min-height: 250px !important;
+  html.atlas-desktop #root .result-card .atlas-product-showcase:not(.atlas-has-pallet-guide)
+    > .atlas-product-media {
+    width: 58px !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    border-radius: 12px !important;
   }
 
-  html.atlas-desktop #root .atlas-product-media img {
-    height: 248px !important;
+  html.atlas-desktop #root .result-card .atlas-product-showcase:not(.atlas-has-pallet-guide)
+    > .atlas-product-media img {
+    height: 100% !important;
+    padding: 4px !important;
+  }
+
+  html.atlas-desktop #root .result-card .atlas-product-showcase:not(.atlas-has-pallet-guide)
+    > .atlas-product-copy {
+    width: 100%;
+  }
+
+  html.atlas-desktop #root .result-card .atlas-product-showcase:not(.atlas-has-pallet-guide)
+    .atlas-product-view-details {
+    min-height: 56px !important;
+    margin: 0 !important;
+    padding: 0 12px 0 3px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  html.atlas-desktop #root .result-card .atlas-product-showcase:not(.atlas-has-pallet-guide)
+    .atlas-product-view-details i {
+    transform: none !important;
   }
 
   html.atlas-desktop #root .atlas-result-actions > button {
@@ -553,12 +603,19 @@
   }
 
   html.atlas-desktop.atlas-results-focused #root .brand-header {
-    min-height: 76px !important;
-    padding: 13px 30px !important;
+    min-height: 64px !important;
+    padding: 8px 30px !important;
   }
 
   html.atlas-desktop.atlas-results-focused #root .brand-top {
-    min-height: 48px !important;
+    min-height: 46px !important;
+  }
+
+  html.atlas-desktop.atlas-results-focused #root .atlas-results-mode-label {
+    font-size: clamp(14px, 1.05vw, 16px) !important;
+    font-weight: 950 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.145em !important;
   }
 
   html.atlas-desktop.atlas-results-focused #root .home-search-panel {
