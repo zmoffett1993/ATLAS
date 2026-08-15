@@ -26,6 +26,11 @@
     { id: "edit", label: "Edit SKU", title: "Edit SKU", icon: "edit" },
     { id: "delete", label: "Delete SKU", title: "Delete SKU", icon: "delete" },
   ];
+  const inventoryGroups = [
+    { label: "INVENTORY", actions: ["browse"] },
+    { label: "WAREHOUSE ACTIONS", actions: ["move", "clear", "pick"] },
+    { label: "SKU MANAGEMENT", actions: ["create", "edit", "delete"] },
+  ];
   const actionIcons = {
     browse:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"></path><path d="M8 5v14M4 10h16M4 15h16"></path></svg>',
@@ -52,6 +57,8 @@
   ]);
   let sidebarState = null;
   let inventoryExpanded = false;
+  let inventoryFlyoutDismissed = false;
+  let inventoryFlyoutPreview = false;
   let lastEnsuredInventoryAction = "";
 
   const visibleWorkflowTitle = () => {
@@ -153,6 +160,8 @@
     const target = inventoryActions.find((action) => action.id === actionId);
     if (!target) return;
     inventoryExpanded = true;
+    inventoryFlyoutDismissed = false;
+    inventoryFlyoutPreview = false;
     document.querySelectorAll("[data-atlas-inventory-action]").forEach((item) => {
       const isTarget = item.dataset.atlasInventoryAction === actionId;
       item.classList.toggle("is-active", isTarget);
@@ -199,12 +208,14 @@
   const setInventoryExpanded = (expanded) => {
     inventoryExpanded = Boolean(expanded);
     const parent = document.querySelector("[data-atlas-desktop-inventory-parent]");
-    const group = document.querySelector(".atlas-desktop-inventory-children");
+    const flyout = document.querySelector(".atlas-desktop-inventory-flyout");
     parent?.classList.toggle("is-expanded", inventoryExpanded);
     parent?.setAttribute("aria-expanded", String(inventoryExpanded));
     const chevron = parent?.querySelector(".atlas-menu-chevron");
-    if (chevron) chevron.textContent = inventoryExpanded ? "⌄" : "›";
-    if (group) group.hidden = !inventoryExpanded;
+    if (chevron) chevron.textContent = inventoryExpanded ? "‹" : "›";
+    flyout?.classList.toggle("is-open", inventoryExpanded);
+    flyout?.setAttribute("aria-hidden", String(!inventoryExpanded));
+    root.classList.toggle("atlas-inventory-flyout-open", inventoryExpanded);
   };
 
   const ensureDesktopSidebar = () => {
@@ -221,20 +232,28 @@
 
     sidebarState = { nav, home, browse, inventory, dashboard, about };
     const desktopInventory = replaceInventoryParent(inventory);
-    const group = document.createElement("div");
-    group.className = "atlas-desktop-inventory-children";
-    group.setAttribute("role", "group");
-    group.setAttribute("aria-label", "Inventory management tools");
-    group.innerHTML = inventoryActions
-      .map(
-        (action) => `
-          <button type="button" class="atlas-desktop-inventory-child" data-atlas-inventory-action="${action.id}">
-            <span aria-hidden="true">${actionIcons[action.icon]}</span>
-            <strong>${action.label}</strong>
-          </button>`,
-      )
-      .join("");
-    group.addEventListener("click", (event) => {
+    const flyout = document.createElement("aside");
+    flyout.className = "atlas-desktop-inventory-flyout";
+    flyout.setAttribute("aria-label", "Inventory navigation");
+    flyout.setAttribute("aria-hidden", "true");
+    flyout.innerHTML = `
+      <header class="atlas-desktop-inventory-flyout__header">
+        <span aria-hidden="true">${icons.inventory}</span><strong>INVENTORY</strong>
+      </header>
+      <nav class="atlas-desktop-inventory-flyout__nav" aria-label="Inventory functions">
+        ${inventoryGroups.map((group) => `
+          <section class="atlas-desktop-inventory-group">
+            <h2>${group.label}</h2>
+            ${group.actions.map((actionId) => {
+              const action = inventoryActions.find((item) => item.id === actionId);
+              return `<button type="button" class="atlas-desktop-inventory-child" data-atlas-inventory-action="${action.id}">
+                <span aria-hidden="true">${actionIcons[action.icon]}</span><strong>${action.label}</strong>
+              </button>`;
+            }).join("")}
+          </section>`).join("")}
+      </nav>`;
+    document.body.appendChild(flyout);
+    flyout.addEventListener("click", (event) => {
       const button = event.target.closest?.("[data-atlas-inventory-action]");
       if (!button) return;
       event.preventDefault();
@@ -243,13 +262,24 @@
 
     desktopInventory.addEventListener("click", (event) => {
       event.preventDefault();
-      setInventoryExpanded(!inventoryExpanded);
+      const nextOpen = !inventoryExpanded;
+      inventoryFlyoutDismissed = !nextOpen;
+      inventoryFlyoutPreview = nextOpen;
+      setInventoryExpanded(nextOpen);
+    });
+
+    [home, dashboard, about].forEach((item) => {
+      item.addEventListener("click", () => {
+        inventoryFlyoutPreview = false;
+        inventoryFlyoutDismissed = false;
+        setInventoryExpanded(false);
+      });
     });
 
     home.querySelector(".atlas-menu-label").textContent = "Search SKU";
     dashboard.querySelector(".atlas-menu-label").textContent = "Dashboard";
     about.querySelector(".atlas-menu-label").textContent = "About ATLAS";
-    nav.replaceChildren(home, desktopInventory, group, dashboard, about);
+    nav.replaceChildren(home, desktopInventory, dashboard, about);
     nav.dataset.atlasDesktopNavigation = "true";
     setInventoryExpanded(false);
     return nav;
@@ -260,6 +290,7 @@
     const { nav, home, browse, inventory, dashboard, about } = sidebarState;
     const desktopParent = nav.querySelector("[data-atlas-desktop-inventory-parent]");
     desktopParent?.replaceWith(inventory);
+    document.querySelector(".atlas-desktop-inventory-flyout")?.remove();
     nav.replaceChildren(home, browse, inventory, dashboard, about);
     home.querySelector(".atlas-menu-label").textContent = "HOME";
     browse.querySelector(".atlas-menu-label").textContent = "BROWSE AISLES";
@@ -268,7 +299,10 @@
     delete nav.dataset.atlasDesktopNavigation;
     sidebarState = null;
     inventoryExpanded = false;
+    inventoryFlyoutDismissed = false;
+    inventoryFlyoutPreview = false;
     lastEnsuredInventoryAction = "";
+    root.classList.remove("atlas-inventory-flyout-open");
   };
 
   const syncDesktop = () => {
@@ -309,6 +343,8 @@
       const action = item.dataset.action || "";
       const active =
         (meta.key === "home" && nav === "home") ||
+        ((meta.key === "inventory" || meta.key === "aisles") &&
+          item.dataset.atlasDesktopInventoryParent === "true") ||
         (meta.key === "dashboard" && action === "dashboard") ||
         (meta.key === "about" && action === "about");
       item.classList.toggle("is-active", active);
@@ -324,7 +360,13 @@
       if (active) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
-    if (meta.key === "inventory" || meta.key === "aisles") inventoryExpanded = true;
+    if (meta.key === "inventory" || meta.key === "aisles") {
+      inventoryFlyoutPreview = false;
+      inventoryExpanded = !inventoryFlyoutDismissed;
+    } else {
+      inventoryExpanded = inventoryFlyoutPreview;
+      inventoryFlyoutDismissed = false;
+    }
     setInventoryExpanded(inventoryExpanded);
 
     const activeInventoryItem = document.querySelector(".atlas-desktop-inventory-child.is-active");

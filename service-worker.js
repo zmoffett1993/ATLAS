@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v134-inventory-submenu-scroll";
+const VERSION = "atlas-pwa-v135-inventory-flyout";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -10,9 +10,9 @@ const APP_SHELL = [
   "./atlas-guided-workflows.css?v=1",
   "./atlas-guided-workflows.js?v=1",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=136",
+  "./atlas-desktop.css?v=137",
   "./atlas-desktop-typography.css?v=1",
-  "./atlas-desktop.js?v=125",
+  "./atlas-desktop.js?v=126",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
   "./pallet-guides.json?v=20260805-v4",

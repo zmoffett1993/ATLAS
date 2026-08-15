@@ -5,6 +5,7 @@
 @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
   :root {
     --atlas-desktop-sidebar: 264px;
+    --atlas-desktop-inventory-flyout: 304px;
     --atlas-desktop-topbar: 76px;
     --atlas-desktop-canvas: #eef3f8;
     --atlas-desktop-panel: #ffffff;
@@ -24,6 +25,10 @@
   html.atlas-desktop body {
     padding-left: var(--atlas-desktop-sidebar) !important;
     overflow-x: hidden;
+  }
+
+  html.atlas-desktop.atlas-inventory-flyout-open body {
+    padding-left: calc(var(--atlas-desktop-sidebar) + var(--atlas-desktop-inventory-flyout)) !important;
   }
 
   html.atlas-desktop body > #root,
@@ -230,6 +235,10 @@
     box-shadow: 0 5px 18px rgba(10, 37, 69, 0.035);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
+  }
+
+  html.atlas-desktop.atlas-inventory-flyout-open .atlas-desktop-topbar {
+    left: calc(var(--atlas-desktop-sidebar) + var(--atlas-desktop-inventory-flyout));
   }
 
   .atlas-desktop-topbar__context {
@@ -956,52 +965,102 @@
     transform: translateY(1px);
   }
 
-  html.atlas-desktop .atlas-desktop-inventory-children {
-    display: grid;
-    flex: 1 1 auto;
-    min-height: 0;
-    gap: 3px;
-    margin: 1px 0 5px 11px;
-    padding: 4px 6px 5px 10px;
-    overflow-x: hidden;
+  html.atlas-desktop .atlas-desktop-inventory-flyout {
+    position: fixed;
+    inset: 0 auto 0 var(--atlas-desktop-sidebar);
+    z-index: 89;
+    width: var(--atlas-desktop-inventory-flyout);
+    min-height: 100vh;
+    padding: 27px 18px 24px;
+    overflow: hidden;
+    color: #f5f9ff;
+    background:
+      radial-gradient(circle at 8% 7%, rgba(38, 126, 235, 0.16), transparent 24%),
+      linear-gradient(180deg, #08294e 0%, #061d38 58%, #04162b 100%);
+    border-right: 1px solid rgba(149, 201, 255, 0.16);
+    border-radius: 0 22px 22px 0;
+    box-shadow: 15px 0 32px rgba(3, 24, 48, 0.16);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-14px);
+    transition: opacity 220ms ease, transform 250ms cubic-bezier(.2, .8, .2, 1);
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-flyout.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-flyout__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 6px 22px;
+    color: #fff;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-flyout__header > span {
+    width: 24px;
+    height: 24px;
+    color: #96c7ff;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-flyout__header svg {
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-flyout__header strong {
+    font-size: 13px;
+    font-weight: 850;
+    letter-spacing: 0.14em;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-flyout__nav {
+    height: calc(100vh - 86px);
+    padding: 0 4px 18px;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: rgba(142, 192, 255, 0.42) transparent;
-    border-left: 1px solid rgba(113, 167, 233, 0.28);
   }
 
-  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar {
-    width: 7px;
-  }
-
-  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar-thumb {
+  html.atlas-desktop .atlas-desktop-inventory-flyout__nav::-webkit-scrollbar { width: 7px; }
+  html.atlas-desktop .atlas-desktop-inventory-flyout__nav::-webkit-scrollbar-track { background: transparent; }
+  html.atlas-desktop .atlas-desktop-inventory-flyout__nav::-webkit-scrollbar-thumb {
     background: rgba(142, 192, 255, 0.4);
     border: 2px solid transparent;
     border-radius: 999px;
     background-clip: padding-box;
   }
 
-  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(182, 218, 255, 0.68);
+  html.atlas-desktop .atlas-desktop-inventory-group + .atlas-desktop-inventory-group {
+    margin-top: 24px;
   }
 
-  html.atlas-desktop .atlas-desktop-inventory-children[hidden] {
-    display: none;
+  html.atlas-desktop .atlas-desktop-inventory-group h2 {
+    margin: 0 7px 8px;
+    color: rgba(196, 220, 248, 0.56);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    line-height: 1.2;
   }
 
   html.atlas-desktop .atlas-desktop-inventory-child {
     width: 100%;
-    min-height: 38px;
+    min-height: 46px;
     display: grid;
     grid-template-columns: 22px minmax(0, 1fr);
     align-items: center;
     gap: 9px;
-    padding: 7px 9px;
+    padding: 9px 11px;
     color: rgba(226, 240, 255, 0.73);
     text-align: left;
     cursor: pointer;
@@ -1037,7 +1096,7 @@
 
   html.atlas-desktop .atlas-desktop-inventory-child > strong {
     overflow: hidden;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 850;
     letter-spacing: 0.065em;
     line-height: 1.2;
