@@ -1,14 +1,15 @@
-const VERSION = "atlas-pwa-v131-desktop-typography";
+const VERSION = "atlas-pwa-v132-operations-approval-undo";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=128",
-  "./atlas-dashboard.js?v=131",
+  "./atlas-dashboard.css?v=132",
+  "./atlas-dashboard.js?v=132",
   "./atlas-guided-workflows.css?v=1",
   "./atlas-guided-workflows.js?v=1",
+  "./atlas-delete-approval.js?v=1",
   "./atlas-desktop.css?v=134",
   "./atlas-desktop-typography.css?v=1",
   "./atlas-desktop.js?v=123",

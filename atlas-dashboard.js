@@ -8,7 +8,9 @@
     mounted: false,
     open: false,
     loading: false,
-    range: "30",
+    range: "today",
+    customStart: "",
+    customEnd: "",
     filter: "operational",
     search: "",
     skus: [],
@@ -16,6 +18,9 @@
     profiles: [],
     activities: [],
     history: [],
+    undoSnapshots: [],
+    deleteRequests: [],
+    drawer: null,
     normalized: [],
     view: "operations",
     currentProfile: null,
@@ -134,6 +139,14 @@
       return { key: "move", label: "Moved inventory", color: "#1467dd", operational: true };
     if (action.includes("SKU_EDIT"))
       return { key: "edit", label: "Edited SKU", color: "#d98900", operational: true };
+    if (action === "SKU_DELETE_REQUESTED")
+      return { key: "delete-request", label: "Deletion pending approval", color: "#d98900", operational: false };
+    if (action === "SKU_DELETE_REJECTED")
+      return { key: "delete-request", label: "Deletion request rejected", color: "#d98900", operational: false };
+    if (action === "SKU_DELETE_APPROVED")
+      return { key: "delete", label: "Deleted SKU", color: "#d33a3a", operational: true };
+    if (action === "UNDO_ACTION")
+      return { key: "undo", label: "Reversed recorded action", color: "#1467dd", operational: true };
     if (action.includes("SKU_DELETE"))
       return { key: "delete", label: "Removed SKU", color: "#d33a3a", operational: true };
     if (action.includes("PICK_FIRST") || pickChanged)
@@ -143,10 +156,10 @@
         color: "#7957d5",
         operational: action.includes("PICK_FIRST"),
       };
-    if (action.includes("LOCATION_CLEAR") || (activeChanged && !bool(newRecord.is_active)))
-      return { key: "location", label: "Cleared location", color: "#d33a3a", operational: action.includes("LOCATION_CLEAR") };
-    if (action.includes("LOCATION_RESTORE") || (activeChanged && bool(newRecord.is_active)))
-      return { key: "location", label: "Restored location", color: "#168552", operational: action.includes("LOCATION_RESTORE") };
+    if (action === "CLEAR_LOCATION" || action.includes("LOCATION_CLEAR") || (activeChanged && !bool(newRecord.is_active)))
+      return { key: "location", label: "Cleared location", color: "#0b9bad", operational: action === "CLEAR_LOCATION" || action.includes("LOCATION_CLEAR") };
+    if (action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") || (activeChanged && bool(newRecord.is_active)))
+      return { key: "location", label: "Restored location", color: "#168552", operational: action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") };
     if (action.includes("CORRECT") || reasonText.includes("different location"))
       return { key: "location", label: "Corrected location", color: "#d98900", operational: true };
     if (action === "USER_CREATED")
@@ -206,7 +219,7 @@
     if (meta.key === "edit" && oldRecord.sku && newRecord.sku && oldRecord.sku !== newRecord.sku) {
       detail = `${oldRecord.sku} → ${newRecord.sku}`;
     }
-    if (meta.key === "delete") detail = "Marked inactive; history retained";
+    if (meta.key === "delete") detail = details.deleted_sku ? `Permanently deleted · ${details.deleted_sku}` : "Permanently deleted; history retained";
     if (meta.key === "pick") detail = location !== "—" ? `Location ${location}` : meta.label;
     if (meta.key === "access") {
       const role = newRecord.role || oldRecord.role;
@@ -227,6 +240,7 @@
       from,
       to,
       detail,
+      snapshotId: null,
     };
   };
 
@@ -364,10 +378,14 @@
         readTable("inventory_activity", token),
         readTable("location_history", token),
         token ? readTable("profiles", token) : Promise.resolve([]),
+        token ? readTable("atlas_undo_snapshots", token) : Promise.resolve([]),
+        token ? readTable("sku_delete_requests", token) : Promise.resolve([]),
       ]);
       state.activities = protectedResults[0].status === "fulfilled" ? protectedResults[0].value : [];
       state.history = protectedResults[1].status === "fulfilled" ? protectedResults[1].value : [];
       state.profiles = protectedResults[2].status === "fulfilled" ? protectedResults[2].value : [];
+      state.undoSnapshots = protectedResults[3].status === "fulfilled" ? protectedResults[3].value : [];
+      state.deleteRequests = protectedResults[4].status === "fulfilled" ? protectedResults[4].value : [];
       state.currentProfile =
         state.profiles.find((profile) => profile.user_id === state.session?.user?.id) || null;
       if (state.currentProfile?.role !== "admin" && state.view === "access") {
@@ -404,6 +422,8 @@
           ),
       );
       state.normalized = [...operational, ...history].sort((left, right) => right.timestamp - left.timestamp);
+      const snapshotBySource = new Map(state.undoSnapshots.map((snapshot) => [`${snapshot.source_table === "inventory_activity" ? "activity" : "history"}-${snapshot.source_event_id}`, snapshot]));
+      state.normalized.forEach((row) => { row.snapshotId = snapshotBySource.get(row.id)?.id || null; });
       state.lastSync = new Date();
     } catch (error) {
       if ([401, 403].includes(error?.status) && !token) state.accessRequired = true;
@@ -435,10 +455,13 @@
   };
 
   const rowsInRange = () => {
-    const now = Date.now();
-    const days = Number(state.range);
-    const cutoff = Number.isFinite(days) && days > 0 ? now - days * 86400000 : 0;
-    return state.normalized.filter((row) => !cutoff || row.timestamp >= cutoff);
+    const now = new Date();
+    let start = null, end = null;
+    if (state.range === "today") start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    else if (state.range === "week") { start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); start.setDate(start.getDate() - ((start.getDay() + 6) % 7)); }
+    else if (state.range === "7" || state.range === "30") { start = new Date(now); start.setDate(start.getDate() - Number(state.range) + 1); start.setHours(0, 0, 0, 0); }
+    else if (state.range === "custom") { start = state.customStart ? new Date(`${state.customStart}T00:00:00`) : null; end = state.customEnd ? new Date(`${state.customEnd}T23:59:59`) : null; }
+    return state.normalized.filter((row) => (!start || row.timestamp >= start.getTime()) && (!end || row.timestamp <= end.getTime()));
   };
 
   const visibleRows = () => {
@@ -486,13 +509,40 @@
       return `<div class="atlas-dashboard-empty"><strong>No matching activity</strong><p>Try a broader date range, a different action filter, or clear the search.</p></div>`;
     }
     return rows.slice(0, 250).map((row) => `
-      <article class="atlas-dashboard-feed-row" style="--activity-color:${row.color}">
+      <button type="button" class="atlas-dashboard-feed-row" data-activity-id="${escapeHtml(row.id)}" style="--activity-color:${row.color}">
         <span class="atlas-dashboard-activity-dot" aria-hidden="true"></span>
         <span class="atlas-dashboard-feed-primary"><strong>${escapeHtml(row.employee)}</strong><small>${escapeHtml(formatDateTime(row.date, true))}</small></span>
         <span class="atlas-dashboard-feed-detail"><strong class="atlas-dashboard-feed-action">${escapeHtml(row.label)}</strong><small>${escapeHtml(row.sku)}${row.detail && row.detail !== row.label ? ` · ${escapeHtml(row.detail)}` : ""}</small></span>
         <span class="atlas-dashboard-feed-location"><strong>${escapeHtml(row.location)}</strong><small>${escapeHtml(row.rawAction.replaceAll("_", " "))}</small></span>
-        <time class="atlas-dashboard-feed-time" datetime="${row.date?.toISOString() || ""}">${escapeHtml(formatDateTime(row.date))}</time>
-      </article>`).join("");
+        <time class="atlas-dashboard-feed-time" datetime="${row.date?.toISOString() || ""}">${escapeHtml(formatDateTime(row.date))}</time><span class="atlas-dashboard-feed-chevron" aria-hidden="true">›</span>
+      </button>`).join("");
+  };
+
+  const renderTodaySummary = (rows, rangeLabel) => {
+    const definitions = [
+      ["move", "Inventory Moves", "#1467dd"], ["location", "Locations Marked Empty", "#0b9bad"],
+      ["create", "New SKUs", "#168552"], ["edit", "SKU Edits", "#d98900"],
+      ["pick", "Pick First Changes", "#7957d5"], ["delete", "Deleted SKUs", "#d33a3a"],
+    ];
+    return `<article class="atlas-dashboard-panel atlas-dashboard-today-summary"><header class="atlas-dashboard-panel-head"><div><h2>${escapeHtml(rangeLabel)}’s Summary</h2><p>Completed warehouse actions</p></div></header><div class="atlas-dashboard-today-total"><strong>${rows.length}</strong><span>total changes</span></div><div class="atlas-dashboard-summary-breakdown">${definitions.map(([key, label, color]) => `<span><i style="--summary-color:${color}"></i><b>${rows.filter((row) => row.key === key).length}</b>${escapeHtml(label)}</span>`).join("")}</div></article>`;
+  };
+
+  const renderWarehouseStatus = () => {
+    const pending = state.deleteRequests.filter((request) => request.status === "pending");
+    return `<article class="atlas-dashboard-panel atlas-dashboard-status-panel"><header class="atlas-dashboard-panel-head"><div><h2>Warehouse Status</h2><p>Supervisor attention</p></div></header>${pending.length ? `<div class="atlas-dashboard-status-attention"><strong>${pending.length} SKU deletion ${pending.length === 1 ? "request requires" : "requests require"} approval</strong><p>Pending requests do not change inventory until a supervisor approves them.</p><button type="button" class="atlas-dashboard-button atlas-dashboard-button--primary" data-review-pending>Review requests</button></div>` : `<div class="atlas-dashboard-status-ok"><strong>All systems normal</strong><p>No items requiring attention</p></div>`}</article>`;
+  };
+
+  const renderActivityDrawer = () => {
+    const target = state.drawer?.kind === "request" ? state.deleteRequests.find((request) => request.id === state.drawer.id) : state.normalized.find((row) => row.id === state.drawer?.id);
+    if (!target) return "";
+    if (state.drawer?.kind === "request") {
+      const sku = safeJson(target.sku_snapshot).sku || "SKU";
+      const reviewer = state.currentProfile?.role === "supervisor" || state.currentProfile?.role === "admin";
+      return `<div class="atlas-dashboard-drawer-backdrop" data-drawer-close><aside class="atlas-dashboard-drawer" role="dialog" aria-modal="true"><button type="button" class="atlas-account-modal-close" data-drawer-close aria-label="Close">×</button><p class="atlas-dashboard-eyebrow">SUPERVISOR REVIEW</p><h2>Delete ${escapeHtml(sku)}?</h2><p><strong>${escapeHtml(target.requested_by_name)}</strong> requested permanent deletion. The SKU and its active locations remain unchanged until approval.</p><dl><div><dt>Requested</dt><dd>${escapeHtml(formatDateTime(parseDate(target.requested_at)))}</dd></div><div><dt>SKU</dt><dd>${escapeHtml(sku)}</dd></div></dl>${reviewer && target.status === "pending" ? `<div class="atlas-dashboard-drawer-actions"><button type="button" class="atlas-dashboard-button" data-reject-request data-request-id="${escapeHtml(target.id)}">Reject</button><button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger" data-approve-request data-request-id="${escapeHtml(target.id)}">Approve & Delete</button></div>` : `<p class="atlas-dashboard-drawer-note">Status: ${escapeHtml(target.status)}</p>`}</aside></div>`;
+    }
+    const snapshot = state.undoSnapshots.find((item) => item.id === target.snapshotId);
+    const reviewer = state.currentProfile?.role === "supervisor" || state.currentProfile?.role === "admin";
+    return `<div class="atlas-dashboard-drawer-backdrop" data-drawer-close><aside class="atlas-dashboard-drawer" role="dialog" aria-modal="true"><button type="button" class="atlas-account-modal-close" data-drawer-close aria-label="Close">×</button><p class="atlas-dashboard-eyebrow">ACTIVITY DETAIL</p><h2>${escapeHtml(target.label)}</h2><dl><div><dt>SKU</dt><dd>${escapeHtml(target.sku)}</dd></div><div><dt>Employee</dt><dd>${escapeHtml(target.employee)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(target.location)}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(target.date))}</dd></div><div><dt>Reason</dt><dd>${escapeHtml(target.detail)}</dd></div></dl>${snapshot ? (snapshot.undone_at ? `<p class="atlas-dashboard-drawer-note">This action was already reversed by ${escapeHtml(snapshot.undone_by_name || "a supervisor")}.</p>` : reviewer ? `<div class="atlas-dashboard-drawer-actions"><button type="button" class="atlas-dashboard-button atlas-dashboard-button--primary" data-undo-activity data-snapshot-id="${escapeHtml(snapshot.id)}">Undo Action</button></div>` : "") : `<p class="atlas-dashboard-drawer-note">Undo unavailable — this action was recorded before ATLAS reversible audit snapshots were enabled.</p>`}</aside></div>`;
   };
 
   const renderBars = (rows) => {
@@ -623,48 +673,47 @@
     const operationalRows = rowsInRange().filter((row) => row.operational);
     const visibleOperationalRows = rows.filter((row) => row.operational);
     const activeSkus = state.skus.filter((sku) => sku.active == null || bool(sku.active)).length;
-    const today = new Date().toDateString();
-    const changesToday = operationalRows.filter((row) => row.date?.toDateString() === today).length;
+    const changes = operationalRows.length;
     const moves = operationalRows.filter((row) => row.key === "move").length;
     const created = operationalRows.filter((row) => row.key === "create").length;
-    const rangeLabel = state.range === "all" ? "All recorded history" : `Last ${state.range} days`;
+    const rangeLabel = ({ today: "Today", week: "This Week", "7": "Last 7 Days", "30": "Last 30 Days", custom: "Custom Range" })[state.range] || "Selected range";
     const sessionName = state.session?.user?.email || "Supervisor";
     const isAdmin = state.currentProfile?.role === "admin";
     const accessView = state.view === "access" && isAdmin;
     const header = `
       <header class="atlas-dashboard-header">
-        <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${accessView ? "Access Management" : "Operations Dashboard"}</h1><p class="atlas-dashboard-subtitle">${accessView ? "Manage employee identities, passwords, roles, and dashboard permissions securely from ATLAS." : "Warehouse activity, inventory changes, and SKU oversight in one clear operational view."}</p></div>
+        <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${accessView ? "Access Management" : "Operations Dashboard"}</h1>${accessView ? `<p class="atlas-dashboard-subtitle">Manage employee identities, passwords, roles, and dashboard permissions securely from ATLAS.</p>` : `<p class="atlas-dashboard-subtitle atlas-dashboard-mobile-only">Warehouse activity, inventory changes, and SKU oversight in one clear operational view.</p>`}</div>
         <div class="atlas-dashboard-header-actions">
-          ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : `<select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
-            <option value="7" ${state.range === "7" ? "selected" : ""}>Last 7 days</option>
-            <option value="30" ${state.range === "30" ? "selected" : ""}>Last 30 days</option>
-            <option value="90" ${state.range === "90" ? "selected" : ""}>Last 90 days</option>
-            <option value="all" ${state.range === "all" ? "selected" : ""}>All history</option>
-          </select>
-          <button class="atlas-dashboard-button" type="button" data-export>Export CSV</button>`}
+          ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : `<div class="atlas-dashboard-date-control"><select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
+            <option value="today" ${state.range === "today" ? "selected" : ""}>Today</option>
+            <option value="week" ${state.range === "week" ? "selected" : ""}>This Week</option>
+            <option value="7" ${state.range === "7" ? "selected" : ""}>Last 7 Days</option>
+            <option value="30" ${state.range === "30" ? "selected" : ""}>Last 30 Days</option>
+            <option value="custom" ${state.range === "custom" ? "selected" : ""}>Custom Range</option>
+          </select>${state.range === "custom" ? `<span class="atlas-dashboard-custom-range"><input data-custom-start type="date" value="${escapeHtml(state.customStart)}" aria-label="Start date"><input data-custom-end type="date" value="${escapeHtml(state.customEnd)}" aria-label="End date"></span>` : ""}</div>`}
           ${state.session ? `<button class="atlas-dashboard-button" type="button" data-sign-out title="${escapeHtml(sessionName)}">Sign out</button>` : ""}
         </div>
       </header>
       ${isAdmin ? `<nav class="atlas-dashboard-tabs" aria-label="Dashboard sections"><button type="button" data-dashboard-view="operations" class="${accessView ? "" : "is-active"}">Operations</button><button type="button" data-dashboard-view="access" class="${accessView ? "is-active" : ""}">Access Management</button></nav>` : ""}
-      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : `Live Supabase data · ${escapeHtml(state.lastSync ? `Updated ${formatDateTime(state.lastSync, true)}` : "Ready")}`}</span></div>`;
+      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : `Live data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}`}</span></div>`;
     if (accessView) return `${header}${renderAccessManagement()}`;
     return `${header}
       <section class="atlas-dashboard-summary" aria-label="Operational summary">
         ${renderSummaryCard("Active SKUs", activeSkus, "Current picker inventory", "□", "#1467dd", "#eaf3ff")}
         ${renderSummaryCard("Inventory Moves", moves, rangeLabel, "⇄", "#1467dd", "#eaf3ff")}
         ${renderSummaryCard("New SKUs", created, rangeLabel, "+", "#168552", "#e9f7f0")}
-        ${renderSummaryCard("Changes Today", changesToday, "Employee-recorded activity", "✎", "#d98900", "#fff5df")}
+        ${renderSummaryCard("Total Changes", changes, rangeLabel, "↗", "#7957d5", "#f2edff")}
       </section>
       <section class="atlas-dashboard-main-grid">
         <article class="atlas-dashboard-panel">
-          <header class="atlas-dashboard-panel-head"><div><h2>Activity Timeline</h2><p>${(state.filter === "all" ? rows.length : visibleOperationalRows.length).toLocaleString()} matching records</p></div><div class="atlas-dashboard-tools"><label class="atlas-dashboard-search"><input type="search" data-search value="${escapeHtml(state.search)}" placeholder="Search SKU or employee" aria-label="Search activity"></label><select class="atlas-dashboard-filter" data-filter aria-label="Activity type"><option value="operational" ${state.filter === "operational" ? "selected" : ""}>Operational</option><option value="move" ${state.filter === "move" ? "selected" : ""}>Moves</option><option value="create" ${state.filter === "create" ? "selected" : ""}>New SKUs</option><option value="edit" ${state.filter === "edit" ? "selected" : ""}>SKU edits</option><option value="pick" ${state.filter === "pick" ? "selected" : ""}>Pick First</option><option value="location" ${state.filter === "location" ? "selected" : ""}>Locations</option><option value="access" ${state.filter === "access" ? "selected" : ""}>Account access</option><option value="all" ${state.filter === "all" ? "selected" : ""}>Full audit</option></select></div></header>
+          <header class="atlas-dashboard-panel-head"><div><h2>Recent Warehouse Activity</h2><p>${(state.filter === "all" ? rows.length : visibleOperationalRows.length).toLocaleString()} matching records</p></div><div class="atlas-dashboard-tools"><label class="atlas-dashboard-search"><input type="search" data-search value="${escapeHtml(state.search)}" placeholder="Search SKU or employee" aria-label="Search activity"></label><select class="atlas-dashboard-filter" data-filter aria-label="Activity type"><option value="operational" ${state.filter === "operational" ? "selected" : ""}>Operational</option><option value="move" ${state.filter === "move" ? "selected" : ""}>Moves</option><option value="create" ${state.filter === "create" ? "selected" : ""}>New SKUs</option><option value="edit" ${state.filter === "edit" ? "selected" : ""}>SKU edits</option><option value="pick" ${state.filter === "pick" ? "selected" : ""}>Pick First</option><option value="location" ${state.filter === "location" ? "selected" : ""}>Locations</option><option value="all" ${state.filter === "all" ? "selected" : ""}>Full audit</option></select></div></header>
           <div class="atlas-dashboard-feed">${renderFeed(rows)}</div>
         </article>
         <aside class="atlas-dashboard-side">
-          <article class="atlas-dashboard-panel"><header class="atlas-dashboard-panel-head"><div><h2>Changes by Type</h2><p>${escapeHtml(rangeLabel)}</p></div></header><div class="atlas-dashboard-bars">${renderBars(operationalRows)}</div></article>
-          <article class="atlas-dashboard-panel"><header class="atlas-dashboard-panel-head"><div><h2>Employee Activity</h2><p>Actions recorded by ATLAS</p></div></header><div class="atlas-dashboard-people">${renderPeople(operationalRows)}</div></article>
+          ${renderTodaySummary(operationalRows, rangeLabel)}
+          ${renderWarehouseStatus()}
         </aside>
-      </section>`;
+      </section>${renderActivityDrawer()}`;
   };
 
   const render = () => {
@@ -702,6 +751,11 @@
   };
 
   const handleClick = (event) => {
+    if (event.target.matches?.("[data-drawer-close]")) {
+      state.drawer = null;
+      render();
+      return;
+    }
     if (event.target.matches?.("[data-account-modal-backdrop]")) {
       state.accountModal = null;
       render();
@@ -748,6 +802,21 @@
       runAdminAction("delete", { user_id: button.dataset.userId });
     } else if (button.matches("[data-account-refresh]")) {
       loadAdminUsers();
+    } else if (button.matches("[data-activity-id]")) {
+      state.drawer = { kind: "activity", id: button.dataset.activityId };
+      render();
+    } else if (button.matches("[data-review-pending]")) {
+      const request = state.deleteRequests.find((item) => item.status === "pending");
+      if (request) { state.drawer = { kind: "request", id: request.id }; render(); }
+    } else if (button.matches("[data-undo-activity]")) {
+      if (!window.confirm("Undo this completed action? ATLAS will record the reversal.")) return;
+      runProtectedAction("undo_inventory_activity", { snapshot_id: button.dataset.snapshotId });
+    } else if (button.matches("[data-reject-request]")) {
+      if (!window.confirm("Reject this SKU deletion request? No inventory will be changed.")) return;
+      runProtectedAction("review_sku_delete_request", { request_id: button.dataset.requestId, decision: "reject" });
+    } else if (button.matches("[data-approve-request]")) {
+      if (!window.confirm("Delete this SKU permanently? This action cannot be undone without a recorded supervisor Undo.")) return;
+      runProtectedAction("review_sku_delete_request", { request_id: button.dataset.requestId, decision: "approve" });
     }
   };
 
@@ -762,6 +831,8 @@
 
   const handleChange = (event) => {
     if (event.target.matches("[data-range]")) state.range = event.target.value;
+    else if (event.target.matches("[data-custom-start]")) state.customStart = event.target.value;
+    else if (event.target.matches("[data-custom-end]")) state.customEnd = event.target.value;
     else if (event.target.matches("[data-filter]")) state.filter = event.target.value;
     else return;
     render();
@@ -838,6 +909,18 @@
         submit.textContent = submit.dataset.originalText || "Save";
       }
       state.adminLoading = false;
+      render();
+    }
+  };
+
+  const runProtectedAction = async (action, payload) => {
+    try {
+      const result = await adminApi(action, payload);
+      state.drawer = null;
+      state.adminNotice = result.message || "ATLAS recorded the update.";
+      await loadData();
+    } catch (error) {
+      state.error = error instanceof Error ? error.message : "The protected action could not be completed.";
       render();
     }
   };

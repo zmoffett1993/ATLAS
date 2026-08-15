@@ -39,9 +39,9 @@
     "Delete SKU": {
       stepOne: "Search for a SKU",
       stepTwo: "Review this SKU",
-      success: "SKU deleted successfully",
-      reviewLabel: "Review Deletion",
-      confirmLabel: "Delete SKU",
+      success: "Deletion request sent",
+      reviewLabel: "Review deletion request",
+      confirmLabel: "Request Deletion",
     },
   };
 
@@ -166,7 +166,7 @@
     }
     return {
       heading: `Delete ${sku}?`,
-      body: "This removes the SKU from picker searches while preserving the existing audit history.",
+      body: "This sends a permanent deletion request for supervisor approval. ATLAS will not change inventory until the request is approved.",
       rows: [["SKU", sku]],
     };
   };
