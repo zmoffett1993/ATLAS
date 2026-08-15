@@ -935,32 +935,49 @@
 
   html.atlas-desktop .atlas-desktop-inventory-parent {
     margin-top: 4px !important;
-    color: #dfeeff !important;
-    border-color: rgba(86, 152, 238, 0.2) !important;
-    background: rgba(32, 94, 170, 0.2) !important;
-    cursor: default !important;
+    cursor: pointer !important;
   }
 
   html.atlas-desktop .atlas-desktop-inventory-parent .atlas-menu-chevron {
-    display: none !important;
+    display: block !important;
+    color: #8dc0ff !important;
+    font-size: 20px !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    transition: color 170ms ease, transform 170ms ease;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-parent.is-expanded {
+    color: #e8f3ff !important;
+    border-color: rgba(86, 152, 238, 0.2) !important;
+    background: rgba(32, 94, 170, 0.2) !important;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-parent.is-expanded .atlas-menu-chevron {
+    color: #dceeff !important;
+    transform: translateY(1px);
   }
 
   html.atlas-desktop .atlas-desktop-inventory-children {
     display: grid;
-    gap: 2px;
+    gap: 3px;
     margin: 1px 0 5px 11px;
     padding: 4px 0 5px 10px;
     border-left: 1px solid rgba(113, 167, 233, 0.28);
   }
 
+  html.atlas-desktop .atlas-desktop-inventory-children[hidden] {
+    display: none;
+  }
+
   html.atlas-desktop .atlas-desktop-inventory-child {
     width: 100%;
-    min-height: 31px;
+    min-height: 38px;
     display: grid;
-    grid-template-columns: 17px minmax(0, 1fr);
+    grid-template-columns: 22px minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: 9px;
+    padding: 7px 9px;
     color: rgba(226, 240, 255, 0.73);
     text-align: left;
     cursor: pointer;
@@ -979,17 +996,27 @@
     display: grid;
     place-items: center;
     color: #8cbfff;
-    font-size: 15px;
-    font-weight: 850;
+    width: 18px;
+    height: 18px;
     line-height: 1;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child > span svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   html.atlas-desktop .atlas-desktop-inventory-child > strong {
     overflow: hidden;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 850;
-    letter-spacing: 0.052em;
-    line-height: 1.15;
+    letter-spacing: 0.065em;
+    line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
   }

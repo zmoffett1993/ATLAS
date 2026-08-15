@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v129-desktop-guided-workflows";
+const VERSION = "atlas-pwa-v130-desktop-inventory-sidebar";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,8 +9,8 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=131",
   "./atlas-guided-workflows.css?v=1",
   "./atlas-guided-workflows.js?v=1",
-  "./atlas-desktop.css?v=133",
-  "./atlas-desktop.js?v=121",
+  "./atlas-desktop.css?v=134",
+  "./atlas-desktop.js?v=122",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
   "./pallet-guides.json?v=20260805-v4",

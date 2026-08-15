@@ -18,13 +18,30 @@
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M21 20H2"></path></svg>',
   };
   const inventoryActions = [
-    { id: "move", label: "MOVE INVENTORY", title: "Move Inventory", icon: "⇄" },
-    { id: "clear", label: "MARK LOCATION EMPTY", title: "Mark Location Empty", icon: "○" },
-    { id: "pick", label: "MANAGE PICK FIRST", title: "Manage Pick First", icon: "★" },
-    { id: "create", label: "CREATE SKU", title: "Create New SKU", icon: "+" },
-    { id: "edit", label: "EDIT SKU", title: "Edit SKU", icon: "✎" },
-    { id: "delete", label: "DELETE SKU", title: "Delete SKU", icon: "⌫" },
+    { id: "browse", label: "BROWSE INVENTORY", title: "Browse Inventory", icon: "browse" },
+    { id: "move", label: "MOVE INVENTORY", title: "Move Inventory", icon: "move" },
+    { id: "clear", label: "MARK LOCATION EMPTY", title: "Mark Location Empty", icon: "clear" },
+    { id: "pick", label: "MANAGE PICK FIRST", title: "Manage Pick First", icon: "pick" },
+    { id: "create", label: "CREATE SKU", title: "Create New SKU", icon: "create" },
+    { id: "edit", label: "EDIT SKU", title: "Edit SKU", icon: "edit" },
+    { id: "delete", label: "DELETE SKU", title: "Delete SKU", icon: "delete" },
   ];
+  const actionIcons = {
+    browse:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"></path><path d="M8 5v14M4 10h16M4 15h16"></path></svg>',
+    move:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13"></path><path d="m13 4 4 4-4 4"></path><path d="M20 16H7"></path><path d="m11 12-4 4 4 4"></path></svg>',
+    clear:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"></path><path d="M9 7V4h6v3"></path><path d="m7 7 1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path></svg>',
+    pick:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path></svg>',
+    create:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>',
+    edit:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 19 3.4-.7L19 7.7 16.3 5 5.7 15.6 5 19Z"></path><path d="m14.8 6.5 2.7 2.7"></path></svg>',
+    delete:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"></path><path d="M9 7V4h6v3"></path><path d="m7 7 1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path></svg>',
+  };
   const workflowByTitle = new Map([
     ["Move Inventory", "move"],
     ["Mark Location Empty", "clear"],
@@ -34,6 +51,7 @@
     ["Delete SKU", "delete"],
   ]);
   let sidebarState = null;
+  let inventoryExpanded = false;
 
   const pageMeta = () => {
     if (root.classList.contains("atlas-dashboard-open")) {
@@ -127,6 +145,12 @@
   const activateInventoryAction = (actionId) => {
     const target = inventoryActions.find((action) => action.id === actionId);
     if (!target) return;
+    inventoryExpanded = true;
+    if (actionId === "browse") {
+      navigate("aisles");
+      queueSync();
+      return;
+    }
     if (root.classList.contains("atlas-dashboard-open")) {
       sidebarState?.home?.click();
       window.requestAnimationFrame(() => activateInventoryAction(actionId));
@@ -152,11 +176,22 @@
     desktopParent.removeAttribute("data-nav");
     desktopParent.classList.add("atlas-desktop-inventory-parent");
     desktopParent.dataset.atlasDesktopInventoryParent = "true";
-    desktopParent.setAttribute("aria-expanded", "true");
+    desktopParent.setAttribute("aria-expanded", "false");
     desktopParent.querySelector(".atlas-menu-label").textContent = "INVENTORY";
-    desktopParent.querySelector(".atlas-menu-chevron").textContent = "";
+    desktopParent.querySelector(".atlas-menu-chevron").textContent = "›";
     inventory.replaceWith(desktopParent);
     return desktopParent;
+  };
+
+  const setInventoryExpanded = (expanded) => {
+    inventoryExpanded = Boolean(expanded);
+    const parent = document.querySelector("[data-atlas-desktop-inventory-parent]");
+    const group = document.querySelector(".atlas-desktop-inventory-children");
+    parent?.classList.toggle("is-expanded", inventoryExpanded);
+    parent?.setAttribute("aria-expanded", String(inventoryExpanded));
+    const chevron = parent?.querySelector(".atlas-menu-chevron");
+    if (chevron) chevron.textContent = inventoryExpanded ? "⌄" : "›";
+    if (group) group.hidden = !inventoryExpanded;
   };
 
   const ensureDesktopSidebar = () => {
@@ -181,7 +216,7 @@
       .map(
         (action) => `
           <button type="button" class="atlas-desktop-inventory-child" data-atlas-inventory-action="${action.id}">
-            <span aria-hidden="true">${action.icon}</span>
+            <span aria-hidden="true">${actionIcons[action.icon]}</span>
             <strong>${action.label}</strong>
           </button>`,
       )
@@ -193,11 +228,16 @@
       activateInventoryAction(button.dataset.atlasInventoryAction);
     });
 
+    desktopInventory.addEventListener("click", (event) => {
+      event.preventDefault();
+      setInventoryExpanded(!inventoryExpanded);
+    });
+
     home.querySelector(".atlas-menu-label").textContent = "SEARCH SKU";
-    browse.querySelector(".atlas-menu-label").textContent = "BROWSE INVENTORY";
     about.querySelector(".atlas-menu-label").textContent = "ABOUT ATLAS";
-    nav.replaceChildren(dashboard, home, browse, desktopInventory, group, about);
+    nav.replaceChildren(home, desktopInventory, group, dashboard, about);
     nav.dataset.atlasDesktopNavigation = "true";
+    setInventoryExpanded(false);
     return nav;
   };
 
@@ -212,6 +252,7 @@
     about.querySelector(".atlas-menu-label").textContent = "ABOUT";
     delete nav.dataset.atlasDesktopNavigation;
     sidebarState = null;
+    inventoryExpanded = false;
   };
 
   const syncDesktop = () => {
@@ -252,7 +293,6 @@
       const action = item.dataset.action || "";
       const active =
         (meta.key === "home" && nav === "home") ||
-        (meta.key === "aisles" && nav.includes("browse")) ||
         (meta.key === "dashboard" && action === "dashboard") ||
         (meta.key === "about" && action === "about");
       item.classList.toggle("is-active", active);
@@ -261,15 +301,15 @@
     });
     document.querySelectorAll("[data-atlas-inventory-action]").forEach((item) => {
       const active =
-        meta.key === "inventory" &&
-        item.dataset.atlasInventoryAction === meta.inventoryAction;
+        (meta.key === "aisles" && item.dataset.atlasInventoryAction === "browse") ||
+        (meta.key === "inventory" &&
+          item.dataset.atlasInventoryAction === meta.inventoryAction);
       item.classList.toggle("is-active", active);
       if (active) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
-    document
-      .querySelector("[data-atlas-desktop-inventory-parent]")
-      ?.classList.toggle("is-expanded", meta.key === "inventory");
+    if (meta.key === "inventory" || meta.key === "aisles") inventoryExpanded = true;
+    setInventoryExpanded(inventoryExpanded);
 
     updateClock();
   };
