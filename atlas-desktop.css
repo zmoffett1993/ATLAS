@@ -907,13 +907,7 @@
     min-height: 0 !important;
     gap: 3px !important;
     padding: 3px 12px 16px !important;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-  }
-
-  html.atlas-desktop .premium-drawer-nav.atlas-menu-nav::-webkit-scrollbar {
-    display: none;
+    overflow: hidden;
   }
 
   html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
@@ -964,10 +958,36 @@
 
   html.atlas-desktop .atlas-desktop-inventory-children {
     display: grid;
+    flex: 1 1 auto;
+    min-height: 0;
     gap: 3px;
     margin: 1px 0 5px 11px;
-    padding: 4px 0 5px 10px;
+    padding: 4px 6px 5px 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(142, 192, 255, 0.42) transparent;
     border-left: 1px solid rgba(113, 167, 233, 0.28);
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar-thumb {
+    background: rgba(142, 192, 255, 0.4);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-children::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(182, 218, 255, 0.68);
   }
 
   html.atlas-desktop .atlas-desktop-inventory-children[hidden] {
@@ -1045,6 +1065,7 @@
 
   html.atlas-desktop .atlas-menu-footer {
     min-height: 68px !important;
+    flex-shrink: 0;
     margin: 0 !important;
     padding: 13px 26px 18px !important;
     isolation: isolate;

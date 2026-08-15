@@ -52,6 +52,7 @@
   ]);
   let sidebarState = null;
   let inventoryExpanded = false;
+  let lastEnsuredInventoryAction = "";
 
   const visibleWorkflowTitle = () => {
     const candidates = [
@@ -267,6 +268,7 @@
     delete nav.dataset.atlasDesktopNavigation;
     sidebarState = null;
     inventoryExpanded = false;
+    lastEnsuredInventoryAction = "";
   };
 
   const syncDesktop = () => {
@@ -325,13 +327,15 @@
     if (meta.key === "inventory" || meta.key === "aisles") inventoryExpanded = true;
     setInventoryExpanded(inventoryExpanded);
 
-    const activeInventoryItem = document.querySelector(
-      ".atlas-desktop-inventory-child.is-active",
-    );
-    if (activeInventoryItem) {
+    const activeInventoryItem = document.querySelector(".atlas-desktop-inventory-child.is-active");
+    const activeInventoryAction = activeInventoryItem?.dataset.atlasInventoryAction || "";
+    if (activeInventoryItem && activeInventoryAction !== lastEnsuredInventoryAction) {
+      lastEnsuredInventoryAction = activeInventoryAction;
       window.requestAnimationFrame(() =>
         activeInventoryItem.scrollIntoView({ block: "nearest", inline: "nearest" }),
       );
+    } else if (!activeInventoryItem) {
+      lastEnsuredInventoryAction = "";
     }
 
     updateClock();
