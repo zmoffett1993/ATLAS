@@ -686,6 +686,21 @@
     box-shadow: 0 14px 38px rgba(15, 46, 80, 0.075) !important;
   }
 
+  /* Operational inventory pages are task-first. The desktop command bar
+     remains the compact ATLAS context, while the large browse-page brand
+     treatment is removed from the workflow's document flow. */
+  html.atlas-desktop.atlas-inventory-action-page #root .brand-header {
+    display: none !important;
+  }
+
+  html.atlas-desktop.atlas-inventory-action-page #root .workspace {
+    padding-top: 20px !important;
+  }
+
+  html.atlas-desktop.atlas-inventory-action-page #root .workflow-card {
+    margin-top: 12px !important;
+  }
+
   html.atlas-desktop.atlas-view-inventory #root .workflow-card > .sku-search-field,
   html.atlas-desktop.atlas-view-inventory #root .workflow-card > .inventory-sku-search {
     width: min(760px, 100%) !important;

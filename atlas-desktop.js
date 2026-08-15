@@ -318,6 +318,10 @@
       "atlas-view-about",
     );
     root.classList.add(`atlas-view-${meta.key}`);
+    root.classList.toggle(
+      "atlas-inventory-action-page",
+      Boolean(meta.inventoryAction),
+    );
 
     const topbar = ensureTopbar();
     ensureDesktopSidebar();
@@ -413,6 +417,7 @@
       "atlas-view-inventory",
       "atlas-view-dashboard",
       "atlas-view-about",
+      "atlas-inventory-action-page",
     );
     restoreMobileSidebar();
     document.querySelector(".atlas-desktop-topbar")?.remove();
