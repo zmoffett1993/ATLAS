@@ -1,0 +1,223 @@
+/* Shared guided operational workflows. The markup is enhanced after the
+   existing ATLAS workflows render, so all current Supabase calls stay intact. */
+.atlas-guided-workflow {
+  gap: 18px;
+}
+
+.atlas-guided-step {
+  padding-top: 4px;
+}
+
+.atlas-guided-step__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.atlas-guided-step__heading > span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(145deg, #1777e8, #0756c5);
+  border-radius: 50%;
+  box-shadow: 0 5px 11px rgba(8, 95, 205, 0.22);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.atlas-guided-step__heading h3 {
+  margin: 0;
+  color: #0b274b;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.atlas-guided-step--success .atlas-guided-step__heading > span {
+  background: linear-gradient(145deg, #168463, #0d654d);
+  box-shadow: 0 5px 11px rgba(13, 101, 77, 0.2);
+}
+
+.atlas-guided-review-trigger {
+  margin-top: 2px;
+}
+
+.atlas-guided-confirmation {
+  display: grid;
+  gap: 14px;
+  margin-top: 2px;
+  padding: 16px;
+  color: #0b274b;
+  background: linear-gradient(145deg, #f4f9ff, #e8f3ff);
+  border: 1px solid #b9d6f8;
+  border-radius: 16px;
+  box-shadow:
+    0 10px 22px rgba(25, 103, 194, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.atlas-guided-confirmation .atlas-guided-step__heading {
+  align-items: flex-start;
+}
+
+.atlas-guided-confirmation .atlas-guided-step__heading > div {
+  min-width: 0;
+}
+
+.atlas-guided-confirmation .atlas-guided-step__heading small {
+  display: block;
+  margin-bottom: 4px;
+  color: #1766bd;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+}
+
+.atlas-guided-confirmation .atlas-guided-step__heading h3 {
+  font-size: 17px;
+}
+
+.atlas-guided-confirmation > p {
+  max-width: 720px;
+  margin: 0;
+  color: #38556f;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.atlas-guided-confirmation dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin: 0;
+}
+
+.atlas-guided-confirmation dl > div {
+  min-width: 0;
+  padding: 10px 11px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(123, 169, 218, 0.36);
+  border-radius: 10px;
+}
+
+.atlas-guided-confirmation dt {
+  margin: 0;
+  color: #617b94;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.atlas-guided-confirmation dd {
+  overflow-wrap: anywhere;
+  margin: 4px 0 0;
+  color: #0b274b;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.atlas-guided-confirmation__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.55fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.atlas-guided-cancel,
+.atlas-guided-confirm {
+  min-height: 48px;
+  cursor: pointer;
+  border-radius: 11px;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  transition:
+    transform 170ms ease,
+    box-shadow 190ms ease,
+    background 190ms ease,
+    border-color 190ms ease;
+}
+
+.atlas-guided-cancel {
+  color: #173c63;
+  background: #fff;
+  border: 1px solid #9ebddd;
+}
+
+.atlas-guided-confirm {
+  color: #fff;
+  background: linear-gradient(135deg, #0f67d4, #0847a6);
+  border: 1px solid #07439b;
+  box-shadow: 0 8px 16px rgba(9, 76, 172, 0.22);
+}
+
+.atlas-guided-cancel:focus-visible,
+.atlas-guided-confirm:focus-visible {
+  outline: 3px solid rgba(12, 101, 214, 0.28);
+  outline-offset: 2px;
+}
+
+.atlas-guided-pick-selected {
+  border-color: #1b70d4 !important;
+  box-shadow: 0 0 0 3px rgba(27, 112, 212, 0.12);
+}
+
+.atlas-guided-success-message {
+  border: 1px solid rgba(26, 132, 99, 0.22);
+  box-shadow: 0 6px 14px rgba(19, 117, 83, 0.08);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .atlas-guided-cancel:hover {
+    background: #f6faff;
+    border-color: #6c9fd0;
+    transform: translateY(-1px);
+  }
+
+  .atlas-guided-confirm:hover {
+    background: linear-gradient(135deg, #1675e5, #0847a6);
+    box-shadow: 0 11px 20px rgba(9, 76, 172, 0.28);
+    transform: translateY(-1px);
+  }
+}
+
+@media (min-width: 700px) {
+  .atlas-guided-workflow {
+    gap: 20px;
+  }
+
+  .atlas-guided-confirmation {
+    padding: 19px 20px;
+  }
+
+  .atlas-guided-confirmation__actions {
+    width: min(100%, 370px);
+    justify-self: end;
+  }
+}
+
+@media (max-width: 390px) {
+  .atlas-guided-confirmation {
+    padding: 14px;
+  }
+
+  .atlas-guided-confirmation dl,
+  .atlas-guided-confirmation__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-guided-cancel,
+  .atlas-guided-confirm {
+    transition: none;
+  }
+}

@@ -17,10 +17,30 @@
     dashboard:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M21 20H2"></path></svg>',
   };
+  const inventoryActions = [
+    { id: "move", label: "MOVE INVENTORY", title: "Move Inventory", icon: "⇄" },
+    { id: "clear", label: "MARK LOCATION EMPTY", title: "Mark Location Empty", icon: "○" },
+    { id: "pick", label: "MANAGE PICK FIRST", title: "Manage Pick First", icon: "★" },
+    { id: "create", label: "CREATE SKU", title: "Create New SKU", icon: "+" },
+    { id: "edit", label: "EDIT SKU", title: "Edit SKU", icon: "✎" },
+    { id: "delete", label: "DELETE SKU", title: "Delete SKU", icon: "⌫" },
+  ];
+  const workflowByTitle = new Map([
+    ["Move Inventory", "move"],
+    ["Mark Location Empty", "clear"],
+    ["Manage Pick First", "pick"],
+    ["Create New SKU", "create"],
+    ["Edit SKU", "edit"],
+    ["Delete SKU", "delete"],
+  ]);
+  let sidebarState = null;
 
   const pageMeta = () => {
     if (root.classList.contains("atlas-dashboard-open")) {
       return { key: "dashboard", title: "Operations Dashboard" };
+    }
+    if (document.querySelector(".atlas-story-backdrop")) {
+      return { key: "about", title: "About ATLAS" };
     }
     const active = [...document.querySelectorAll(".bottom-nav button")].find(
       (button) => button.classList.contains("active"),
@@ -36,6 +56,7 @@
       return {
         key: "inventory",
         title: workflowTitle || "Inventory Command Center",
+        inventoryAction: workflowByTitle.get(workflowTitle) || "",
       };
     }
     const sku = document
@@ -64,9 +85,6 @@
           <span data-desktop-status>Live warehouse data</span>
           <time data-desktop-clock></time>
         </div>
-        <button type="button" data-desktop-action="search">${icons.search}<span>Search SKU</span></button>
-        <button type="button" data-desktop-action="inventory">${icons.inventory}<span>Inventory</span></button>
-        <button type="button" data-desktop-action="dashboard">${icons.dashboard}<span>Dashboard</span></button>
       </div>`;
     document.body.appendChild(topbar);
     return topbar;
@@ -88,7 +106,12 @@
       window.atlasOpenDashboard?.();
       return;
     }
-    const label = target === "inventory" ? "Inventory" : "Home";
+    const label =
+      target === "inventory"
+        ? "Inventory"
+        : target === "aisles"
+          ? "Browse Aisles"
+          : "Home";
     const button = [...document.querySelectorAll(".bottom-nav button")].find(
       (item) => item.textContent?.trim().toLowerCase().includes(label.toLowerCase()),
     );
@@ -101,6 +124,96 @@
     }
   };
 
+  const activateInventoryAction = (actionId) => {
+    const target = inventoryActions.find((action) => action.id === actionId);
+    if (!target) return;
+    if (root.classList.contains("atlas-dashboard-open")) {
+      sidebarState?.home?.click();
+      window.requestAnimationFrame(() => activateInventoryAction(actionId));
+      return;
+    }
+    navigate("inventory");
+    let attempts = 0;
+    const open = () => {
+      const actionButton = [...document.querySelectorAll(".inventory-action")].find(
+        (button) => button.textContent?.trim().includes(target.title),
+      );
+      if (actionButton) {
+        actionButton.click();
+        return;
+      }
+      if (attempts++ < 12) window.requestAnimationFrame(open);
+    };
+    window.requestAnimationFrame(open);
+  };
+
+  const replaceInventoryParent = (inventory) => {
+    const desktopParent = inventory.cloneNode(true);
+    desktopParent.removeAttribute("data-nav");
+    desktopParent.classList.add("atlas-desktop-inventory-parent");
+    desktopParent.dataset.atlasDesktopInventoryParent = "true";
+    desktopParent.setAttribute("aria-expanded", "true");
+    desktopParent.querySelector(".atlas-menu-label").textContent = "INVENTORY";
+    desktopParent.querySelector(".atlas-menu-chevron").textContent = "";
+    inventory.replaceWith(desktopParent);
+    return desktopParent;
+  };
+
+  const ensureDesktopSidebar = () => {
+    const nav = document.querySelector(".premium-drawer-nav.atlas-menu-nav");
+    if (!nav) return null;
+    if (nav.dataset.atlasDesktopNavigation === "true") return nav;
+
+    const home = nav.querySelector('[data-nav="Home"]');
+    const browse = nav.querySelector('[data-nav="Browse Aisles"]');
+    const inventory = nav.querySelector('[data-nav="Inventory"]');
+    const dashboard = nav.querySelector('[data-action="dashboard"]');
+    const about = nav.querySelector('[data-action="about"]');
+    if (!home || !browse || !inventory || !dashboard || !about) return null;
+
+    sidebarState = { nav, home, browse, inventory, dashboard, about };
+    const desktopInventory = replaceInventoryParent(inventory);
+    const group = document.createElement("div");
+    group.className = "atlas-desktop-inventory-children";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "Inventory management tools");
+    group.innerHTML = inventoryActions
+      .map(
+        (action) => `
+          <button type="button" class="atlas-desktop-inventory-child" data-atlas-inventory-action="${action.id}">
+            <span aria-hidden="true">${action.icon}</span>
+            <strong>${action.label}</strong>
+          </button>`,
+      )
+      .join("");
+    group.addEventListener("click", (event) => {
+      const button = event.target.closest?.("[data-atlas-inventory-action]");
+      if (!button) return;
+      event.preventDefault();
+      activateInventoryAction(button.dataset.atlasInventoryAction);
+    });
+
+    home.querySelector(".atlas-menu-label").textContent = "SEARCH SKU";
+    browse.querySelector(".atlas-menu-label").textContent = "BROWSE INVENTORY";
+    about.querySelector(".atlas-menu-label").textContent = "ABOUT ATLAS";
+    nav.replaceChildren(dashboard, home, browse, desktopInventory, group, about);
+    nav.dataset.atlasDesktopNavigation = "true";
+    return nav;
+  };
+
+  const restoreMobileSidebar = () => {
+    if (!sidebarState) return;
+    const { nav, home, browse, inventory, dashboard, about } = sidebarState;
+    const desktopParent = nav.querySelector("[data-atlas-desktop-inventory-parent]");
+    desktopParent?.replaceWith(inventory);
+    nav.replaceChildren(home, browse, inventory, dashboard, about);
+    home.querySelector(".atlas-menu-label").textContent = "HOME";
+    browse.querySelector(".atlas-menu-label").textContent = "BROWSE AISLES";
+    about.querySelector(".atlas-menu-label").textContent = "ABOUT";
+    delete nav.dataset.atlasDesktopNavigation;
+    sidebarState = null;
+  };
+
   const syncDesktop = () => {
     syncQueued = false;
     if (!desktopQuery.matches) return;
@@ -111,21 +224,14 @@
       "atlas-view-aisles",
       "atlas-view-inventory",
       "atlas-view-dashboard",
+      "atlas-view-about",
     );
     root.classList.add(`atlas-view-${meta.key}`);
 
     const topbar = ensureTopbar();
+    ensureDesktopSidebar();
     const title = topbar.querySelector("[data-desktop-page-title]");
     if (title) title.textContent = meta.title;
-    topbar.querySelectorAll("[data-desktop-action]").forEach((button) => {
-      const action = button.dataset.desktopAction;
-      const active =
-        (meta.key === "home" && action === "search") ||
-        (meta.key === "inventory" && action === "inventory") ||
-        (meta.key === "dashboard" && action === "dashboard");
-      button.classList.toggle("is-active", active);
-      button.setAttribute("aria-pressed", String(active));
-    });
     const status = topbar.querySelector("[data-desktop-status]");
     if (status) {
       status.textContent = root.classList.contains("atlas-offline")
@@ -147,12 +253,23 @@
       const active =
         (meta.key === "home" && nav === "home") ||
         (meta.key === "aisles" && nav.includes("browse")) ||
-        (meta.key === "inventory" && nav === "inventory") ||
-        (meta.key === "dashboard" && action === "dashboard");
+        (meta.key === "dashboard" && action === "dashboard") ||
+        (meta.key === "about" && action === "about");
       item.classList.toggle("is-active", active);
       if (active) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
+    document.querySelectorAll("[data-atlas-inventory-action]").forEach((item) => {
+      const active =
+        meta.key === "inventory" &&
+        item.dataset.atlasInventoryAction === meta.inventoryAction;
+      item.classList.toggle("is-active", active);
+      if (active) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
+    document
+      .querySelector("[data-atlas-desktop-inventory-parent]")
+      ?.classList.toggle("is-expanded", meta.key === "inventory");
 
     updateClock();
   };
@@ -166,10 +283,6 @@
   const enableDesktop = () => {
     if (!desktopQuery.matches) return;
     root.classList.add("atlas-desktop");
-    ensureTopbar().addEventListener("click", (event) => {
-      const button = event.target.closest?.("[data-desktop-action]");
-      if (button) navigate(button.dataset.desktopAction);
-    });
     if (!observer) {
       observer = new MutationObserver(queueSync);
       observer.observe(document.documentElement, {
@@ -190,7 +303,9 @@
       "atlas-view-aisles",
       "atlas-view-inventory",
       "atlas-view-dashboard",
+      "atlas-view-about",
     );
+    restoreMobileSidebar();
     document.querySelector(".atlas-desktop-topbar")?.remove();
     observer?.disconnect();
     observer = null;

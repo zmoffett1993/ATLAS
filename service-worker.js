@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v128-ui-account-polish";
+const VERSION = "atlas-pwa-v129-desktop-guided-workflows";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,9 +6,11 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=128",
-  "./atlas-dashboard.js?v=128",
-  "./atlas-desktop.css?v=128",
-  "./atlas-desktop.js?v=120",
+  "./atlas-dashboard.js?v=131",
+  "./atlas-guided-workflows.css?v=1",
+  "./atlas-guided-workflows.js?v=1",
+  "./atlas-desktop.css?v=133",
+  "./atlas-desktop.js?v=121",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
   "./pallet-guides.json?v=20260805-v4",

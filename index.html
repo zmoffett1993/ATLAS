@@ -16003,6 +16003,8 @@ Error generating stack: ` +
         setValue: i,
         setSelected: a,
         openScanner: o,
+        showProductSummary: c = !1,
+        hideSelectedSku: l = !1,
       }) {
         let s = (e) => {
           (Ge(), a(e), i(e.sku));
@@ -16025,14 +16027,29 @@ Error generating stack: ` +
                 }),
             }),
             r
-              ? (0, T.jsxs)(`div`, {
-                  className: `selected-sku`,
+              ? (0, T.jsxs)(T.Fragment, {
                   children: [
-                    (0, T.jsx)(`span`, { children: `SELECTED SKU` }),
-                    (0, T.jsx)(`strong`, { children: r.sku }),
-                    (0, T.jsx)(`small`, {
-                      children: r.description || `Warehouse inventory item`,
-                    }),
+                    l
+                      ? null
+                      : (0, T.jsxs)(`div`, {
+                          className: `selected-sku`,
+                          children: [
+                            (0, T.jsx)(`span`, { children: `SELECTED SKU` }),
+                            (0, T.jsx)(`strong`, { children: r.sku }),
+                            (0, T.jsx)(`small`, {
+                              children: r.description || `Warehouse inventory item`,
+                            }),
+                          ],
+                        }),
+                    c
+                      ? (0, T.jsx)(atlasClearProductSummary, {
+                          sku: r.sku,
+                          description: r.description,
+                          locationCount: (r.locations || []).filter(
+                            (e) => e.is_active !== !1,
+                          ).length,
+                        })
+                      : null,
                   ],
                 })
               : null,
@@ -16263,6 +16280,7 @@ Error generating stack: ` +
               setValue: a,
               setSelected: s,
               openScanner: n,
+              showProductSummary: !0,
             }),
             o
               ? (0, T.jsxs)(T.Fragment, {
@@ -16453,6 +16471,7 @@ Error generating stack: ` +
               setValue: i,
               setSelected: o,
               openScanner: n,
+              showProductSummary: !0,
             }),
             a
               ? (0, T.jsxs)(T.Fragment, {
@@ -17157,6 +17176,7 @@ Error generating stack: ` +
                   setValue: a,
                   setSelected: s,
                   openScanner: n,
+                  hideSelectedSku: !0,
                 }),
                 o
                   ? (0, T.jsx)(atlasClearProductSummary, {
@@ -35743,9 +35763,11 @@ Error generating stack: ` +
       }
     </style>
 
-    <link rel="stylesheet" href="./atlas-desktop.css?v=132" />
+    <link rel="stylesheet" href="./atlas-guided-workflows.css?v=1" />
+    <link rel="stylesheet" href="./atlas-desktop.css?v=133" />
     <script src="./atlas-dashboard.js?v=131" defer></script>
-    <script src="./atlas-desktop.js?v=120" defer></script>
+    <script src="./atlas-guided-workflows.js?v=1" defer></script>
+    <script src="./atlas-desktop.js?v=121" defer></script>
 
 </body>
 </html>

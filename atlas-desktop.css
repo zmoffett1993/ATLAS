@@ -892,3 +892,137 @@
     }
   }
 }
+
+/* Desktop-only direct inventory navigation. The mobile drawer and its large
+   touch-first Inventory menu remain untouched. */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  html.atlas-desktop .atlas-menu-brand {
+    min-height: 136px !important;
+    padding: 30px 23px 20px !important;
+  }
+
+  html.atlas-desktop .premium-drawer-nav.atlas-menu-nav {
+    gap: 3px !important;
+    padding: 3px 12px 10px !important;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  html.atlas-desktop .premium-drawer-nav.atlas-menu-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active {
+    min-height: 43px !important;
+    padding: 0 12px !important;
+    grid-template-columns: 27px minmax(0, 1fr) 12px !important;
+    gap: 9px !important;
+    border-radius: 10px !important;
+  }
+
+  html.atlas-desktop .atlas-menu-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  html.atlas-desktop .atlas-menu-label {
+    font-size: 10px !important;
+    letter-spacing: 0.065em !important;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-parent {
+    margin-top: 4px !important;
+    color: #dfeeff !important;
+    border-color: rgba(86, 152, 238, 0.2) !important;
+    background: rgba(32, 94, 170, 0.2) !important;
+    cursor: default !important;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-parent .atlas-menu-chevron {
+    display: none !important;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-children {
+    display: grid;
+    gap: 2px;
+    margin: 1px 0 5px 11px;
+    padding: 4px 0 5px 10px;
+    border-left: 1px solid rgba(113, 167, 233, 0.28);
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child {
+    width: 100%;
+    min-height: 31px;
+    display: grid;
+    grid-template-columns: 17px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    color: rgba(226, 240, 255, 0.73);
+    text-align: left;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font: inherit;
+    transition:
+      color 170ms ease,
+      background 170ms ease,
+      border-color 170ms ease,
+      transform 170ms ease;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child > span {
+    display: grid;
+    place-items: center;
+    color: #8cbfff;
+    font-size: 15px;
+    font-weight: 850;
+    line-height: 1;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child > strong {
+    overflow: hidden;
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: 0.052em;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.075);
+    border-color: rgba(132, 188, 255, 0.14);
+    transform: translateX(2px);
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child.is-active {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(18, 95, 201, 0.96), rgba(25, 117, 233, 0.96));
+    border-color: rgba(133, 192, 255, 0.34);
+    box-shadow: 0 6px 13px rgba(0, 68, 157, 0.24);
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child.is-active > span {
+    color: #fff;
+  }
+
+  html.atlas-desktop .atlas-menu-footer {
+    min-height: 68px !important;
+    padding: 13px 26px 18px !important;
+  }
+
+  html.atlas-desktop.atlas-view-inventory #root .back-button,
+  html.atlas-desktop.atlas-view-inventory #root .inventory-grid {
+    display: none !important;
+  }
+
+  html.atlas-desktop .atlas-desktop-topbar__actions {
+    justify-content: flex-end;
+  }
+}
