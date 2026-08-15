@@ -1,0 +1,350 @@
+/* Desktop-only readability pass. Mobile remains on the existing ATLAS type
+   system and touch-first sizing below this established desktop breakpoint. */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  :root {
+    --atlas-desktop-sidebar: 312px;
+  }
+
+  html.atlas-desktop body,
+  html.atlas-desktop .atlas-desktop-topbar,
+  html.atlas-desktop .atlas-menu-drawer,
+  html.atlas-desktop .atlas-dashboard {
+    font-family: "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system,
+      BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Navigation: hierarchy comes from placement and indentation, never tiny type. */
+  html.atlas-desktop .premium-drawer-nav.atlas-menu-nav {
+    padding: 8px 15px 16px !important;
+    gap: 7px !important;
+  }
+
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
+  html.atlas-desktop .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active {
+    min-height: 62px !important;
+    padding: 0 16px !important;
+    grid-template-columns: 28px minmax(0, 1fr) 17px !important;
+    gap: 14px !important;
+    border-radius: 13px !important;
+  }
+
+  html.atlas-desktop .atlas-menu-icon {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  html.atlas-desktop .atlas-menu-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+    stroke-width: 1.75 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    filter: none !important;
+  }
+
+  html.atlas-desktop .atlas-menu-label {
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.012em !important;
+    text-transform: none !important;
+  }
+
+  html.atlas-desktop .atlas-menu-chevron {
+    font-size: 26px !important;
+    font-weight: 400 !important;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-children {
+    gap: 5px;
+    margin: 2px 0 6px 16px;
+    padding: 7px 0 7px 13px;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child {
+    min-height: 54px;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 13px;
+    padding: 8px 12px;
+    border-radius: 11px;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child > span {
+    width: 24px;
+    height: 24px;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child > span svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.75;
+  }
+
+  html.atlas-desktop .atlas-desktop-inventory-child > strong {
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.012em;
+    text-transform: none;
+  }
+
+  html.atlas-desktop .atlas-menu-footer {
+    min-height: 78px !important;
+  }
+
+  /* Desktop command context and core page hierarchy. */
+  html.atlas-desktop .atlas-desktop-topbar__context strong {
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.026em;
+  }
+
+  html.atlas-desktop .atlas-desktop-topbar__context span {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  html.atlas-desktop .atlas-desktop-topbar__status {
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  html.atlas-desktop #root .page-title {
+    font-size: clamp(30px, 2.4vw, 34px) !important;
+    font-weight: 600 !important;
+    line-height: 1.16 !important;
+    letter-spacing: -0.034em !important;
+  }
+
+  html.atlas-desktop #root .page-subtitle,
+  html.atlas-desktop #root .workflow-heading p {
+    font-size: 18px !important;
+    font-weight: 400 !important;
+    line-height: 1.55 !important;
+  }
+
+  html.atlas-desktop #root .workflow-heading {
+    gap: 16px !important;
+    margin-bottom: 20px !important;
+  }
+
+  html.atlas-desktop #root .workflow-heading h2 {
+    font-size: 24px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.022em !important;
+  }
+
+  html.atlas-desktop #root .inventory-icon {
+    font-weight: 600 !important;
+  }
+
+  html.atlas-desktop #root .sku-search-field > label,
+  html.atlas-desktop #root .field > span {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+  }
+
+  html.atlas-desktop #root .field em,
+  html.atlas-desktop #root .field small,
+  html.atlas-desktop #root .workflow-note,
+  html.atlas-desktop #root .workflow-message,
+  html.atlas-desktop #root .duplicate-warning {
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+  }
+
+  html.atlas-desktop #root .search-input,
+  html.atlas-desktop #root .field input,
+  html.atlas-desktop #root .field select,
+  html.atlas-desktop #root .field textarea {
+    font-size: 18px !important;
+    font-weight: 400 !important;
+    line-height: 1.35 !important;
+  }
+
+  html.atlas-desktop #root .field input,
+  html.atlas-desktop #root .field select {
+    min-height: 52px;
+  }
+
+  html.atlas-desktop #root .selected-sku span,
+  html.atlas-desktop #root .selected-sku small,
+  html.atlas-desktop #root .overflow-toggle small {
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    line-height: 1.45 !important;
+  }
+
+  html.atlas-desktop #root .selected-sku strong,
+  html.atlas-desktop #root .overflow-toggle strong,
+  html.atlas-desktop #root .confirm-sku span {
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+  }
+
+  html.atlas-desktop #root .primary-button,
+  html.atlas-desktop #root .secondary-button,
+  html.atlas-desktop #root .danger-primary-button,
+  html.atlas-desktop #root .atlas-clear-select-button,
+  html.atlas-desktop #root .atlas-cleared-undo {
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+  }
+
+  html.atlas-desktop #root .primary-button,
+  html.atlas-desktop #root .secondary-button,
+  html.atlas-desktop #root .danger-primary-button {
+    min-height: 54px !important;
+  }
+
+  /* Clear Location has its own guided layout and receives the same scale. */
+  html.atlas-desktop #root .atlas-clear-step-heading > span {
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  html.atlas-desktop #root .atlas-clear-step-heading h3 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  html.atlas-desktop #root .atlas-clear-product-summary strong,
+  html.atlas-desktop #root .atlas-clear-confirmation-copy > strong {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  html.atlas-desktop #root .atlas-clear-product-summary p,
+  html.atlas-desktop #root .atlas-clear-location-copy span,
+  html.atlas-desktop #root .atlas-clear-location-copy small,
+  html.atlas-desktop #root .atlas-clear-confirmation-copy > p,
+  html.atlas-desktop #root .atlas-clear-empty-state,
+  html.atlas-desktop #root .atlas-clear-success p,
+  html.atlas-desktop #root .atlas-clear-employee-status {
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  html.atlas-desktop #root .atlas-clear-location-copy strong {
+    font-size: 34px;
+    font-weight: 600;
+  }
+
+  html.atlas-desktop #root .atlas-clear-confirmation dt,
+  html.atlas-desktop #root .atlas-clear-confirmation-copy > span {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  html.atlas-desktop #root .atlas-clear-confirmation dd,
+  html.atlas-desktop #root .atlas-clear-success strong {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  /* Shared review panels used by Move, Pick First, Create, Edit, and Delete. */
+  html.atlas-desktop #root .atlas-guided-step__heading > span {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  html.atlas-desktop #root .atlas-guided-step__heading h3 {
+    font-size: 23px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  html.atlas-desktop #root .atlas-guided-confirmation .atlas-guided-step__heading small,
+  html.atlas-desktop #root .atlas-guided-confirmation dt {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  html.atlas-desktop #root .atlas-guided-confirmation > p,
+  html.atlas-desktop #root .atlas-guided-confirmation dd {
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  html.atlas-desktop #root .atlas-guided-confirmation dd {
+    font-weight: 600;
+  }
+
+  html.atlas-desktop #root .atlas-guided-cancel,
+  html.atlas-desktop #root .atlas-guided-confirm {
+    min-height: 54px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  /* Product and result controls remain operationally dense but no longer tiny. */
+  html.atlas-desktop #root .result-top strong,
+  html.atlas-desktop #root .location-copy strong,
+  html.atlas-desktop #root .atlas-result-actions > button,
+  html.atlas-desktop #root .atlas-product-view-details {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+  }
+
+  html.atlas-desktop #root .result-top span,
+  html.atlas-desktop #root .location-copy span,
+  html.atlas-desktop #root .sku-copy span,
+  html.atlas-desktop #root .atlas-product-copy small {
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    line-height: 1.45 !important;
+  }
+
+  /* Dashboard-specific desktop content uses the same softer scale. */
+  html.atlas-desktop .atlas-dashboard-header h1 {
+    font-size: clamp(32px, 3vw, 42px) !important;
+    font-weight: 600 !important;
+    line-height: 1.15 !important;
+  }
+
+  html.atlas-desktop .atlas-dashboard-subtitle,
+  html.atlas-desktop .atlas-dashboard-panel p,
+  html.atlas-desktop .atlas-dashboard-feed-copy small {
+    font-size: 17px !important;
+    font-weight: 400 !important;
+    line-height: 1.55 !important;
+  }
+
+  html.atlas-desktop .atlas-dashboard-card-copy span,
+  html.atlas-desktop .atlas-dashboard-section-heading p,
+  html.atlas-desktop .atlas-dashboard-range,
+  html.atlas-desktop .atlas-dashboard-button {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+  }
+
+  html.atlas-desktop .atlas-dashboard-section-heading h2,
+  html.atlas-desktop .atlas-dashboard-panel h2,
+  html.atlas-desktop .atlas-dashboard-feed-copy strong {
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+  }
+}
