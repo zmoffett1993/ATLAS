@@ -53,6 +53,14 @@
   let sidebarState = null;
   let inventoryExpanded = false;
 
+  const visibleWorkflowTitle = () => {
+    const candidates = [
+      ...document.querySelectorAll(".view-page .workflow-heading h2, .view-page .page-title"),
+    ];
+    const activeHeading = candidates.find((node) => node.getClientRects().length);
+    return activeHeading?.textContent?.trim() || "";
+  };
+
   const pageMeta = () => {
     if (root.classList.contains("atlas-dashboard-open")) {
       return { key: "dashboard", title: "Operations Dashboard" };
@@ -68,9 +76,7 @@
       return { key: "aisles", title: "Browse Warehouse Aisles" };
     }
     if (label.includes("inventory")) {
-      const workflowTitle = document
-        .querySelector(".view-page .workflow-heading h2, .view-page .page-title")
-        ?.textContent?.trim();
+      const workflowTitle = visibleWorkflowTitle();
       return {
         key: "inventory",
         title: workflowTitle || "Inventory Command Center",
@@ -146,6 +152,12 @@
     const target = inventoryActions.find((action) => action.id === actionId);
     if (!target) return;
     inventoryExpanded = true;
+    document.querySelectorAll("[data-atlas-inventory-action]").forEach((item) => {
+      const isTarget = item.dataset.atlasInventoryAction === actionId;
+      item.classList.toggle("is-active", isTarget);
+      if (isTarget) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
     if (actionId === "browse") {
       navigate("aisles");
       queueSync();
@@ -312,6 +324,15 @@
     });
     if (meta.key === "inventory" || meta.key === "aisles") inventoryExpanded = true;
     setInventoryExpanded(inventoryExpanded);
+
+    const activeInventoryItem = document.querySelector(
+      ".atlas-desktop-inventory-child.is-active",
+    );
+    if (activeInventoryItem) {
+      window.requestAnimationFrame(() =>
+        activeInventoryItem.scrollIntoView({ block: "nearest", inline: "nearest" }),
+      );
+    }
 
     updateClock();
   };

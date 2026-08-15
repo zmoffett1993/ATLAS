@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v132-operations-approval-undo";
+const VERSION = "atlas-pwa-v133-inventory-menu-audit";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -10,9 +10,9 @@ const APP_SHELL = [
   "./atlas-guided-workflows.css?v=1",
   "./atlas-guided-workflows.js?v=1",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=134",
+  "./atlas-desktop.css?v=135",
   "./atlas-desktop-typography.css?v=1",
-  "./atlas-desktop.js?v=123",
+  "./atlas-desktop.js?v=124",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
   "./pallet-guides.json?v=20260805-v4",

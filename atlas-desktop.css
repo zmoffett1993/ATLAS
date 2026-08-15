@@ -122,6 +122,7 @@
   }
 
   html.atlas-desktop .premium-drawer-nav.atlas-menu-nav {
+    grid-row: 2 !important;
     min-height: 0 !important;
     padding: 8px 13px 18px !important;
     display: flex !important;
@@ -183,6 +184,7 @@
   }
 
   html.atlas-desktop .atlas-menu-footer {
+    grid-row: 3 !important;
     min-height: 84px !important;
     margin: 0 !important;
     padding: 18px 27px 24px !important;
@@ -902,9 +904,11 @@
   }
 
   html.atlas-desktop .premium-drawer-nav.atlas-menu-nav {
+    min-height: 0 !important;
     gap: 3px !important;
-    padding: 3px 12px 10px !important;
+    padding: 3px 12px 16px !important;
     overflow-y: auto;
+    overscroll-behavior: contain;
     scrollbar-width: none;
   }
 
@@ -1041,7 +1045,10 @@
 
   html.atlas-desktop .atlas-menu-footer {
     min-height: 68px !important;
+    margin: 0 !important;
     padding: 13px 26px 18px !important;
+    isolation: isolate;
+    background: linear-gradient(180deg, rgba(4, 22, 43, 0), rgba(4, 22, 43, 0.94) 30%) !important;
   }
 
   html.atlas-desktop.atlas-view-inventory #root .back-button,
