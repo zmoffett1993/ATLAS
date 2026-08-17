@@ -132,46 +132,46 @@
       bool(oldRecord.pick_first) !== bool(newRecord.pick_first);
 
     if (action === "CREATE_SKU" || action === "SKU_CREATED")
-      return { key: "create", label: "Created new SKU", color: "#168552", operational: true };
+      return { key: "create", label: "Created new SKU", color: "#008a42", operational: true };
     if (action === "ADD_LOCATION")
-      return { key: "move", label: "Added inventory location", color: "#1467dd", operational: true };
+      return { key: "move", label: "Added inventory location", color: "#005fd7", operational: true };
     if (action === "MOVE_LOCATION" || aisleChanged || reasonText.includes("move all product"))
-      return { key: "move", label: "Moved inventory", color: "#1467dd", operational: true };
+      return { key: "move", label: "Moved inventory", color: "#005fd7", operational: true };
     if (action.includes("SKU_EDIT"))
-      return { key: "edit", label: "Edited SKU", color: "#d98900", operational: true };
+      return { key: "edit", label: "Edited SKU", color: "#e05b00", operational: true };
     if (action === "SKU_DELETE_REQUESTED")
-      return { key: "delete-request", label: "Deletion pending approval", color: "#d98900", operational: false };
+      return { key: "delete-request", label: "Deletion pending approval", color: "#e05b00", operational: false };
     if (action === "SKU_DELETE_REJECTED")
-      return { key: "delete-request", label: "Deletion request rejected", color: "#d98900", operational: false };
+      return { key: "delete-request", label: "Deletion request rejected", color: "#e05b00", operational: false };
     if (action === "SKU_DELETE_APPROVED")
       return { key: "delete", label: "Deleted SKU", color: "#e10600", operational: true };
     if (action === "UNDO_ACTION")
-      return { key: "undo", label: "Reversed recorded action", color: "#1467dd", operational: true };
+      return { key: "undo", label: "Reversed recorded action", color: "#005fd7", operational: true };
     if (action.includes("SKU_DELETE"))
       return { key: "delete", label: "Removed SKU", color: "#e10600", operational: true };
     if (action.includes("PICK_FIRST") || pickChanged)
       return {
         key: "pick",
         label: bool(newRecord.pick_first) ? "Enabled Pick First" : "Disabled Pick First",
-        color: "#7957d5",
+        color: "#6437d6",
         operational: action.includes("PICK_FIRST"),
       };
     if (action === "CLEAR_LOCATION" || action.includes("LOCATION_CLEAR") || (activeChanged && !bool(newRecord.is_active)))
-      return { key: "location", label: "Cleared location", color: "#0b9bad", operational: action === "CLEAR_LOCATION" || action.includes("LOCATION_CLEAR") };
+      return { key: "location", label: "Cleared location", color: "#008ea8", operational: action === "CLEAR_LOCATION" || action.includes("LOCATION_CLEAR") };
     if (action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") || (activeChanged && bool(newRecord.is_active)))
-      return { key: "location", label: "Restored location", color: "#168552", operational: action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") };
+      return { key: "location", label: "Restored location", color: "#008a42", operational: action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") };
     if (action.includes("CORRECT") || reasonText.includes("different location"))
-      return { key: "location", label: "Corrected location", color: "#d98900", operational: true };
+      return { key: "location", label: "Corrected location", color: "#e05b00", operational: true };
     if (action === "USER_CREATED")
-      return { key: "access", label: "Created ATLAS account", color: "#168552", operational: true };
+      return { key: "access", label: "Created ATLAS account", color: "#008a42", operational: true };
     if (action === "USER_UPDATED")
-      return { key: "access", label: "Updated account access", color: "#1467dd", operational: true };
+      return { key: "access", label: "Updated account access", color: "#005fd7", operational: true };
     if (action === "USER_PASSWORD_CHANGED")
-      return { key: "access", label: "Changed account password", color: "#7957d5", operational: true };
+      return { key: "access", label: "Changed account password", color: "#6437d6", operational: true };
     if (action === "USER_DEACTIVATED")
       return { key: "access", label: "Blocked account sign-in (legacy)", color: "#e10600", operational: true };
     if (action === "USER_REACTIVATED")
-      return { key: "access", label: "Reactivated ATLAS account", color: "#168552", operational: true };
+      return { key: "access", label: "Reactivated ATLAS account", color: "#008a42", operational: true };
     if (action === "USER_DELETED")
       return { key: "access", label: "Deleted ATLAS account", color: "#e10600", operational: true };
     if (action === "INSERT")
@@ -517,28 +517,55 @@
     audit: { icon: "•", category: "Audit" },
   }[key] || { icon: "•", category: "Activity" });
 
+  const activityContext = (row) => {
+    const hasLocation = row.to !== "—" || row.from !== "—";
+    const hasRoute = row.from !== "—" && row.to !== "—" && row.from !== row.to;
+    const location = row.to !== "—" ? row.to : row.from;
+    const snapshot = row.snapshotId ? state.undoSnapshots.find((item) => item.id === row.snapshotId) : null;
+    let detail = {
+      move: hasRoute ? "Inventory transfer" : "Inventory placement",
+      location: row.label,
+      create: "New location active",
+      edit: "SKU record updated",
+      pick: "Pick First updated",
+      delete: "History retained",
+      "delete-request": "Supervisor review",
+      undo: "Reversal recorded",
+      access: "Account activity",
+      audit: "Audit record",
+    }[row.key] || "Recorded activity";
+
+    if (snapshot?.undone_at) detail = "Action reversed";
+    else if (snapshot) detail = "Undo available";
+
+    return {
+      value: hasRoute ? `${row.from} → ${row.to}` : hasLocation ? location : "System",
+      detail,
+    };
+  };
+
   const renderFeed = (rows) => {
     if (!rows.length) {
       return `<div class="atlas-dashboard-empty"><strong>No matching activity</strong><p>Try a broader date range, a different action filter, or clear the search.</p></div>`;
     }
     return rows.slice(0, 250).map((row) => {
       const presentation = activityPresentation(row.key);
+      const context = activityContext(row);
       return `
       <button type="button" class="atlas-dashboard-feed-row" data-activity-id="${escapeHtml(row.id)}" style="--activity-color:${row.color}">
         <span class="atlas-dashboard-activity-icon" aria-hidden="true">${presentation.icon}</span>
         <span class="atlas-dashboard-feed-primary"><strong>${escapeHtml(row.employee)}</strong><small>${escapeHtml(formatDateTime(row.date, true))}</small></span>
         <span class="atlas-dashboard-feed-detail"><span class="atlas-dashboard-feed-action-line"><strong class="atlas-dashboard-feed-action">${escapeHtml(row.label)}</strong><span class="atlas-dashboard-activity-kind">${escapeHtml(presentation.category)}</span></span><small>${escapeHtml(row.sku)}${row.detail && row.detail !== row.label ? ` · ${escapeHtml(row.detail)}` : ""}</small></span>
-        <span class="atlas-dashboard-feed-location"><strong>${escapeHtml(row.location)}</strong><small>${escapeHtml(row.rawAction.replaceAll("_", " "))}</small></span>
-        <time class="atlas-dashboard-feed-time" datetime="${row.date?.toISOString() || ""}">${escapeHtml(formatDateTime(row.date))}</time>
+        <span class="atlas-dashboard-feed-context"><strong>${escapeHtml(context.value)}</strong><small>${escapeHtml(context.detail)}</small></span>
       </button>`;
     }).join("");
   };
 
   const renderTodaySummary = (rows, rangeLabel) => {
     const definitions = [
-      ["move", "Inventory Moves", "#1467dd"], ["location", "Locations Marked Empty", "#0b9bad"],
-      ["create", "New SKUs", "#168552"], ["edit", "SKU Edits", "#d98900"],
-      ["pick", "Pick First Changes", "#7957d5"], ["delete", "Deleted SKUs", "#e10600"],
+      ["move", "Inventory Moves", "#005fd7"], ["location", "Locations Marked Empty", "#008ea8"],
+      ["create", "New SKUs", "#008a42"], ["edit", "SKU Edits", "#e05b00"],
+      ["pick", "Pick First Changes", "#6437d6"], ["delete", "Deleted SKUs", "#e10600"],
     ];
     return `<article class="atlas-dashboard-panel atlas-dashboard-today-summary"><header class="atlas-dashboard-panel-head"><div><h2>${escapeHtml(rangeLabel)}’s Summary</h2><p>Completed warehouse actions</p></div></header><div class="atlas-dashboard-today-total"><strong>${rows.length}</strong><span>total changes</span></div><div class="atlas-dashboard-summary-breakdown">${definitions.map(([key, label, color]) => `<span><i style="--summary-color:${color}"></i><b>${rows.filter((row) => row.key === key).length}</b>${escapeHtml(label)}</span>`).join("")}</div></article>`;
   };
@@ -563,11 +590,11 @@
 
   const renderBars = (rows) => {
     const definitions = [
-      ["move", "Moves", "#1467dd"],
-      ["create", "New SKUs", "#168552"],
-      ["edit", "SKU edits", "#d98900"],
-      ["pick", "Pick First", "#7957d5"],
-      ["location", "Location", "#0b9bad"],
+      ["move", "Moves", "#005fd7"],
+      ["create", "New SKUs", "#008a42"],
+      ["edit", "SKU edits", "#e05b00"],
+      ["pick", "Pick First", "#6437d6"],
+      ["location", "Location", "#008ea8"],
       ["access", "Accounts", "#0b8a9f"],
     ];
     const counts = Object.fromEntries(definitions.map(([key]) => [key, rows.filter((row) => row.key === key).length]));
@@ -715,10 +742,10 @@
     if (accessView) return `${header}${renderAccessManagement()}`;
     return `${header}
       <section class="atlas-dashboard-summary" aria-label="Operational summary">
-        ${renderSummaryCard("Active SKUs", activeSkus, "Current picker inventory", "□", "#1467dd", "#eaf3ff")}
-        ${renderSummaryCard("Inventory Moves", moves, rangeLabel, "⇄", "#1467dd", "#eaf3ff")}
-        ${renderSummaryCard("New SKUs", created, rangeLabel, "+", "#168552", "#e9f7f0")}
-        ${renderSummaryCard("Total Changes", changes, rangeLabel, "↗", "#7957d5", "#f2edff")}
+        ${renderSummaryCard("Active SKUs", activeSkus, "Current picker inventory", "□", "#005fd7", "#eaf3ff")}
+        ${renderSummaryCard("Inventory Moves", moves, rangeLabel, "⇄", "#005fd7", "#eaf3ff")}
+        ${renderSummaryCard("New SKUs", created, rangeLabel, "+", "#008a42", "#e9f7f0")}
+        ${renderSummaryCard("Total Changes", changes, rangeLabel, "↗", "#6437d6", "#f2edff")}
       </section>
       <section class="atlas-dashboard-main-grid">
         <article class="atlas-dashboard-panel">

@@ -1,11 +1,11 @@
 :root {
   --atlas-dashboard-navy: #061c36;
   --atlas-dashboard-navy-2: #0a2d55;
-  --atlas-dashboard-blue: #1467dd;
+  --atlas-dashboard-blue: #005fd7;
   --atlas-dashboard-blue-soft: #eaf3ff;
-  --atlas-dashboard-green: #168552;
+  --atlas-dashboard-green: #008a42;
   --atlas-dashboard-green-soft: #e9f7f0;
-  --atlas-dashboard-amber: #d98900;
+  --atlas-dashboard-amber: #e05b00;
   --atlas-dashboard-amber-soft: #fff5df;
   --atlas-dashboard-red: #e10600;
   --atlas-dashboard-red-soft: #fff0f0;
@@ -619,7 +619,7 @@ html.atlas-dashboard-open #root {
   padding: 14px 20px;
   border-bottom: 1px solid #edf1f6;
   display: grid;
-  grid-template-columns: 34px minmax(120px, 0.65fr) minmax(170px, 1fr) minmax(145px, 0.95fr) auto;
+  grid-template-columns: 34px minmax(120px, 0.65fr) minmax(170px, 1fr) minmax(145px, 0.95fr);
   align-items: center;
   gap: 12px;
 }
@@ -638,9 +638,10 @@ html.atlas-dashboard-open #root {
   border-radius: 10px;
   display: grid;
   place-items: center;
-  color: var(--activity-color, var(--atlas-dashboard-blue));
-  background: color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 12%, white);
-  border: 1px solid color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 22%, white);
+  color: #fff;
+  background: var(--activity-color, var(--atlas-dashboard-blue));
+  border: 1px solid var(--activity-color, var(--atlas-dashboard-blue));
+  box-shadow: 0 5px 11px color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 30%, transparent);
   font-size: 17px;
   font-weight: 850;
   line-height: 1;
@@ -648,7 +649,8 @@ html.atlas-dashboard-open #root {
 
 .atlas-dashboard-feed-primary strong,
 .atlas-dashboard-feed-detail strong,
-.atlas-dashboard-feed-location strong {
+.atlas-dashboard-feed-location strong,
+.atlas-dashboard-feed-context strong {
   display: block;
   color: #142d4c;
   font-size: 12px;
@@ -657,7 +659,8 @@ html.atlas-dashboard-open #root {
 
 .atlas-dashboard-feed-primary small,
 .atlas-dashboard-feed-detail small,
-.atlas-dashboard-feed-location small {
+.atlas-dashboard-feed-location small,
+.atlas-dashboard-feed-context small {
   display: block;
   margin-top: 4px;
   color: #7b899a;
@@ -665,8 +668,9 @@ html.atlas-dashboard-open #root {
   line-height: 1.4;
 }
 
-.atlas-dashboard-feed-action {
+.atlas-dashboard-feed-detail .atlas-dashboard-feed-action {
   color: var(--activity-color, var(--atlas-dashboard-blue));
+  font-weight: 800;
 }
 
 .atlas-dashboard-feed-action-line {
@@ -680,8 +684,8 @@ html.atlas-dashboard-open #root {
   flex: 0 0 auto;
   padding: 3px 6px;
   border-radius: 999px;
-  color: var(--activity-color, var(--atlas-dashboard-blue));
-  background: color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 10%, white);
+  color: #fff;
+  background: var(--activity-color, var(--atlas-dashboard-blue));
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -1506,19 +1510,14 @@ html.atlas-dashboard-open #root {
     display: none;
   }
 
-  .atlas-dashboard-feed-location {
+  .atlas-dashboard-feed-location,
+  .atlas-dashboard-feed-context {
     grid-column: 3;
     grid-row: 1 / span 2;
     align-self: center;
     text-align: right;
   }
 
-  .atlas-dashboard-feed-time {
-    display: block;
-    grid-column: 3;
-    grid-row: 2;
-    align-self: end;
-  }
 
   .atlas-dashboard-side {
     grid-template-columns: 1fr;

@@ -1,12 +1,12 @@
-const VERSION = "atlas-pwa-v149-activity-action-clarity";
+const VERSION = "atlas-pwa-v150-dashboard-context";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=135",
-  "./atlas-dashboard.js?v=134",
+  "./atlas-dashboard.css?v=136",
+  "./atlas-dashboard.js?v=135",
   "./atlas-guided-workflows.css?v=2",
   "./atlas-guided-workflows.js?v=1",
   "./atlas-delete-approval.js?v=1",
