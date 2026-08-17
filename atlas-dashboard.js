@@ -4,6 +4,7 @@
   const API_URL = "https://dwrrbpiprcmajfyronlf.supabase.co";
   const PUBLIC_KEY = "sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa";
   const SESSION_KEY = "atlas-dashboard-session-v1";
+  const PRODUCT_MAP_URL = "./product-images.json?v=20260816-dosing-cup-framed-v104";
   const ACTION_COLORS = Object.freeze({
     move: "#0f5ccb",
     location: "#7251c7",
@@ -29,6 +30,8 @@
     history: [],
     undoSnapshots: [],
     deleteRequests: [],
+    productImages: null,
+    productImagesLoading: null,
     drawer: null,
     normalized: [],
     view: "operations",
@@ -287,6 +290,37 @@
   const readTable = async (name, token) =>
     api(`/rest/v1/${name}?select=*&limit=5000`, { token });
 
+  const loadProductImages = () => {
+    if (state.productImages) return Promise.resolve(state.productImages);
+    if (state.productImagesLoading) return state.productImagesLoading;
+    state.productImagesLoading = fetch(PRODUCT_MAP_URL, { cache: "no-cache" })
+      .then((response) => {
+        if (!response.ok) throw new Error("Product image map unavailable");
+        return response.json();
+      })
+      .then((payload) => {
+        state.productImages = payload?.products || {};
+        return state.productImages;
+      })
+      .catch(() => {
+        state.productImages = {};
+        return state.productImages;
+      })
+      .finally(() => {
+        state.productImagesLoading = null;
+        if (state.open && state.drawer) render();
+      });
+    return state.productImagesLoading;
+  };
+
+  const productImageForSku = (sku) => {
+    const key = String(sku || "").trim();
+    if (!key || key === "Unknown SKU") return null;
+    const product = state.productImages?.[key] || state.productImages?.[key.toUpperCase()];
+    const imageUrl = product?.image_url || product?.image || "";
+    return imageUrl ? { src: imageUrl, label: product?.picker_name || product?.title || key } : null;
+  };
+
   const adminApi = (action, payload = {}) =>
     api("/functions/v1/atlas-user-admin", {
       method: "POST",
@@ -342,6 +376,7 @@
     syncMenuState();
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     state.session = getSession();
+    void loadProductImages();
     render();
     await loadData();
   };
@@ -586,17 +621,27 @@
     return `<article class="atlas-dashboard-panel atlas-dashboard-status-panel"><header class="atlas-dashboard-panel-head"><div><h2>Warehouse Status</h2><p>Supervisor attention</p></div></header>${pending.length ? `<div class="atlas-dashboard-status-attention"><strong>${pending.length} SKU deletion ${pending.length === 1 ? "request requires" : "requests require"} approval</strong><p>Pending requests do not change inventory until a supervisor approves them.</p><button type="button" class="atlas-dashboard-button atlas-dashboard-button--primary" data-review-pending>Review requests</button></div>` : `<div class="atlas-dashboard-status-ok"><strong>All systems normal</strong><p>No items requiring attention</p></div>`}</article>`;
   };
 
+  const renderDrawerProductImage = (productImage, sku) => {
+    if (!productImage) return "";
+    return `<figure class="atlas-dashboard-drawer-product">
+      <div class="atlas-dashboard-drawer-product-media"><img src="${escapeHtml(productImage.src)}" alt="${escapeHtml(productImage.label)} product image" decoding="async" onerror="this.closest('.atlas-dashboard-drawer-product').remove()"></div>
+      <figcaption><span>PRODUCT REFERENCE</span><strong>${escapeHtml(sku)}</strong></figcaption>
+    </figure>`;
+  };
+
   const renderActivityDrawer = () => {
     const target = state.drawer?.kind === "request" ? state.deleteRequests.find((request) => request.id === state.drawer.id) : state.normalized.find((row) => row.id === state.drawer?.id);
     if (!target) return "";
     if (state.drawer?.kind === "request") {
       const sku = safeJson(target.sku_snapshot).sku || "SKU";
+      const productImage = productImageForSku(sku);
       const reviewer = state.currentProfile?.role === "supervisor" || state.currentProfile?.role === "admin";
-      return `<div class="atlas-dashboard-drawer-backdrop" data-drawer-close><aside class="atlas-dashboard-drawer" role="dialog" aria-modal="true"><button type="button" class="atlas-account-modal-close" data-drawer-close aria-label="Close">×</button><p class="atlas-dashboard-eyebrow">SUPERVISOR REVIEW</p><h2>Delete ${escapeHtml(sku)}?</h2><p><strong>${escapeHtml(target.requested_by_name)}</strong> requested permanent deletion. The SKU and its active locations remain unchanged until approval.</p><dl><div><dt>Requested</dt><dd>${escapeHtml(formatDateTime(parseDate(target.requested_at)))}</dd></div><div><dt>SKU</dt><dd>${escapeHtml(sku)}</dd></div></dl>${reviewer && target.status === "pending" ? `<div class="atlas-dashboard-drawer-actions"><button type="button" class="atlas-dashboard-button" data-reject-request data-request-id="${escapeHtml(target.id)}">Reject</button><button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger" data-approve-request data-request-id="${escapeHtml(target.id)}">Approve & Delete</button></div>` : `<p class="atlas-dashboard-drawer-note">Status: ${escapeHtml(target.status)}</p>`}</aside></div>`;
+      return `<div class="atlas-dashboard-drawer-backdrop" data-drawer-close><aside class="atlas-dashboard-drawer" role="dialog" aria-modal="true"><button type="button" class="atlas-account-modal-close" data-drawer-close aria-label="Close">×</button><p class="atlas-dashboard-eyebrow">SUPERVISOR REVIEW</p><h2>Delete ${escapeHtml(sku)}?</h2>${renderDrawerProductImage(productImage, sku)}<p><strong>${escapeHtml(target.requested_by_name)}</strong> requested permanent deletion. The SKU and its active locations remain unchanged until approval.</p><dl><div><dt>Requested</dt><dd>${escapeHtml(formatDateTime(parseDate(target.requested_at)))}</dd></div><div><dt>SKU</dt><dd>${escapeHtml(sku)}</dd></div></dl>${reviewer && target.status === "pending" ? `<div class="atlas-dashboard-drawer-actions"><button type="button" class="atlas-dashboard-button" data-reject-request data-request-id="${escapeHtml(target.id)}">Reject</button><button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger" data-approve-request data-request-id="${escapeHtml(target.id)}">Approve & Delete</button></div>` : `<p class="atlas-dashboard-drawer-note">Status: ${escapeHtml(target.status)}</p>`}</aside></div>`;
     }
     const snapshot = state.undoSnapshots.find((item) => item.id === target.snapshotId);
     const reviewer = state.currentProfile?.role === "supervisor" || state.currentProfile?.role === "admin";
-    return `<div class="atlas-dashboard-drawer-backdrop" data-drawer-close><aside class="atlas-dashboard-drawer" role="dialog" aria-modal="true"><button type="button" class="atlas-account-modal-close" data-drawer-close aria-label="Close">×</button><p class="atlas-dashboard-eyebrow">ACTIVITY DETAIL</p><h2>${escapeHtml(target.label)}</h2><dl><div><dt>SKU</dt><dd>${escapeHtml(target.sku)}</dd></div><div><dt>Employee</dt><dd>${escapeHtml(target.employee)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(target.location)}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(target.date))}</dd></div><div><dt>Reason</dt><dd>${escapeHtml(target.detail)}</dd></div></dl>${snapshot ? (snapshot.undone_at ? `<p class="atlas-dashboard-drawer-note">This action was already reversed by ${escapeHtml(snapshot.undone_by_name || "a supervisor")}.</p>` : reviewer ? `<div class="atlas-dashboard-drawer-actions"><button type="button" class="atlas-dashboard-button atlas-dashboard-button--primary" data-undo-activity data-snapshot-id="${escapeHtml(snapshot.id)}">Undo Action</button></div>` : "") : `<p class="atlas-dashboard-drawer-note">Undo unavailable — this action was recorded before ATLAS reversible audit snapshots were enabled.</p>`}</aside></div>`;
+    const productImage = productImageForSku(target.sku);
+    return `<div class="atlas-dashboard-drawer-backdrop" data-drawer-close><aside class="atlas-dashboard-drawer" role="dialog" aria-modal="true"><button type="button" class="atlas-account-modal-close" data-drawer-close aria-label="Close">×</button><p class="atlas-dashboard-eyebrow">ACTIVITY DETAIL</p><h2>${escapeHtml(target.label)}</h2>${renderDrawerProductImage(productImage, target.sku)}<dl><div><dt>SKU</dt><dd>${escapeHtml(target.sku)}</dd></div><div><dt>Employee</dt><dd>${escapeHtml(target.employee)}</dd></div><div><dt>Location</dt><dd>${escapeHtml(target.location)}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(target.date))}</dd></div><div><dt>Reason</dt><dd>${escapeHtml(target.detail)}</dd></div></dl>${snapshot ? (snapshot.undone_at ? `<p class="atlas-dashboard-drawer-note">This action was already reversed by ${escapeHtml(snapshot.undone_by_name || "a supervisor")}.</p>` : reviewer ? `<div class="atlas-dashboard-drawer-actions"><button type="button" class="atlas-dashboard-button atlas-dashboard-button--primary" data-undo-activity data-snapshot-id="${escapeHtml(snapshot.id)}">Undo Action</button></div>` : "") : `<p class="atlas-dashboard-drawer-note">Undo unavailable — this action was recorded before ATLAS reversible audit snapshots were enabled.</p>`}</aside></div>`;
   };
 
   const renderBars = (rows) => {
