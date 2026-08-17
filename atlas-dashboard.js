@@ -694,12 +694,14 @@
 
   const renderNotificationBell = (rows) => {
     const count = rows.length;
+    const hasActions = count > 0;
+    const hasCompletedDeletion = rows.some((row) => row.key === "delete");
     const pendingReview = state.deleteRequests.some((request) => request.status === "pending");
     const badge = count > 99 ? "99+" : String(count);
     return `<div class="atlas-dashboard-notification-center">
       <button type="button" class="atlas-dashboard-notification-bell ${state.notificationsOpen ? "is-open" : ""}" data-notifications-toggle aria-label="${count} warehouse actions recorded today" aria-expanded="${state.notificationsOpen ? "true" : "false"}">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18.1 10.4c0-3.5-2.2-6.2-6.1-6.2s-6.1 2.7-6.1 6.2c0 4.1-1.8 5.5-2.3 6.4h16.8c-.5-.9-2.3-2.3-2.3-6.4Z"></path><path d="M9.4 20c.5.6 1.4 1 2.6 1s2.1-.4 2.6-1"></path></svg>
-        <span class="atlas-dashboard-notification-badge">${badge}</span>${pendingReview ? `<i class="atlas-dashboard-notification-attention-dot" aria-label="Deletion review pending"></i>` : ""}
+        <span class="atlas-dashboard-notification-badge ${hasCompletedDeletion ? "is-delete-alert" : hasActions ? "" : "is-empty"}">${badge}</span>${pendingReview ? `<i class="atlas-dashboard-notification-attention-dot" aria-label="Deletion review pending"></i>` : ""}
       </button>
     </div>`;
   };

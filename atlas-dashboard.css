@@ -401,21 +401,24 @@ html.atlas-dashboard-open #root {
   position: absolute;
   top: -8px;
   right: -9px;
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-  display: grid;
-  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 1px 5px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
   border: 2px solid #f4f7fb;
   border-radius: 999px;
-  background: #0f5ccb;
-  box-shadow: 0 3px 8px rgba(15, 92, 203, 0.28);
+  background: var(--atlas-dashboard-red);
+  box-shadow: 0 3px 8px rgba(225, 6, 0, 0.3);
   font-size: 9px;
   font-weight: 800;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
-.atlas-dashboard-notification-attention-dot { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 99px; background: var(--atlas-dashboard-red); }
+.atlas-dashboard-notification-attention-dot { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 99px; background: var(--atlas-dashboard-amber); }
 .atlas-dashboard-notification-scrim { position: fixed; z-index: 10070; inset: 0; background: transparent; }
 .atlas-dashboard-notification-panel {
   position: fixed;
@@ -439,10 +442,10 @@ html.atlas-dashboard-open #root {
 .atlas-dashboard-notification-panel .atlas-dashboard-eyebrow { margin-bottom: 0; font-size: 9px; }
 .atlas-dashboard-notification-close { position: absolute; top: 17px; right: 16px; width: 32px; height: 32px; padding: 0; display: grid; place-items: center; color: #57708d; border: 1px solid #d7e1eb; border-radius: 9px; background: #f7f9fb; font-size: 22px; line-height: 1; cursor: pointer; }
 .atlas-dashboard-notification-close:hover { color: #173c68; border-color: #b9cce1; background: #fff; }
-.atlas-dashboard-notification-attention { margin: 13px 15px 0; padding: 10px 12px; display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 8px; align-items: center; border: 1px solid #f1c6c4; border-radius: 11px; background: #fff5f4; }
-.atlas-dashboard-notification-attention > span { width: 21px; height: 21px; grid-row: 1 / span 2; display: grid; place-items: center; color: #fff; border-radius: 99px; background: var(--atlas-dashboard-red); font-size: 13px; font-weight: 850; }
-.atlas-dashboard-notification-attention strong { color: #ad160f; font-size: 11px; }
-.atlas-dashboard-notification-attention small { margin-top: 2px; color: #8c5b58; font-size: 9px; line-height: 1.35; }
+.atlas-dashboard-notification-attention { margin: 13px 15px 0; padding: 10px 12px; display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 8px; align-items: center; border: 1px solid #ead1a3; border-radius: 11px; background: #fff8eb; }
+.atlas-dashboard-notification-attention > span { width: 21px; height: 21px; grid-row: 1 / span 2; display: grid; place-items: center; color: #fff; border-radius: 99px; background: var(--atlas-dashboard-amber); font-size: 13px; font-weight: 850; }
+.atlas-dashboard-notification-attention strong { color: #81551b; font-size: 11px; }
+.atlas-dashboard-notification-attention small { margin-top: 2px; color: #876e48; font-size: 9px; line-height: 1.35; }
 .atlas-dashboard-notification-list { overflow: auto; padding: 7px 0; }
 .atlas-dashboard-notification-row { width: 100%; min-height: 67px; padding: 11px 17px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; color: inherit; border: 0; border-bottom: 1px solid #edf2f6; background: #fff; text-align: left; font: inherit; cursor: pointer; }
 .atlas-dashboard-notification-row:last-child { border-bottom: 0; }
@@ -1780,6 +1783,7 @@ html.atlas-dashboard-open #root {
   .atlas-dashboard-header h1 { font-size: clamp(34px, 3.1vw, 46px); letter-spacing: -0.045em; }
   .atlas-dashboard-statusline { margin-top: -5px; }
   .atlas-dashboard-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .atlas-dashboard-activity-icon { box-shadow: none; }
   .atlas-dashboard-feed-row { transition: none; }
   .atlas-dashboard-feed-row:hover { background: #f7faff; }
 }
