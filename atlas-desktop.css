@@ -617,6 +617,13 @@
     padding: 32px 0 42px !important;
   }
 
+  /* On Browse Aisles, the Inventory flyout is an overlay rather than a
+     reason to shrink the workspace. This prevents its grid from becoming
+     oversized and clipping when the flyout opens. */
+  html.atlas-desktop.atlas-view-aisles.atlas-inventory-flyout-open body {
+    padding-left: var(--atlas-desktop-sidebar) !important;
+  }
+
   html.atlas-desktop #root .page-title {
     margin: 0 0 5px !important;
     color: #0c2a4d !important;
@@ -632,6 +639,7 @@
 
   html.atlas-desktop.atlas-view-aisles #root .aisle-grid {
     grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+    min-width: 0;
     gap: 11px !important;
   }
 
