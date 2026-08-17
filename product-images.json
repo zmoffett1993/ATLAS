@@ -6345,13 +6345,13 @@
     "CGSDCUP5-20ML-CNL": {
       "title": "20ML SPIRAL DOSING CUP WITH GRADUATED LINES (CLEAR)",
       "official_sku": "CGSDCUP5-20ML-CNL",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsdcup5-20ml-cnl.png",
+      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsdcup5-20ml-cnl-framed.png?v=1",
       "source_page": "https://chubbygorilla.com/cgsdcup5-20ml-cnl.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/2925ac7d6dc277f42b7d6f00d7260458/c/g/cgsdcup5-20ml-cnl_3162_large.png",
       "match_type": "Official catalog — exact SKU",
-      "width": 1250,
-      "height": 1000,
-      "bytes": 41848,
+      "width": 600,
+      "height": 600,
+      "bytes": 56467,
       "full_description": "20ML SPIRAL DOSING CUP WITH GRADUATED LINES (CLEAR)",
       "picker_name": "20ML Spiral Dosing Cup",
       "picker_bullets": ["Clear", "Graduated Lines"]
