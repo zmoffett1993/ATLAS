@@ -7,7 +7,7 @@
   --atlas-dashboard-green-soft: #e9f7f0;
   --atlas-dashboard-amber: #d98900;
   --atlas-dashboard-amber-soft: #fff5df;
-  --atlas-dashboard-red: #d33a3a;
+  --atlas-dashboard-red: #e10600;
   --atlas-dashboard-red-soft: #fff0f0;
   --atlas-dashboard-ink: #10213a;
   --atlas-dashboard-muted: #66758a;
@@ -619,7 +619,7 @@ html.atlas-dashboard-open #root {
   padding: 14px 20px;
   border-bottom: 1px solid #edf1f6;
   display: grid;
-  grid-template-columns: 13px minmax(120px, 0.65fr) minmax(150px, 1fr) minmax(145px, 0.95fr) auto;
+  grid-template-columns: 34px minmax(120px, 0.65fr) minmax(170px, 1fr) minmax(145px, 0.95fr) auto;
   align-items: center;
   gap: 12px;
 }
@@ -632,12 +632,18 @@ html.atlas-dashboard-open #root {
   background: #fbfdff;
 }
 
-.atlas-dashboard-activity-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--activity-color, var(--atlas-dashboard-blue));
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 11%, transparent);
+.atlas-dashboard-activity-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--activity-color, var(--atlas-dashboard-blue));
+  background: color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 22%, white);
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1;
 }
 
 .atlas-dashboard-feed-primary strong,
@@ -661,6 +667,26 @@ html.atlas-dashboard-open #root {
 
 .atlas-dashboard-feed-action {
   color: var(--activity-color, var(--atlas-dashboard-blue));
+}
+
+.atlas-dashboard-feed-action-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.atlas-dashboard-activity-kind {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: var(--activity-color, var(--atlas-dashboard-blue));
+  background: color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 10%, white);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .atlas-dashboard-feed-time {
@@ -1337,7 +1363,7 @@ html.atlas-dashboard-open #root {
   }
 
   .atlas-dashboard-feed-row {
-    grid-template-columns: 12px minmax(110px, 0.7fr) minmax(150px, 1fr) minmax(115px, 0.8fr);
+    grid-template-columns: 34px minmax(110px, 0.7fr) minmax(150px, 1fr) minmax(115px, 0.8fr);
   }
 
   .atlas-dashboard-feed-time {
@@ -1468,12 +1494,16 @@ html.atlas-dashboard-open #root {
   .atlas-dashboard-feed-row {
     min-height: 88px;
     padding: 13px 15px;
-    grid-template-columns: 10px minmax(0, 1fr) auto;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
     gap: 10px;
   }
 
   .atlas-dashboard-feed-detail {
     grid-column: 2 / 3;
+  }
+
+  .atlas-dashboard-activity-kind {
+    display: none;
   }
 
   .atlas-dashboard-feed-location {

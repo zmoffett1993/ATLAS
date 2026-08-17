@@ -144,11 +144,11 @@
     if (action === "SKU_DELETE_REJECTED")
       return { key: "delete-request", label: "Deletion request rejected", color: "#d98900", operational: false };
     if (action === "SKU_DELETE_APPROVED")
-      return { key: "delete", label: "Deleted SKU", color: "#d33a3a", operational: true };
+      return { key: "delete", label: "Deleted SKU", color: "#e10600", operational: true };
     if (action === "UNDO_ACTION")
       return { key: "undo", label: "Reversed recorded action", color: "#1467dd", operational: true };
     if (action.includes("SKU_DELETE"))
-      return { key: "delete", label: "Removed SKU", color: "#d33a3a", operational: true };
+      return { key: "delete", label: "Removed SKU", color: "#e10600", operational: true };
     if (action.includes("PICK_FIRST") || pickChanged)
       return {
         key: "pick",
@@ -169,15 +169,15 @@
     if (action === "USER_PASSWORD_CHANGED")
       return { key: "access", label: "Changed account password", color: "#7957d5", operational: true };
     if (action === "USER_DEACTIVATED")
-      return { key: "access", label: "Blocked account sign-in (legacy)", color: "#d33a3a", operational: true };
+      return { key: "access", label: "Blocked account sign-in (legacy)", color: "#e10600", operational: true };
     if (action === "USER_REACTIVATED")
       return { key: "access", label: "Reactivated ATLAS account", color: "#168552", operational: true };
     if (action === "USER_DELETED")
-      return { key: "access", label: "Deleted ATLAS account", color: "#d33a3a", operational: true };
+      return { key: "access", label: "Deleted ATLAS account", color: "#e10600", operational: true };
     if (action === "INSERT")
       return { key: "audit", label: "Imported location", color: "#8795a6", operational: false };
     if (action === "DELETE")
-      return { key: "audit", label: "Deleted location record", color: "#d33a3a", operational: false };
+      return { key: "audit", label: "Deleted location record", color: "#e10600", operational: false };
     return { key: "audit", label: "Updated database record", color: "#8795a6", operational: false };
   };
 
@@ -504,25 +504,41 @@
       <span class="atlas-dashboard-card-copy"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></span>
     </article>`;
 
+  const activityPresentation = (key) => ({
+    move: { icon: "⇄", category: "Move" },
+    location: { icon: "−", category: "Location" },
+    create: { icon: "+", category: "New SKU" },
+    edit: { icon: "✎", category: "Edit" },
+    pick: { icon: "★", category: "Pick First" },
+    delete: { icon: "!", category: "Delete" },
+    "delete-request": { icon: "!", category: "Review" },
+    undo: { icon: "↶", category: "Undo" },
+    access: { icon: "✓", category: "Access" },
+    audit: { icon: "•", category: "Audit" },
+  }[key] || { icon: "•", category: "Activity" });
+
   const renderFeed = (rows) => {
     if (!rows.length) {
       return `<div class="atlas-dashboard-empty"><strong>No matching activity</strong><p>Try a broader date range, a different action filter, or clear the search.</p></div>`;
     }
-    return rows.slice(0, 250).map((row) => `
+    return rows.slice(0, 250).map((row) => {
+      const presentation = activityPresentation(row.key);
+      return `
       <button type="button" class="atlas-dashboard-feed-row" data-activity-id="${escapeHtml(row.id)}" style="--activity-color:${row.color}">
-        <span class="atlas-dashboard-activity-dot" aria-hidden="true"></span>
+        <span class="atlas-dashboard-activity-icon" aria-hidden="true">${presentation.icon}</span>
         <span class="atlas-dashboard-feed-primary"><strong>${escapeHtml(row.employee)}</strong><small>${escapeHtml(formatDateTime(row.date, true))}</small></span>
-        <span class="atlas-dashboard-feed-detail"><strong class="atlas-dashboard-feed-action">${escapeHtml(row.label)}</strong><small>${escapeHtml(row.sku)}${row.detail && row.detail !== row.label ? ` · ${escapeHtml(row.detail)}` : ""}</small></span>
+        <span class="atlas-dashboard-feed-detail"><span class="atlas-dashboard-feed-action-line"><strong class="atlas-dashboard-feed-action">${escapeHtml(row.label)}</strong><span class="atlas-dashboard-activity-kind">${escapeHtml(presentation.category)}</span></span><small>${escapeHtml(row.sku)}${row.detail && row.detail !== row.label ? ` · ${escapeHtml(row.detail)}` : ""}</small></span>
         <span class="atlas-dashboard-feed-location"><strong>${escapeHtml(row.location)}</strong><small>${escapeHtml(row.rawAction.replaceAll("_", " "))}</small></span>
         <time class="atlas-dashboard-feed-time" datetime="${row.date?.toISOString() || ""}">${escapeHtml(formatDateTime(row.date))}</time>
-      </button>`).join("");
+      </button>`;
+    }).join("");
   };
 
   const renderTodaySummary = (rows, rangeLabel) => {
     const definitions = [
       ["move", "Inventory Moves", "#1467dd"], ["location", "Locations Marked Empty", "#0b9bad"],
       ["create", "New SKUs", "#168552"], ["edit", "SKU Edits", "#d98900"],
-      ["pick", "Pick First Changes", "#7957d5"], ["delete", "Deleted SKUs", "#d33a3a"],
+      ["pick", "Pick First Changes", "#7957d5"], ["delete", "Deleted SKUs", "#e10600"],
     ];
     return `<article class="atlas-dashboard-panel atlas-dashboard-today-summary"><header class="atlas-dashboard-panel-head"><div><h2>${escapeHtml(rangeLabel)}’s Summary</h2><p>Completed warehouse actions</p></div></header><div class="atlas-dashboard-today-total"><strong>${rows.length}</strong><span>total changes</span></div><div class="atlas-dashboard-summary-breakdown">${definitions.map(([key, label, color]) => `<span><i style="--summary-color:${color}"></i><b>${rows.filter((row) => row.key === key).length}</b>${escapeHtml(label)}</span>`).join("")}</div></article>`;
   };
@@ -551,7 +567,7 @@
       ["create", "New SKUs", "#168552"],
       ["edit", "SKU edits", "#d98900"],
       ["pick", "Pick First", "#7957d5"],
-      ["location", "Location", "#d33a3a"],
+      ["location", "Location", "#0b9bad"],
       ["access", "Accounts", "#0b8a9f"],
     ];
     const counts = Object.fromEntries(definitions.map(([key]) => [key, rows.filter((row) => row.key === key).length]));
