@@ -5,11 +5,11 @@
   const PUBLIC_KEY = "sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa";
   const SESSION_KEY = "atlas-dashboard-session-v1";
   const ACTION_COLORS = Object.freeze({
-    move: "#155fc1",
-    location: "#167f96",
-    create: "#237554",
-    edit: "#b86b22",
-    pick: "#5a52b0",
+    move: "#0f5ccb",
+    location: "#7251c7",
+    create: "#168447",
+    edit: "#b87525",
+    pick: "#b87525",
     delete: "#e10600",
     audit: "#708297",
   });
@@ -726,9 +726,9 @@
     const operationalRows = rowsInRange().filter((row) => row.operational);
     const visibleOperationalRows = rows.filter((row) => row.operational);
     const activeSkus = state.skus.filter((sku) => sku.active == null || bool(sku.active)).length;
-    const changes = operationalRows.length;
     const moves = operationalRows.filter((row) => row.key === "move").length;
     const created = operationalRows.filter((row) => row.key === "create").length;
+    const cleared = operationalRows.filter((row) => row.label === "Cleared location").length;
     const rangeLabel = ({ today: "Today", week: "This Week", "7": "Last 7 Days", "30": "Last 30 Days", custom: "Custom Range" })[state.range] || "Selected range";
     const sessionName = state.session?.user?.email || "Supervisor";
     const isAdmin = state.currentProfile?.role === "admin";
@@ -755,7 +755,7 @@
         ${renderSummaryCard("Active SKUs", activeSkus, "Current picker inventory", "□", ACTION_COLORS.move)}
         ${renderSummaryCard("Inventory Moves", moves, rangeLabel, "⇄", ACTION_COLORS.move)}
         ${renderSummaryCard("New SKUs", created, rangeLabel, "+", ACTION_COLORS.create)}
-        ${renderSummaryCard("Total Changes", changes, rangeLabel, "↗", ACTION_COLORS.pick)}
+        ${renderSummaryCard("Locations Cleared", cleared, rangeLabel, "−", ACTION_COLORS.location)}
       </section>
       <section class="atlas-dashboard-main-grid">
         <article class="atlas-dashboard-panel">
