@@ -32,6 +32,8 @@
     deleteRequests: [],
     productImages: null,
     productImagesLoading: null,
+    notificationsOpen: false,
+    refreshTimer: null,
     drawer: null,
     normalized: [],
     view: "operations",
@@ -121,6 +123,27 @@
     return date.toLocaleString([], {
       month: "short",
       day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const pacificDateKey = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return `${value.year}-${value.month}-${value.day}`;
+  };
+
+  const formatPacificTime = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "Unknown time";
+    return date.toLocaleTimeString([], {
+      timeZone: "America/Los_Angeles",
       hour: "numeric",
       minute: "2-digit",
     });
@@ -367,6 +390,24 @@
     document.documentElement.classList.remove("atlas-menu-open");
   };
 
+  const stopDashboardRefresh = () => {
+    if (state.refreshTimer) window.clearInterval(state.refreshTimer);
+    state.refreshTimer = null;
+  };
+
+  const startDashboardRefresh = () => {
+    stopDashboardRefresh();
+    state.refreshTimer = window.setInterval(() => {
+      if (!state.open || document.visibilityState !== "visible" || state.loading) return;
+      const feed = document.querySelector(".atlas-dashboard-feed");
+      const feedScrollTop = feed?.scrollTop || 0;
+      void loadData().then(() => {
+        const refreshedFeed = document.querySelector(".atlas-dashboard-feed");
+        if (refreshedFeed) refreshedFeed.scrollTop = feedScrollTop;
+      });
+    }, 60000);
+  };
+
   const openDashboard = async () => {
     mount();
     state.open = true;
@@ -379,11 +420,14 @@
     void loadProductImages();
     render();
     await loadData();
+    startDashboardRefresh();
   };
 
   const closeDashboard = () => {
     if (!state.open) return;
     state.open = false;
+    stopDashboardRefresh();
+    state.notificationsOpen = false;
     document.documentElement.classList.remove("atlas-dashboard-open");
     const dashboard = document.getElementById("atlasOperationsDashboard");
     if (dashboard) dashboard.hidden = true;
@@ -521,6 +565,15 @@
     });
   };
 
+  const isNotificationAction = (row) => row.operational || row.key === "delete-request";
+
+  const todayNotifications = () => {
+    const today = pacificDateKey(new Date());
+    return state.normalized.filter(
+      (row) => isNotificationAction(row) && pacificDateKey(row.date) === today,
+    );
+  };
+
   const renderAccess = () => `
     <div class="atlas-dashboard-access">
       <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-light.svg?v=131" alt="ATLAS Warehouse Management">
@@ -614,6 +667,41 @@
     ];
     const summaryTitle = rangeLabel === "Today" ? "Today's Summary" : `${rangeLabel} Summary`;
     return `<article class="atlas-dashboard-panel atlas-dashboard-today-summary"><header class="atlas-dashboard-panel-head"><div><h2>${escapeHtml(summaryTitle)}</h2><p>Completed warehouse actions</p></div></header><div class="atlas-dashboard-today-total"><strong>${rows.length}</strong><span>total changes</span></div><div class="atlas-dashboard-summary-breakdown">${definitions.map(([key, label, color]) => `<span><i style="--summary-color:${color}"></i><b>${rows.filter((row) => row.key === key).length}</b>${escapeHtml(label)}</span>`).join("")}</div></article>`;
+  };
+
+  const renderNotificationCenter = (rows) => {
+    const pendingReview = state.deleteRequests.some((request) => request.status === "pending");
+    if (!state.notificationsOpen) return "";
+    const content = rows.length
+      ? rows.slice(0, 24).map((row) => {
+          const presentation = activityPresentation(row.key);
+          const context = activityContext(row);
+          const isPickFirst = row.key === "pick";
+          return `<button type="button" class="atlas-dashboard-notification-row" data-notification-id="${escapeHtml(row.id)}" style="--notification-color:${row.color};--notification-icon-ink:${isPickFirst ? "#694600" : "#fff"}">
+            <span class="atlas-dashboard-notification-icon" aria-hidden="true">${presentation.icon}</span>
+            <span class="atlas-dashboard-notification-copy"><strong>${escapeHtml(row.label)}</strong><small>${escapeHtml(row.employee)} · ${escapeHtml(row.sku)}</small></span>
+            <span class="atlas-dashboard-notification-meta"><strong>${escapeHtml(context.value)}</strong><small>${escapeHtml(formatPacificTime(row.date))}</small></span>
+          </button>`;
+        }).join("")
+      : `<div class="atlas-dashboard-notification-empty"><strong>No warehouse actions yet today</strong><p>New activity will appear here as ATLAS records it.</p></div>`;
+    return `<div class="atlas-dashboard-notification-scrim" data-notifications-close></div>
+      <section class="atlas-dashboard-notification-panel" role="dialog" aria-label="Today's warehouse activity">
+        <header><div><p class="atlas-dashboard-eyebrow">NOTIFICATIONS</p><h2>Today's Warehouse Activity</h2><span>${rows.length} recorded ${rows.length === 1 ? "action" : "actions"} · Pacific time</span></div><button type="button" class="atlas-dashboard-notification-close" data-notifications-close aria-label="Close notifications">×</button></header>
+        ${pendingReview ? `<div class="atlas-dashboard-notification-attention"><span aria-hidden="true">!</span><strong>Deletion review pending</strong><small>Open Warehouse Status to review the request.</small></div>` : ""}
+        <div class="atlas-dashboard-notification-list">${content}</div>
+      </section>`;
+  };
+
+  const renderNotificationBell = (rows) => {
+    const count = rows.length;
+    const pendingReview = state.deleteRequests.some((request) => request.status === "pending");
+    const badge = count > 99 ? "99+" : String(count);
+    return `<div class="atlas-dashboard-notification-center">
+      <button type="button" class="atlas-dashboard-notification-bell ${state.notificationsOpen ? "is-open" : ""}" data-notifications-toggle aria-label="${count} warehouse actions recorded today" aria-expanded="${state.notificationsOpen ? "true" : "false"}">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18.1 10.4c0-3.5-2.2-6.2-6.1-6.2s-6.1 2.7-6.1 6.2c0 4.1-1.8 5.5-2.3 6.4h16.8c-.5-.9-2.3-2.3-2.3-6.4Z"></path><path d="M9.4 20c.5.6 1.4 1 2.6 1s2.1-.4 2.6-1"></path></svg>
+        <span class="atlas-dashboard-notification-badge">${badge}</span>${pendingReview ? `<i class="atlas-dashboard-notification-attention-dot" aria-label="Deletion review pending"></i>` : ""}
+      </button>
+    </div>`;
   };
 
   const renderWarehouseStatus = () => {
@@ -778,12 +866,14 @@
     const rangeLabel = ({ today: "Today", week: "This Week", "7": "Last 7 Days", "30": "Last 30 Days", custom: "Custom Range" })[state.range] || "Selected range";
     const sessionName = state.session?.user?.email || "Supervisor";
     const isAdmin = state.currentProfile?.role === "admin";
+    const canViewNotifications = ["supervisor", "admin"].includes(state.currentProfile?.role);
+    const notifications = todayNotifications();
     const accessView = state.view === "access" && isAdmin;
     const header = `
       <header class="atlas-dashboard-header">
         <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${accessView ? "Access Management" : "Operations Dashboard"}</h1>${accessView ? `<p class="atlas-dashboard-subtitle">Manage employee identities, passwords, roles, and dashboard permissions securely from ATLAS.</p>` : `<p class="atlas-dashboard-subtitle atlas-dashboard-mobile-only">Warehouse activity, inventory changes, and SKU oversight in one clear operational view.</p>`}</div>
         <div class="atlas-dashboard-header-actions">
-          ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : `<div class="atlas-dashboard-date-control"><select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
+          ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : `${canViewNotifications ? renderNotificationBell(notifications) : ""}<div class="atlas-dashboard-date-control"><select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
             <option value="today" ${state.range === "today" ? "selected" : ""}>Today</option>
             <option value="week" ${state.range === "week" ? "selected" : ""}>This Week</option>
             <option value="7" ${state.range === "7" ? "selected" : ""}>Last 7 Days</option>
@@ -812,7 +902,7 @@
           ${renderTodaySummary(operationalRows, rangeLabel)}
           ${renderWarehouseStatus()}
         </aside>
-      </section>${renderActivityDrawer()}`;
+      </section>${canViewNotifications ? renderNotificationCenter(notifications) : ""}${renderActivityDrawer()}`;
   };
 
   const render = () => {
@@ -860,6 +950,11 @@
       render();
       return;
     }
+    if (event.target.matches?.("[data-notifications-close]")) {
+      state.notificationsOpen = false;
+      render();
+      return;
+    }
     const button = event.target.closest("button");
     if (!button) return;
     if (button.matches("[data-password-toggle]")) {
@@ -871,6 +966,14 @@
       button.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
       input.focus({ preventScroll: true });
     } else if (button.matches("[data-mobile-menu]")) showMenu();
+    else if (button.matches("[data-notifications-toggle]")) {
+      state.notificationsOpen = !state.notificationsOpen;
+      render();
+    } else if (button.matches("[data-notification-id]")) {
+      state.notificationsOpen = false;
+      state.drawer = { kind: "activity", id: button.dataset.notificationId };
+      render();
+    }
     else if (button.matches("[data-mobile-refresh], [data-retry]")) loadData();
     else if (button.matches("[data-export]")) exportCsv();
     else if (button.matches("[data-sign-out]")) signOut();

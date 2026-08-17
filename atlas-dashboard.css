@@ -378,6 +378,88 @@ html.atlas-dashboard-open #root {
   flex: 0 0 auto;
 }
 
+.atlas-dashboard-notification-center { display: flex; }
+.atlas-dashboard-notification-bell {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: #244c77;
+  border: 1px solid #ccd8e6;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 3px 10px rgba(11, 35, 64, 0.05);
+  cursor: pointer;
+}
+.atlas-dashboard-notification-bell:hover,
+.atlas-dashboard-notification-bell.is-open { color: #0f5ccb; border-color: #9fbee4; background: #f8fbff; }
+.atlas-dashboard-notification-bell:focus-visible { outline: 3px solid rgba(20, 103, 221, 0.18); outline-offset: 2px; }
+.atlas-dashboard-notification-bell svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.atlas-dashboard-notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -9px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border: 2px solid #f4f7fb;
+  border-radius: 999px;
+  background: #0f5ccb;
+  box-shadow: 0 3px 8px rgba(15, 92, 203, 0.28);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+.atlas-dashboard-notification-attention-dot { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 99px; background: var(--atlas-dashboard-red); }
+.atlas-dashboard-notification-scrim { position: fixed; z-index: 10070; inset: 0; background: transparent; }
+.atlas-dashboard-notification-panel {
+  position: fixed;
+  z-index: 10071;
+  top: 82px;
+  right: clamp(18px, 3vw, 50px);
+  width: min(400px, calc(100vw - 36px));
+  max-height: min(650px, calc(100dvh - 105px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--atlas-dashboard-ink);
+  border: 1px solid #d5e0ec;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 22px 55px rgba(7, 29, 56, 0.22);
+}
+.atlas-dashboard-notification-panel > header { min-height: 92px; padding: 17px 52px 16px 19px; position: relative; border-bottom: 1px solid #e3eaf2; }
+.atlas-dashboard-notification-panel h2 { margin: 3px 0 0; color: #122f53; font-size: 17px; line-height: 1.2; letter-spacing: -0.02em; }
+.atlas-dashboard-notification-panel header > div > span { display: block; margin-top: 6px; color: #718296; font-size: 10px; }
+.atlas-dashboard-notification-panel .atlas-dashboard-eyebrow { margin-bottom: 0; font-size: 9px; }
+.atlas-dashboard-notification-close { position: absolute; top: 17px; right: 16px; width: 32px; height: 32px; padding: 0; display: grid; place-items: center; color: #57708d; border: 1px solid #d7e1eb; border-radius: 9px; background: #f7f9fb; font-size: 22px; line-height: 1; cursor: pointer; }
+.atlas-dashboard-notification-close:hover { color: #173c68; border-color: #b9cce1; background: #fff; }
+.atlas-dashboard-notification-attention { margin: 13px 15px 0; padding: 10px 12px; display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 8px; align-items: center; border: 1px solid #f1c6c4; border-radius: 11px; background: #fff5f4; }
+.atlas-dashboard-notification-attention > span { width: 21px; height: 21px; grid-row: 1 / span 2; display: grid; place-items: center; color: #fff; border-radius: 99px; background: var(--atlas-dashboard-red); font-size: 13px; font-weight: 850; }
+.atlas-dashboard-notification-attention strong { color: #ad160f; font-size: 11px; }
+.atlas-dashboard-notification-attention small { margin-top: 2px; color: #8c5b58; font-size: 9px; line-height: 1.35; }
+.atlas-dashboard-notification-list { overflow: auto; padding: 7px 0; }
+.atlas-dashboard-notification-row { width: 100%; min-height: 67px; padding: 11px 17px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; color: inherit; border: 0; border-bottom: 1px solid #edf2f6; background: #fff; text-align: left; font: inherit; cursor: pointer; }
+.atlas-dashboard-notification-row:last-child { border-bottom: 0; }
+.atlas-dashboard-notification-row:hover { background: #f8fbff; }
+.atlas-dashboard-notification-row:focus-visible { outline: 3px solid rgba(20, 103, 221, 0.28); outline-offset: -3px; }
+.atlas-dashboard-notification-icon { width: 28px; height: 28px; display: grid; place-items: center; color: var(--notification-icon-ink, #fff); border: 1px solid var(--notification-color); border-radius: 9px; background: linear-gradient(145deg, color-mix(in srgb, var(--notification-color) 88%, white), var(--notification-color)); box-shadow: 0 4px 9px color-mix(in srgb, var(--notification-color) 22%, transparent); font-size: 15px; font-weight: 850; line-height: 1; }
+.atlas-dashboard-notification-copy, .atlas-dashboard-notification-meta { min-width: 0; }
+.atlas-dashboard-notification-copy strong, .atlas-dashboard-notification-copy small, .atlas-dashboard-notification-meta strong, .atlas-dashboard-notification-meta small { display: block; }
+.atlas-dashboard-notification-copy strong { color: #173658; font-size: 11px; line-height: 1.25; }
+.atlas-dashboard-notification-copy small { margin-top: 3px; overflow: hidden; color: #748499; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.atlas-dashboard-notification-meta { text-align: right; }
+.atlas-dashboard-notification-meta strong { color: #405976; font-size: 10px; line-height: 1.25; }
+.atlas-dashboard-notification-meta small { margin-top: 3px; color: #8190a1; font-size: 9px; white-space: nowrap; }
+.atlas-dashboard-notification-empty { padding: 35px 22px 38px; color: #5c6f84; text-align: center; }
+.atlas-dashboard-notification-empty strong { display: block; color: #1c3d63; font-size: 13px; }
+.atlas-dashboard-notification-empty p { margin: 7px 0 0; font-size: 11px; line-height: 1.45; }
+
 .atlas-dashboard button,
 .atlas-dashboard input,
 .atlas-dashboard select {
@@ -1450,6 +1532,10 @@ html.atlas-dashboard-open #root {
   .atlas-dashboard-header-actions .atlas-dashboard-button[data-export] {
     display: none;
   }
+
+  .atlas-dashboard-notification-center,
+  .atlas-dashboard-notification-scrim,
+  .atlas-dashboard-notification-panel { display: none; }
 
   .atlas-dashboard-range {
     width: 100%;
