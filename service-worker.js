@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v141-pallet-guide-5oz";
+const VERSION = "atlas-pwa-v142-pallet-guide-new-skus";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -15,7 +15,7 @@ const APP_SHELL = [
   "./atlas-desktop.js?v=128",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260816-new-sku-images-103",
-  "./pallet-guides.json?v=20260817-5oz-v5",
+  "./pallet-guides.json?v=20260817-new-skus-v6",
   "./product-images/cgasb1-60ml-cnl-owh.png",
   "./atlas-icon-v2-180.png?v=101",
   "./atlas-icon-v2-192.png?v=101",
