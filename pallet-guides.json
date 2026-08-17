@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-05",
+  "updatedAt": "2026-08-17",
   "diagramPolicy": "basic-box-count-v1",
   "profiles": {
     "cgab1-10ml-basic-v1": {
@@ -1205,9 +1205,9 @@
     "cgac1-5oz-basic-v1": {
       "status": "published",
       "familySku": "CGAC1-5OZ",
-      "totalCasesPerPallet": 20,
+      "totalCasesPerPallet": 16,
       "casesPerLayer": 4,
-      "totalLayers": 5,
+      "totalLayers": 4,
       "layoutMode": "basic-count",
       "layerVariants": {
         "A": {
@@ -1244,7 +1244,6 @@
         }
       },
       "layerSequence": [
-        "A",
         "A",
         "A",
         "A",
@@ -3709,9 +3708,9 @@
     "cgsc1-5oz-basic-v1": {
       "status": "published",
       "familySku": "CGSC1-5OZ",
-      "totalCasesPerPallet": 20,
+      "totalCasesPerPallet": 16,
       "casesPerLayer": 4,
-      "totalLayers": 5,
+      "totalLayers": 4,
       "layoutMode": "basic-count",
       "layerVariants": {
         "A": {
@@ -3748,7 +3747,6 @@
         }
       },
       "layerSequence": [
-        "A",
         "A",
         "A",
         "A",

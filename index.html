@@ -33723,7 +33723,7 @@ Error generating stack: ` +
     </style>
     <script id="atlas-pallet-build-guide-behavior-v1">
       (() => {
-        const GUIDE_DATA_URL = "./pallet-guides.json?v=20260805-v4";
+        const GUIDE_DATA_URL = "./pallet-guides.json?v=20260817-5oz-v5";
         const SVG_NS = "http://www.w3.org/2000/svg";
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
         let guideData = { profiles: {}, skuAssignments: {} };
@@ -34022,8 +34022,8 @@ Error generating stack: ` +
               <div class="atlas-pallet-guide-content">
                 <section class="atlas-pallet-guide-metrics" aria-label="Pallet totals">
                   <div class="atlas-pallet-guide-metric"><span>Total Boxes<br>Per Pallet</span><strong></strong></div>
-                  <div class="atlas-pallet-guide-metric"><span>Boxes<br>Per Layer</span><strong></strong></div>
                   <div class="atlas-pallet-guide-metric"><span>Number<br>Of Layers</span><strong></strong></div>
+                  <div class="atlas-pallet-guide-metric"><span>Boxes<br>Per Layer</span><strong></strong></div>
                 </section>
                 <section class="atlas-pallet-guide-diagrams" aria-label="Visual layer diagram">
                   <div class="atlas-pallet-guide-section-head"><span>Visual Layer Diagram</span></div>
@@ -34037,8 +34037,8 @@ Error generating stack: ` +
             ".atlas-pallet-guide-metric strong",
           );
           metricValues[0].textContent = String(guide.totalCases);
-          metricValues[1].textContent = casesPerLayer;
-          metricValues[2].textContent = String(guide.totalLayers);
+          metricValues[1].textContent = String(guide.totalLayers);
+          metricValues[2].textContent = casesPerLayer;
 
           const layerGrid = backdrop.querySelector(".atlas-pallet-guide-layer-grid");
           const multipleVariants = guide.usedVariantIds.length > 1;
