@@ -9,7 +9,7 @@
     location: "#7251c7",
     create: "#168447",
     edit: "#b87525",
-    pick: "#b87525",
+    pick: "#f4d56b",
     delete: "#e10600",
     audit: "#708297",
   });
@@ -560,8 +560,9 @@
     return rows.slice(0, 250).map((row) => {
       const presentation = activityPresentation(row.key);
       const context = activityContext(row);
+      const isPickFirst = row.key === "pick";
       return `
-      <button type="button" class="atlas-dashboard-feed-row" data-activity-id="${escapeHtml(row.id)}" style="--activity-color:${row.color}">
+      <button type="button" class="atlas-dashboard-feed-row" data-activity-id="${escapeHtml(row.id)}" style="--activity-color:${row.color};--activity-icon-ink:${isPickFirst ? "#694600" : "#fff"};--activity-tag-ink:${isPickFirst ? "#694600" : row.color}">
         <span class="atlas-dashboard-activity-icon" aria-hidden="true">${presentation.icon}</span>
         <span class="atlas-dashboard-feed-primary"><strong>${escapeHtml(row.employee)}</strong><small>${escapeHtml(formatDateTime(row.date, true))}</small></span>
         <span class="atlas-dashboard-feed-detail"><span class="atlas-dashboard-feed-action-line"><strong class="atlas-dashboard-feed-action">${escapeHtml(row.label)}</strong><span class="atlas-dashboard-activity-kind">${escapeHtml(presentation.category)}</span></span><small>${escapeHtml(row.sku)}${row.detail && row.detail !== row.label ? ` · ${escapeHtml(row.detail)}` : ""}</small></span>

@@ -639,7 +639,7 @@ html.atlas-dashboard-open #root {
   border-radius: 10px;
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--activity-icon-ink, #fff);
   background: linear-gradient(145deg, color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 88%, white), var(--activity-color, var(--atlas-dashboard-blue)));
   border: 1px solid var(--activity-color, var(--atlas-dashboard-blue));
   box-shadow: 0 5px 11px color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 30%, transparent);
@@ -670,7 +670,7 @@ html.atlas-dashboard-open #root {
 }
 
 .atlas-dashboard-feed-detail .atlas-dashboard-feed-action {
-  color: var(--activity-color, var(--atlas-dashboard-blue));
+  color: var(--activity-tag-ink, var(--activity-color, var(--atlas-dashboard-blue)));
   font-weight: 800;
 }
 
@@ -685,7 +685,7 @@ html.atlas-dashboard-open #root {
   flex: 0 0 auto;
   padding: 3px 6px;
   border-radius: 999px;
-  color: var(--activity-color, var(--atlas-dashboard-blue));
+  color: var(--activity-tag-ink, var(--activity-color, var(--atlas-dashboard-blue)));
   background: color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 12%, white);
   border: 1px solid color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 28%, white);
   font-size: 8px;

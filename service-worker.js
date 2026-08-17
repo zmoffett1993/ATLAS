@@ -1,12 +1,12 @@
-const VERSION = "atlas-pwa-v152-dashboard-operational-trio";
+const VERSION = "atlas-pwa-v153-dashboard-pick-first-gold";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=138",
-  "./atlas-dashboard.js?v=137",
+  "./atlas-dashboard.css?v=139",
+  "./atlas-dashboard.js?v=138",
   "./atlas-guided-workflows.css?v=2",
   "./atlas-guided-workflows.js?v=1",
   "./atlas-delete-approval.js?v=1",
