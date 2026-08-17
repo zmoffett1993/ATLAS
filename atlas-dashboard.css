@@ -1,11 +1,11 @@
 :root {
   --atlas-dashboard-navy: #061c36;
   --atlas-dashboard-navy-2: #0a2d55;
-  --atlas-dashboard-blue: #005fd7;
+  --atlas-dashboard-blue: #155fc1;
   --atlas-dashboard-blue-soft: #eaf3ff;
-  --atlas-dashboard-green: #008a42;
+  --atlas-dashboard-green: #237554;
   --atlas-dashboard-green-soft: #e9f7f0;
-  --atlas-dashboard-amber: #e05b00;
+  --atlas-dashboard-amber: #b86b22;
   --atlas-dashboard-amber-soft: #fff5df;
   --atlas-dashboard-red: #e10600;
   --atlas-dashboard-red-soft: #fff0f0;
@@ -486,8 +486,9 @@ html.atlas-dashboard-open #root {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  color: var(--card-color, var(--atlas-dashboard-blue));
-  background: var(--card-bg, var(--atlas-dashboard-blue-soft));
+  color: #fff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--card-color, var(--atlas-dashboard-blue)) 88%, white), var(--card-color, var(--atlas-dashboard-blue)));
+  box-shadow: 0 7px 14px color-mix(in srgb, var(--card-color, var(--atlas-dashboard-blue)) 25%, transparent);
   font-size: 21px;
   font-weight: 700;
 }
@@ -639,7 +640,7 @@ html.atlas-dashboard-open #root {
   display: grid;
   place-items: center;
   color: #fff;
-  background: var(--activity-color, var(--atlas-dashboard-blue));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 88%, white), var(--activity-color, var(--atlas-dashboard-blue)));
   border: 1px solid var(--activity-color, var(--atlas-dashboard-blue));
   box-shadow: 0 5px 11px color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 30%, transparent);
   font-size: 17px;
@@ -684,8 +685,9 @@ html.atlas-dashboard-open #root {
   flex: 0 0 auto;
   padding: 3px 6px;
   border-radius: 999px;
-  color: #fff;
-  background: var(--activity-color, var(--atlas-dashboard-blue));
+  color: var(--activity-color, var(--atlas-dashboard-blue));
+  background: color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--activity-color, var(--atlas-dashboard-blue)) 28%, white);
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -1662,7 +1664,7 @@ html.atlas-dashboard-open #root {
 .atlas-dashboard-today-total span { color: var(--atlas-dashboard-muted); font-size: 13px; }
 .atlas-dashboard-summary-breakdown { display: grid; gap: 11px; padding: 17px 21px 0; }
 .atlas-dashboard-summary-breakdown span { display: grid; grid-template-columns: 11px 26px 1fr; align-items: center; gap: 8px; color: #43536b; font-size: 13px; }
-.atlas-dashboard-summary-breakdown i { width: 9px; height: 9px; border-radius: 999px; background: var(--summary-color); }
+.atlas-dashboard-summary-breakdown i { width: 9px; height: 9px; border-radius: 999px; background: var(--summary-color); box-shadow: 0 0 0 4px color-mix(in srgb, var(--summary-color) 12%, transparent); }
 .atlas-dashboard-summary-breakdown b { color: var(--atlas-dashboard-ink); font-size: 17px; }
 .atlas-dashboard-status-panel { min-height: 190px; }
 .atlas-dashboard-status-ok, .atlas-dashboard-status-attention { margin: 2px 20px 20px; padding: 18px; border-radius: 14px; background: #f2faf5; color: #167a47; }
