@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v145-menu-typography-restored";
+const VERSION = "atlas-pwa-v146-vibrant-alerts";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -12,6 +12,7 @@ const APP_SHELL = [
   "./atlas-delete-approval.js?v=1",
   "./atlas-desktop.css?v=141",
   "./atlas-desktop-menu-typography.css?v=1",
+  "./atlas-alerts.css?v=1",
   "./atlas-desktop.js?v=128",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260816-new-sku-images-103",

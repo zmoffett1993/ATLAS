@@ -1,0 +1,75 @@
+/* Shared ATLAS high-priority alert treatment. Applies on mobile and desktop. */
+:root {
+  --danger: #d9162f;
+  --danger-soft: #fff0f2;
+  --atlas-alert-red: #d9162f;
+  --atlas-alert-red-dark: #a80d21;
+  --atlas-alert-red-border: #ef9da8;
+}
+
+.workflow-message.error,
+.duplicate-warning,
+.missing-button,
+.danger-button {
+  color: var(--atlas-alert-red-dark);
+  background: var(--danger-soft);
+  border-color: var(--atlas-alert-red-border);
+}
+
+.delete-warning {
+  border-color: var(--atlas-alert-red-border);
+  background: linear-gradient(135deg, #fff4f5, #ffe8ec);
+  box-shadow: inset 3px 0 0 var(--atlas-alert-red);
+}
+
+.delete-warning strong {
+  color: var(--atlas-alert-red-dark);
+}
+
+.delete-warning p {
+  color: #71202b;
+}
+
+.danger-primary-button {
+  background: linear-gradient(135deg, #e11d36, #bc1028);
+  box-shadow: 0 8px 18px rgba(217, 22, 47, 0.24);
+}
+
+.danger-primary-button:not(:disabled):hover {
+  background: linear-gradient(135deg, #ef233c, #ca122c);
+  box-shadow: 0 10px 22px rgba(217, 22, 47, 0.3);
+}
+
+.atlas-dashboard {
+  --atlas-dashboard-red: #d9162f;
+  --atlas-dashboard-red-soft: #fff0f2;
+}
+
+.atlas-dashboard-error strong,
+.atlas-account-notice.is-error,
+.atlas-account-form-message,
+.atlas-account-modal-icon.is-danger {
+  color: var(--atlas-alert-red-dark);
+}
+
+.atlas-account-notice.is-error {
+  border-color: var(--atlas-alert-red-border);
+  background: var(--danger-soft);
+}
+
+.atlas-account-modal-icon.is-danger {
+  background: var(--danger-soft);
+}
+
+.atlas-dashboard-button--danger,
+.atlas-dashboard-button--danger:hover {
+  border-color: #c71027;
+  background: linear-gradient(135deg, #e11d36, #bc1028);
+  box-shadow: 0 8px 18px rgba(217, 22, 47, 0.22);
+}
+
+.atlas-dashboard-button--danger-ghost {
+  color: var(--atlas-alert-red-dark);
+  border-color: var(--atlas-alert-red-border);
+  background: var(--danger-soft);
+}
