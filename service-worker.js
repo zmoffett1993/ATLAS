@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v147-dosing-cup-framed";
+const VERSION = "atlas-pwa-v148-fire-engine-alerts";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -12,7 +12,7 @@ const APP_SHELL = [
   "./atlas-delete-approval.js?v=1",
   "./atlas-desktop.css?v=141",
   "./atlas-desktop-menu-typography.css?v=1",
-  "./atlas-alerts.css?v=1",
+  "./atlas-alerts.css?v=2",
   "./atlas-desktop.js?v=128",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260816-dosing-cup-framed-v104",
