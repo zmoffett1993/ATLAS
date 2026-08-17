@@ -1,18 +1,18 @@
-const VERSION = "atlas-pwa-v136-inventory-action-compact";
+const VERSION = "atlas-pwa-v139-dashboard-static-hover";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=132",
-  "./atlas-dashboard.js?v=132",
+  "./atlas-dashboard.css?v=134",
+  "./atlas-dashboard.js?v=133",
   "./atlas-guided-workflows.css?v=2",
   "./atlas-guided-workflows.js?v=1",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=138",
+  "./atlas-desktop.css?v=140",
   "./atlas-desktop-typography.css?v=1",
-  "./atlas-desktop.js?v=127",
+  "./atlas-desktop.js?v=128",
   "./manifest.webmanifest?v=107",
   "./product-images.json",
   "./pallet-guides.json?v=20260805-v4",

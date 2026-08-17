@@ -432,6 +432,16 @@
     else disableDesktop();
   };
 
+  document.addEventListener("pointerdown", (event) => {
+    if (!desktopQuery.matches || !inventoryExpanded) return;
+    const flyout = document.querySelector(".atlas-desktop-inventory-flyout.is-open");
+    const parent = document.querySelector("[data-atlas-desktop-inventory-parent]");
+    if (!flyout || flyout.contains(event.target) || parent?.contains(event.target)) return;
+    inventoryFlyoutDismissed = true;
+    inventoryFlyoutPreview = false;
+    setInventoryExpanded(false);
+  });
+
   desktopQuery.addEventListener?.("change", handleQueryChange);
   window.addEventListener("DOMContentLoaded", handleQueryChange, { once: true });
   if (document.readyState !== "loading") handleQueryChange();
