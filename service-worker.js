@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v139-dashboard-static-hover";
+const VERSION = "atlas-pwa-v140-new-sku-images";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -14,7 +14,7 @@ const APP_SHELL = [
   "./atlas-desktop-typography.css?v=1",
   "./atlas-desktop.js?v=128",
   "./manifest.webmanifest?v=107",
-  "./product-images.json",
+  "./product-images.json?v=20260816-new-sku-images-103",
   "./pallet-guides.json?v=20260805-v4",
   "./product-images/cgasb1-60ml-cnl-owh.png",
   "./atlas-icon-v2-180.png?v=101",
