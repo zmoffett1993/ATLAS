@@ -1,11 +1,11 @@
-const VERSION = "atlas-pwa-v158-dashboard-notification-red-and-flat-icons";
+const VERSION = "atlas-pwa-v160-dashboard-notification-badge-states";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=144",
+  "./atlas-dashboard.css?v=146",
   "./atlas-dashboard.js?v=142",
   "./atlas-guided-workflows.css?v=2",
   "./atlas-guided-workflows.js?v=1",

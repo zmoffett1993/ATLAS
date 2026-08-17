@@ -404,7 +404,7 @@ html.atlas-dashboard-open #root {
   min-width: 20px;
   height: 20px;
   box-sizing: border-box;
-  padding: 1px 5px 0;
+  padding: 0 5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -412,12 +412,13 @@ html.atlas-dashboard-open #root {
   border: 2px solid #f4f7fb;
   border-radius: 999px;
   background: var(--atlas-dashboard-red);
-  box-shadow: 0 3px 8px rgba(225, 6, 0, 0.3);
+  box-shadow: none;
   font-size: 9px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+.atlas-dashboard-notification-badge.is-empty { background: #0f5ccb; }
 .atlas-dashboard-notification-attention-dot { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 99px; background: var(--atlas-dashboard-amber); }
 .atlas-dashboard-notification-scrim { position: fixed; z-index: 10070; inset: 0; background: transparent; }
 .atlas-dashboard-notification-panel {
