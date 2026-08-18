@@ -170,7 +170,7 @@
       return { key: "create", label: "Created new SKU", color: ACTION_COLORS.create, operational: true };
     if (action === "ADD_LOCATION")
       return { key: "move", label: "Added inventory location", color: ACTION_COLORS.move, operational: true };
-    if (action === "MOVE_LOCATION" || aisleChanged || reasonText.includes("move all product"))
+    if (action === "MOVE_LOCATION" || action === "CORRECT_LOCATION" || action === "CONSOLIDATE_LOCATION" || aisleChanged || reasonText.includes("move all product"))
       return { key: "move", label: "Moved inventory", color: ACTION_COLORS.move, operational: true };
     if (action.includes("SKU_EDIT"))
       return { key: "edit", label: "Edited SKU", color: ACTION_COLORS.edit, operational: true };

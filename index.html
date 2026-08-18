@@ -24848,6 +24848,7 @@ Error generating stack: ` +
             : `Aisle ${Number(location.aisle)}, Section ${String(location.section).toUpperCase()}`;
       const atlasSectionsForAisle = (aisle) => {
         const aisleNumber = Number(aisle);
+        if (aisleNumber === 1) return ["A", "B", "C"];
         if (aisleNumber === 22) return ["A", "B", "C"];
         if (aisleNumber === 23) return ["A", "B"];
         if (aisleNumber === 20 || aisleNumber === 21) return ["B", "C"];
@@ -35776,7 +35777,7 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop.css?v=141" />
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
-    <script src="./atlas-dashboard.js?v=142" defer></script>
+    <script src="./atlas-dashboard.js?v=143" defer></script>
     <script src="./atlas-guided-workflows.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
     <script src="./atlas-desktop.js?v=128" defer></script>
