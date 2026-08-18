@@ -158,8 +158,8 @@
         rows: [
           ["SKU", sku],
           ["From", source],
-          ["To", moveDestination(card)],
           ["Move type", mode],
+          ["To", moveDestination(card)],
         ],
       };
     }
