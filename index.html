@@ -18462,6 +18462,18 @@ Error generating stack: ` +
               (document.documentElement.scrollTop = 0),
               (document.body.scrollTop = 0));
           };
+          if (e === `home`) {
+            // Home is a fresh SKU-search start, not just a navigation change.
+            // Keep the optional recent-SKU suggestions, but clear the active
+            // query, selected product, and its location/action state.
+            (l(``),
+              d(null),
+              _(null),
+              atlasSetLocationExplicitlySelected(!1),
+              atlasSetQuickActionPending(null),
+              atlasSetMoreLocationsExpanded(!1),
+              atlasSetPrimaryCandidate(null));
+          }
           (Ge(),
             y(null),
             x(null),

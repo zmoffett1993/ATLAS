@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v160-dashboard-notification-badge-states";
+const VERSION = "atlas-pwa-v161-home-resets-search";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=146",
-  "./atlas-dashboard.js?v=142",
+  "./atlas-dashboard.js?v=144",
   "./atlas-guided-workflows.css?v=2",
   "./atlas-guided-workflows.js?v=1",
   "./atlas-delete-approval.js?v=1",
