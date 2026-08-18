@@ -14608,24 +14608,32 @@ Error generating stack: ` +
         return !!r && n.includes(r);
       }
       function qe(e) {
-        return Number(e.aisle) === 23
-          ? `SR`
-          : `${e.aisle}${String(e.section).toUpperCase()}`;
+        let t = Number(e?.aisle),
+          n = String(e?.section || ``).toUpperCase();
+        return t === 22
+          ? `Overflow · ${{ A: `Left`, B: `Middle`, C: `Right` }[n] || n}`
+          : t === 23
+            ? `Samples Rack · Section ${n}`
+            : `${t}${n}`;
       }
       function atlasContextLocationCode(e) {
         let t = Number(e?.aisle),
           n = String(e?.section || ``).toUpperCase();
-        if (t === 23) return `SR ${n}`;
+        if (t === 23) return `Samples Rack · Section ${n}`;
         if (t === 22)
-          return `FLOOR ${
-            { A: `LEFT`, B: `MIDDLE`, C: `RIGHT` }[n] || n
+          return `Overflow · ${
+            { A: `Left`, B: `Middle`, C: `Right` }[n] || n
           }`;
         return `${t}${n}`;
       }
       function atlasPickerLocationTitle(e) {
-        return Number(e.aisle) === 23
-          ? `Samples Rack · Section ${String(e.section).toUpperCase()}`
-          : `Aisle ${e.aisle} · Section ${String(e.section).toUpperCase()}`;
+        let t = Number(e?.aisle),
+          n = String(e?.section || ``).toUpperCase();
+        return t === 22
+          ? `Overflow · ${{ A: `Left`, B: `Middle`, C: `Right` }[n] || n}`
+          : t === 23
+            ? `Samples Rack · Section ${n}`
+            : `Aisle ${t} · Section ${n}`;
       }
       function Je(e) {
         if (Number(e) === 1) return [`A`, `B`, `C`];
@@ -15882,7 +15890,7 @@ Error generating stack: ` +
                 className: `map-title`,
                 children: [
                   (0, T.jsx)(`strong`, {
-                    children: `Overflow Floor Location`,
+                    children: `Overflow`,
                   }),
                   (0, T.jsxs)(`span`, {
                     children: [
@@ -16082,7 +16090,7 @@ Error generating stack: ` +
                             value: e,
                             children:
                               e === 22
-                                ? `Overflow Floor Location`
+                                ? `Overflow`
                                 : e === 23
                                   ? `Samples Rack`
                                   : `Aisle ${e}`,
@@ -17051,7 +17059,7 @@ Error generating stack: ` +
         let t = Number(e?.aisle),
           n = String(e?.section || ``).toUpperCase();
         return t === 22
-          ? `Overflow Floor · ${{ A: `Left`, B: `Middle`, C: `Right` }[n] || n}`
+          ? `Overflow · ${{ A: `Left`, B: `Middle`, C: `Right` }[n] || n}`
           : t === 23
             ? `Samples Rack · Section ${n}`
             : `Aisle ${t} · Section ${n}`;
@@ -24827,13 +24835,17 @@ Error generating stack: ` +
           .replace(/-BK-BK$/g, "-BKBK")
           .replace(/([0-9])0Z/g, "$1OZ");
       const atlasLocationCode = (location) =>
-        Number(location.aisle) === 23
-          ? `SAMPLES RACK ${String(location.section).toUpperCase()}`
-          : `${Number(location.aisle)}${String(location.section).toUpperCase()}`;
+        Number(location.aisle) === 22
+          ? `OVERFLOW ${({ A: "LEFT", B: "MIDDLE", C: "RIGHT" })[String(location.section).toUpperCase()] || String(location.section).toUpperCase()}`
+          : Number(location.aisle) === 23
+            ? `SAMPLES RACK ${String(location.section).toUpperCase()}`
+            : `${Number(location.aisle)}${String(location.section).toUpperCase()}`;
       const atlasLocationDisplay = (location) =>
-        Number(location.aisle) === 23
-          ? `Samples Rack, Section ${String(location.section).toUpperCase()}`
-          : `Aisle ${Number(location.aisle)}, Section ${String(location.section).toUpperCase()}`;
+        Number(location.aisle) === 22
+          ? `Overflow, ${({ A: "Left", B: "Middle", C: "Right" })[String(location.section).toUpperCase()] || String(location.section).toUpperCase()}`
+          : Number(location.aisle) === 23
+            ? `Samples Rack, Section ${String(location.section).toUpperCase()}`
+            : `Aisle ${Number(location.aisle)}, Section ${String(location.section).toUpperCase()}`;
       const atlasSectionsForAisle = (aisle) => {
         const aisleNumber = Number(aisle);
         if (aisleNumber === 22) return ["A", "B", "C"];
@@ -24902,7 +24914,7 @@ Error generating stack: ` +
                     const aisle = index + 1;
                     const label =
                       aisle === 22
-                        ? "Overflow Floor Location"
+                        ? "Overflow"
                         : aisle === 23
                           ? "Samples Rack"
                           : `Aisle ${aisle}`;
@@ -25398,7 +25410,7 @@ Error generating stack: ` +
             const aisle = index + 1;
             const label =
               aisle === 22
-                ? "Overflow Floor Location"
+                ? "Overflow"
                 : aisle === 23
                   ? "Samples Rack"
                   : `Aisle ${aisle}`;
@@ -35760,12 +35772,12 @@ Error generating stack: ` +
       }
     </style>
 
-    <link rel="stylesheet" href="./atlas-guided-workflows.css?v=2" />
+    <link rel="stylesheet" href="./atlas-guided-workflows.css?v=3" />
     <link rel="stylesheet" href="./atlas-desktop.css?v=141" />
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <script src="./atlas-dashboard.js?v=142" defer></script>
-    <script src="./atlas-guided-workflows.js?v=1" defer></script>
+    <script src="./atlas-guided-workflows.js?v=2" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
     <script src="./atlas-desktop.js?v=128" defer></script>
 

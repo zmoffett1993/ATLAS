@@ -93,6 +93,11 @@
   const valueForField = (card, prefix) =>
     fieldFor(card, prefix)?.querySelector("input, select, textarea")?.value?.trim() || "";
 
+  const selectedTextForField = (card, prefix) => {
+    const control = fieldFor(card, prefix)?.querySelector("select");
+    return control?.selectedOptions?.[0]?.textContent?.trim() || valueForField(card, prefix);
+  };
+
   const employeeValue = (card) => valueForField(card, "Employee name or initials");
 
   const selectedSku = (card) =>
@@ -131,17 +136,25 @@
   const moveDestination = (card) => {
     const aisle = valueForField(card, "Aisle");
     const section = valueForField(card, "Section").toUpperCase();
-    return aisle && section ? `${aisle}${section}` : "the selected destination";
+    if (!aisle || !section) return "the selected destination";
+    if (Number(aisle) === 22) {
+      return `Overflow · ${({ A: "Left", B: "Middle", C: "Right" })[section] || section}`;
+    }
+    if (Number(aisle) === 23) return `Samples Rack · Section ${section}`;
+    return `${aisle}${section}`;
   };
 
   const buildReview = (card, title) => {
     const sku = selectedSku(card) || "this SKU";
     if (title === "Move Inventory") {
       const mode = card.querySelector(".movement-mode.active strong")?.textContent?.replace(/SAFER DEFAULT/g, "").trim() || "Selected move";
-      const source = valueForField(card, "Original location") || "the current active source location";
+      const source = selectedTextForField(card, "Original location") || "the current active source location";
+      const impact = /move all/i.test(mode)
+        ? `${source} will be removed from active locations.`
+        : `${source} will remain an active location.`;
       return {
         heading: `Move ${sku}?`,
-        body: "Review the source, destination, and move type before ATLAS changes the active warehouse locations.",
+        body: impact,
         rows: [
           ["SKU", sku],
           ["From", source],
@@ -173,6 +186,8 @@
 
   const removeConfirmation = (card) => {
     card?.querySelector(".atlas-guided-confirmation")?.remove();
+    document.querySelectorAll(".atlas-guided-review-overlay").forEach((node) => node.remove());
+    document.body.classList.remove("atlas-guided-review-open");
     card?.querySelectorAll(".atlas-guided-pick-selected").forEach((node) =>
       node.classList.remove("atlas-guided-pick-selected"),
     );
@@ -183,8 +198,10 @@
     if (!card) return;
     removeConfirmation(card);
     const detail = buildReview(card, title);
+    const overlay = document.createElement("div");
+    overlay.className = "atlas-guided-review-overlay";
     const panel = document.createElement("section");
-    panel.className = "atlas-guided-confirmation";
+    panel.className = "atlas-guided-confirmation atlas-guided-confirmation--overlay";
     panel.dataset.atlasGuidedConfirmation = title;
     panel.setAttribute("role", "region");
     panel.setAttribute("aria-label", `Confirm ${title}`);
@@ -201,21 +218,26 @@
         .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
         .join("")}</dl>
       <div class="atlas-guided-confirmation__actions">
-        <button type="button" class="atlas-guided-cancel">Cancel</button>
+        <button type="button" class="atlas-guided-cancel">Back to Edit</button>
         <button type="button" class="atlas-guided-confirm">${escapeHtml(workflowCopy[title].confirmLabel)}</button>
       </div>`;
-    form.appendChild(panel);
-    panel.querySelector(".atlas-guided-cancel")?.addEventListener("click", () => panel.remove());
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    document.body.classList.add("atlas-guided-review-open");
+    panel.querySelector(".atlas-guided-cancel")?.addEventListener("click", () => removeConfirmation(card));
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) removeConfirmation(card);
+    });
     panel.querySelector(".atlas-guided-confirm")?.addEventListener("click", () => {
       form.dataset.atlasGuidedConfirmed = "true";
-      panel.remove();
+      removeConfirmation(card);
       if (typeof form.requestSubmit === "function") {
         form.requestSubmit(submitter && !submitter.disabled ? submitter : undefined);
       } else {
         submitter?.click();
       }
     });
-    panel.querySelector(".atlas-guided-confirm")?.focus({ preventScroll: false });
+    panel.querySelector(".atlas-guided-confirm")?.focus({ preventScroll: true });
   };
 
   const showPickFirstConfirmation = (button) => {
@@ -264,6 +286,7 @@
     );
     if (!button || isBusy(button) || card.querySelector(".atlas-guided-confirmation")) return;
     const label = workflowCopy[title]?.reviewLabel;
+    button.classList.add("atlas-guided-review-trigger");
     if (label && button.textContent?.trim() !== label) button.textContent = label;
   };
 

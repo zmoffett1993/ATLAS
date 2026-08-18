@@ -97,11 +97,11 @@
     const sectionName = String(section || "").toUpperCase();
     if (!aisleNumber || !sectionName) return "—";
     if (aisleNumber === 22) {
-      return `FLOOR ${
-        { A: "LEFT", B: "MIDDLE", C: "RIGHT" }[sectionName] || sectionName
+      return `Overflow · ${
+        { A: "Left", B: "Middle", C: "Right" }[sectionName] || sectionName
       }`;
     }
-    if (aisleNumber === 23) return `SR ${sectionName}`;
+    if (aisleNumber === 23) return `Samples Rack · Section ${sectionName}`;
     return `${aisleNumber}${sectionName}`;
   };
 
