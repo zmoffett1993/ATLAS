@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v161-home-resets-search";
+const VERSION = "atlas-pwa-v162-force-activate-home-reset";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -46,7 +46,10 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)),
+    caches
+      .open(SHELL_CACHE)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting()),
   );
 });
 
