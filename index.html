@@ -15750,40 +15750,48 @@ Error generating stack: ` +
             (e) => o.includes(e) || s.includes(e),
           ),
           c = [],
-          d = `atlas-paired-${i}-${a || `floor`}`;
-        let u = 110;
+          d = `atlas-paired-${i}-${a || `floor`}`,
+          P =
+            typeof window !== `undefined` &&
+            window.matchMedia(
+              `(min-width: 1024px) and (hover: hover) and (pointer: fine)`,
+            ).matches,
+          M = P ? 150 : 250,
+          R = P ? 42 : 62,
+          E = P ? 46 : 66;
+        let u = P ? 96 : 110;
         l.forEach((e) => {
-          (c.push({ type: `section`, section: e, y: u, height: 250 }),
-            (u += 250));
+          (c.push({ type: `section`, section: e, y: u, height: M }),
+            (u += M));
           if (e === `D`)
             (c.push({
               type: `driveway`,
               label: `FORKLIFT DRIVEWAY 3`,
               kind: `secondary`,
               y: u,
-              height: 62,
+              height: R,
             }),
-              (u += 62));
+              (u += R));
           if (e === `C`)
             (c.push({
               type: `driveway`,
               label: `FORKLIFT DRIVEWAY 2`,
               kind: `secondary`,
               y: u,
-              height: 62,
+              height: R,
             }),
-              (u += 62));
+              (u += R));
           if (e === `B`)
             (c.push({
               type: `driveway`,
               label: `MAIN FORKLIFT DRIVEWAY`,
               kind: `main`,
               y: u,
-              height: 66,
+              height: E,
             }),
-              (u += 66));
+              (u += E));
         });
-        const h = u + 54,
+        const h = u + (P ? 38 : 54),
           p = c.find(
             (e) => e.type === `section` && e.section === r,
           ),
@@ -15793,7 +15801,7 @@ Error generating stack: ` +
           g = n === i ? `left` : `right`,
           f = g === `left` ? 203 : 397,
           y = p ? p.y + p.height / 2 : 235,
-          b = m ? m.y + m.height / 2 : u - 33,
+          b = m ? m.y + m.height / 2 : u - (P ? 23 : 33),
           v = a
             ? `Aisles ${i} and ${a}. Aisle ${i} is on the left and Aisle ${a} is on the right.`
             : `Aisle 21 is on the left and the FLOOR open-storage area is on the right.`,
@@ -35894,7 +35902,7 @@ Error generating stack: ` +
 
     <link rel="stylesheet" href="./atlas-guided-workflows.css?v=4" />
     <link rel="stylesheet" href="./atlas-restock.css?v=3" />
-    <link rel="stylesheet" href="./atlas-desktop.css?v=141" />
+    <link rel="stylesheet" href="./atlas-desktop.css?v=142" />
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <script src="./atlas-dashboard.js?v=145" defer></script>

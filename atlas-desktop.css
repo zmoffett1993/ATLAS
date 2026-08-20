@@ -591,6 +591,28 @@
     margin: 0 auto;
   }
 
+  /* Desktop map: retain the exact aisle arrangement while reducing vertical
+     scanning distance for supervisors using standard laptop displays. */
+  html.atlas-desktop #root .map-panel.atlas-collapsible-map.is-expanded.atlas-paired-map-panel {
+    padding: 14px 16px !important;
+  }
+
+  html.atlas-desktop #root .atlas-paired-map-title {
+    margin-bottom: 3px !important;
+  }
+
+  html.atlas-desktop #root .atlas-paired-map-title strong {
+    font-size: 13px !important;
+  }
+
+  html.atlas-desktop #root .atlas-paired-picker-note {
+    margin: 2px 0 5px !important;
+  }
+
+  html.atlas-desktop #root .atlas-paired-map-frame {
+    max-width: 900px;
+  }
+
   html.atlas-desktop.atlas-results-focused #root .brand-header {
     min-height: 64px !important;
     padding: 8px 30px !important;
