@@ -610,7 +610,9 @@
   }
 
   html.atlas-desktop #root .atlas-paired-map-frame {
-    max-width: 900px;
+    /* Keep the existing map design intact, but scale the complete paired
+       layout down uniformly so supervisors can take it in at a glance. */
+    max-width: 440px;
   }
 
   html.atlas-desktop.atlas-results-focused #root .brand-header {
