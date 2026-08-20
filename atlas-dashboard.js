@@ -168,6 +168,10 @@
 
     if (action === "CREATE_SKU" || action === "SKU_CREATED")
       return { key: "create", label: "Created new SKU", color: ACTION_COLORS.create, operational: true };
+    if (reasonText.includes("undo inventory move"))
+      return { key: "undo", label: "Undid inventory move", color: ACTION_COLORS.move, operational: true };
+    if (action === "RESTORE_LOCATION" && reasonText.includes("replenish"))
+      return { key: "location", label: "Replenished inventory", color: ACTION_COLORS.create, operational: true };
     if (action === "ADD_LOCATION")
       return { key: "move", label: "Added inventory location", color: ACTION_COLORS.move, operational: true };
     if (action === "MOVE_LOCATION" || action === "CORRECT_LOCATION" || action === "CONSOLIDATE_LOCATION" || aisleChanged || reasonText.includes("move all product"))
@@ -194,7 +198,7 @@
     if (action === "CLEAR_LOCATION" || action.includes("LOCATION_CLEAR") || (activeChanged && !bool(newRecord.is_active)))
       return { key: "location", label: "Cleared location", color: ACTION_COLORS.location, operational: action === "CLEAR_LOCATION" || action.includes("LOCATION_CLEAR") };
     if (action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") || (activeChanged && bool(newRecord.is_active)))
-      return { key: "location", label: "Restored location", color: ACTION_COLORS.create, operational: action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") };
+      return { key: "location", label: "Activated inventory location", color: ACTION_COLORS.create, operational: action === "RESTORE_LOCATION" || action.includes("LOCATION_RESTORE") };
     if (action.includes("CORRECT") || reasonText.includes("different location"))
       return { key: "location", label: "Corrected location", color: ACTION_COLORS.edit, operational: true };
     if (action === "USER_CREATED")

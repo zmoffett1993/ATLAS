@@ -92,12 +92,7 @@
     confirm.textContent = "Saving…";
     try {
       localStorage.setItem("atlasEmployee", employee.trim());
-      if (restoring) {
-        if (target.is_active) throw Error("This location is already active.");
-        await window.atlasSetInventoryLocationActive({ locationId: target.id, isActive: true, employee: employee.trim(), reason: "Restocked at selected location" });
-      } else {
-        await window.atlasInventoryApi.rpc("add_inventory_location", { p_sku_id: sku.id, p_new_aisle: target.aisle, p_new_section: target.section, p_employee_name: employee.trim(), p_reason: "Restocked at new location" });
-      }
+      await window.atlasInventoryApi.rpc("add_inventory_location", { p_sku_id: sku.id, p_new_aisle: target.aisle, p_new_section: target.section, p_employee_name: employee.trim(), p_reason: `Inventory replenished at ${locationCode(target)}` });
       modal.innerHTML = `<p class="atlas-restock-kicker">INVENTORY ADDED</p><h2>Inventory added successfully</h2><p>${escapeHtml(sku.sku)} is now available to pick from <strong>${escapeHtml(locationCode(target))}</strong>.</p><div class="atlas-restock-actions"><button type="button" class="primary" data-done>Done</button></div>`;
       modal.querySelector("[data-done]").addEventListener("click", () => window.location.reload());
     } catch (error) {

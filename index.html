@@ -16191,6 +16191,12 @@ Error generating stack: ` +
             Number(e.aisle) === p &&
             String(e.section).toUpperCase() === h,
         );
+        let I = o?.locations.find(
+          (e) =>
+            e.is_active === !1 &&
+            Number(e.aisle) === p &&
+            String(e.section).toUpperCase() === h,
+        );
         ((0, C.useEffect)(() => {
           let e = window.setTimeout(
             () => v(localStorage.getItem(`atlasEmployee`) || ``),
@@ -16278,6 +16284,23 @@ Error generating stack: ` +
                 type: `success`,
                 text: `${o.sku} was consolidated into ${qe(N)}. The original location is no longer active.`,
               });
+            } else if (I) {
+              await $e(`reactivate_and_move_inventory_location`, {
+                p_source_location_id: l,
+                p_destination_location_id: I.id,
+                p_employee_name: _.trim(),
+                p_reason: `Move all product`,
+              });
+              de({
+                type: `reactivated-move`,
+                sourceLocationId: l,
+                destinationLocationId: I.id,
+                sourcePickFirst: !!e?.pick_first,
+              });
+              E({
+                type: `success`,
+                text: `${o.sku} was moved to ${qe(I)}. The previous location is no longer active.`,
+              });
             } else {
               await $e(`move_inventory_location`, {
                 p_location_id: l,
@@ -16296,10 +16319,7 @@ Error generating stack: ` +
           } catch (e) {
             E({
               type: `error`,
-              text:
-                e instanceof Error
-                  ? e.message
-                  : `The inventory update could not be saved.`,
+              text: `ATLAS couldn't complete this inventory move. No changes were made. Please try again.`,
             });
           } finally {
             ee(!1);
@@ -16323,6 +16343,14 @@ Error generating stack: ` +
                 isActive: !0,
                 employee: _.trim(),
                 reason: `Undo inventory move`,
+              });
+            } else if (ue.type === `reactivated-move`) {
+              await $e(`undo_reactivated_inventory_move`, {
+                p_source_location_id: ue.sourceLocationId,
+                p_destination_location_id: ue.destinationLocationId,
+                p_source_pick_first: !!ue.sourcePickFirst,
+                p_employee_name: _.trim(),
+                p_reason: `Undo inventory move`,
               });
             } else {
               if (!ue.original) throw Error(`The original location is unavailable for undo.`);
@@ -35869,9 +35897,9 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop.css?v=141" />
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
-    <script src="./atlas-dashboard.js?v=144" defer></script>
+    <script src="./atlas-dashboard.js?v=145" defer></script>
     <script src="./atlas-guided-workflows.js?v=4" defer></script>
-    <script src="./atlas-restock.js?v=1" defer></script>
+    <script src="./atlas-restock.js?v=2" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
     <script src="./atlas-desktop.js?v=128" defer></script>
 
