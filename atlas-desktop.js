@@ -159,9 +159,10 @@
   const activateInventoryAction = (actionId) => {
     const target = inventoryActions.find((action) => action.id === actionId);
     if (!target) return;
-    inventoryExpanded = true;
-    inventoryFlyoutDismissed = false;
+    inventoryExpanded = false;
+    inventoryFlyoutDismissed = true;
     inventoryFlyoutPreview = false;
+    setInventoryExpanded(false);
     document.querySelectorAll("[data-atlas-inventory-action]").forEach((item) => {
       const isTarget = item.dataset.atlasInventoryAction === actionId;
       item.classList.toggle("is-active", isTarget);
