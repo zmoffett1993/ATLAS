@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v163-move-restock-fixes";
+const VERSION = "atlas-pwa-v164-restock-desktop-hover";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=144",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
-  "./atlas-restock.css?v=1",
+  "./atlas-restock.css?v=2",
   "./atlas-restock.js?v=1",
   "./atlas-delete-approval.js?v=1",
   "./atlas-desktop.css?v=141",
