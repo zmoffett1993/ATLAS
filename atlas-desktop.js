@@ -168,14 +168,14 @@
       if (isTarget) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
-    if (actionId === "browse") {
-      navigate("aisles");
-      queueSync();
-      return;
-    }
     if (root.classList.contains("atlas-dashboard-open")) {
       sidebarState?.home?.click();
       window.requestAnimationFrame(() => activateInventoryAction(actionId));
+      return;
+    }
+    if (actionId === "browse") {
+      navigate("aisles");
+      queueSync();
       return;
     }
     navigate("inventory");

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v165-seamless-location-reactivation";
+const VERSION = "atlas-pwa-v166-browse-from-dashboard";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -15,7 +15,7 @@ const APP_SHELL = [
   "./atlas-desktop.css?v=141",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
-  "./atlas-desktop.js?v=128",
+  "./atlas-desktop.js?v=129",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260816-dosing-cup-framed-v104",
   "./pallet-guides.json?v=20260817-new-skus-v6",
