@@ -14,7 +14,6 @@
       stepOne: "Search for a SKU",
       stepTwo: "Choose source and destination",
       success: "Inventory moved successfully",
-      reviewLabel: "Review Move",
       confirmLabel: "Confirm Move",
     },
     "Manage Pick First": {
@@ -307,7 +306,9 @@
     if (title === "Delete SKU") next = directChild(card, ".delete-warning");
     ensureStep(card, "configure", 2, copy.stepTwo, next);
 
-    if (title !== "Manage Pick First") tuneSubmit(card, title);
+    // Move Inventory already has its single final confirmation on the form.
+    // Do not relabel it as "Review Move" or open a second confirmation modal.
+    if (title !== "Manage Pick First" && title !== "Move Inventory") tuneSubmit(card, title);
     const success = directChild(card, ".workflow-message.success");
     if (success) {
       success.classList.add("atlas-guided-success-message");
@@ -333,7 +334,7 @@
       if (!(form instanceof HTMLFormElement)) return;
       const card = cardFor(form);
       const title = titleFor(card);
-      if (!workflowTitles.has(title) || title === "Manage Pick First") return;
+      if (!workflowTitles.has(title) || title === "Manage Pick First" || title === "Move Inventory") return;
       if (form.dataset.atlasGuidedConfirmed === "true") {
         delete form.dataset.atlasGuidedConfirmed;
         return;

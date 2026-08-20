@@ -14792,6 +14792,27 @@ Error generating stack: ` +
         }
         return await n.json();
       }
+      window.atlasInventoryApi = {
+        rpc: $e,
+        async findSku(sku) {
+          let response = await fetch(
+            `${Ve}/rest/v1/skus?select=id,sku&sku=eq.${encodeURIComponent(String(sku || ``).trim())}&limit=1`,
+            { headers: Ue },
+          );
+          let rows = await response.json().catch(() => []);
+          if (!response.ok) throw Error(rows?.message || `The SKU could not be loaded.`);
+          return rows?.[0] || null;
+        },
+        async locations(skuId) {
+          let response = await fetch(
+            `${Ve}/rest/v1/locations?select=id,sku_id,aisle,section,is_active,pick_first,updated_at,created_at&sku_id=eq.${encodeURIComponent(skuId)}&order=updated_at.desc`,
+            { headers: Ue },
+          );
+          let rows = await response.json().catch(() => []);
+          if (!response.ok) throw Error(rows?.message || `Location history could not be loaded.`);
+          return Array.isArray(rows) ? rows : [];
+        },
+      };
       function atlasInventorySession() {
         try {
           return JSON.parse(
@@ -16162,7 +16183,8 @@ Error generating stack: ` +
           [h, g] = (0, C.useState)(`A`),
           [_, v] = (0, C.useState)(``),
           [w, ee] = (0, C.useState)(!1),
-          [te, E] = (0, C.useState)(null);
+          [te, E] = (0, C.useState)(null),
+          [ue, de] = (0, C.useState)(null);
         let N = o?.locations.find(
           (e) =>
             e.is_active !== !1 &&
@@ -16197,7 +16219,7 @@ Error generating stack: ` +
             return () => window.clearTimeout(n);
           }, [e, o]));
         async function ne(e) {
-          if ((e.preventDefault(), E(null), !o))
+          if ((e.preventDefault(), E(null), de(null), !o))
             return E({ type: `error`, text: `Select a SKU first.` });
           if (_.trim().length < 2)
             return E({
@@ -16229,41 +16251,48 @@ Error generating stack: ` +
             });
           (ee(!0), localStorage.setItem(`atlasEmployee`, _.trim()));
           try {
-            (d
-              ? (await $e(`add_inventory_location`, {
+            let e = c.find((e) => e.id === l);
+            if (d) {
+              let e = await $e(`add_inventory_location`, {
                   p_sku_id: o.id,
                   p_new_aisle: p,
                   p_new_section: h,
                   p_employee_name: _.trim(),
                   p_reason: `Keep product in both locations`,
                 }),
-                E({
-                  type: `success`,
-                  text: `${o.sku} is now active in both its original location and ${qe({ aisle: p, section: h })}.`,
-                }))
-              : N
-                ? (await $e(`consolidate_inventory_location`, {
-                    p_source_location_id: l,
-                    p_destination_location_id: N.id,
-                    p_employee_name: _.trim(),
-                    p_reason: `Move all product`,
-                  }),
-                  E({
-                    type: `success`,
-                    text: `${o.sku} was consolidated into ${qe(N)}. The original location is no longer active.`,
-                  }))
-                : (await $e(`move_inventory_location`, {
-                    p_location_id: l,
-                    p_new_aisle: p,
-                    p_new_section: h,
-                    p_employee_name: _.trim(),
-                    p_reason: `Move all product`,
-                  }),
-                  E({
-                    type: `success`,
-                    text: `${o.sku} was fully moved to ${qe({ aisle: p, section: h })}. The original location is no longer active.`,
-                  })),
-              await t());
+                n = Array.isArray(e) ? e[0] : e;
+              de({ type: `added`, locationId: n?.location_id || n?.id || null });
+              E({
+                type: `success`,
+                text: `${o.sku} is now active in both its original location and ${qe({ aisle: p, section: h })}.`,
+              });
+            } else if (N) {
+              await $e(`consolidate_inventory_location`, {
+                p_source_location_id: l,
+                p_destination_location_id: N.id,
+                p_employee_name: _.trim(),
+                p_reason: `Move all product`,
+              });
+              de({ type: `consolidated`, locationId: l });
+              E({
+                type: `success`,
+                text: `${o.sku} was consolidated into ${qe(N)}. The original location is no longer active.`,
+              });
+            } else {
+              await $e(`move_inventory_location`, {
+                p_location_id: l,
+                p_new_aisle: p,
+                p_new_section: h,
+                p_employee_name: _.trim(),
+                p_reason: `Move all product`,
+              });
+              de({ type: `moved`, locationId: l, original: e ? { aisle: e.aisle, section: e.section } : null });
+              E({
+                type: `success`,
+                text: `${o.sku} was fully moved to ${qe({ aisle: p, section: h })}. The original location is no longer active.`,
+              });
+            }
+            await t();
           } catch (e) {
             E({
               type: `error`,
@@ -16272,6 +16301,42 @@ Error generating stack: ` +
                   ? e.message
                   : `The inventory update could not be saved.`,
             });
+          } finally {
+            ee(!1);
+          }
+        }
+        async function re() {
+          if (!ue || w) return;
+          (ee(!0), E(null));
+          try {
+            if (ue.type === `added`) {
+              if (!ue.locationId) throw Error(`The new location could not be identified for undo.`);
+              await atlasSetInventoryLocationActive({
+                locationId: ue.locationId,
+                isActive: !1,
+                employee: _.trim(),
+                reason: `Undo inventory move`,
+              });
+            } else if (ue.type === `consolidated`) {
+              await atlasSetInventoryLocationActive({
+                locationId: ue.locationId,
+                isActive: !0,
+                employee: _.trim(),
+                reason: `Undo inventory move`,
+              });
+            } else {
+              if (!ue.original) throw Error(`The original location is unavailable for undo.`);
+              await $e(`move_inventory_location`, {
+                p_location_id: ue.locationId,
+                p_new_aisle: ue.original.aisle,
+                p_new_section: ue.original.section,
+                p_employee_name: _.trim(),
+                p_reason: `Undo inventory move`,
+              });
+            }
+            (de(null), E({ type: `success`, text: `Move undone successfully.` }), await t());
+          } catch (e) {
+            E({ type: `error`, text: `ATLAS couldn't undo this move. No additional changes were made.` });
           } finally {
             ee(!1);
           }
@@ -16399,15 +16464,28 @@ Error generating stack: ` +
                     }),
                     (0, T.jsx)(st, { value: _, onChange: v }),
                     (0, T.jsx)(ct, { message: te }),
+                    ue
+                      ? (0, T.jsxs)(`div`, {
+                          className: `atlas-move-undo`,
+                          children: [
+                            (0, T.jsx)(`span`, { children: `Need to reverse this move?` }),
+                            (0, T.jsx)(`button`, {
+                              type: `button`,
+                              className: `atlas-cleared-undo`,
+                              disabled: w,
+                              onClick: re,
+                              children: w ? `Undoing…` : `Undo Move`,
+                            }),
+                          ],
+                        })
+                      : null,
                     (0, T.jsx)(`button`, {
                       className: `primary-button`,
                       type: `submit`,
                       disabled: w,
                       children: w
                         ? `Saving…`
-                        : d
-                          ? `Confirm Both Locations`
-                          : `Confirm Full Move`,
+                        : `Confirm Move`,
                     }),
                   ],
                 })
@@ -16459,10 +16537,7 @@ Error generating stack: ` +
           } catch (e) {
             f({
               type: `error`,
-              text:
-                e instanceof Error
-                  ? e.message
-                  : `Pick First could not be updated.`,
+              text: `Unable to update Pick First. Please try again or contact a supervisor.`,
             });
           } finally {
             u(``);
@@ -18736,10 +18811,10 @@ Error generating stack: ` +
                                           className: `empty-state compact`,
                                           children: [
                                             (0, T.jsx)(`strong`, {
-                                              children: `No active location`,
+                                              children: `Out of Stock`,
                                             }),
                                             (0, T.jsx)(`span`, {
-                                              children: `This SKU is currently hidden from picker results.`,
+                                              children: `This SKU is currently out of stock and has no active pick location.`,
                                             }),
                                           ],
                                         }),
@@ -35789,12 +35864,14 @@ Error generating stack: ` +
       }
     </style>
 
-    <link rel="stylesheet" href="./atlas-guided-workflows.css?v=3" />
+    <link rel="stylesheet" href="./atlas-guided-workflows.css?v=4" />
+    <link rel="stylesheet" href="./atlas-restock.css?v=1" />
     <link rel="stylesheet" href="./atlas-desktop.css?v=141" />
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <script src="./atlas-dashboard.js?v=144" defer></script>
-    <script src="./atlas-guided-workflows.js?v=3" defer></script>
+    <script src="./atlas-guided-workflows.js?v=4" defer></script>
+    <script src="./atlas-restock.js?v=1" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
     <script src="./atlas-desktop.js?v=128" defer></script>
 

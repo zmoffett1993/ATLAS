@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v162-force-activate-home-reset";
+const VERSION = "atlas-pwa-v163-move-restock-fixes";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,8 +7,10 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=146",
   "./atlas-dashboard.js?v=144",
-  "./atlas-guided-workflows.css?v=2",
-  "./atlas-guided-workflows.js?v=1",
+  "./atlas-guided-workflows.css?v=4",
+  "./atlas-guided-workflows.js?v=4",
+  "./atlas-restock.css?v=1",
+  "./atlas-restock.js?v=1",
   "./atlas-delete-approval.js?v=1",
   "./atlas-desktop.css?v=141",
   "./atlas-desktop-menu-typography.css?v=1",

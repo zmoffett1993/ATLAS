@@ -1,0 +1,89 @@
+.atlas-move-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 2px;
+  padding: 12px 14px;
+  color: #17365f;
+  background: #f1f7ff;
+  border: 1px solid #c7dbf6;
+  border-radius: 14px;
+  font-weight: 750;
+}
+
+.atlas-move-undo .atlas-cleared-undo {
+  min-height: 42px;
+  padding: 8px 13px;
+  border: 1px solid #1666d6;
+  color: #0d57c4;
+  background: #fff;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 850;
+}
+
+.atlas-restock-trigger {
+  display: block;
+  width: min(100%, 290px);
+  min-height: 48px;
+  margin: 18px auto 0;
+  padding: 11px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #1268d8, #0d4ba7);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(17, 89, 191, .18);
+  font: inherit;
+  font-weight: 850;
+}
+
+.atlas-restock-overlay {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 18px;
+  background: rgba(14, 29, 50, .52);
+  backdrop-filter: blur(7px);
+}
+
+.atlas-restock-modal {
+  width: min(100%, 560px);
+  max-height: min(760px, calc(100vh - 36px));
+  overflow: auto;
+  padding: 28px;
+  color: #10284b;
+  background: #f8fbff;
+  border: 1px solid #c9dcf4;
+  border-radius: 26px;
+  box-shadow: 0 20px 56px rgba(6, 28, 64, .34);
+}
+
+.atlas-restock-kicker {
+  margin: 0 0 8px;
+  color: #1666d6;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.atlas-restock-modal h2 { margin: 0; font-size: clamp(25px, 6vw, 34px); line-height: 1.08; }
+.atlas-restock-modal p { margin: 13px 0 0; color: #59708f; font-size: 17px; line-height: 1.45; }
+.atlas-restock-actions { display: grid; gap: 12px; margin-top: 24px; }
+.atlas-restock-actions button, .atlas-restock-modal select, .atlas-restock-modal input { min-height: 52px; border-radius: 13px; font: inherit; }
+.atlas-restock-actions button { padding: 12px 16px; border: 1px solid #bad0ed; color: #14365e; background: #fff; text-align: left; font-weight: 850; }
+.atlas-restock-actions button.primary { color: #fff; background: linear-gradient(135deg, #1268d8, #0d4ba7); border-color: #0d4ba7; text-align: center; }
+.atlas-restock-actions button.secondary { color: #0d57c4; background: #edf5ff; border-color: #b6d2f4; }
+.atlas-restock-actions button.muted { color: #5e718a; background: transparent; border-color: transparent; text-align: center; }
+.atlas-restock-choice-code { display: block; margin-top: 4px; color: #6b819d; font-size: 14px; font-weight: 650; }
+.atlas-restock-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+.atlas-restock-fields label { display: grid; gap: 7px; color: #17365f; font-size: 14px; font-weight: 800; }
+.atlas-restock-fields label.employee { grid-column: 1 / -1; }
+.atlas-restock-fields select, .atlas-restock-fields input { width: 100%; box-sizing: border-box; padding: 0 13px; color: #10284b; background: #fff; border: 1px solid #c5d8ef; }
+.atlas-restock-summary { margin-top: 22px; padding: 16px; color: #17365f; background: #eef6ff; border: 1px solid #c7dcf7; border-radius: 14px; }
+.atlas-restock-summary strong { display: block; margin-bottom: 5px; }
+.atlas-restock-error { margin-top: 16px !important; padding: 12px; color: #9d1515 !important; background: #fff0f0; border-radius: 12px; font-weight: 700; }
+@media (min-width: 700px) { .atlas-restock-overlay { place-items: center; } }
+@media (max-width: 420px) { .atlas-restock-modal { padding: 23px 19px; border-radius: 22px; } .atlas-restock-fields { grid-template-columns: 1fr; } .atlas-restock-fields label.employee { grid-column: auto; } .atlas-move-undo { align-items: stretch; flex-direction: column; } }
