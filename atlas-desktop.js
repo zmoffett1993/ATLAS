@@ -22,14 +22,14 @@
     { id: "move", label: "Move Inventory", title: "Move Inventory", icon: "move" },
     { id: "clear", label: "Mark Location Empty", title: "Mark Location Empty", icon: "clear" },
     { id: "pick", label: "Manage Pick First", title: "Manage Pick First", icon: "pick" },
-    { id: "create", label: "Create SKU", title: "Create New SKU", icon: "create" },
+    { id: "create", label: "Add SKU", title: "Create New SKU", icon: "create" },
     { id: "edit", label: "Edit SKU", title: "Edit SKU", icon: "edit" },
     { id: "delete", label: "Delete SKU", title: "Delete SKU", icon: "delete" },
   ];
   const inventoryGroups = [
     { label: "INVENTORY", actions: ["browse"] },
     { label: "WAREHOUSE ACTIONS", actions: ["move", "clear", "pick"] },
-    { label: "SKU MANAGEMENT", actions: ["create", "edit", "delete"] },
+    { label: "SKU MANAGEMENT", actions: ["create", "delete", "edit"] },
   ];
   const actionIcons = {
     browse:
