@@ -14473,7 +14473,7 @@ Error generating stack: ` +
           {
             id: `create`,
             icon: `+`,
-            title: `Create New SKU`,
+            title: `Add New SKU`,
             description: `Add a new product and assign its first warehouse location.`,
           },
           {
@@ -26078,7 +26078,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=163",
+              "./service-worker.js?v=164",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });
@@ -27184,7 +27184,7 @@ Error generating stack: ` +
               hero.setAttribute("tabindex", "0");
               hero.setAttribute(
                 "aria-label",
-                `Select ${locationCode} as the new Primary Location`,
+                `Use location ${locationCode} for actions`,
               );
               hero.onclick = () => original.click();
               hero.onkeydown = (event) => {
@@ -27197,7 +27197,7 @@ Error generating stack: ` +
             hero.dataset.signature = signature;
             hero.innerHTML = `
               <div>
-                <span class="atlas-location-label">${isPrimary ? "PRIMARY LOCATION" : "PICK LOCATION"}</span>
+                <span class="atlas-location-label">${isPrimary ? "SELECTED LOCATION" : "PICK LOCATION"}</span>
                 <strong class="atlas-location-aisle"></strong>
                 <span class="atlas-location-section"></span>
               </div>
@@ -35963,8 +35963,11 @@ Error generating stack: ` +
           transform: none;
         }
         .bottom-nav button.active {
-          color: #086bff;
+          color: #0f5ccb;
           font-weight: 900;
+        }
+        .bottom-nav button.active .nav-icon {
+          color: #0f5ccb;
         }
         .nav-icon {
           width: 38px;
@@ -35982,7 +35985,7 @@ Error generating stack: ` +
     <script src="./atlas-guided-workflows.js?v=4" defer></script>
     <script src="./atlas-restock.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
-  <script src="./atlas-desktop.js?v=131" defer></script>
+  <script src="./atlas-desktop.js?v=132" defer></script>
 
 </body>
 </html>

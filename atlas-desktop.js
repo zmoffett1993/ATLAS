@@ -22,7 +22,7 @@
     { id: "move", label: "Move Inventory", title: "Move Inventory", icon: "move" },
     { id: "clear", label: "Mark Location Empty", title: "Mark Location Empty", icon: "clear" },
     { id: "pick", label: "Manage Pick First", title: "Manage Pick First", icon: "pick" },
-    { id: "create", label: "Add SKU", title: "Create New SKU", icon: "create" },
+    { id: "create", label: "Add SKU", title: "Add New SKU", icon: "create" },
     { id: "edit", label: "Edit SKU", title: "Edit SKU", icon: "edit" },
     { id: "delete", label: "Delete SKU", title: "Delete SKU", icon: "delete" },
   ];
@@ -51,7 +51,7 @@
     ["Move Inventory", "move"],
     ["Mark Location Empty", "clear"],
     ["Manage Pick First", "pick"],
-    ["Create New SKU", "create"],
+    ["Add New SKU", "create"],
     ["Edit SKU", "edit"],
     ["Delete SKU", "delete"],
   ]);
