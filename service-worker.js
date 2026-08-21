@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v172-accessibility-signoff";
+const VERSION = "atlas-pwa-v173-location-actions";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -16,6 +16,8 @@ const APP_SHELL = [
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-desktop.js?v=132",
+  "./atlas-location-actions.css?v=1",
+  "./atlas-location-actions.js?v=1",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260816-dosing-cup-framed-v104",
   "./pallet-guides.json?v=20260817-new-skus-v6",
