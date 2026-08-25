@@ -28,6 +28,12 @@
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
   const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+  const positiveWhole = (value) => {
+    const text = String(value ?? "").trim();
+    if (!/^\d+$/.test(text)) return null;
+    const number = Number(text);
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
+  };
   const formatDate = (value) => {
     if (!value) return "";
     const date = new Date(value);
@@ -175,6 +181,12 @@
       .find((item) => item.textContent?.toLowerCase().includes("workflows"));
     button?.click();
     workflowView = resume && session ? "session" : "landing";
+    if (resume && session?.status === "active") {
+      const pallet = activePallet();
+      const progress = pallet ? Core.palletProgress(pallet) : null;
+      if (progress?.state === "count_mismatch") modal = { type: "mismatch" };
+      if (progress?.state === "verified") modal = { type: "verified" };
+    }
     window.requestAnimationFrame(() => {
       renderAll();
       window.scrollTo({ top: 0, behavior: "auto" });
@@ -186,29 +198,20 @@
     if (session.status === "report") {
       return `<button type="button" class="atlas-coc-active-bar is-complete" data-coc-action="resume">
         <span class="atlas-coc-active-bar__signal" aria-hidden="true">✓</span>
-        <span><strong>COC COMPLETE</strong><small>Review final report · ${plural(Core.sessionTotal(session), "case")}</small></span>
+        <span><strong>COC COMPLETE</strong><small>${session.orderNumber ? `Invoice ${escapeHtml(session.orderNumber)} · ` : ""}Review final report · ${plural(Core.sessionTotal(session), "box")}</small></span>
         <b>OPEN</b>
       </button>`;
     }
     const pallet = activePallet();
-    const pending = !navigator.onLine || document.documentElement.classList.contains("atlas-coc-sync-pending");
+    const progress = Core.palletProgress(pallet);
+    const countCopy = progress.expected
+      ? `${progress.recorded} / ${progress.expected} boxes`
+      : "Box count not verified";
     return `<button type="button" class="atlas-coc-active-bar" data-coc-action="resume">
       <span class="atlas-coc-active-bar__signal" aria-hidden="true"></span>
-      <span><strong>COC ACTIVE · PALLET ${pallet?.number || 1}</strong><small>${plural(Core.palletTotal(pallet), "case")} · ${pending ? "Saved on device — connection pending" : "Saved on this device"}</small></span>
+      <span><strong>COC ACTIVE · PALLET ${pallet?.number || 1}</strong><small>${session.orderNumber ? `Invoice ${escapeHtml(session.orderNumber)} · ` : ""}${countCopy}</small></span>
       <b>RESUME</b>
     </button>`;
-  }
-
-  function homeCardMarkup() {
-    if (!session) return "";
-    const pallet = activePallet();
-    return `<section class="atlas-coc-home-card" aria-label="Active COC">
-      <div><span>${session.status === "report" ? "COC COMPLETE" : "ACTIVE WORKFLOW"}</span>
-        <h2>${session.status === "report" ? "Final report is ready" : `COC · Pallet ${pallet?.number || 1}`}</h2>
-        <p>${session.orderNumber ? `Order / Job ${escapeHtml(session.orderNumber)} · ` : ""}${plural(Core.sessionTotal(session), "case")} recorded</p>
-      </div>
-      <button type="button" data-coc-action="resume">${session.status === "report" ? "Review Report" : "Resume COC"}<span aria-hidden="true">›</span></button>
-    </section>`;
   }
 
   function landingMarkup() {
@@ -218,7 +221,7 @@
       <section class="atlas-coc-launch-card">
         <div class="atlas-coc-launch-icon" aria-hidden="true">✓</div>
         <div class="atlas-coc-launch-copy"><span>CERTIFICATE OF COMPLIANCE</span><h2>COC</h2>
-          <p>Record pallet lot numbers and case quantities.</p></div>
+          <p>Record pallet lot numbers and verify box quantities.</p></div>
         <button type="button" class="atlas-coc-primary" data-coc-action="${session ? "resume" : "start-setup"}">${session ? activeCopy : "Start COC"}<span aria-hidden="true">›</span></button>
         ${session?.status === "active" ? `<small>Your unfinished COC is protected on this device.</small>` : ""}
       </section>
@@ -228,13 +231,41 @@
   function setupMarkup() {
     return `<div class="atlas-coc-page atlas-coc-setup">
       <button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Workflows</button>
-      <header class="atlas-coc-page-head"><span>START COC</span><h1>Begin Pallet 1</h1><p>Add an order or job number only if it helps identify this count.</p></header>
+      <header class="atlas-coc-page-head"><span>START COC</span><h1>Begin Pallet 1</h1><p>Add the invoice number if it helps identify this COC.</p></header>
       <form id="atlas-coc-start-form" class="atlas-coc-form-card">
-        <label><strong>Order / Job Number</strong><small>Optional</small>
+        <label><strong>Invoice Number</strong><small>Optional</small>
           <input name="orderNumber" maxlength="80" autocomplete="off" placeholder="Leave blank if not needed" /></label>
-        <div class="atlas-coc-zero-preview"><span>PALLET 1</span><strong>0</strong><small>Total Cases · No Lots Recorded</small></div>
+        <div class="atlas-coc-zero-preview"><span>PALLET 1</span><strong>0</strong><small>Total Boxes · No Lots Recorded</small></div>
         <button type="submit" class="atlas-coc-primary">Start Pallet 1</button>
       </form>
+    </div>`;
+  }
+
+  function completedPallets() {
+    return session.pallets.filter(
+      (item) => item.status === "locked" && (item.lots.length || Core.palletTotal(item) > 0),
+    );
+  }
+
+  function expectedCountMarkup(pallet) {
+    const locked = completedPallets().length;
+    const recorded = Core.palletTotal(pallet);
+    return `<div class="atlas-coc-page atlas-coc-expected">
+      <button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Workflows</button>
+      <header class="atlas-coc-page-head"><span>PALLET ${pallet.number} · STEP 1</span><h1>Verify Box Count</h1>
+        <p>Enter the expected number of boxes for this pallet before recording lots.</p></header>
+      <form id="atlas-coc-expected-form" class="atlas-coc-form-card atlas-coc-expected-card">
+        ${session.orderNumber ? `<p class="atlas-coc-invoice-line"><span>INVOICE</span><strong>${escapeHtml(session.orderNumber)}</strong></p>` : ""}
+        <label><strong>Expected Boxes</strong><small>Required · whole number</small>
+          <input name="expectedBoxes" type="number" inputmode="numeric" min="1" step="1" required autofocus placeholder="0" /></label>
+        ${recorded ? `<p class="atlas-coc-preserved-count"><strong>${plural(recorded, "box")} already recorded</strong><span>Your saved lots are preserved. Confirm the expected count to continue.</span></p>` : ""}
+        <p class="atlas-coc-form-error" aria-live="polite"></p>
+        <button type="submit" class="atlas-coc-primary">Confirm Box Count</button>
+      </form>
+      <div class="atlas-coc-finish-actions">
+        ${locked ? `<button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button>` : ""}
+        <button type="button" class="atlas-coc-discard-link" data-coc-action="review-discard">Discard COC</button>
+      </div>
     </div>`;
   }
 
@@ -242,39 +273,40 @@
     const pallet = activePallet();
     const lot = activeLot();
     if (!pallet) return landingMarkup();
+    if (!pallet.expectedBoxes) return expectedCountMarkup(pallet);
     const total = Core.palletTotal(pallet);
-    const completedPallets = session.pallets.filter(
-      (item) => item.status === "locked" && (item.lots.length || Core.palletTotal(item) > 0),
-    );
-    const locked = completedPallets.length;
+    const finished = completedPallets();
+    const locked = finished.length;
+    const difference = total - pallet.expectedBoxes;
     return `<div class="atlas-coc-page atlas-coc-counting">
       <header class="atlas-coc-count-head">
-        <div><span>COC${session.orderNumber ? ` · ${escapeHtml(session.orderNumber)}` : ""}</span><h1>Pallet ${pallet.number}</h1><small>${locked ? `${plural(locked, "pallet")} completed · ` : ""}Saved automatically</small></div>
-        <div class="atlas-coc-total"><strong>${total}</strong><span>Total Cases</span></div>
+        <div><span>COC${session.orderNumber ? ` · INVOICE ${escapeHtml(session.orderNumber)}` : ""}</span><h1>Pallet ${pallet.number}</h1><small>${locked ? `${plural(locked, "pallet")} completed · ` : ""}Saved automatically</small></div>
+        <div class="atlas-coc-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes}</strong><span>Recorded / Expected Boxes</span></div>
       </header>
-      ${completedPallets.length ? `<section class="atlas-coc-pallet-progress" aria-label="Completed pallets">
-        <div class="atlas-coc-section-title"><h2>COC Progress</h2><span>${plural(completedPallets.length, "finished pallet")}</span></div>
-        <div>${completedPallets.map((item) => `<article><span aria-hidden="true">✓</span><div><strong>Pallet ${item.number}</strong><small>${plural(Core.palletTotal(item), "case")} · ${plural(item.lots.length, "lot")} · Locked</small></div></article>`).join("")}</div>
+      ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the expected count. Review before finishing.</p>` : ""}
+      ${finished.length ? `<section class="atlas-coc-pallet-progress" aria-label="Completed pallets">
+        <div class="atlas-coc-section-title"><h2>COC Progress</h2><span>${plural(finished.length, "finished pallet")}</span></div>
+        <div>${finished.map((item) => `<article><span aria-hidden="true">✓</span><div><strong>Pallet ${item.number}</strong><small>${plural(Core.palletTotal(item), "box")} · ${plural(item.lots.length, "lot")} · Verified &amp; Locked</small></div></article>`).join("")}</div>
       </section>` : ""}
       ${lot ? `<section class="atlas-coc-active-lot">
-        <span>ACTIVE LOT</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2><strong>${plural(lot.cases, "case")}</strong>
-        <button type="button" class="atlas-coc-add-case" data-coc-action="add-case"><span aria-hidden="true">+</span> ADD CASE</button>
-      </section>` : `<section class="atlas-coc-no-lot"><span>PALLET ${pallet.number}</span><h2>No Lots Recorded</h2><p>Scan and verify the first lot. The confirmed lot counts as the first case.</p>
+        <span>ACTIVE LOT</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2><strong>${plural(lot.cases, "box")}</strong>
+        <button type="button" class="atlas-coc-add-case" data-coc-action="add-case"><span aria-hidden="true">+</span> ADD BOX</button>
+      </section>` : `<section class="atlas-coc-no-lot"><span>PALLET ${pallet.number}</span><h2>No Lots Recorded</h2><p>Scan and verify the first lot. The confirmed lot records the first box.</p>
         <button type="button" class="atlas-coc-primary" data-coc-action="new-lot">+ New Lot</button></section>`}
       ${lot ? `<div class="atlas-coc-secondary-actions">
         <button type="button" data-coc-action="new-lot">+ New Lot</button>
-        <button type="button" data-coc-action="undo" ${pallet.history.length ? "" : "disabled"}>↶ Undo Last Case</button>
+        <button type="button" data-coc-action="undo" ${pallet.history.length ? "" : "disabled"}>↶ Undo Last Box</button>
       </div>` : ""}
       <section class="atlas-coc-lots">
         <div class="atlas-coc-section-title"><h2>Lots on This Pallet</h2><span>${plural(pallet.lots.length, "lot")}</span></div>
         ${pallet.lots.length ? `<div class="atlas-coc-lot-list">${pallet.lots.map((item) => `
           <button type="button" class="atlas-coc-lot-row ${item.id === pallet.activeLotId ? "is-active" : ""}" data-coc-action="select-lot" data-lot-id="${escapeHtml(item.id)}" aria-pressed="${item.id === pallet.activeLotId}">
             <span><small>${item.id === pallet.activeLotId ? "ACTIVE LOT" : "LOT"}</small><strong>${escapeHtml(Core.displayLot(item.lot))}</strong></span>
-            <b>${item.cases}<small> ${item.cases === 1 ? "CASE" : "CASES"}</small></b>
+            <b>${item.cases}<small> ${item.cases === 1 ? "BOX" : "BOXES"}</small></b>
           </button>`).join("")}</div>` : `<div class="atlas-coc-empty-list">No lots recorded yet.</div>`}
       </section>
       <div class="atlas-coc-finish-actions">
-        <button type="button" class="atlas-coc-finish" data-coc-action="review-pallet">Review &amp; Finish Pallet ${pallet.number}</button>
+        <button type="button" class="atlas-coc-finish" data-coc-action="review-pallet">Verify &amp; Finish Pallet ${pallet.number}</button>
         ${locked ? `<button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button>` : ""}
         <button type="button" class="atlas-coc-discard-link" data-coc-action="review-discard">Discard COC</button>
       </div>
@@ -285,10 +317,11 @@
     const total = Core.sessionTotal(session);
     return `<div class="atlas-coc-page atlas-coc-report">
       <header class="atlas-coc-report-head"><span>COC COMPLETE</span><h1>Final Count Report</h1>
-        <p>${session.orderNumber ? `Order / Job <strong>${escapeHtml(session.orderNumber)}</strong> · ` : ""}${formatDate(session.completedAt)}</p></header>
-      <section class="atlas-coc-report-summary"><div><strong>${session.pallets.length}</strong><span>Pallets</span></div><div><strong>${total}</strong><span>Total Cases</span></div></section>
+        <p>${session.orderNumber ? `Invoice <strong>${escapeHtml(session.orderNumber)}</strong> · ` : ""}${formatDate(session.completedAt)}</p></header>
+      <section class="atlas-coc-report-summary"><div><strong>${session.pallets.length}</strong><span>Pallets</span></div><div><strong>${total}</strong><span>Total Boxes</span></div></section>
       <div class="atlas-coc-report-pallets">${session.pallets.map((pallet) => `
-        <section class="atlas-coc-report-pallet"><header><h2>Pallet ${pallet.number}</h2><strong>${plural(Core.palletTotal(pallet), "case")}</strong></header>
+        <section class="atlas-coc-report-pallet"><header><h2>Pallet ${pallet.number}</h2><strong>${plural(Core.palletTotal(pallet), "box")}</strong></header>
+          <p class="atlas-coc-report-verification"><span>Expected <strong>${pallet.expectedBoxes || "—"}</strong></span><span>Recorded <strong>${Core.palletTotal(pallet)}</strong></span><span class="${Core.palletProgress(pallet).verified ? "is-verified" : "is-unverified"}">${Core.palletProgress(pallet).verified ? "✓ Verified" : "Verification unavailable"}</span></p>
           <div>${pallet.lots.map((lot) => `<div class="atlas-coc-report-row"><span><small>LOT</small><strong>${escapeHtml(Core.displayLot(lot.lot))}</strong></span><b>${lot.cases}</b></div>`).join("") || `<p>No lots recorded</p>`}</div>
         </section>`).join("")}</div>
       <div class="atlas-coc-report-actions"><button type="button" data-coc-action="copy-report">Copy Report</button><button type="button" class="atlas-coc-primary" data-coc-action="review-close">Finish &amp; Close COC</button></div>
@@ -313,12 +346,12 @@
 
   function reviewPalletModal() {
     const pallet = activePallet();
-    const total = Core.palletTotal(pallet);
-    return modalShell(`<span class="atlas-coc-eyebrow">REVIEW PALLET ${pallet.number}</span><h2>Finish this pallet?</h2>
-      <div class="atlas-coc-modal-total"><strong>${total}</strong><span>Total Cases</span></div>
-      <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${plural(lot.cases, "case")}</strong></div>`).join("") || `<p>No lots recorded.</p>`}</div>
-      ${total === 0 ? `<p class="atlas-coc-warning">This pallet is empty. Finish it only if that is intentional.</p>` : ""}
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="finish-pallet">Finish Pallet</button></div>`, { label: `Review pallet ${pallet.number}` });
+    const progress = Core.palletProgress(pallet);
+    return modalShell(`<span class="atlas-coc-eyebrow">REVIEW PALLET ${pallet.number}</span><h2>Verify this pallet?</h2>
+      <div class="atlas-coc-compare"><div><span>EXPECTED</span><strong>${progress.expected}</strong></div><div><span>RECORDED</span><strong>${progress.recorded}</strong></div></div>
+      <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${plural(lot.cases, "box")}</strong></div>`).join("") || `<p>No lots recorded.</p>`}</div>
+      <p>The pallet can only be completed when the expected and recorded box counts match.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="verify-pallet">Verify &amp; Finish</button></div>`, { label: `Review pallet ${pallet.number}` });
   }
 
   function reviewCompleteModal() {
@@ -328,15 +361,62 @@
       (item) => item.status === "locked" && (item.lots.length || Core.palletTotal(item) > 0),
     );
     return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>Complete this COC?</h2>
-      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "case")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}</section>`).join("")}</div>
-      <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(completed.reduce((sum, item) => sum + Core.palletTotal(item), 0), "case")} · ${plural(completed.length, "pallet")}</b></p>
-      ${unfinished ? `<p class="atlas-coc-warning">Pallet ${pallet.number} contains ${plural(unfinished, "case")}. Finish that pallet before completing the COC.</p>` : `<p>The empty Pallet ${pallet.number} draft will not be included. Your final report will remain open for office entry.</p>`}
+      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}</section>`).join("")}</div>
+      <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(completed.reduce((sum, item) => sum + Core.palletTotal(item), 0), "box")} · ${plural(completed.length, "pallet")}</b></p>
+      ${unfinished ? `<p class="atlas-coc-warning">Pallet ${pallet.number} contains ${plural(unfinished, "box")}. Finish that pallet before completing the COC.</p>` : `<p>The empty Pallet ${pallet.number} draft will not be included. Your final report will remain open for office entry.</p>`}
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep COC Open</button><button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${unfinished ? "disabled" : ""}>Complete COC</button></div>`, { label: "Complete COC review" });
+  }
+
+  function mismatchModal() {
+    const pallet = activePallet();
+    const progress = Core.palletProgress(pallet);
+    const difference = progress.difference > 0
+      ? `+${progress.difference}`
+      : String(progress.difference);
+    const detail = progress.difference > 0
+      ? `${plural(progress.difference, "box")} over`
+      : `${plural(Math.abs(progress.difference), "box")} short`;
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">BOX COUNT MISMATCH</span><h2>Pallet ${pallet.number} cannot be finished</h2>
+      <div class="atlas-coc-compare is-mismatch"><div><span>EXPECTED</span><strong>${progress.expected}</strong></div><div><span>RECORDED</span><strong>${progress.recorded}</strong></div><div><span>DIFFERENCE</span><strong>${difference}</strong></div></div>
+      <p class="atlas-coc-warning"><strong>${detail}.</strong> Review the pallet or correct the expected count.</p>
+      <div class="atlas-coc-modal-actions atlas-coc-modal-actions--stack"><button type="button" class="atlas-coc-primary" data-coc-action="review-mismatch">Review Pallet</button><button type="button" data-coc-action="edit-expected">Edit Expected Count</button></div>`, {
+      label: `Pallet ${pallet.number} box count mismatch`, dismiss: false,
+    });
+  }
+
+  function editExpectedModal() {
+    const pallet = activePallet();
+    return modalShell(`<span class="atlas-coc-eyebrow">EDIT EXPECTED COUNT</span><h2>Pallet ${pallet.number}</h2>
+      <p>Update the expected count only when the pallet paperwork has changed or the original count was entered incorrectly.</p>
+      <form id="atlas-coc-edit-expected-form" class="atlas-coc-manual-form">
+        <label><strong>Expected Boxes</strong><input name="expectedBoxes" type="number" inputmode="numeric" min="1" step="1" value="${pallet.expectedBoxes}" required /></label>
+        <p class="atlas-coc-form-error" aria-live="polite"></p>
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="show-mismatch">Cancel</button><button type="submit" class="atlas-coc-primary">Review Change</button></div>
+      </form>`, { label: `Edit expected count for pallet ${pallet.number}`, dismiss: false });
+  }
+
+  function confirmExpectedChangeModal(change) {
+    return modalShell(`<span class="atlas-coc-eyebrow">CONFIRM COUNT CHANGE</span><h2>${change.previous} → ${change.next} boxes</h2>
+      <p>Change the expected count for Pallet ${activePallet()?.number}? The recorded boxes and lot details will not change.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="edit-expected">Go Back</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-expected-change" data-next="${change.next}">Confirm Change</button></div>`, {
+      label: "Confirm expected box count change", dismiss: false,
+    });
+  }
+
+  function verifiedModal() {
+    const pallet = activePallet();
+    const progress = Core.palletProgress(pallet);
+    return modalShell(`<span class="atlas-coc-verified-icon" aria-hidden="true">✓</span><span class="atlas-coc-eyebrow is-success">BOX COUNT VERIFIED</span><h2>Pallet ${pallet.number} is complete</h2>
+      <div class="atlas-coc-compare is-verified"><div><span>EXPECTED</span><strong>${progress.expected}</strong></div><div><span>RECORDED</span><strong>${progress.recorded}</strong></div></div>
+      <p>All ${plural(progress.recorded, "box")} are accounted for. This pallet will be locked when you start the next pallet.</p>
+      <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="start-next-pallet">Start Pallet ${pallet.number + 1}</button>`, {
+      label: `Pallet ${pallet.number} verified`, dismiss: false,
+    });
   }
 
   function discardModal() {
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">DISCARD COC</span><h2>Discard this unfinished COC?</h2>
-      <p>All pallet, lot, and case counts in this active COC will be removed from this device.</p>
+      <p>All pallet, lot, and box counts in this active COC will be removed from this device.</p>
       <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Keep COC</button><button type="button" class="atlas-coc-danger" data-coc-action="discard-coc">Discard</button></div>`, { label: "Discard COC confirmation", dismiss: false });
   }
 
@@ -348,7 +428,7 @@
 
   function storageErrorModal() {
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">SAVE PROBLEM</span><h2>Stop counting for a moment</h2>
-      <p>ATLAS could not preserve the latest COC state on this device. Do not add another case until saving succeeds.</p>
+      <p>ATLAS could not preserve the latest COC state on this device. Do not add another box until saving succeeds.</p>
       <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="retry-save">Retry Saving</button></div>`, { label: "COC save problem", dismiss: false });
   }
 
@@ -374,8 +454,8 @@
       <label class="atlas-coc-lot-field"><strong>Recognized Lot</strong><input id="atlas-coc-confirm-lot" value="${escapeHtml(capture.text)}" maxlength="120" autocomplete="off" spellcheck="false" /></label>
       <p class="atlas-coc-confidence ${low ? "is-low" : "is-high"}">${low ? "LOT NOT VERIFIED — OCR confidence was low. Correct the field and compare it to the photo." : `High-confidence read · ${Math.round(capture.confidence)}%`}</p>
       <label class="atlas-coc-verify-check"><input id="atlas-coc-verify-check" type="checkbox" /> <span>I compared the field to the printed lot and every character matches.</span></label>
-      <p class="atlas-coc-first-case">Confirming this new lot records <strong>Case 1</strong>.</p>
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Rescan</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" disabled>Confirm Lot + Case 1</button></div>`, { label: "Confirm recognized lot", dismiss: false });
+      <p class="atlas-coc-first-case">Confirming this new lot records <strong>Box 1</strong>.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Rescan</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" disabled>Confirm Lot + Box 1</button></div>`, { label: "Confirm recognized lot", dismiss: false });
   }
 
   function manualLotModal() {
@@ -384,7 +464,7 @@
       <form id="atlas-coc-manual-form" class="atlas-coc-manual-form"><label><strong>Lot Number</strong><input name="lot1" maxlength="120" autocapitalize="characters" autocomplete="off" required /></label>
         <label><strong>Re-enter Lot Number</strong><input name="lot2" maxlength="120" autocapitalize="characters" autocomplete="off" required /></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
-        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Use Camera</button><button type="submit" class="atlas-coc-primary">Confirm Lot + Case 1</button></div></form>`, { label: "Manually enter lot" });
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Use Camera</button><button type="submit" class="atlas-coc-primary">Confirm Lot + Box 1</button></div></form>`, { label: "Manually enter lot" });
   }
 
   function duplicateModal(lot) {
@@ -405,6 +485,10 @@
     if (modal === "manual-lot") return manualLotModal();
     if (modal === "storage-error") return storageErrorModal();
     if (modal?.type === "duplicate") return duplicateModal(modal.lot);
+    if (modal?.type === "mismatch") return mismatchModal();
+    if (modal?.type === "edit-expected") return editExpectedModal();
+    if (modal?.type === "confirm-expected-change") return confirmExpectedChangeModal(modal);
+    if (modal?.type === "verified") return verifiedModal();
     return "";
   }
 
@@ -412,7 +496,7 @@
     const bar = document.getElementById("atlas-coc-active-bar-slot");
     if (bar) bar.innerHTML = barMarkup();
     const home = document.getElementById("atlas-coc-home-slot");
-    if (home) home.innerHTML = homeCardMarkup();
+    if (home) home.innerHTML = "";
     const workflows = document.getElementById("atlas-coc-workflows-root");
     if (workflows) workflows.innerHTML = workflowMarkup();
     let modalRoot = document.getElementById("atlas-coc-modal-root");
@@ -579,7 +663,7 @@
       modal = null;
       persist();
       navigator.vibrate?.(18);
-      showToast("New lot confirmed · Case 1 recorded");
+      showToast("New lot confirmed · Box 1 recorded");
     } catch {
       showToast("Enter a valid lot number.", "warning");
     }
@@ -589,15 +673,15 @@
     if (!session) return;
     const lines = [
       "ATLAS COC FINAL COUNT REPORT",
-      session.orderNumber ? `Order / Job: ${session.orderNumber}` : "",
+      session.orderNumber ? `Invoice: ${session.orderNumber}` : "",
       `Completed: ${formatDate(session.completedAt)}`,
       `Pallets: ${session.pallets.length}`,
-      `Total Cases: ${Core.sessionTotal(session)}`,
+      `Total Boxes: ${Core.sessionTotal(session)}`,
       "",
     ].filter((line, index) => line || index > 4);
     session.pallets.forEach((pallet) => {
-      lines.push(`Pallet ${pallet.number} — ${Core.palletTotal(pallet)} cases`);
-      pallet.lots.forEach((lot) => lines.push(`  ${lot.lot} — ${lot.cases} cases`));
+      lines.push(`Pallet ${pallet.number} — Expected ${pallet.expectedBoxes || "—"} · Recorded ${Core.palletTotal(pallet)} · ${Core.palletProgress(pallet).verified ? "Verified" : "Verification unavailable"}`);
+      pallet.lots.forEach((lot) => lines.push(`  ${lot.lot} — ${lot.cases} boxes`));
       lines.push("");
     });
     navigator.clipboard?.writeText(lines.join("\n")).then(
@@ -613,6 +697,9 @@
     if (action === "start-setup") { workflowView = "setup"; renderAll(); return; }
     if (action === "resume") { navigateWorkflows({ resume: true }); return; }
     if (action === "close-modal") { stopCamera(); modal = null; renderAll(); return; }
+    if (action === "review-mismatch") { modal = null; renderAll(); return; }
+    if (action === "edit-expected") { modal = { type: "edit-expected" }; renderAll(); return; }
+    if (action === "show-mismatch") { modal = { type: "mismatch" }; renderAll(); return; }
     if (action === "new-lot" || action === "rescan-lot") {
       stopCamera(); capture = { photo: "", text: "", confidence: null, status: "", progress: 0 };
       modal = "capture"; renderAll(); return;
@@ -637,7 +724,7 @@
         const add = document.querySelector(".atlas-coc-add-case");
         add?.classList.add("is-confirmed");
         window.setTimeout(() => add?.classList.remove("is-confirmed"), 180);
-        if (!navigator.onLine) showToast("Case saved on device — connection pending", "info");
+        if (!navigator.onLine) showToast("Box saved on device — connection pending", "info");
       } catch { showToast("Choose or add a lot first.", "warning"); }
       return;
     }
@@ -650,15 +737,38 @@
         persist();
         const updatedLot = activePallet()?.lots.find((item) => item.id === lastEntry?.lotId);
         const suffix = previousLot?.lot ? `…${Core.canonicalLot(previousLot.lot).slice(-5)}` : "lot";
-        showToast(`Last case removed — ${suffix} now ${updatedLot?.cases || 0} cases`, "info");
+        showToast(`Last box removed — ${suffix} now ${updatedLot?.cases || 0} boxes`, "info");
       }
-      catch { showToast("There is no case to undo.", "warning"); }
+      catch { showToast("There is no box to undo.", "warning"); }
       return;
     }
     if (action === "review-pallet") { modal = "review-pallet"; renderAll(); return; }
-    if (action === "finish-pallet") {
-      session = Core.finishPallet(session); modal = null; persist();
-      showToast(`Pallet ${activePallet().number - 1} finished`); return;
+    if (action === "verify-pallet") {
+      const result = Core.verifyPallet(session);
+      session = result.session;
+      modal = { type: result.verified ? "verified" : "mismatch" };
+      persist();
+      return;
+    }
+    if (action === "confirm-expected-change") {
+      try {
+        session = Core.setExpectedBoxCount(session, button.dataset.next);
+        const result = Core.verifyPallet(session);
+        session = result.session;
+        modal = { type: result.verified ? "verified" : "mismatch" };
+        persist();
+      } catch { showToast("Enter a positive whole box count.", "warning"); }
+      return;
+    }
+    if (action === "start-next-pallet") {
+      try {
+        const finishedNumber = activePallet()?.number;
+        session = Core.finishPallet(session);
+        modal = null;
+        persist();
+        showToast(`Pallet ${finishedNumber} verified and locked`);
+      } catch { showToast("The box count must be verified first.", "warning"); }
+      return;
     }
     if (action === "review-complete") { modal = "review-complete"; renderAll(); return; }
     if (action === "complete-coc") {
@@ -721,6 +831,40 @@
       showToast("COC started · Pallet 1 ready");
       return;
     }
+    if (event.target.id === "atlas-coc-expected-form") {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      const expected = positiveWhole(data.get("expectedBoxes"));
+      const error = event.target.querySelector(".atlas-coc-form-error");
+      if (!expected) {
+        error.textContent = "Enter a positive whole number of boxes.";
+        return;
+      }
+      try {
+        session = Core.setExpectedBoxCount(session, expected);
+        persist();
+        showToast(`Expected count confirmed · ${plural(expected, "box")}`);
+      } catch { error.textContent = "The expected box count could not be saved."; }
+      return;
+    }
+    if (event.target.id === "atlas-coc-edit-expected-form") {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      const next = positiveWhole(data.get("expectedBoxes"));
+      const previous = activePallet()?.expectedBoxes;
+      const error = event.target.querySelector(".atlas-coc-form-error");
+      if (!next) {
+        error.textContent = "Enter a positive whole number of boxes.";
+        return;
+      }
+      if (next === previous) {
+        error.textContent = "Enter a different expected count.";
+        return;
+      }
+      modal = { type: "confirm-expected-change", previous, next };
+      renderAll();
+      return;
+    }
     if (event.target.id === "atlas-coc-manual-form") {
       event.preventDefault();
       const data = new FormData(event.target);
@@ -736,7 +880,12 @@
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && modal && !["discard", "close-report", "reading", "confirm-lot"].includes(modal)) {
+    const modalKey = typeof modal === "string" ? modal : modal?.type;
+    const protectedModals = [
+      "discard", "close-report", "reading", "confirm-lot", "duplicate", "mismatch",
+      "edit-expected", "confirm-expected-change", "verified",
+    ];
+    if (event.key === "Escape" && modal && !protectedModals.includes(modalKey)) {
       stopCamera(); modal = null; renderAll();
     }
   });

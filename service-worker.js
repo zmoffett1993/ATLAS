@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v173-mobile-menu-stability";
+const VERSION = "atlas-pwa-v174-coc-box-verification";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,9 +7,9 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=146",
   "./atlas-dashboard.js?v=145",
-  "./atlas-coc.css?v=1",
-  "./atlas-coc-core.js?v=1",
-  "./atlas-coc.js?v=1",
+  "./atlas-coc.css?v=2",
+  "./atlas-coc-core.js?v=2",
+  "./atlas-coc.js?v=2",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

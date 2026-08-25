@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
   const MAX_ORDER_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
 
@@ -26,6 +26,12 @@
     const number = Number(value);
     return Number.isSafeInteger(number) && number >= 0 ? number : 0;
   };
+  const positiveInteger = (value) => {
+    if (!["number", "string"].includes(typeof value)) return null;
+    if (typeof value === "string" && !/^\d+$/.test(value.trim())) return null;
+    const number = Number(value);
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
+  };
 
   function createPallet(number) {
     return {
@@ -37,6 +43,14 @@
       activeLotId: null,
       lots: [],
       history: [],
+      expectedBoxes: null,
+      expectedBoxesConfirmedAt: null,
+      expectedBoxesUpdatedAt: null,
+      expectedBoxHistory: [],
+      verificationState: "awaiting_count",
+      verificationAttemptedAt: null,
+      verifiedAt: null,
+      expectedBoxesInferred: false,
     };
   }
 
@@ -100,10 +114,38 @@
           lotId: entry.lotId,
           at: cleanText(entry.at, 40) || timestamp(),
         }));
+      const recordedBoxes = lots.reduce((total, lot) => total + integer(lot.cases), 0);
+      const isLocked = source?.status === "locked" || raw.status === "report";
+      const suppliedExpected = positiveInteger(source?.expectedBoxes);
+      const inferredExpected = !suppliedExpected && isLocked && recordedBoxes > 0
+        ? recordedBoxes
+        : null;
+      const expectedBoxes = suppliedExpected || inferredExpected;
+      const allowedVerificationStates = new Set([
+        "awaiting_count", "in_progress", "count_mismatch", "verified", "completed",
+      ]);
+      let verificationState = allowedVerificationStates.has(source?.verificationState)
+        ? source.verificationState
+        : expectedBoxes
+          ? (isLocked ? "completed" : "in_progress")
+          : "awaiting_count";
+      if (isLocked && expectedBoxes && recordedBoxes === expectedBoxes)
+        verificationState = "completed";
+      if (!isLocked && !expectedBoxes) verificationState = "awaiting_count";
+      const expectedBoxHistory = (Array.isArray(source?.expectedBoxHistory)
+        ? source.expectedBoxHistory
+        : [])
+        .slice(-1000)
+        .map((entry) => ({
+          previous: positiveInteger(entry?.previous),
+          next: positiveInteger(entry?.next),
+          at: cleanText(entry?.at, 40) || timestamp(),
+        }))
+        .filter((entry) => entry.next);
       return {
         id,
         number: index + 1,
-        status: source?.status === "locked" ? "locked" : "active",
+        status: isLocked ? "locked" : "active",
         createdAt: cleanText(source?.createdAt, 40) || timestamp(),
         finishedAt: cleanText(source?.finishedAt, 40) || null,
         activeLotId: lotIds.has(source?.activeLotId)
@@ -111,15 +153,30 @@
           : lots[0]?.id || null,
         lots,
         history,
+        expectedBoxes,
+        expectedBoxesConfirmedAt: cleanText(source?.expectedBoxesConfirmedAt, 40) ||
+          (expectedBoxes ? cleanText(source?.createdAt, 40) || timestamp() : null),
+        expectedBoxesUpdatedAt: cleanText(source?.expectedBoxesUpdatedAt, 40) || null,
+        expectedBoxHistory,
+        verificationState,
+        verificationAttemptedAt: cleanText(source?.verificationAttemptedAt, 40) || null,
+        verifiedAt: cleanText(source?.verifiedAt, 40) ||
+          (isLocked && expectedBoxes === recordedBoxes ? cleanText(source?.finishedAt, 40) || null : null),
+        expectedBoxesInferred: Boolean(source?.expectedBoxesInferred || inferredExpected),
       };
     });
     if (!pallets.length && raw.status !== "report") pallets.push(createPallet(1));
     const status = raw.status === "report" ? "report" : "active";
     let activePalletId = cleanText(raw.activePalletId, 140);
     if (status === "active") {
-      const active = pallets.find((pallet) => pallet.id === activePalletId) ||
-        pallets.find((pallet) => pallet.status === "active") || pallets[pallets.length - 1];
-      activePalletId = active?.id || null;
+      let active = pallets.find(
+        (pallet) => pallet.id === activePalletId && pallet.status === "active",
+      ) || pallets.find((pallet) => pallet.status === "active");
+      if (!active) {
+        active = createPallet(pallets.length + 1);
+        pallets.push(active);
+      }
+      activePalletId = active.id;
       pallets.forEach((pallet) => {
         pallet.status = pallet.id === activePalletId ? "active" : "locked";
       });
@@ -149,6 +206,18 @@
     (pallet?.lots || []).reduce((total, lot) => total + integer(lot.cases), 0);
   const sessionTotal = (session) =>
     (session?.pallets || []).reduce((total, pallet) => total + palletTotal(pallet), 0);
+  const palletProgress = (pallet) => {
+    const expected = positiveInteger(pallet?.expectedBoxes);
+    const recorded = palletTotal(pallet);
+    return {
+      expected,
+      recorded,
+      difference: expected === null ? null : recorded - expected,
+      state: pallet?.verificationState || (expected ? "in_progress" : "awaiting_count"),
+      verified: Boolean(expected && recorded === expected &&
+        ["verified", "completed"].includes(pallet?.verificationState)),
+    };
+  };
 
   function withActivity(session, type, detail = {}) {
     session.updatedAt = timestamp();
@@ -161,6 +230,7 @@
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
     if (!pallet || session.status !== "active") throw new Error("NO_ACTIVE_PALLET");
+    if (!positiveInteger(pallet.expectedBoxes)) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
     const lotText = cleanLot(lotValue);
     const canonical = canonicalLot(lotText);
     if (!canonical) throw new Error("LOT_REQUIRED");
@@ -182,6 +252,9 @@
     pallet.lots.push(lot);
     pallet.activeLotId = lot.id;
     pallet.history.push({ kind: "case", lotId: lot.id, at });
+    pallet.verificationState = "in_progress";
+    pallet.verificationAttemptedAt = null;
+    pallet.verifiedAt = null;
     withActivity(session, "lot_added", { palletNumber: pallet.number, lot: lot.lot });
     return { session, lot, duplicate: null };
   }
@@ -200,8 +273,12 @@
     const pallet = activePallet(session);
     const lot = pallet?.lots.find((item) => item.id === pallet.activeLotId);
     if (!pallet || !lot) throw new Error("NO_ACTIVE_LOT");
+    if (!positiveInteger(pallet.expectedBoxes)) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
     lot.cases += 1;
     pallet.history.push({ kind: "case", lotId: lot.id, at: timestamp() });
+    pallet.verificationState = "in_progress";
+    pallet.verificationAttemptedAt = null;
+    pallet.verifiedAt = null;
     return withActivity(session, "case_added", {
       palletNumber: pallet.number,
       lot: lot.lot,
@@ -214,6 +291,7 @@
     const pallet = activePallet(session);
     const entry = pallet?.history.pop();
     if (!pallet || !entry) throw new Error("NOTHING_TO_UNDO");
+    if (!positiveInteger(pallet.expectedBoxes)) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
     const lot = pallet.lots.find((item) => item.id === entry.lotId);
     if (!lot || lot.cases < 1) throw new Error("NOTHING_TO_UNDO");
     lot.cases -= 1;
@@ -223,6 +301,9 @@
     } else {
       pallet.activeLotId = lot.id;
     }
+    pallet.verificationState = "in_progress";
+    pallet.verificationAttemptedAt = null;
+    pallet.verifiedAt = null;
     return withActivity(session, "case_undone", {
       palletNumber: pallet.number,
       lot: lot.lot,
@@ -230,20 +311,83 @@
     });
   }
 
+  function setExpectedBoxCount(source, value) {
+    const session = sanitize(clone(source));
+    const pallet = activePallet(session);
+    if (!pallet || session.status !== "active") throw new Error("NO_ACTIVE_PALLET");
+    const next = positiveInteger(value);
+    if (!next) throw new Error("INVALID_EXPECTED_BOX_COUNT");
+    const previous = positiveInteger(pallet.expectedBoxes);
+    const at = timestamp();
+    if (previous && previous !== next) {
+      pallet.expectedBoxHistory = [...(pallet.expectedBoxHistory || []), { previous, next, at }]
+        .slice(-1000);
+      pallet.expectedBoxesUpdatedAt = at;
+    }
+    pallet.expectedBoxes = next;
+    pallet.expectedBoxesConfirmedAt = pallet.expectedBoxesConfirmedAt || at;
+    pallet.expectedBoxesInferred = false;
+    pallet.verificationState = "in_progress";
+    pallet.verificationAttemptedAt = null;
+    pallet.verifiedAt = null;
+    return withActivity(session, previous && previous !== next
+      ? "expected_boxes_changed"
+      : "expected_boxes_confirmed", {
+      palletNumber: pallet.number,
+      previousExpectedBoxes: previous,
+      expectedBoxes: next,
+    });
+  }
+
+  function verifyPallet(source) {
+    const session = sanitize(clone(source));
+    const pallet = activePallet(session);
+    if (!pallet || session.status !== "active") throw new Error("NO_ACTIVE_PALLET");
+    const progress = palletProgress(pallet);
+    if (!progress.expected) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
+    const at = timestamp();
+    pallet.verificationAttemptedAt = at;
+    pallet.verificationState = progress.recorded === progress.expected
+      ? "verified"
+      : "count_mismatch";
+    pallet.verifiedAt = progress.recorded === progress.expected ? at : null;
+    withActivity(session, progress.recorded === progress.expected
+      ? "pallet_boxes_verified"
+      : "pallet_box_mismatch", {
+      palletNumber: pallet.number,
+      expectedBoxes: progress.expected,
+      recordedBoxes: progress.recorded,
+      difference: progress.difference,
+    });
+    return {
+      session,
+      verified: progress.recorded === progress.expected,
+      expected: progress.expected,
+      recorded: progress.recorded,
+      difference: progress.difference,
+    };
+  }
+
   function finishPallet(source) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
     if (!pallet) throw new Error("NO_ACTIVE_PALLET");
+    const progress = palletProgress(pallet);
+    if (!progress.expected) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
+    if (progress.recorded !== progress.expected) throw new Error("BOX_COUNT_MISMATCH");
+    if (pallet.verificationState !== "verified") throw new Error("PALLET_NOT_VERIFIED");
     const at = timestamp();
     pallet.status = "locked";
     pallet.finishedAt = at;
+    pallet.verificationState = "completed";
     pallet.activeLotId = null;
     const next = createPallet(session.pallets.length + 1);
     session.pallets.push(next);
     session.activePalletId = next.id;
     return withActivity(session, "pallet_finished", {
       palletNumber: pallet.number,
-      totalCases: palletTotal(pallet),
+      expectedBoxes: progress.expected,
+      recordedBoxes: progress.recorded,
     });
   }
 
@@ -266,7 +410,7 @@
     session.completedAt = timestamp();
     return withActivity(session, "session_completed", {
       pallets: session.pallets.length,
-      totalCases: sessionTotal(session),
+      totalBoxes: sessionTotal(session),
     });
   }
 
@@ -276,6 +420,10 @@
       pallets: safe.pallets.length,
       totalCases: sessionTotal(safe),
       totals: safe.pallets.map((pallet) => palletTotal(pallet)),
+      boxVerification: safe.pallets.map((pallet) => ({
+        palletNumber: pallet.number,
+        ...palletProgress(pallet),
+      })),
     };
   }
 
@@ -286,12 +434,15 @@
     activePallet,
     palletTotal,
     sessionTotal,
+    palletProgress,
     canonicalLot,
     displayLot,
     addLot,
     selectLot,
     addCase,
     undoCase,
+    setExpectedBoxCount,
+    verifyPallet,
     finishPallet,
     completeSession,
     validateTotals,
