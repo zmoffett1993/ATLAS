@@ -24851,12 +24851,6 @@ Error generating stack: ` +
           atlasDesktopOnlyAboutItem.setAttribute("aria-hidden", "true");
           atlasDesktopOnlyAboutItem.remove();
         }
-        if (!isDesktop) {
-          const homeLabel = nav.querySelector(
-            '[data-nav="Home"] .atlas-menu-label',
-          );
-          if (homeLabel) homeLabel.textContent = "SEARCH SKU";
-        }
       };
       const openAtlasAbout = () => {
         document.querySelector(".atlas-story-backdrop")?.remove();
@@ -26158,7 +26152,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=172",
+              "./service-worker.js?v=173",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });

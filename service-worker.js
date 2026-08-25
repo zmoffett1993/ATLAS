@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v172-mobile-menu-parity";
+const VERSION = "atlas-pwa-v173-mobile-menu-stability";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
