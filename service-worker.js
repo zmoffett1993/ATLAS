@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v171-coc-workflow";
+const VERSION = "atlas-pwa-v172-mobile-menu-parity";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -18,7 +18,8 @@ const APP_SHELL = [
   "./atlas-desktop.css?v=143",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
-  "./atlas-desktop.js?v=130",
+  "./atlas-mobile-menu.css?v=1",
+  "./atlas-desktop.js?v=131",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260816-dosing-cup-framed-v104",
   "./pallet-guides.json?v=20260817-new-skus-v6",
@@ -37,7 +38,6 @@ const APP_SHELL = [
   "./atlas-brand-landscape-dark.svg?v=128",
   "./atlas-brand-mark-light.svg?v=97",
   "./atlas-brand-mark-dark.svg?v=97",
-  "./atlas-menu-warehouse-v1.webp?v=87",
   "./chubby-gorilla-about-v2.jpeg",
   "./chubby-gorilla-header-v2.png",
   "./atlas-menu-brand-lockup.png",

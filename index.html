@@ -24822,6 +24822,42 @@ Error generating stack: ` +
         );
         button?.click();
       };
+      const atlasNavigationLayoutQuery = window.matchMedia(
+        "(min-width: 1024px) and (hover: hover) and (pointer: fine)",
+      );
+      const atlasNavigationDeviceVisibility = Object.freeze({
+        about: Object.freeze({ desktop: true, mobile: false }),
+      });
+      let atlasDesktopOnlyAboutItem = null;
+      const syncAtlasDeviceNavigation = () => {
+        const nav = document.querySelector(
+          ".premium-drawer-nav.atlas-menu-nav",
+        );
+        if (!nav) return;
+        atlasDesktopOnlyAboutItem ||= nav.querySelector(
+          '[data-atlas-navigation-key="about"]',
+        );
+        const isDesktop = atlasNavigationLayoutQuery.matches;
+        const aboutVisible = isDesktop
+          ? atlasNavigationDeviceVisibility.about.desktop
+          : atlasNavigationDeviceVisibility.about.mobile;
+        if (aboutVisible && atlasDesktopOnlyAboutItem) {
+          if (!atlasDesktopOnlyAboutItem.isConnected) {
+            nav.appendChild(atlasDesktopOnlyAboutItem);
+          }
+          atlasDesktopOnlyAboutItem.removeAttribute("aria-hidden");
+        } else if (atlasDesktopOnlyAboutItem?.isConnected) {
+          atlasDesktopOnlyAboutItem.removeAttribute("aria-current");
+          atlasDesktopOnlyAboutItem.setAttribute("aria-hidden", "true");
+          atlasDesktopOnlyAboutItem.remove();
+        }
+        if (!isDesktop) {
+          const homeLabel = nav.querySelector(
+            '[data-nav="Home"] .atlas-menu-label',
+          );
+          if (homeLabel) homeLabel.textContent = "SEARCH SKU";
+        }
+      };
       const openAtlasAbout = () => {
         document.querySelector(".atlas-story-backdrop")?.remove();
         const modal = document.createElement("div");
@@ -25864,14 +25900,7 @@ Error generating stack: ` +
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M3.5 10.25 12 3l8.5 7.25"/><path d="M5.5 9.25v11h13v-11M9.25 20.25v-6.5h5.5v6.5"/></svg>
           </span>
-          <span class="atlas-menu-label">HOME</span>
-          <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
-        </button>
-        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Browse Aisles">
-          <span class="atlas-menu-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M4.25 3.5v17M19.75 3.5v17"/><rect x="6.75" y="5" width="10.5" height="4" rx=".75"/><rect x="6.75" y="10.25" width="10.5" height="4" rx=".75"/><rect x="6.75" y="15.5" width="10.5" height="4" rx=".75"/></svg>
-          </span>
-          <span class="atlas-menu-label">BROWSE AISLES</span>
+          <span class="atlas-menu-label">SEARCH SKU</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
         <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Inventory">
@@ -25879,6 +25908,13 @@ Error generating stack: ` +
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="m12 3.25 8 4.25-8 4.25L4 7.5l8-4.25Z"/><path d="m4 7.5 8 4.25 8-4.25v9L12 20.75 4 16.5v-9Z"/><path d="M12 11.75v9M8 5.4l8 4.25"/></svg>
           </span>
           <span class="atlas-menu-label">INVENTORY</span>
+          <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
+        </button>
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Browse Aisles">
+          <span class="atlas-menu-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M4.25 3.5v17M19.75 3.5v17"/><rect x="6.75" y="5" width="10.5" height="4" rx=".75"/><rect x="6.75" y="10.25" width="10.5" height="4" rx=".75"/><rect x="6.75" y="15.5" width="10.5" height="4" rx=".75"/></svg>
+          </span>
+          <span class="atlas-menu-label">BROWSE AISLES</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
         <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Workflows">
@@ -25895,7 +25931,7 @@ Error generating stack: ` +
           <span class="atlas-menu-label">DASHBOARD</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
-        <button class="premium-drawer-link atlas-menu-item" type="button" data-action="about">
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-action="about" data-atlas-navigation-key="about">
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><circle cx="12" cy="12" r="8.75"/><path d="M12 10.75v6M12 7.25h.01"/></svg>
           </span>
@@ -26065,9 +26101,14 @@ Error generating stack: ` +
             openAtlasAbout();
             close(false);
           });
+        atlasDesktopOnlyAboutItem = backdrop.querySelector(
+          '[data-atlas-navigation-key="about"]',
+        );
+        syncAtlasDeviceNavigation();
       };
       const ensureAtlasExperience = () => {
         ensurePremiumChrome();
+        syncAtlasDeviceNavigation();
         ensureUpdatedAtlasBranding();
         updateNetworkState();
       };
@@ -26101,6 +26142,10 @@ Error generating stack: ` +
       });
       window.addEventListener("online", updateNetworkState);
       window.addEventListener("offline", updateNetworkState);
+      atlasNavigationLayoutQuery.addEventListener?.("change", () => {
+        syncAtlasDeviceNavigation();
+        window.requestAnimationFrame(syncAtlasDeviceNavigation);
+      });
       window.addEventListener("DOMContentLoaded", ensureAtlasExperience);
       window.requestAnimationFrame(ensureAtlasExperience);
       if ("serviceWorker" in navigator) {
@@ -26113,7 +26158,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=171",
+              "./service-worker.js?v=172",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });
@@ -35947,13 +35992,14 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop.css?v=143" />
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
+    <link rel="stylesheet" href="./atlas-mobile-menu.css?v=1" />
     <script src="./atlas-dashboard.js?v=145" defer></script>
     <script src="./atlas-guided-workflows.js?v=4" defer></script>
     <script src="./atlas-restock.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
     <script src="./atlas-coc-core.js?v=1" defer></script>
     <script src="./atlas-coc.js?v=1" defer></script>
-  <script src="./atlas-desktop.js?v=130" defer></script>
+  <script src="./atlas-desktop.js?v=131" defer></script>
 
 </body>
 </html>

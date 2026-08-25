@@ -301,8 +301,8 @@
     const desktopParent = nav.querySelector("[data-atlas-desktop-inventory-parent]");
     desktopParent?.replaceWith(inventory);
     document.querySelector(".atlas-desktop-inventory-flyout")?.remove();
-    nav.replaceChildren(home, browse, inventory, workflows, dashboard, about);
-    home.querySelector(".atlas-menu-label").textContent = "HOME";
+    nav.replaceChildren(home, inventory, browse, workflows, dashboard, about);
+    home.querySelector(".atlas-menu-label").textContent = "SEARCH SKU";
     browse.querySelector(".atlas-menu-label").textContent = "BROWSE AISLES";
     workflows.querySelector(".atlas-menu-label").textContent = "WORKFLOWS";
     dashboard.querySelector(".atlas-menu-label").textContent = "DASHBOARD";

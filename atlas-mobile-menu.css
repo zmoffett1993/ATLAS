@@ -1,0 +1,376 @@
+/* ATLAS mobile navigation — desktop visual parity
+   Intentionally inert on the fine-pointer desktop layout. */
+
+@media (max-width: 1023px), (hover: none), (pointer: coarse) {
+  :root {
+    --atlas-mobile-menu-width: min(86vw, 360px);
+  }
+
+  html.atlas-menu-open,
+  html.atlas-menu-open body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  html.atlas-menu-open body > #root {
+    transform: translate3d(var(--atlas-mobile-menu-width), 0, 0) !important;
+  }
+
+  .premium-drawer-backdrop.atlas-menu-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99990 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    background: rgba(2, 14, 31, 0.55) !important;
+    -webkit-backdrop-filter: blur(5px) saturate(0.82) !important;
+    backdrop-filter: blur(5px) saturate(0.82) !important;
+    transition:
+      opacity 220ms ease,
+      visibility 0s linear 220ms !important;
+  }
+
+  .premium-drawer-backdrop.atlas-menu-backdrop.open {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition:
+      opacity 220ms ease,
+      visibility 0s linear 0s !important;
+  }
+
+  .premium-drawer.atlas-menu-drawer,
+  .premium-drawer-backdrop.open .premium-drawer.atlas-menu-drawer {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    width: var(--atlas-mobile-menu-width) !important;
+    max-width: 360px !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    overflow: hidden !important;
+    color: #f4f8ff !important;
+    background:
+      radial-gradient(circle at 30% 2%, rgba(38, 126, 235, 0.18), transparent 24%),
+      linear-gradient(180deg, #08294e 0%, #061d38 52%, #04162b 100%) !important;
+    border: 0 !important;
+    border-right: 1px solid rgba(142, 195, 255, 0.16) !important;
+    border-radius: 0 22px 22px 0 !important;
+    box-shadow: 15px 0 38px rgba(2, 20, 43, 0.26) !important;
+    opacity: 1 !important;
+    transform: translate3d(calc(-100% + var(--atlas-menu-drag-x, 0px)), 0, 0) !important;
+    transform-origin: left center !important;
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  .premium-drawer-backdrop.open .premium-drawer.atlas-menu-drawer {
+    transform: translate3d(var(--atlas-menu-drag-x, 0px), 0, 0) !important;
+  }
+
+  .premium-drawer.atlas-menu-drawer::before,
+  .premium-drawer.atlas-menu-drawer::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+  }
+
+  .atlas-menu-brand {
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-height: calc(126px + env(safe-area-inset-top)) !important;
+    aspect-ratio: auto !important;
+    margin: 0 !important;
+    padding:
+      calc(31px + env(safe-area-inset-top))
+      68px
+      23px
+      22px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+    background: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(147, 199, 255, 0.12) !important;
+    box-shadow: none !important;
+  }
+
+  .atlas-menu-lockup {
+    width: min(100%, 218px) !important;
+    max-width: 218px !important;
+    aspect-ratio: 1280 / 380 !important;
+    margin: 0 !important;
+    color: #fff !important;
+    background-color: transparent !important;
+    background-image: url("./atlas-brand-landscape-dark.svg?v=128") !important;
+    background-position: left center !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    filter: none !important;
+  }
+
+  .atlas-menu-lockup-row,
+  .atlas-menu-purpose,
+  .atlas-menu-promise,
+  .premium-drawer-hero-copy,
+  .premium-drawer-status,
+  .premium-drawer-reference-head,
+  .premium-drawer-rail-mark {
+    display: none !important;
+  }
+
+  .premium-drawer-close.atlas-menu-close,
+  .premium-drawer-close.atlas-menu-close:hover,
+  .premium-drawer-close.atlas-menu-close:active {
+    position: absolute !important;
+    z-index: 8 !important;
+    top: calc(22px + env(safe-area-inset-top)) !important;
+    right: 18px !important;
+    left: auto !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+    color: #dceaff !important;
+    background: rgba(255, 255, 255, 0.055) !important;
+    border: 1px solid rgba(165, 207, 255, 0.14) !important;
+    border-radius: 11px !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+
+  .premium-drawer-close.atlas-menu-close:active {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.11) !important;
+    transform: scale(0.97) !important;
+  }
+
+  .premium-drawer-close.atlas-menu-close:focus-visible,
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:focus-visible {
+    outline: 2px solid #82bdff !important;
+    outline-offset: -3px !important;
+  }
+
+  .premium-drawer-close.atlas-menu-close > span,
+  .premium-drawer-close.atlas-menu-close > span::before,
+  .premium-drawer-close.atlas-menu-close > span::after {
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .premium-drawer-nav.atlas-menu-nav {
+    grid-row: 2 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 12px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    scrollbar-width: thin;
+  }
+
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    margin: 0 !important;
+    padding: 0 13px !important;
+    display: grid !important;
+    grid-template-columns: 30px minmax(0, 1fr) 14px !important;
+    align-items: center !important;
+    gap: 11px !important;
+    color: rgba(240, 247, 255, 0.74) !important;
+    text-align: left !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 11px !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition:
+      color 140ms ease,
+      background-color 140ms ease,
+      border-color 140ms ease !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:hover,
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:active {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active,
+  .atlas-menu-drawer .premium-drawer-link[data-action="dashboard"].is-active {
+    color: #fff !important;
+    background: linear-gradient(90deg, #125fc9, #1975e9) !important;
+    border-color: rgba(104, 176, 255, 0.28) !important;
+    box-shadow: 0 9px 20px rgba(0, 75, 164, 0.24) !important;
+  }
+
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item::before,
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item::after,
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .atlas-menu-icon {
+    width: 28px !important;
+    height: 28px !important;
+    display: grid !important;
+    place-items: center !important;
+    color: currentColor !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .atlas-menu-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    color: currentColor !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.9 !important;
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .atlas-menu-label {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: currentColor !important;
+    font-family: Inter, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 780 !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.075em !important;
+    text-overflow: ellipsis !important;
+    text-shadow: none !important;
+    white-space: nowrap !important;
+  }
+
+  .atlas-menu-drawer .premium-drawer-link .drawer-chevron.atlas-menu-chevron,
+  .atlas-menu-drawer .premium-drawer-link:first-child .drawer-chevron.atlas-menu-chevron,
+  .atlas-menu-drawer .premium-drawer-link.is-active .drawer-chevron.atlas-menu-chevron {
+    width: 14px !important;
+    height: auto !important;
+    padding: 0 !important;
+    display: block !important;
+    color: rgba(210, 232, 255, 0.42) !important;
+    font: 400 20px/1 Arial, sans-serif !important;
+    text-align: center !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .atlas-menu-drawer .premium-drawer-link.is-active .drawer-chevron.atlas-menu-chevron {
+    color: #dceeff !important;
+  }
+
+  .atlas-menu-footer {
+    grid-row: 3 !important;
+    min-height: calc(72px + env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    padding: 14px 25px calc(19px + env(safe-area-inset-bottom)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    color: rgba(222, 235, 249, 0.52) !important;
+    text-align: left !important;
+    text-shadow: none !important;
+    border-top: 1px solid rgba(147, 199, 255, 0.09) !important;
+  }
+
+  .atlas-menu-footer strong,
+  .atlas-menu-footer span,
+  .atlas-menu-footer .atlas-footer-brand > span,
+  .atlas-menu-footer .atlas-footer-brand > small {
+    display: block !important;
+    color: inherit !important;
+    font-family: Inter, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 7px !important;
+    font-weight: 760 !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.13em !important;
+    text-shadow: none !important;
+    white-space: nowrap !important;
+  }
+
+  .atlas-menu-footer .atlas-footer-brand > span {
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.16em !important;
+  }
+
+  .atlas-menu-footer > span {
+    margin-top: 3px;
+  }
+
+  @media (max-height: 560px) {
+    .atlas-menu-brand {
+      min-height: calc(101px + env(safe-area-inset-top)) !important;
+      padding-top: calc(21px + env(safe-area-inset-top)) !important;
+      padding-bottom: 15px !important;
+    }
+
+    .atlas-menu-lockup {
+      max-width: 185px !important;
+    }
+
+    .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
+    .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
+    .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
+    .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active {
+      min-height: 48px !important;
+    }
+
+    .atlas-menu-footer {
+      min-height: calc(54px + env(safe-area-inset-bottom)) !important;
+      padding-top: 9px !important;
+      padding-bottom: calc(11px + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-drawer-backdrop.atlas-menu-backdrop,
+  .premium-drawer.atlas-menu-drawer,
+  .atlas-menu-drawer .premium-drawer-link.atlas-menu-item {
+    transition-duration: 0.01ms !important;
+  }
+}
