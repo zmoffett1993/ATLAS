@@ -14,6 +14,8 @@
       '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m15.5 15.5 5 5"></path></svg>',
     inventory:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7.5 8-4.25 8 4.25-8 4.25L4 7.5Z"></path><path d="m4 7.5 8 4.25 8-4.25v9L12 20.75 4 16.5v-9Z"></path><path d="M12 11.75v9"></path></svg>',
+    workflows:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="m8 9 2 2 4-4"></path><path d="M8 16h8"></path></svg>',
     dashboard:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M21 20H2"></path></svg>',
   };
@@ -91,6 +93,9 @@
         inventoryAction: workflowByTitle.get(workflowTitle) || "",
       };
     }
+    if (label.includes("workflows")) {
+      return { key: "workflows", title: "Warehouse Workflows · COC" };
+    }
     const sku = document
       .querySelector(".result-card .sku-copy strong")
       ?.textContent?.trim();
@@ -143,7 +148,9 @@
         ? "Inventory"
         : target === "aisles"
           ? "Browse Aisles"
-          : "Home";
+          : target === "workflows"
+            ? "Workflows"
+            : "Home";
     const button = [...document.querySelectorAll(".bottom-nav button")].find(
       (item) => item.textContent?.trim().toLowerCase().includes(label.toLowerCase()),
     );
@@ -227,11 +234,12 @@
     const home = nav.querySelector('[data-nav="Home"]');
     const browse = nav.querySelector('[data-nav="Browse Aisles"]');
     const inventory = nav.querySelector('[data-nav="Inventory"]');
+    const workflows = nav.querySelector('[data-nav="Workflows"]');
     const dashboard = nav.querySelector('[data-action="dashboard"]');
     const about = nav.querySelector('[data-action="about"]');
-    if (!home || !browse || !inventory || !dashboard || !about) return null;
+    if (!home || !browse || !inventory || !workflows || !dashboard || !about) return null;
 
-    sidebarState = { nav, home, browse, inventory, dashboard, about };
+    sidebarState = { nav, home, browse, inventory, workflows, dashboard, about };
     const desktopInventory = replaceInventoryParent(inventory);
     const flyout = document.createElement("aside");
     flyout.className = "atlas-desktop-inventory-flyout";
@@ -269,7 +277,7 @@
       setInventoryExpanded(nextOpen);
     });
 
-    [home, dashboard, about].forEach((item) => {
+    [home, workflows, dashboard, about].forEach((item) => {
       item.addEventListener("click", () => {
         inventoryFlyoutPreview = false;
         inventoryFlyoutDismissed = false;
@@ -278,9 +286,10 @@
     });
 
     home.querySelector(".atlas-menu-label").textContent = "Search SKU";
+    workflows.querySelector(".atlas-menu-label").textContent = "Workflows";
     dashboard.querySelector(".atlas-menu-label").textContent = "Dashboard";
     about.querySelector(".atlas-menu-label").textContent = "About ATLAS";
-    nav.replaceChildren(home, desktopInventory, dashboard, about);
+    nav.replaceChildren(home, desktopInventory, workflows, dashboard, about);
     nav.dataset.atlasDesktopNavigation = "true";
     setInventoryExpanded(false);
     return nav;
@@ -288,13 +297,14 @@
 
   const restoreMobileSidebar = () => {
     if (!sidebarState) return;
-    const { nav, home, browse, inventory, dashboard, about } = sidebarState;
+    const { nav, home, browse, inventory, workflows, dashboard, about } = sidebarState;
     const desktopParent = nav.querySelector("[data-atlas-desktop-inventory-parent]");
     desktopParent?.replaceWith(inventory);
     document.querySelector(".atlas-desktop-inventory-flyout")?.remove();
-    nav.replaceChildren(home, browse, inventory, dashboard, about);
+    nav.replaceChildren(home, browse, inventory, workflows, dashboard, about);
     home.querySelector(".atlas-menu-label").textContent = "HOME";
     browse.querySelector(".atlas-menu-label").textContent = "BROWSE AISLES";
+    workflows.querySelector(".atlas-menu-label").textContent = "WORKFLOWS";
     dashboard.querySelector(".atlas-menu-label").textContent = "DASHBOARD";
     about.querySelector(".atlas-menu-label").textContent = "ABOUT";
     delete nav.dataset.atlasDesktopNavigation;
@@ -315,6 +325,7 @@
       "atlas-view-home",
       "atlas-view-aisles",
       "atlas-view-inventory",
+      "atlas-view-workflows",
       "atlas-view-dashboard",
       "atlas-view-about",
     );
@@ -350,6 +361,7 @@
         (meta.key === "home" && nav === "home") ||
         ((meta.key === "inventory" || meta.key === "aisles") &&
           item.dataset.atlasDesktopInventoryParent === "true") ||
+        (meta.key === "workflows" && nav === "workflows") ||
         (meta.key === "dashboard" && action === "dashboard") ||
         (meta.key === "about" && action === "about");
       item.classList.toggle("is-active", active);
@@ -416,6 +428,7 @@
       "atlas-view-home",
       "atlas-view-aisles",
       "atlas-view-inventory",
+      "atlas-view-workflows",
       "atlas-view-dashboard",
       "atlas-view-about",
       "atlas-inventory-action-page",

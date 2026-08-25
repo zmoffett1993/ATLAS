@@ -17,6 +17,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link id="atlas-app-manifest" rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./atlas-dashboard.css?v=146" />
+    <link rel="stylesheet" href="./atlas-coc.css?v=1" />
     <script>
       (() => {
         const isAndroid =
@@ -14495,6 +14496,8 @@ Error generating stack: ` +
             description: `Safely remove an incorrect SKU from picker searches.`,
           },
         ];
+      window.atlasSupabaseConfig = Object.freeze({ url: Ve, key: He });
+      window.atlasTesseract = Be();
       function atlasCleanSkuInput(e) {
         return String(e ?? ``)
           .normalize(`NFKC`)
@@ -18483,7 +18486,10 @@ Error generating stack: ` +
             if (!ee) return;
             let e = window.setTimeout(() => te(``), 1500);
             return () => window.clearTimeout(e);
-          }, [ee]));
+          }, [ee]),
+          (0, C.useEffect)(() => {
+            window.atlasCoc?.sync?.(e);
+          }, [e]));
         function ne(e) {
           let t = [e.sku, ...f.filter((t) => t !== e.sku)].slice(0, 5);
           (p(t), localStorage.setItem(`atlas-recent-skus`, JSON.stringify(t)));
@@ -18599,10 +18605,12 @@ Error generating stack: ` +
               className: `screen`,
               children: [
                 (0, T.jsx)(it, { connection: n }),
+                (0, T.jsx)(`div`, { id: `atlas-coc-active-bar-slot` }),
                 e === `home`
                   ? (0, T.jsxs)(`main`, {
                       className: `workspace home-view`,
                       children: [
+                        (0, T.jsx)(`div`, { id: `atlas-coc-home-slot` }),
                         (0, T.jsx)(`div`, {
                           className: `home-search-panel`,
                           children: (0, T.jsx)(nt, {
@@ -19070,6 +19078,14 @@ Error generating stack: ` +
                       ],
                     })
                   : null,
+                e === `workflows`
+                  ? (0, T.jsx)(`main`, {
+                      className: `workspace view-page atlas-workflows-view`,
+                      children: (0, T.jsx)(`div`, {
+                        id: `atlas-coc-workflows-root`,
+                      }),
+                    })
+                  : null,
                 e === `inventory`
                   ? (0, T.jsx)(`main`, {
                       children: (0, T.jsx)(pt, {
@@ -19129,6 +19145,22 @@ Error generating stack: ` +
                         children: `⇄`,
                       }),
                       (0, T.jsx)(`span`, { children: `Inventory` }),
+                    ],
+                  }),
+                  (0, T.jsxs)(`button`, {
+                    type: `button`,
+                    className: e === `workflows` ? `active` : ``,
+                    "aria-current": e === `workflows` ? `page` : void 0,
+                    onClick: () => {
+                      (window.atlasCoc?.openWorkflows?.(),
+                        atlasReturnToSectionRoot(`workflows`));
+                    },
+                    children: [
+                      (0, T.jsx)(`span`, {
+                        className: `nav-icon`,
+                        children: `✓`,
+                      }),
+                      (0, T.jsx)(`span`, { children: `Workflows` }),
                     ],
                   }),
                 ],
@@ -24678,6 +24710,8 @@ Error generating stack: ` +
         grid: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.15"><rect class="nav-panel nav-panel-accent" x="2.8" y="2.8" width="7.6" height="7.6" rx="1.2"/><rect class="nav-panel" x="13.6" y="2.8" width="7.6" height="7.6" rx="1.2"/><rect class="nav-panel" x="2.8" y="13.6" width="7.6" height="7.6" rx="1.2"/><rect class="nav-panel nav-panel-accent" x="13.6" y="13.6" width="7.6" height="7.6" rx="1.2"/></svg>',
         inventory:
           '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2"><path class="nav-box-fill" d="m4 7.5 8-4.5 8 4.5-8 4.5-8-4.5Z"/><path d="m4 7.5 8-4.5 8 4.5v9L12 21l-8-4.5v-9Z"/><path d="m4 7.5 8 4.5 8-4.5"/><path d="M12 12v9"/><path d="m8 5.25 8 4.5"/><rect class="nav-box-tape" x="14.1" y="13.7" width="4.1" height="3.2" rx=".75"/></svg>',
+        workflows:
+          '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4"/><path d="M8 16h8"/></svg>',
         lock: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
         info: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7h.01"/></svg>',
         database:
@@ -24689,6 +24723,7 @@ Error generating stack: ` +
         Home: premiumIcon.home,
         "Browse Aisles": premiumIcon.grid,
         Inventory: premiumIcon.inventory,
+        Workflows: premiumIcon.workflows,
       };
       const atlasWordmark = `
   <svg class="atlas-wordmark" viewBox="0 0 620 120" role="img" aria-label="ATLAS">
@@ -25846,6 +25881,13 @@ Error generating stack: ` +
           <span class="atlas-menu-label">INVENTORY</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Workflows">
+          <span class="atlas-menu-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" focusable="false"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4"/><path d="M8 16h8"/></svg>
+          </span>
+          <span class="atlas-menu-label">WORKFLOWS</span>
+          <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
+        </button>
         <button class="premium-drawer-link atlas-menu-item" type="button" data-action="dashboard">
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/><rect x="3" y="10" width="3" height="10" rx="1"/><rect x="9" y="4" width="3" height="16" rx="1"/><rect x="15" y="13" width="3" height="7" rx="1"/></svg>
@@ -26071,7 +26113,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=162",
+              "./service-worker.js?v=171",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });
@@ -35909,6 +35951,8 @@ Error generating stack: ` +
     <script src="./atlas-guided-workflows.js?v=4" defer></script>
     <script src="./atlas-restock.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
+    <script src="./atlas-coc-core.js?v=1" defer></script>
+    <script src="./atlas-coc.js?v=1" defer></script>
   <script src="./atlas-desktop.js?v=130" defer></script>
 
 </body>
