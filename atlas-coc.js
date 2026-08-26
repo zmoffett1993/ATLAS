@@ -2,8 +2,10 @@
   "use strict";
 
   const Core = window.AtlasCocCore;
-  if (!Core) {
-    console.error("ATLAS COC core did not load.");
+  const Parser = window.AtlasCocParser;
+  const Excel = window.AtlasCocExcel;
+  if (!Core || !Parser || !Excel) {
+    console.error("ATLAS COC modules did not load.");
     return;
   }
 
@@ -19,7 +21,11 @@
   let cloudTimer = null;
   let cameraStream = null;
   let storageFailure = false;
-  let capture = { photo: "", text: "", confidence: null, status: "", progress: 0 };
+  const freshCapture = (failures = 0) => ({
+    photo: "", text: "", confidence: null, status: "", progress: 0, failures,
+    result: null, barcodes: [], ocrText: "",
+  });
+  let capture = freshCapture();
 
   const escapeHtml = (value) => String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -198,7 +204,7 @@
     if (session.status === "report") {
       return `<button type="button" class="atlas-coc-active-bar is-complete" data-coc-action="resume">
         <span class="atlas-coc-active-bar__signal" aria-hidden="true">✓</span>
-        <span><strong>COC COMPLETE</strong><small>${session.orderNumber ? `Invoice ${escapeHtml(session.orderNumber)} · ` : ""}Review final report · ${plural(Core.sessionTotal(session), "box")}</small></span>
+        <span><strong>COC COMPLETE</strong><small>${session.invoiceNumber ? `Invoice ${escapeHtml(session.invoiceNumber)} · ` : ""}Review final report · ${plural(Core.sessionTotal(session), "box")}</small></span>
         <b>OPEN</b>
       </button>`;
     }
@@ -209,7 +215,7 @@
       : "Box count not verified";
     return `<button type="button" class="atlas-coc-active-bar" data-coc-action="resume">
       <span class="atlas-coc-active-bar__signal" aria-hidden="true"></span>
-      <span><strong>COC ACTIVE · PALLET ${pallet?.number || 1}</strong><small>${session.orderNumber ? `Invoice ${escapeHtml(session.orderNumber)} · ` : ""}${countCopy}</small></span>
+      <span><strong>COC ACTIVE · PALLET ${pallet?.number || 1}</strong><small>${session.invoiceNumber ? `Invoice ${escapeHtml(session.invoiceNumber)} · ` : ""}${countCopy}</small></span>
       <b>RESUME</b>
     </button>`;
   }
@@ -231,11 +237,12 @@
   function setupMarkup() {
     return `<div class="atlas-coc-page atlas-coc-setup">
       <button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Workflows</button>
-      <header class="atlas-coc-page-head"><span>START COC</span><h1>Begin Pallet 1</h1><p>Add the invoice number if it helps identify this COC.</p></header>
+      <header class="atlas-coc-page-head"><span>START COC</span><h1>Begin Pallet 1</h1><p>Enter the Invoice Number to begin this COC.</p></header>
       <form id="atlas-coc-start-form" class="atlas-coc-form-card">
-        <label><strong>Invoice Number</strong><small>Optional</small>
-          <input name="orderNumber" maxlength="80" autocomplete="off" placeholder="Leave blank if not needed" /></label>
+        <label><strong>Invoice Number</strong><small>Required</small>
+          <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" required /></label>
         <div class="atlas-coc-zero-preview"><span>PALLET 1</span><strong>0</strong><small>Total Boxes · No Lots Recorded</small></div>
+        <p class="atlas-coc-form-error" aria-live="polite"></p>
         <button type="submit" class="atlas-coc-primary">Start Pallet 1</button>
       </form>
     </div>`;
@@ -255,7 +262,7 @@
       <header class="atlas-coc-page-head"><span>PALLET ${pallet.number} · STEP 1</span><h1>Verify Box Count</h1>
         <p>Enter the expected number of boxes for this pallet before recording lots.</p></header>
       <form id="atlas-coc-expected-form" class="atlas-coc-form-card atlas-coc-expected-card">
-        ${session.orderNumber ? `<p class="atlas-coc-invoice-line"><span>INVOICE</span><strong>${escapeHtml(session.orderNumber)}</strong></p>` : ""}
+        ${session.invoiceNumber ? `<p class="atlas-coc-invoice-line"><span>INVOICE</span><strong>${escapeHtml(session.invoiceNumber)}</strong></p>` : ""}
         <label><strong>Expected Boxes</strong><small>Required · whole number</small>
           <input name="expectedBoxes" type="number" inputmode="numeric" min="1" step="1" required autofocus placeholder="0" /></label>
         ${recorded ? `<p class="atlas-coc-preserved-count"><strong>${plural(recorded, "box")} already recorded</strong><span>Your saved lots are preserved. Confirm the expected count to continue.</span></p>` : ""}
@@ -280,13 +287,13 @@
     const difference = total - pallet.expectedBoxes;
     return `<div class="atlas-coc-page atlas-coc-counting">
       <header class="atlas-coc-count-head">
-        <div><span>COC${session.orderNumber ? ` · INVOICE ${escapeHtml(session.orderNumber)}` : ""}</span><h1>Pallet ${pallet.number}</h1><small>${locked ? `${plural(locked, "pallet")} completed · ` : ""}Saved automatically</small></div>
+        <div><span>COC${session.invoiceNumber ? ` · INVOICE ${escapeHtml(session.invoiceNumber)}` : ""}</span><h1>Pallet ${pallet.number}</h1><small>${locked ? `${plural(locked, "pallet")} completed · ` : ""}Saved automatically</small></div>
         <div class="atlas-coc-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes}</strong><span>Recorded / Expected Boxes</span></div>
       </header>
       ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the expected count. Review before finishing.</p>` : ""}
       ${finished.length ? `<section class="atlas-coc-pallet-progress" aria-label="Completed pallets">
         <div class="atlas-coc-section-title"><h2>COC Progress</h2><span>${plural(finished.length, "finished pallet")}</span></div>
-        <div>${finished.map((item) => `<article><span aria-hidden="true">✓</span><div><strong>Pallet ${item.number}</strong><small>${plural(Core.palletTotal(item), "box")} · ${plural(item.lots.length, "lot")} · Verified &amp; Locked</small></div></article>`).join("")}</div>
+        <div>${finished.map((item) => `<button type="button" class="atlas-coc-pallet-chip" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}"><span aria-hidden="true">✓</span><div><strong>Pallet ${item.number}</strong><small>${plural(Core.palletTotal(item), "box")} · ${plural(item.lots.length, "lot")} · Verified &amp; Locked</small></div><b>Review</b></button>`).join("")}</div>
       </section>` : ""}
       ${lot ? `<section class="atlas-coc-active-lot">
         <span>ACTIVE LOT</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2><strong>${plural(lot.cases, "box")}</strong>
@@ -317,12 +324,13 @@
     const total = Core.sessionTotal(session);
     return `<div class="atlas-coc-page atlas-coc-report">
       <header class="atlas-coc-report-head"><span>COC COMPLETE</span><h1>Final Count Report</h1>
-        <p>${session.orderNumber ? `Invoice <strong>${escapeHtml(session.orderNumber)}</strong> · ` : ""}${formatDate(session.completedAt)}</p></header>
+        <p>${session.invoiceNumber ? `Invoice <strong>${escapeHtml(session.invoiceNumber)}</strong> · ` : ""}${formatDate(session.completedAt)}</p></header>
       <section class="atlas-coc-report-summary"><div><strong>${session.pallets.length}</strong><span>Pallets</span></div><div><strong>${total}</strong><span>Total Boxes</span></div></section>
       <div class="atlas-coc-report-pallets">${session.pallets.map((pallet) => `
         <section class="atlas-coc-report-pallet"><header><h2>Pallet ${pallet.number}</h2><strong>${plural(Core.palletTotal(pallet), "box")}</strong></header>
           <p class="atlas-coc-report-verification"><span>Expected <strong>${pallet.expectedBoxes || "—"}</strong></span><span>Recorded <strong>${Core.palletTotal(pallet)}</strong></span><span class="${Core.palletProgress(pallet).verified ? "is-verified" : "is-unverified"}">${Core.palletProgress(pallet).verified ? "✓ Verified" : "Verification unavailable"}</span></p>
-          <div>${pallet.lots.map((lot) => `<div class="atlas-coc-report-row"><span><small>LOT</small><strong>${escapeHtml(Core.displayLot(lot.lot))}</strong></span><b>${lot.cases}</b></div>`).join("") || `<p>No lots recorded</p>`}</div>
+          <div>${pallet.lots.map((lot) => `<div class="atlas-coc-report-row"><span><small>${lot.model ? `MODEL ${escapeHtml(lot.model)} · ` : ""}LOT</small><strong>${escapeHtml(Core.displayLot(lot.lot))}</strong></span><b>${lot.cases}</b></div>`).join("") || `<p>No lots recorded</p>`}</div>
+          <button type="button" class="atlas-coc-reopen-report" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(pallet.id)}">Reopen Pallet ${pallet.number}</button>
         </section>`).join("")}</div>
       <div class="atlas-coc-report-actions"><button type="button" data-coc-action="copy-report">Copy Report</button><button type="button" class="atlas-coc-primary" data-coc-action="review-close">Finish &amp; Close COC</button></div>
       <p class="atlas-coc-report-note">Keep this report open while entering the pallet and lot totals into the office system.</p>
@@ -414,6 +422,17 @@
     });
   }
 
+  function reopenPalletModal(palletId) {
+    const pallet = session?.pallets.find((item) => item.id === palletId);
+    if (!pallet) return "";
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">REOPEN PALLET</span><h2>Reopen Pallet ${pallet.number}?</h2>
+      <p>You are reopening a completed pallet. All quantities must be verified again before it can be completed.</p>
+      <div class="atlas-coc-compare is-verified"><div><span>EXPECTED</span><strong>${pallet.expectedBoxes}</strong></div><div><span>RECORDED</span><strong>${Core.palletTotal(pallet)}</strong></div></div>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Locked</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-reopen" data-pallet-id="${escapeHtml(pallet.id)}">Reopen Pallet</button></div>`, {
+      label: `Reopen pallet ${pallet.number}`, dismiss: false,
+    });
+  }
+
   function discardModal() {
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">DISCARD COC</span><h2>Discard this unfinished COC?</h2>
       <p>All pallet, lot, and box counts in this active COC will be removed from this device.</p>
@@ -433,29 +452,53 @@
   }
 
   function captureModal() {
-    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT</span><h2>Scan the lot number</h2>
-      <p>Place one printed lot inside the guide. The lot will not be saved until you compare and confirm it.</p>
-      <div class="atlas-coc-camera"><video id="atlas-coc-video" playsinline muted></video><div class="atlas-coc-camera-guide"><span>LOT NUMBER</span></div></div>
+    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT</span><h2>Scan the printed label</h2>
+      <p>Keep one label inside the guide. ATLAS checks the lot barcode first, then the printed Model and Batch fields.</p>
+      <div class="atlas-coc-camera"><video id="atlas-coc-video" playsinline muted></video><div class="atlas-coc-camera-guide"><span>MODEL · BATCH · BARCODE</span></div></div>
       <p id="atlas-coc-camera-status" class="atlas-coc-camera-status">Starting camera…</p>
       <canvas id="atlas-coc-canvas" hidden></canvas>
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="manual-lot">Enter Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="capture-photo" disabled>Capture Lot</button></div>`, { label: "Scan new lot", className: "atlas-coc-scanner-modal" });
+      <div class="atlas-coc-modal-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 ? "" : "hidden"}>Manual Verified Entry</button><button type="button" class="atlas-coc-primary" data-coc-action="capture-photo" disabled>Scan Label</button></div>`, { label: "Scan new lot", className: "atlas-coc-scanner-modal" });
   }
 
   function readingModal() {
-    return modalShell(`<span class="atlas-coc-eyebrow">READING LOT</span><h2>Checking the printed characters…</h2>
+    return modalShell(`<span class="atlas-coc-eyebrow">READING LOT</span><h2>Checking barcode and printed fields…</h2>
       ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Captured lot label" />` : ""}
       <div class="atlas-coc-progress"><i style="width:${capture.progress}%"></i></div><p>${escapeHtml(capture.status || "Preparing image…")}</p>`, { label: "Reading captured lot", dismiss: false });
   }
 
   function confirmLotModal() {
-    const low = capture.confidence === null || capture.confidence < 82;
-    return modalShell(`<span class="atlas-coc-eyebrow">VISUAL CONFIRMATION REQUIRED</span><h2>Compare every character</h2>
+    const result = capture.result || {};
+    const verifiedCopy = result.validationMethod === "barcode_print_match"
+      ? "Barcode + printed batch match"
+      : result.captureMethod === "legacy_ocr"
+        ? "Legacy Model + Batch rule verified"
+        : "Lot barcode identified";
+    return modalShell(`<span class="atlas-coc-eyebrow is-success">LOT VERIFIED</span><h2>${escapeHtml(Core.displayLot(capture.text))}</h2>
       <img class="atlas-coc-photo" src="${capture.photo}" alt="Captured printed lot for verification" />
-      <label class="atlas-coc-lot-field"><strong>Recognized Lot</strong><input id="atlas-coc-confirm-lot" value="${escapeHtml(capture.text)}" maxlength="120" autocomplete="off" spellcheck="false" /></label>
-      <p class="atlas-coc-confidence ${low ? "is-low" : "is-high"}">${low ? "LOT NOT VERIFIED — OCR confidence was low. Correct the field and compare it to the photo." : `High-confidence read · ${Math.round(capture.confidence)}%`}</p>
-      <label class="atlas-coc-verify-check"><input id="atlas-coc-verify-check" type="checkbox" /> <span>I compared the field to the printed lot and every character matches.</span></label>
+      <div class="atlas-coc-capture-proof">${result.model ? `<p><span>MODEL</span><strong>${escapeHtml(result.model)}</strong></p>` : ""}${result.rawBatchText ? `<p><span>PRINTED BATCH</span><strong>${escapeHtml(result.rawBatchText)}</strong></p>` : ""}<p><span>VALIDATION</span><strong>${escapeHtml(verifiedCopy)}</strong></p></div>
+      <label class="atlas-coc-verify-check"><input id="atlas-coc-verify-check" type="checkbox" /> <span>I compared <strong>${escapeHtml(capture.text)}</strong> to the printed lot and every character matches.</span></label>
       <p class="atlas-coc-first-case">Confirming this new lot records <strong>Box 1</strong>.</p>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Rescan</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" disabled>Confirm Lot + Box 1</button></div>`, { label: "Confirm recognized lot", dismiss: false });
+  }
+
+  function scanMismatchModal() {
+    const result = capture.result || {};
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">LOT DOES NOT MATCH</span><h2>Rescan the label</h2>
+      <p>The barcode and printed batch number did not agree. ATLAS did not save a lot.</p>
+      <div class="atlas-coc-compare is-scan-mismatch"><div><span>BARCODE LOT</span><strong>${escapeHtml(result.lot || "—")}</strong></div><div><span>PRINTED LOT</span><strong>${escapeHtml(result.printedLot || "—")}</strong></div></div>
+      <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="rescan-lot">Rescan</button>`, { label: "Barcode and printed lot mismatch", dismiss: false });
+  }
+
+  function scanFailedModal() {
+    const reasonCopy = {
+      low_ocr_confidence: "The Model or Batch characters were not clear enough to verify.",
+      lot_barcode_not_identified: "A product or carton barcode was visible, but a valid lot barcode was not confidently identified.",
+      legacy_boundary_not_found: "The product/color boundary could not be verified inside the printed Batch number.",
+      legacy_rule_not_found: "The label did not match a configured legacy extraction rule.",
+    }[capture.result?.reason] || "ATLAS could not confidently verify the lot from this label.";
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">LOT NOT VERIFIED</span><h2>Please rescan the label</h2>
+      <p>${escapeHtml(reasonCopy)} No guessed value was saved.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Rescan</button>${capture.failures >= 2 ? `<button type="button" class="atlas-coc-primary" data-coc-action="manual-lot">Manual Verified Entry</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="rescan-lot">Scan Again</button>`}</div>`, { label: "Lot not verified", dismiss: false });
   }
 
   function manualLotModal() {
@@ -471,6 +514,13 @@
     return modalShell(`<span class="atlas-coc-eyebrow">LOT ALREADY EXISTS</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2>
       <p>This lot is already on Pallet ${activePallet()?.number}. Use the existing lot instead of creating a duplicate row.</p>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="new-lot">Scan Different Lot</button><button type="button" class="atlas-coc-primary" data-coc-action="use-existing" data-lot-id="${escapeHtml(lot.id)}">Use Existing Lot</button></div>`, { label: "Duplicate lot detected", dismiss: false });
+  }
+
+  function similarLotModal(similar) {
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">SIMILAR LOT DETECTED</span><h2>Verify before continuing</h2>
+      <div class="atlas-coc-similar"><p><span>NEW LOT</span><strong>${escapeHtml(capture.text)}</strong></p><p><span>EXISTING LOT</span><strong>${escapeHtml(similar.value)}</strong></p></div>
+      <p>These are different lot numbers with very similar characters. Compare the printed label carefully.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Rescan</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-similar">Confirm New Lot</button></div>`, { label: "Similar lot detected", dismiss: false });
   }
 
   function modalMarkup() {
@@ -489,6 +539,10 @@
     if (modal?.type === "edit-expected") return editExpectedModal();
     if (modal?.type === "confirm-expected-change") return confirmExpectedChangeModal(modal);
     if (modal?.type === "verified") return verifiedModal();
+    if (modal?.type === "scan-mismatch") return scanMismatchModal();
+    if (modal?.type === "scan-failed") return scanFailedModal();
+    if (modal?.type === "similar") return similarLotModal(modal.similar);
+    if (modal?.type === "reopen") return reopenPalletModal(modal.palletId);
     return "";
   }
 
@@ -520,9 +574,11 @@
     const video = document.getElementById("atlas-coc-video");
     const status = document.getElementById("atlas-coc-camera-status");
     const button = document.querySelector('[data-coc-action="capture-photo"]');
+    const manual = document.getElementById("atlas-coc-manual-fallback");
     if (!video || !status || !button) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       status.textContent = "Camera is unavailable. Enter the lot manually.";
+      if (manual) manual.hidden = false;
       return;
     }
     try {
@@ -537,6 +593,7 @@
       status.textContent = "Hold steady, avoid glare, then capture the printed lot.";
     } catch {
       status.textContent = "Camera access was not granted. Allow access or enter the lot manually.";
+      if (manual) manual.hidden = false;
     }
   }
 
@@ -549,13 +606,22 @@
     });
   }
 
-  function extractLotText(text) {
-    const lines = String(text || "").toUpperCase().split(/\r?\n/)
-      .map((line) => line.replace(/^\s*(?:LOT|BATCH)(?:\s*(?:NO|NUMBER|#))?\s*[:#.-]?\s*/i, "").trim())
-      .filter((line) => /[A-Z0-9]/.test(line));
-    const candidates = lines.map((line) => line.replace(/[^A-Z0-9 .\/_-]/g, "").trim())
-      .filter(Boolean).sort((left, right) => Core.canonicalLot(right).length - Core.canonicalLot(left).length);
-    return candidates[0] || "";
+  async function detectBarcodes(source) {
+    if (!globalThis.BarcodeDetector) return [];
+    try {
+      const supported = await globalThis.BarcodeDetector.getSupportedFormats?.();
+      const detector = new globalThis.BarcodeDetector(supported?.length ? { formats: supported } : undefined);
+      const results = await detector.detect(source);
+      return results.map((result) => String(result.rawValue || "").trim()).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  function ocrBarcodeCandidates(text) {
+    return String(text || "").toUpperCase().split(/\r?\n/)
+      .map((line) => line.replace(/[^A-Z0-9./_-]/g, "").trim())
+      .filter((line) => line.length >= 8 && line.length <= 80);
   }
 
   async function runOcr() {
@@ -586,7 +652,7 @@
         tessedit_pageseg_mode: tesseract.PSM.SPARSE_TEXT,
       });
       const firstResult = await worker.recognize(capture.photo);
-      const firstText = extractLotText(firstResult.data.text);
+      const firstText = String(firstResult.data.text || "");
       const firstConfidence = Number(firstResult.data.confidence) || 0;
 
       recognitionPass = 1;
@@ -608,25 +674,45 @@
         pixels.data[index + 2] = value;
       }
       enhancedContext.putImageData(pixels, 0, 0);
-      await worker.setParameters({ tessedit_pageseg_mode: tesseract.PSM.SINGLE_LINE });
+      await worker.setParameters({ tessedit_pageseg_mode: tesseract.PSM.SPARSE_TEXT });
       const secondResult = await worker.recognize(enhanced);
-      const secondText = extractLotText(secondResult.data.text);
+      const secondText = String(secondResult.data.text || "");
       const secondConfidence = Number(secondResult.data.confidence) || 0;
-      const readingsAgree = Boolean(firstText && secondText &&
-        Core.canonicalLot(firstText) === Core.canonicalLot(secondText));
-      capture.text = secondConfidence > firstConfidence ? secondText : firstText;
-      if (!capture.text) capture.text = firstText || secondText;
-      capture.confidence = readingsAgree
-        ? Math.min(100, (firstConfidence + secondConfidence) / 2)
-        : Math.min(55, Math.max(firstConfidence, secondConfidence));
+      const firstFields = Parser.extractLabelFields(firstText);
+      const secondFields = Parser.extractLabelFields(secondText);
+      const firstScore = firstConfidence + (firstFields.model ? 30 : 0) + (firstFields.batch ? 40 : 0);
+      const secondScore = secondConfidence + (secondFields.model ? 30 : 0) + (secondFields.batch ? 40 : 0);
+      capture.ocrText = secondScore > firstScore ? secondText : firstText;
+      const labeledReadsDisagree = Boolean(firstFields.batch && secondFields.batch &&
+        Parser.canonical(firstFields.batch) !== Parser.canonical(secondFields.batch));
+      capture.confidence = labeledReadsDisagree
+        ? Math.min(55, Math.max(firstConfidence, secondConfidence))
+        : Math.max(firstConfidence, secondConfidence);
+      capture.barcodes = [...new Set([
+        ...capture.barcodes,
+        ...ocrBarcodeCandidates(firstText),
+        ...ocrBarcodeCandidates(secondText),
+      ])];
+      capture.result = Parser.evaluateCapture({
+        barcodes: capture.barcodes,
+        ocrText: capture.ocrText,
+        ocrConfidence: capture.confidence,
+      });
       capture.progress = 100;
-      capture.status = capture.text
-        ? readingsAgree ? "Two OCR reads agree." : "OCR reads differed. Visual correction is required."
-        : "No lot characters were found.";
-      modal = capture.text ? "confirm-lot" : "manual-lot";
+      if (capture.result.status === "confirm") {
+        capture.text = capture.result.lot;
+        capture.status = "Lot ready for employee confirmation.";
+        modal = "confirm-lot";
+      } else {
+        capture.failures += 1;
+        capture.status = "No lot was saved.";
+        modal = { type: capture.result.status === "mismatch" ? "scan-mismatch" : "scan-failed" };
+      }
     } catch (error) {
       capture.status = error instanceof Error ? error.message : "The lot could not be read.";
-      modal = "manual-lot";
+      capture.failures += 1;
+      capture.result = { status: "rescan", reason: "scanner_error" };
+      modal = { type: "scan-failed" };
       showToast(capture.status, "warning");
     } finally {
       await worker?.terminate?.().catch(() => {});
@@ -646,14 +732,34 @@
     canvas.height = Math.max(300, Math.round((sourceHeight / sourceWidth) * canvas.width));
     const context = canvas.getContext("2d", { willReadFrequently: true });
     context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
-    capture = { photo: canvas.toDataURL("image/jpeg", 0.9), text: "", confidence: null, status: "", progress: 0 };
+    const failures = capture.failures;
+    const photo = canvas.toDataURL("image/jpeg", 0.9);
+    const barcodes = await detectBarcodes(canvas);
+    capture = { ...freshCapture(failures), photo, barcodes };
     stopCamera();
     await runOcr();
   }
 
-  function acceptLot(value, verification, confidence = null) {
+  function acceptLot(value, options = {}, { skipSimilar = false } = {}) {
     try {
-      const result = Core.addLot(session, value, { verification, confidence });
+      const canonicalValue = Core.canonicalLot(value);
+      const exact = (activePallet()?.lots || []).find((lot) => Core.canonicalLot(lot.lot) === canonicalValue);
+      if (exact) {
+        modal = { type: "duplicate", lot: exact };
+        renderAll();
+        return;
+      }
+      const similar = !skipSimilar
+        ? Parser.findSimilarLot(value, activePallet()?.lots || [])
+        : null;
+      if (similar) {
+        capture.text = Parser.cleanLot(value);
+        capture.result = { ...(capture.result || {}), ...options };
+        modal = { type: "similar", similar };
+        renderAll();
+        return;
+      }
+      const result = Core.addLot(session, value, options);
       if (result.duplicate) {
         modal = { type: "duplicate", lot: result.duplicate };
         renderAll();
@@ -661,6 +767,7 @@
       }
       session = result.session;
       modal = null;
+      capture = freshCapture();
       persist();
       navigator.vibrate?.(18);
       showToast("New lot confirmed · Box 1 recorded");
@@ -673,7 +780,7 @@
     if (!session) return;
     const lines = [
       "ATLAS COC FINAL COUNT REPORT",
-      session.orderNumber ? `Invoice: ${session.orderNumber}` : "",
+      session.invoiceNumber ? `Invoice: ${session.invoiceNumber}` : "",
       `Completed: ${formatDate(session.completedAt)}`,
       `Pallets: ${session.pallets.length}`,
       `Total Boxes: ${Core.sessionTotal(session)}`,
@@ -701,14 +808,34 @@
     if (action === "edit-expected") { modal = { type: "edit-expected" }; renderAll(); return; }
     if (action === "show-mismatch") { modal = { type: "mismatch" }; renderAll(); return; }
     if (action === "new-lot" || action === "rescan-lot") {
-      stopCamera(); capture = { photo: "", text: "", confidence: null, status: "", progress: 0 };
+      stopCamera(); capture = freshCapture(action === "rescan-lot" ? capture.failures : 0);
       modal = "capture"; renderAll(); return;
     }
     if (action === "manual-lot") { stopCamera(); modal = "manual-lot"; renderAll(); return; }
     if (action === "capture-photo") { button.disabled = true; capturePhoto(); return; }
     if (action === "confirm-lot") {
-      const input = document.getElementById("atlas-coc-confirm-lot");
-      acceptLot(input?.value, "ocr", capture.confidence); return;
+      acceptLot(capture.text, {
+        rawBarcode: capture.result?.rawBarcode,
+        rawBatchText: capture.result?.rawBatchText,
+        model: capture.result?.model,
+        captureMethod: capture.result?.captureMethod,
+        validationMethod: capture.result?.validationMethod,
+        confidence: capture.result?.confidence,
+        verification: "ocr",
+      });
+      return;
+    }
+    if (action === "confirm-similar") {
+      acceptLot(capture.text, {
+        rawBarcode: capture.result?.rawBarcode,
+        rawBatchText: capture.result?.rawBatchText,
+        model: capture.result?.model,
+        captureMethod: capture.result?.captureMethod,
+        validationMethod: `${capture.result?.validationMethod || "manual"}_similar_confirmed`,
+        confidence: capture.result?.confidence,
+        verification: capture.result?.captureMethod === "manual" ? "manual" : "ocr",
+      }, { skipSimilar: true });
+      return;
     }
     if (action === "use-existing") {
       session = Core.selectLot(session, button.dataset.lotId); modal = null; persist();
@@ -743,6 +870,25 @@
       return;
     }
     if (action === "review-pallet") { modal = "review-pallet"; renderAll(); return; }
+    if (action === "review-reopen") {
+      modal = { type: "reopen", palletId: button.dataset.palletId };
+      renderAll();
+      return;
+    }
+    if (action === "confirm-reopen") {
+      try {
+        session = Core.reopenPallet(session, button.dataset.palletId);
+        modal = null;
+        workflowView = "session";
+        persist();
+        showToast(`Pallet ${activePallet()?.number} reopened · verify all quantities`);
+      } catch (error) {
+        showToast(error?.message === "ACTIVE_PALLET_IN_PROGRESS"
+          ? "Finish the current pallet before reopening another."
+          : "That pallet could not be reopened.", "warning");
+      }
+      return;
+    }
     if (action === "verify-pallet") {
       const result = Core.verifyPallet(session);
       session = result.session;
@@ -807,15 +953,7 @@
   document.addEventListener("change", (event) => {
     if (event.target.id === "atlas-coc-verify-check") {
       const confirm = document.querySelector('[data-coc-action="confirm-lot"]');
-      if (confirm) confirm.disabled = !event.target.checked || !document.getElementById("atlas-coc-confirm-lot")?.value.trim();
-    }
-  });
-
-  document.addEventListener("input", (event) => {
-    if (event.target.id === "atlas-coc-confirm-lot") {
-      const checked = document.getElementById("atlas-coc-verify-check")?.checked;
-      const confirm = document.querySelector('[data-coc-action="confirm-lot"]');
-      if (confirm) confirm.disabled = !checked || !event.target.value.trim();
+      if (confirm) confirm.disabled = !event.target.checked;
     }
   });
 
@@ -823,9 +961,13 @@
     if (event.target.id === "atlas-coc-start-form") {
       event.preventDefault();
       const data = new FormData(event.target);
-      session = Core.createSession({
-        orderNumber: data.get("orderNumber"), deviceId: getDeviceId(), employee: getEmployee(),
-      });
+      const invoiceNumber = String(data.get("invoiceNumber") || "").trim();
+      const error = event.target.querySelector(".atlas-coc-form-error");
+      if (!invoiceNumber) {
+        if (error) error.textContent = "Invoice Number is required.";
+        return;
+      }
+      session = Core.createSession({ invoiceNumber, deviceId: getDeviceId(), employee: getEmployee() });
       workflowView = "session";
       persist();
       showToast("COC started · Pallet 1 ready");
@@ -875,7 +1017,19 @@
         error.textContent = "Both entries must match exactly.";
         return;
       }
-      acceptLot(first, "manual");
+      capture = freshCapture();
+      capture.text = first;
+      capture.result = {
+        lot: first,
+        captureMethod: "manual",
+        validationMethod: "double_entry",
+        confidence: null,
+      };
+      acceptLot(first, {
+        captureMethod: "manual",
+        validationMethod: "double_entry",
+        verification: "manual",
+      });
     }
   });
 
@@ -883,7 +1037,8 @@
     const modalKey = typeof modal === "string" ? modal : modal?.type;
     const protectedModals = [
       "discard", "close-report", "reading", "confirm-lot", "duplicate", "mismatch",
-      "edit-expected", "confirm-expected-change", "verified",
+      "edit-expected", "confirm-expected-change", "verified", "scan-mismatch", "scan-failed",
+      "similar", "reopen",
     ];
     if (event.key === "Escape" && modal && !protectedModals.includes(modalKey)) {
       stopCamera(); modal = null; renderAll();
@@ -904,6 +1059,8 @@
     openWorkflows() { workflowView = "landing"; renderAll(); },
     resume() { navigateWorkflows({ resume: true }); },
     getState() { return session ? Core.sanitize(session) : null; },
+    getExcelReadiness() { return Excel.mappingReadiness(); },
+    buildExcelExportModel() { return Excel.buildExportModel(session, Core); },
   });
 
   readSession();

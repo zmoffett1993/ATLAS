@@ -1,8 +1,8 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 2;
-  const MAX_ORDER_LENGTH = 80;
+  const SCHEMA_VERSION = 3;
+  const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -17,9 +17,6 @@
   const canonicalLot = (value) => cleanLot(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
   const displayLot = (value) => {
     const raw = cleanLot(value);
-    if (!raw) return "";
-    if (/^[A-Z0-9]+$/i.test(raw) && raw.length > 8)
-      return raw.replace(/(.{4})/g, "$1 ").trim();
     return raw;
   };
   const integer = (value) => {
@@ -54,14 +51,16 @@
     };
   }
 
-  function createSession({ orderNumber = "", deviceId = "", employee = "" } = {}) {
+  function createSession({ invoiceNumber = "", orderNumber = "", deviceId = "", employee = "" } = {}) {
     const createdAt = timestamp();
     const pallet = createPallet(1);
+    const invoice = cleanText(invoiceNumber || orderNumber, MAX_INVOICE_LENGTH);
+    if (!invoice) throw new Error("INVOICE_REQUIRED");
     return {
       schemaVersion: SCHEMA_VERSION,
       id: makeId("coc"),
       deviceId: cleanText(deviceId, 100),
-      orderNumber: cleanText(orderNumber, MAX_ORDER_LENGTH),
+      invoiceNumber: invoice,
       employee: cleanText(employee, 60),
       status: "active",
       createdAt,
@@ -103,6 +102,18 @@
             ocrConfidence: Number.isFinite(Number(lot?.ocrConfidence))
               ? Math.max(0, Math.min(100, Number(lot.ocrConfidence)))
               : null,
+            rawBarcode: cleanText(lot?.rawBarcode, MAX_LOT_LENGTH),
+            rawBatchText: cleanText(lot?.rawBatchText, MAX_LOT_LENGTH),
+            model: cleanText(lot?.model, MAX_LOT_LENGTH).toUpperCase(),
+            captureMethod: cleanText(
+              lot?.captureMethod || lot?.verification || "manual",
+              40,
+            ),
+            validationMethod: cleanText(lot?.validationMethod, 80),
+            captureConfidence: Number.isFinite(Number(lot?.captureConfidence ?? lot?.ocrConfidence))
+              ? Math.max(0, Math.min(100, Number(lot.captureConfidence ?? lot.ocrConfidence)))
+              : null,
+            confirmedBy: cleanText(lot?.confirmedBy, 60),
           };
         });
       const lotIds = new Set(lots.map((lot) => lot.id));
@@ -188,7 +199,7 @@
       schemaVersion: SCHEMA_VERSION,
       id: cleanText(raw.id, 140) || makeId("coc"),
       deviceId: cleanText(raw.deviceId, 100),
-      orderNumber: cleanText(raw.orderNumber, MAX_ORDER_LENGTH),
+      invoiceNumber: cleanText(raw.invoiceNumber || raw.orderNumber, MAX_INVOICE_LENGTH),
       employee: cleanText(raw.employee, 60),
       status,
       createdAt: cleanText(raw.createdAt, 40) || timestamp(),
@@ -248,6 +259,15 @@
       ocrConfidence: Number.isFinite(Number(options.confidence))
         ? Math.max(0, Math.min(100, Number(options.confidence)))
         : null,
+      rawBarcode: cleanText(options.rawBarcode, MAX_LOT_LENGTH),
+      rawBatchText: cleanText(options.rawBatchText, MAX_LOT_LENGTH),
+      model: cleanText(options.model, MAX_LOT_LENGTH).toUpperCase(),
+      captureMethod: cleanText(options.captureMethod || options.verification || "manual", 40),
+      validationMethod: cleanText(options.validationMethod, 80),
+      captureConfidence: Number.isFinite(Number(options.confidence))
+        ? Math.max(0, Math.min(100, Number(options.confidence)))
+        : null,
+      confirmedBy: cleanText(options.confirmedBy || session.employee, 60),
     };
     pallet.lots.push(lot);
     pallet.activeLotId = lot.id;
@@ -391,6 +411,41 @@
     });
   }
 
+  function reopenPallet(source, palletId) {
+    const session = sanitize(clone(source));
+    const target = session.pallets.find(
+      (pallet) => pallet.id === palletId && pallet.status === "locked",
+    );
+    if (!target) throw new Error("LOCKED_PALLET_NOT_FOUND");
+    if (session.status === "active") {
+      const current = activePallet(session);
+      if (current && (palletTotal(current) > 0 || current.expectedBoxes))
+        throw new Error("ACTIVE_PALLET_IN_PROGRESS");
+      session.pallets = session.pallets.filter((pallet) => pallet.id !== current?.id);
+    } else {
+      session.status = "active";
+      session.completedAt = null;
+    }
+    target.status = "active";
+    target.finishedAt = null;
+    target.verificationState = "in_progress";
+    target.verificationAttemptedAt = null;
+    target.verifiedAt = null;
+    target.activeLotId = target.lots[0]?.id || null;
+    session.activePalletId = target.id;
+    session.pallets.forEach((pallet) => {
+      if (pallet.id !== target.id) {
+        pallet.status = "locked";
+        pallet.activeLotId = null;
+      }
+    });
+    return withActivity(session, "pallet_reopened", {
+      palletNumber: target.number,
+      expectedBoxes: target.expectedBoxes,
+      recordedBoxes: palletTotal(target),
+    });
+  }
+
   function completeSession(source) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
@@ -444,6 +499,7 @@
     setExpectedBoxCount,
     verifyPallet,
     finishPallet,
+    reopenPallet,
     completeSession,
     validateTotals,
   });
