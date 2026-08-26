@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v175-coc-scanner-excel-foundation";
+const VERSION = "atlas-pwa-v176-coc-confirmed-box-count";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -11,7 +11,7 @@ const APP_SHELL = [
   "./atlas-coc-parser.js?v=1",
   "./atlas-coc-core.js?v=3",
   "./atlas-coc-excel.js?v=1",
-  "./atlas-coc.js?v=3",
+  "./atlas-coc.js?v=4",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
