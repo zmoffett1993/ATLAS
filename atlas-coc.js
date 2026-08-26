@@ -17,7 +17,8 @@
   const SCANNER_STATES = Object.freeze({
     IDLE: "idle",
     STARTING: "starting",
-    SCANNING: "scanning",
+    READY: "ready",
+    PROCESSING: "processing",
     VERIFYING: "verifying",
     REVIEW: "review",
     REJECTED: "rejected",
@@ -35,16 +36,13 @@
   let recognitionToken = 0;
   let activeOcrWorker = null;
   let cameraStarting = false;
-  let scanLoopTimer = null;
-  let scanToken = 0;
-  let scanAttempt = 0;
-  let scanStartedAt = 0;
-  let scanBusy = false;
   let scanFinalizing = false;
   let bestFrame = null;
   let bestFrameScore = 0;
   let accumulatedDetections = [];
   let torchEnabled = false;
+  let discardReturnModal = null;
+  let discardReturnScannerState = SCANNER_STATES.IDLE;
   let storageFailure = false;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
@@ -281,7 +279,7 @@
 
   function setupMarkup() {
     return `<div class="atlas-coc-page atlas-coc-setup">
-      <button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Workflows</button>
+      <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
       <header class="atlas-coc-page-head"><span>START COC</span><h1>Begin Pallet 1</h1><p>Enter the Invoice Number to begin this COC.</p></header>
       <form id="atlas-coc-start-form" class="atlas-coc-form-card">
         <label><strong>Invoice Number</strong><small>Required</small>
@@ -299,11 +297,18 @@
     );
   }
 
+  function discardFooterMarkup() {
+    if (!session) return "";
+    return `<div class="atlas-coc-discard-zone">
+      <button type="button" class="atlas-coc-discard-link" data-coc-action="review-discard">Discard COC</button>
+    </div>`;
+  }
+
   function expectedCountMarkup(pallet) {
     const locked = completedPallets().length;
     const recorded = Core.palletTotal(pallet);
     return `<div class="atlas-coc-page atlas-coc-expected">
-      <button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Workflows</button>
+      <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
       <header class="atlas-coc-page-head"><span>PALLET ${pallet.number} · STEP 1</span><h1>Count &amp; Confirm Boxes</h1>
         <p>Enter total number of boxes on Pallet ${pallet.number}.</p></header>
       <form id="atlas-coc-expected-form" class="atlas-coc-form-card atlas-coc-expected-card">
@@ -314,10 +319,8 @@
         <p id="atlas-coc-box-count-error" class="atlas-coc-form-error" aria-live="polite"></p>
         <button type="submit" class="atlas-coc-primary" data-coc-box-confirm disabled>Confirm Box Count</button>
       </form>
-      <div class="atlas-coc-finish-actions">
-        ${locked ? `<button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button>` : ""}
-        <button type="button" class="atlas-coc-discard-link" data-coc-action="review-discard">Discard COC</button>
-      </div>
+      ${locked ? `<div class="atlas-coc-finish-actions"><button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button></div>` : ""}
+      ${discardFooterMarkup()}
     </div>`;
   }
 
@@ -331,6 +334,7 @@
     const locked = finished.length;
     const difference = total - pallet.expectedBoxes;
     return `<div class="atlas-coc-page atlas-coc-counting">
+      <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
       <header class="atlas-coc-count-head">
         <div><span>COC${session.invoiceNumber ? ` · INVOICE ${escapeHtml(session.invoiceNumber)}` : ""}</span><h1>Pallet ${pallet.number}</h1><small>${locked ? `${plural(locked, "pallet")} completed · ` : ""}Saved automatically</small></div>
         <div class="atlas-coc-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes}</strong><span>Recorded / Confirmed Boxes</span></div>
@@ -360,14 +364,15 @@
       <div class="atlas-coc-finish-actions">
         <button type="button" class="atlas-coc-finish" data-coc-action="review-pallet">Verify &amp; Finish Pallet ${pallet.number}</button>
         ${locked ? `<button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button>` : ""}
-        <button type="button" class="atlas-coc-discard-link" data-coc-action="review-discard">Discard COC</button>
       </div>
+      ${discardFooterMarkup()}
     </div>`;
   }
 
   function reportMarkup() {
     const total = Core.sessionTotal(session);
     return `<div class="atlas-coc-page atlas-coc-report">
+      <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
       <header class="atlas-coc-report-head"><span>COC COMPLETE</span><h1>Final Count Report</h1>
         <p>${session.invoiceNumber ? `Invoice <strong>${escapeHtml(session.invoiceNumber)}</strong> · ` : ""}${formatDate(session.completedAt)}</p></header>
       <section class="atlas-coc-report-summary"><div><strong>${session.pallets.length}</strong><span>Pallets</span></div><div><strong>${total}</strong><span>Total Boxes</span></div></section>
@@ -379,6 +384,7 @@
         </section>`).join("")}</div>
       <div class="atlas-coc-report-actions"><button type="button" data-coc-action="copy-report">Copy Report</button><button type="button" class="atlas-coc-primary" data-coc-action="review-close">Finish &amp; Close COC</button></div>
       <p class="atlas-coc-report-note">Keep this report open while entering the pallet and lot totals into the office system.</p>
+      ${discardFooterMarkup()}
     </div>`;
   }
 
@@ -389,11 +395,15 @@
     return landingMarkup();
   }
 
-  function modalShell(content, { label = "COC dialog", dismiss = true, className = "" } = {}) {
+  function modalShell(content, {
+    label = "COC dialog", dismiss = true, className = "", showBack = true, showDiscard = true,
+  } = {}) {
     return `<div class="atlas-coc-modal-backdrop ${className}" role="presentation">
       <section class="atlas-coc-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(label)}">
+        ${showBack ? `<button type="button" class="atlas-coc-modal-back" data-coc-action="coc-back">‹ Back</button>` : ""}
         ${dismiss ? `<button type="button" class="atlas-coc-modal-x" data-coc-action="close-modal" aria-label="Close">×</button>` : ""}
         ${content}
+        ${showDiscard ? discardFooterMarkup() : ""}
       </section></div>`;
   }
 
@@ -481,9 +491,11 @@
   }
 
   function discardModal() {
-    return modalShell(`<span class="atlas-coc-eyebrow is-danger">DISCARD COC</span><h2>Discard this unfinished COC?</h2>
-      <p>All pallet, lot, and box counts in this active COC will be removed from this device.</p>
-      <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Keep COC</button><button type="button" class="atlas-coc-danger" data-coc-action="discard-coc">Discard</button></div>`, { label: "Discard COC confirmation", dismiss: false });
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">DISCARD COC</span><h2>Discard COC?</h2>
+      <p>This will permanently discard the current COC and all saved pallet progress.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="keep-coc">Keep COC</button><button type="button" class="atlas-coc-danger" data-coc-action="discard-coc">Discard COC</button></div>`, {
+      label: "Discard COC confirmation", dismiss: false, showBack: false, showDiscard: false,
+    });
   }
 
   function closeReportModal() {
@@ -500,26 +512,28 @@
 
   function captureModal() {
     const active = scannerState === SCANNER_STATES.STARTING ||
-      scannerState === SCANNER_STATES.SCANNING;
+      scannerState === SCANNER_STATES.READY;
     const rejected = scannerState === SCANNER_STATES.REJECTED;
     const scannerPanel = active
-      ? `<div class="atlas-coc-camera is-active"><video id="atlas-coc-video" playsinline muted></video><div class="atlas-coc-camera-guide"><span>MODEL · BATCH · BARCODE</span></div></div>
-        <p id="atlas-coc-camera-status" class="atlas-coc-camera-status">${scannerState === SCANNER_STATES.STARTING ? "Starting camera…" : "Scanning Lot…"}</p>
+      ? `<div class="atlas-coc-camera is-active"><video id="atlas-coc-video" playsinline muted></video><div class="atlas-coc-scan-shade top"></div><div class="atlas-coc-scan-shade bottom"></div><div class="atlas-coc-camera-guide"><span>PRINTED LOT · MODEL · BATCH · BARCODE</span></div></div>
+        <p id="atlas-coc-camera-status" class="atlas-coc-camera-status">${scannerState === SCANNER_STATES.STARTING ? "Starting camera…" : "Ready to Scan · nothing is being read yet."}</p>
         <canvas id="atlas-coc-canvas" hidden></canvas>
         <div class="atlas-coc-camera-controls"><button id="atlas-coc-torch" type="button" data-coc-action="toggle-torch" aria-pressed="false" hidden>Turn Light On</button><label id="atlas-coc-zoom-control" hidden><span>ZOOM</span><input id="atlas-coc-zoom" type="range" data-coc-action="set-zoom" /></label></div>
-        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="cancel-scan">Cancel Scan</button><button type="button" class="atlas-coc-primary" data-coc-action="capture-photo" ${scannerState === SCANNER_STATES.STARTING ? "disabled" : ""}>Check Current Frame</button></div>`
-      : `<div class="atlas-coc-camera-idle" aria-live="polite"><span aria-hidden="true">▣</span><strong>${rejected ? "Unable to Verify Lot" : "Ready to Scan"}</strong><small>${rejected ? escapeHtml(capture.status || "Position the label and try again.") : "Position the carton label inside the camera area first."}</small></div>
-        <p class="atlas-coc-camera-status">Nothing is being scanned while this screen is idle.</p>
-        <div class="atlas-coc-modal-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 || rejected ? "" : "hidden"}>Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="scan-lot">${rejected ? "Scan Again" : "Scan Lot"}</button></div>`;
-    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT</span><h2>${active ? "Scanning Lot…" : "Scan the printed label"}</h2>
-      <p>${active ? "Keep one label inside the guide while ATLAS checks its barcode and printed fields." : "ATLAS will remain inactive until you press Scan Lot."}</p>
+        <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 ? "" : "hidden"}>Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="scan-lot" ${scannerState === SCANNER_STATES.STARTING ? "disabled" : ""}>Scan Lot</button></div>`
+      : `<div class="atlas-coc-camera-idle" aria-live="polite"><span aria-hidden="true">▣</span><strong>${rejected ? "Unable to Verify Lot" : "Camera Unavailable"}</strong><small>${escapeHtml(capture.status || "Position the label and try again.")}</small></div>
+        <p class="atlas-coc-camera-status">No lot was read or saved.</p>
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="rescan-lot">Retry Camera</button></div>`;
+    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT</span><h2>Scan the printed label</h2>
+      <p>Position the complete label inside the guide. ATLAS will not read anything until you tap Scan Lot.</p>
       ${scannerPanel}`, { label: "Scan new lot", className: `atlas-coc-scanner-modal is-${scannerState}` });
   }
 
   function readingModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">READING LOT</span><h2>Checking barcode and printed fields…</h2>
       ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Captured lot label" />` : ""}
-      <div class="atlas-coc-progress"><i style="width:${capture.progress}%"></i></div><p>${escapeHtml(capture.status || "Preparing image…")}</p>`, { label: "Reading captured lot", dismiss: false });
+      <div class="atlas-coc-progress"><i style="width:${capture.progress}%"></i></div><p>${escapeHtml(capture.status || "Preparing image…")}</p>`, {
+      label: "Reading captured lot", dismiss: false,
+    });
   }
 
   function confirmLotModal() {
@@ -628,10 +642,6 @@
   }
 
   function stopCamera() {
-    scanToken += 1;
-    window.clearTimeout(scanLoopTimer);
-    scanLoopTimer = null;
-    scanBusy = false;
     torchEnabled = false;
     cameraStream?.getTracks().forEach((track) => track.stop());
     cameraStream = null;
@@ -652,7 +662,7 @@
     accumulatedDetections = [];
   }
 
-  function beginScanSession() {
+  function openCameraReady() {
     const failures = capture.failures;
     cancelScanSession();
     capture = freshCapture(failures);
@@ -728,63 +738,6 @@
     }
   }
 
-  async function scanVideoFrame(token) {
-    if (token !== scanToken || modal !== "capture" ||
-      scannerState !== SCANNER_STATES.SCANNING || scanBusy || scanFinalizing) return;
-    const video = document.getElementById("atlas-coc-video");
-    const canvas = document.getElementById("atlas-coc-canvas");
-    if (!video?.videoWidth || !video?.videoHeight || !canvas) {
-      scanLoopTimer = window.setTimeout(() => scanVideoFrame(token), 120);
-      return;
-    }
-    scanBusy = true;
-    scanAttempt += 1;
-    try {
-      captureCurrentFrame(video, canvas);
-      retainBestFrame(canvas);
-      const elapsed = performance.now() - scanStartedAt;
-      const enhanced = elapsed > 900 && scanAttempt % 3 === 0;
-      const detections = Scanner
-        ? await Scanner.decodeFrame(canvas, { enhanced })
-        : (await detectBarcodes(canvas)).map((value) => ({ value, format: "unknown", engine: "native" }));
-      if (token !== scanToken || modal !== "capture" ||
-        scannerState !== SCANNER_STATES.SCANNING) return;
-      const allDetections = rememberDetections(detections);
-      const skuContext = session?.sku || currentSkuContext();
-      const validCandidate = Parser.classifyBarcodes(
-        allDetections.map((item) => item.value),
-        skuContext,
-      ).some((candidate) => candidate.accepted);
-      if (validCandidate) {
-        setCameraStatus("Lot candidate found. Verifying printed characters…");
-        await finishFrameScan(bestFrame || canvas, allDetections);
-        return;
-      }
-      if (elapsed >= 1600) {
-        setCameraStatus("Checking the clearest frame for printed lot text…");
-        await finishFrameScan(bestFrame || canvas, allDetections);
-        return;
-      }
-      setCameraStatus(elapsed > 1000
-        ? "Scanning several frames… hold steady and avoid glare."
-        : "Scanning lot barcode… hold the label inside the guide.");
-    } catch (error) {
-      console.info("Scanner frame retry", error);
-      if (token === scanToken && bestFrame && performance.now() - scanStartedAt >= 2100) {
-        setCameraStatus("Using the clearest frame for printed lot verification…");
-        await finishFrameScan(bestFrame, accumulatedDetections);
-        return;
-      }
-      setCameraStatus("Scanner is retrying this label… hold steady.");
-    } finally {
-      scanBusy = false;
-    }
-      if (token === scanToken && modal === "capture" &&
-        scannerState === SCANNER_STATES.SCANNING && !scanFinalizing) {
-      scanLoopTimer = window.setTimeout(() => scanVideoFrame(token), 150);
-    }
-  }
-
   async function startCamera() {
     if (cameraStarting || scannerState !== SCANNER_STATES.STARTING ||
       modal !== "capture" || !isInsideCocWorkflow()) return;
@@ -794,12 +747,10 @@
     bestFrame = null;
     bestFrameScore = 0;
     accumulatedDetections = [];
-    scanAttempt = 0;
     scanFinalizing = false;
     const video = document.getElementById("atlas-coc-video");
     const status = document.getElementById("atlas-coc-camera-status");
-    const button = document.querySelector('[data-coc-action="capture-photo"]');
-    const manual = document.getElementById("atlas-coc-manual-fallback");
+    const button = document.querySelector('[data-coc-action="scan-lot"]');
     if (!video || !status || !button) {
       cameraStarting = false;
       return;
@@ -816,8 +767,8 @@
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 2560 },
-          height: { ideal: 1440 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
         audio: false,
       });
@@ -847,13 +798,10 @@
           capabilities.zoom.min + ((capabilities.zoom.max - capabilities.zoom.min) * 0.18),
         )));
       }
-      scannerState = SCANNER_STATES.SCANNING;
+      scannerState = SCANNER_STATES.READY;
       cameraStarting = false;
       button.disabled = false;
-      status.textContent = "Scanning lot barcode… hold the label inside the guide.";
-      scanStartedAt = performance.now();
-      const token = scanToken;
-      scanLoopTimer = window.setTimeout(() => scanVideoFrame(token), 80);
+      status.textContent = "Ready to Scan · nothing is being read yet.";
     } catch {
       if (expectedRecognitionToken !== recognitionToken) return;
       stopCamera();
@@ -1022,13 +970,24 @@
   }
 
   async function capturePhoto() {
+    if (scannerState !== SCANNER_STATES.READY || modal !== "capture") return;
     const video = document.getElementById("atlas-coc-video");
     const canvas = document.getElementById("atlas-coc-canvas");
     if (!video?.videoWidth || !video?.videoHeight || !canvas) return;
+    scannerState = SCANNER_STATES.PROCESSING;
+    const expectedToken = ++recognitionToken;
+    const button = document.querySelector('[data-coc-action="scan-lot"]');
+    if (button) button.disabled = true;
+    setCameraStatus("Scanning Lot…");
     captureCurrentFrame(video, canvas);
     retainBestFrame(canvas);
-    setCameraStatus("Checking the clearest frame…");
-    const source = bestFrame || canvas;
+    const source = Scanner?.copyCanvas(bestFrame || canvas) || bestFrame || canvas;
+    capture.photo = source.toDataURL("image/jpeg", 0.94);
+    capture.status = "Checking barcode and printed fields…";
+    capture.progress = 3;
+    stopCamera();
+    modal = "reading";
+    renderAll();
     let detections = [];
     try {
       detections = Scanner
@@ -1037,6 +996,7 @@
     } catch (error) {
       console.info("Enhanced decoder unavailable; continuing with printed text.", error);
     }
+    if (expectedToken !== recognitionToken || !isInsideCocWorkflow() || modal !== "reading") return;
     await finishFrameScan(source, rememberDetections(detections));
   }
 
@@ -1099,6 +1059,39 @@
     );
   }
 
+  function backWithinCoc() {
+    cancelScanSession();
+    capture = freshCapture();
+    if (modal) {
+      modal = null;
+      renderAll();
+      return;
+    }
+    workflowView = "landing";
+    renderAll();
+  }
+
+  function restoreAfterDiscardReview() {
+    const previousModal = discardReturnModal;
+    const previousScannerState = discardReturnScannerState;
+    discardReturnModal = null;
+    discardReturnScannerState = SCANNER_STATES.IDLE;
+    if ((previousModal === "capture" && (
+      previousScannerState === SCANNER_STATES.STARTING ||
+      previousScannerState === SCANNER_STATES.READY
+    )) || previousModal === "reading") {
+      openCameraReady();
+      return;
+    }
+    modal = previousModal;
+    scannerState = previousModal === "confirm-lot"
+      ? SCANNER_STATES.REVIEW
+      : previousModal?.type === "scan-failed" || previousModal?.type === "scan-mismatch"
+        ? SCANNER_STATES.REJECTED
+        : SCANNER_STATES.IDLE;
+    renderAll();
+  }
+
   function handleAction(button) {
     const action = button.dataset.cocAction;
     if (!action) return;
@@ -1106,6 +1099,7 @@
       cancelScanSession(); capture = freshCapture(); modal = null;
       workflowView = "landing"; renderAll(); return;
     }
+    if (action === "coc-back") { backWithinCoc(); return; }
     if (action === "start-setup") { workflowView = "setup"; renderAll(); return; }
     if (action === "resume") { navigateWorkflows({ resume: true }); return; }
     if (action === "close-modal") { cancelScanSession(); modal = null; renderAll(); return; }
@@ -1113,20 +1107,11 @@
     if (action === "edit-expected") { modal = { type: "edit-expected" }; renderAll(); return; }
     if (action === "show-mismatch") { modal = { type: "mismatch" }; renderAll(); return; }
     if (action === "new-lot") {
-      cancelScanSession(); capture = freshCapture();
-      modal = "capture"; renderAll(); return;
+      capture = freshCapture(); openCameraReady(); return;
     }
-    if (action === "scan-lot" || action === "rescan-lot") { beginScanSession(); return; }
-    if (action === "cancel-scan") {
-      const failures = capture.failures;
-      cancelScanSession(); capture = freshCapture(failures);
-      modal = "capture"; renderAll(); return;
-    }
+    if (action === "rescan-lot") { openCameraReady(); return; }
+    if (action === "scan-lot") { capturePhoto(); return; }
     if (action === "manual-lot") { cancelScanSession(); modal = "manual-lot"; renderAll(); return; }
-    if (action === "capture-photo") {
-      if (scannerState !== SCANNER_STATES.SCANNING) return;
-      button.disabled = true; capturePhoto(); return;
-    }
     if (action === "toggle-torch") {
       torchEnabled = !torchEnabled;
       Promise.resolve(Scanner?.setTorch(cameraTrack, torchEnabled)).then((applied) => {
@@ -1256,9 +1241,21 @@
       catch { showToast("Finish the active pallet first.", "warning"); }
       return;
     }
-    if (action === "review-discard") { modal = "discard"; renderAll(); return; }
+    if (action === "review-discard") {
+      discardReturnModal = modal;
+      discardReturnScannerState = scannerState;
+      cancelScanSession();
+      modal = "discard";
+      renderAll();
+      return;
+    }
+    if (action === "keep-coc") { restoreAfterDiscardReview(); return; }
     if (action === "discard-coc") {
       const id = session?.id; const deviceId = session?.deviceId;
+      cancelScanSession();
+      capture = freshCapture();
+      discardReturnModal = null;
+      discardReturnScannerState = SCANNER_STATES.IDLE;
       session = null; modal = null; workflowView = "landing"; persist({ cloud: false });
       cloudRpc("atlas_close_coc_session", { p_session_id: id, p_device_id: deviceId }, { keepalive: true }).catch(() => {});
       showToast("Unfinished COC discarded", "info"); return;
@@ -1267,6 +1264,7 @@
     if (action === "review-close") { modal = "close-report"; renderAll(); return; }
     if (action === "close-report") {
       const id = session?.id; const deviceId = session?.deviceId;
+      cancelScanSession();
       archiveCurrent(); session = null; modal = null; workflowView = "landing"; persist({ cloud: false });
       cloudRpc("atlas_close_coc_session", { p_session_id: id, p_device_id: deviceId }, { keepalive: true }).catch(() => {});
       showToast("COC closed"); return;
