@@ -17,7 +17,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link id="atlas-app-manifest" rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./atlas-dashboard.css?v=146" />
-    <link rel="stylesheet" href="./atlas-coc.css?v=4" />
+    <link rel="stylesheet" href="./atlas-coc.css?v=5" />
     <script>
       (() => {
         const isAndroid =
@@ -26152,7 +26152,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=177",
+              "./service-worker.js?v=178",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });
@@ -35992,11 +35992,11 @@ Error generating stack: ` +
     <script src="./atlas-restock.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
     <script src="./atlas-zxing-browser.min.js?v=1" defer></script>
-    <script src="./atlas-coc-scanner.js?v=1" defer></script>
-    <script src="./atlas-coc-parser.js?v=2" defer></script>
+    <script src="./atlas-coc-scanner.js?v=2" defer></script>
+    <script src="./atlas-coc-parser.js?v=3" defer></script>
     <script src="./atlas-coc-core.js?v=4" defer></script>
     <script src="./atlas-coc-excel.js?v=2" defer></script>
-    <script src="./atlas-coc.js?v=5" defer></script>
+    <script src="./atlas-coc.js?v=6" defer></script>
   <script src="./atlas-desktop.js?v=131" defer></script>
 
 </body>

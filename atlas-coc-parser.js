@@ -3,6 +3,7 @@
 
   const MIN_OCR_CONFIDENCE = 82;
   const MIN_OCR_ONLY_CONFIDENCE = 88;
+  const MIN_MODEL_BATCH_CONFIDENCE = 78;
   const MAX_VALUE_LENGTH = 140;
   const IRRELEVANT_EXACT_CODES = new Set(["10810490030091"]);
   const LEGACY_RULES = Object.freeze([
@@ -93,7 +94,7 @@
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
       if (!labelPattern.test(line)) continue;
-      const inline = line.replace(labelPattern, "").replace(/^\s*[:#.-]\s*/, "").trim();
+      const inline = line.replace(labelPattern, "").replace(/^\s*[:#.-]+\s*/, "").trim();
       if (/[A-Z0-9]/.test(inline)) return clean(inline);
       const next = lines[index + 1] || "";
       if (/[A-Z0-9]/.test(next)) return clean(next);
@@ -102,9 +103,12 @@
   }
 
   function extractLabelFields(textValue) {
+    const text = String(textValue ?? "").toUpperCase();
+    const labeledModel = extractField(text, /^.*?\bMODEL\s*(?:NO|NUMBER|#)?\b/i);
+    const labeledBatch = extractField(text, /^.*?\b(?:BATCH|LOT)\s*(?:NO|NUMBER|#)?\b/i);
     return {
-      model: extractField(textValue, /^.*?\bMODEL\s*(?:NO|NUMBER|#)?\b/i),
-      batch: extractField(textValue, /^.*?\b(?:BATCH|LOT)\s*(?:NO|NUMBER|#)?\b/i),
+      model: labeledModel || clean(text.match(/\bCG[A-Z0-9]{2,}(?:-[A-Z0-9]{2,}){2,}\b/)?.[0]),
+      batch: labeledBatch || clean(text.match(/\b[A-Z]{3,6}\d{4,}(?:-\d+)?\b/)?.[0]),
     };
   }
 
@@ -124,6 +128,12 @@
       });
     });
     return [...new Set(candidates)];
+  }
+
+  function modelsAgree(modelValue, skuValue) {
+    const model = canonical(modelValue);
+    const sku = canonical(skuValue);
+    return Boolean(model && sku && model === sku);
   }
 
   function legacyRuleForModel(modelValue, rules = LEGACY_RULES) {
@@ -203,7 +213,8 @@
   }
 
   function evaluateCapture({
-    barcodes = [], ocrText = "", ocrConfidence = 0, sku = "", barcodeDetections = [],
+    barcodes = [], ocrText = "", ocrConfidence = 0, fieldConfidence = 0,
+    sku = "", barcodeDetections = [],
   } = {}) {
     const fields = extractLabelFields(ocrText);
     const contextModel = fields.model || clean(sku).toUpperCase();
@@ -212,12 +223,28 @@
     const confidence = Number.isFinite(Number(ocrConfidence))
       ? Math.max(0, Math.min(100, Number(ocrConfidence)))
       : 0;
+    const trustedFieldConfidence = Number.isFinite(Number(fieldConfidence))
+      ? Math.max(0, Math.min(100, Number(fieldConfidence)))
+      : 0;
+    const batchEvidenceConfidence = Math.max(confidence, trustedFieldConfidence);
+    const modelMatchesSku = !clean(sku) || !fields.model || modelsAgree(fields.model, sku);
     const humanReads = extractHumanReadableCandidates(ocrText);
     const printedSources = [...new Set([fields.batch, ...humanReads].map(clean).filter(Boolean))];
     const printedResults = printedSources.map((value) => {
       const parsed = parseModernBarcode(value, contextModel);
       if (parsed.accepted) return { ...parsed, source: value };
       const direct = cleanLot(value);
+      const isVerifiedLabeledBatch = value === fields.batch && fields.model && modelMatchesSku &&
+        /^[A-Z]{3,6}\d{4,}(?:-\d+)?$/i.test(direct);
+      if (isVerifiedLabeledBatch) {
+        return {
+          accepted: true,
+          lot: direct,
+          rawBarcode: value,
+          rule: "verified_model_batch",
+          source: value,
+        };
+      }
       if (/^[A-Z]{3,6}\d{6,}(?:-\d+)?$/i.test(direct)) {
         return { accepted: true, lot: direct, rawBarcode: value, rule: "direct_printed_lot", source: value };
       }
@@ -231,9 +258,46 @@
     );
 
     if (barcode) {
+      if (!modelMatchesSku) {
+        return {
+          status: "rescan",
+          reason: "model_sku_mismatch",
+          rawBarcode: barcode.rawBarcode,
+          rawBatchText: fields.batch,
+          model: fields.model,
+          confidence,
+          barcodeCandidates: barcodeResults,
+        };
+      }
       const matchingPrinted = verifiedPrinted.find(
         (candidate) => canonical(candidate.lot) === canonical(barcode.lot),
+      ) || (batchEvidenceConfidence >= MIN_MODEL_BATCH_CONFIDENCE
+        ? printedResults.find((candidate) => candidate.accepted &&
+          candidate.source === fields.batch && canonical(candidate.lot) === canonical(barcode.lot))
+        : null);
+      const labeledBatchResult = printedResults.find(
+        (candidate) => candidate.source === fields.batch,
       );
+      const labeledBatchLot = labeledBatchResult?.accepted
+        ? labeledBatchResult.lot
+        : cleanLot(fields.batch);
+      if (fields.batch && batchEvidenceConfidence >= MIN_MODEL_BATCH_CONFIDENCE &&
+        canonical(labeledBatchLot) !== canonical(barcode.lot)) {
+        return {
+          status: "mismatch",
+          reason: "barcode_print_mismatch",
+          lot: barcode.lot,
+          printedLot: labeledBatchLot,
+          rawBarcode: barcode.rawBarcode,
+          rawBatchText: fields.batch,
+          model: contextModel || barcode.model,
+          captureMethod: "barcode",
+          validationMethod: "barcode_print_mismatch",
+          barcodeFormat,
+          confidence: batchEvidenceConfidence,
+          barcodeCandidates: barcodeResults,
+        };
+      }
       const conflictingPrinted = verifiedPrinted.find(
         (candidate) => canonical(candidate.lot) !== canonical(barcode.lot),
       );
@@ -262,7 +326,7 @@
         captureMethod: matchingPrinted ? "barcode_ocr" : "barcode",
         validationMethod: matchingPrinted ? "barcode_print_match" : barcode.rule,
         barcodeFormat,
-        confidence,
+        confidence: Math.max(confidence, matchingPrinted ? batchEvidenceConfidence : 0),
         barcodeCandidates: barcodeResults,
       };
     }
@@ -300,6 +364,45 @@
         confidence,
         barcodeCandidates: barcodeResults,
       };
+    }
+
+    if (fields.model && fields.batch) {
+      if (!modelMatchesSku) {
+        return {
+          status: "rescan",
+          reason: "model_sku_mismatch",
+          rawBatchText: fields.batch,
+          model: fields.model,
+          confidence,
+          barcodeCandidates: barcodeResults,
+        };
+      }
+      if (batchEvidenceConfidence < MIN_MODEL_BATCH_CONFIDENCE) {
+        return {
+          status: "rescan",
+          reason: "low_ocr_confidence",
+          rawBatchText: fields.batch,
+          model: fields.model,
+          confidence: batchEvidenceConfidence,
+          barcodeCandidates: barcodeResults,
+        };
+      }
+      const labeledBatch = printedResults.find(
+        (candidate) => candidate.accepted && candidate.source === fields.batch,
+      );
+      if (labeledBatch) {
+        return {
+          status: "confirm",
+          lot: labeledBatch.lot,
+          rawBarcode: "",
+          rawBatchText: fields.batch,
+          model: fields.model,
+          captureMethod: "printed_batch_ocr",
+          validationMethod: labeledBatch.rule,
+          confidence: batchEvidenceConfidence,
+          barcodeCandidates: barcodeResults,
+        };
+      }
     }
 
     if (confidence >= MIN_OCR_ONLY_CONFIDENCE) {
@@ -366,6 +469,7 @@
   global.AtlasCocParser = Object.freeze({
     MIN_OCR_CONFIDENCE,
     MIN_OCR_ONLY_CONFIDENCE,
+    MIN_MODEL_BATCH_CONFIDENCE,
     LEGACY_RULES,
     canonical,
     cleanLot,
@@ -374,6 +478,7 @@
     parseModernBarcode,
     extractLabelFields,
     extractHumanReadableCandidates,
+    modelsAgree,
     extractLegacyLot,
     levenshtein,
     findSimilarLot,

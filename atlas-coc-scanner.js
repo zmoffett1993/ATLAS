@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const ROI = Object.freeze({ x: 0.06, y: 0.25, width: 0.88, height: 0.50 });
+  const ROI = Object.freeze({ x: 0.04, y: 0.12, width: 0.92, height: 0.76 });
   const MAX_CAPTURE_WIDTH = 2400;
   const ONE_D_FORMATS = Object.freeze([
     "CODE_128", "CODE_39", "CODE_93", "ITF", "CODABAR",
@@ -98,6 +98,16 @@
       0, 0, band.width, band.height,
     );
     return imageVariant(band, "contrast");
+  }
+
+  function labelFieldsRegion(source) {
+    const regionHeight = Math.max(1, Math.round(source.height * 0.52));
+    const region = createCanvas(source.width, regionHeight);
+    region.getContext("2d", { willReadFrequently: true }).drawImage(
+      source, 0, 0, source.width, regionHeight,
+      0, 0, region.width, region.height,
+    );
+    return imageVariant(region, "contrast");
   }
 
   function resultValue(result) {
@@ -229,6 +239,7 @@
     copyCanvas,
     qualityScore,
     imageVariant,
+    labelFieldsRegion,
     textBand,
     decodeFrame,
     configureTrack,
