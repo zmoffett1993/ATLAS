@@ -4,6 +4,7 @@
   const Core = window.AtlasCocCore;
   const Parser = window.AtlasCocParser;
   const Excel = window.AtlasCocExcel;
+  const Scanner = window.AtlasCocScannerV2;
   if (!Core || !Parser || !Excel) {
     console.error("ATLAS COC modules did not load.");
     return;
@@ -20,10 +21,21 @@
   let toastTimer = null;
   let cloudTimer = null;
   let cameraStream = null;
+  let cameraTrack = null;
+  let scanLoopTimer = null;
+  let scanToken = 0;
+  let scanAttempt = 0;
+  let scanStartedAt = 0;
+  let scanBusy = false;
+  let scanFinalizing = false;
+  let bestFrame = null;
+  let bestFrameScore = 0;
+  let accumulatedDetections = [];
+  let torchEnabled = false;
   let storageFailure = false;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, status: "", progress: 0, failures,
-    result: null, barcodes: [], ocrText: "",
+    result: null, barcodes: [], barcodeDetections: [], ocrText: "", sku: "",
   });
   let capture = freshCapture();
 
@@ -57,6 +69,9 @@
     });
   };
   const getEmployee = () => String(localStorage.getItem("atlasEmployee") || "").trim();
+  const currentSkuContext = () => String(
+    document.querySelector(".result-card .sku-copy strong")?.textContent || "",
+  ).trim().toUpperCase();
   const getDeviceId = () => {
     let id = localStorage.getItem(DEVICE_KEY);
     if (!id) {
@@ -464,11 +479,12 @@
 
   function captureModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT</span><h2>Scan the printed label</h2>
-      <p>Keep one label inside the guide. ATLAS checks the lot barcode first, then the printed Model and Batch fields.</p>
+      <p>Keep one label inside the guide. ATLAS continuously checks the barcode and printed lot before asking you to confirm.</p>
       <div class="atlas-coc-camera"><video id="atlas-coc-video" playsinline muted></video><div class="atlas-coc-camera-guide"><span>MODEL · BATCH · BARCODE</span></div></div>
       <p id="atlas-coc-camera-status" class="atlas-coc-camera-status">Starting camera…</p>
       <canvas id="atlas-coc-canvas" hidden></canvas>
-      <div class="atlas-coc-modal-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 ? "" : "hidden"}>Manual Verified Entry</button><button type="button" class="atlas-coc-primary" data-coc-action="capture-photo" disabled>Scan Label</button></div>`, { label: "Scan new lot", className: "atlas-coc-scanner-modal" });
+      <div class="atlas-coc-camera-controls"><button id="atlas-coc-torch" type="button" data-coc-action="toggle-torch" aria-pressed="false" hidden>Turn Light On</button><label id="atlas-coc-zoom-control" hidden><span>ZOOM</span><input id="atlas-coc-zoom" type="range" data-coc-action="set-zoom" /></label></div>
+      <div class="atlas-coc-modal-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 ? "" : "hidden"}>Manual Verified Entry</button><button type="button" class="atlas-coc-primary" data-coc-action="capture-photo" disabled>Scan Now</button></div>`, { label: "Scan new lot", className: "atlas-coc-scanner-modal" });
   }
 
   function readingModal() {
@@ -483,6 +499,8 @@
       ? "Barcode + printed batch match"
       : result.captureMethod === "legacy_ocr"
         ? "Legacy Model + Batch rule verified"
+        : result.captureMethod === "printed_text_ocr"
+          ? "Printed lot verified with SKU rules"
         : "Lot barcode identified";
     return modalShell(`<span class="atlas-coc-eyebrow is-success">LOT VERIFIED</span><h2>${escapeHtml(Core.displayLot(capture.text))}</h2>
       <img class="atlas-coc-photo" src="${capture.photo}" alt="Captured printed lot for verification" />
@@ -506,6 +524,7 @@
       lot_barcode_not_identified: "A product or carton barcode was visible, but a valid lot barcode was not confidently identified.",
       legacy_boundary_not_found: "The product/color boundary could not be verified inside the printed Batch number.",
       legacy_rule_not_found: "The label did not match a configured legacy extraction rule.",
+      ambiguous_printed_lot: "More than one possible printed lot was visible.",
     }[capture.result?.reason] || "ATLAS could not confidently verify the lot from this label.";
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">LOT NOT VERIFIED</span><h2>Please rescan the label</h2>
       <p>${escapeHtml(reasonCopy)} No guessed value was saved.</p>
@@ -576,12 +595,141 @@
   }
 
   function stopCamera() {
+    scanToken += 1;
+    window.clearTimeout(scanLoopTimer);
+    scanLoopTimer = null;
+    scanBusy = false;
+    torchEnabled = false;
     cameraStream?.getTracks().forEach((track) => track.stop());
     cameraStream = null;
+    cameraTrack = null;
+  }
+
+  function setCameraStatus(message) {
+    const status = document.getElementById("atlas-coc-camera-status");
+    if (status) status.textContent = message;
+  }
+
+  function captureCurrentFrame(video, canvas) {
+    if (Scanner) return Scanner.captureRoi(video, canvas);
+    if (!video?.videoWidth || !video?.videoHeight || !canvas) return null;
+    const sourceX = Math.round(video.videoWidth * 0.06);
+    const sourceY = Math.round(video.videoHeight * 0.25);
+    const sourceWidth = Math.round(video.videoWidth * 0.88);
+    const sourceHeight = Math.round(video.videoHeight * 0.50);
+    canvas.width = Math.min(1800, sourceWidth);
+    canvas.height = Math.max(360, Math.round((sourceHeight / sourceWidth) * canvas.width));
+    canvas.getContext("2d", { willReadFrequently: true }).drawImage(
+      video, sourceX, sourceY, sourceWidth, sourceHeight,
+      0, 0, canvas.width, canvas.height,
+    );
+    return canvas;
+  }
+
+  function retainBestFrame(canvas) {
+    if (!Scanner || !canvas?.width) return;
+    const score = Scanner.qualityScore(canvas);
+    if (!bestFrame || score > bestFrameScore) {
+      bestFrame = Scanner.copyCanvas(canvas);
+      bestFrameScore = score;
+    }
+  }
+
+  function rememberDetections(detections = []) {
+    const merged = [...accumulatedDetections, ...detections];
+    accumulatedDetections = [...new Map(merged.map((item) => [
+      String(item.value || "").trim().toUpperCase(), item,
+    ])).values()].filter((item) => item.value);
+    return accumulatedDetections;
+  }
+
+  async function finishFrameScan(canvas, detections = []) {
+    if (scanFinalizing || !canvas?.width) return;
+    scanFinalizing = true;
+    const failures = capture.failures;
+    const finalCanvas = Scanner?.copyCanvas(canvas) || canvas;
+    const photo = finalCanvas.toDataURL("image/jpeg", 0.94);
+    const uniqueDetections = [...new Map(detections.map((item) => [
+      String(item.value || "").trim().toUpperCase(), item,
+    ])).values()].filter((item) => item.value);
+    capture = {
+      ...freshCapture(failures),
+      photo,
+      barcodes: uniqueDetections.map((item) => item.value),
+      barcodeDetections: uniqueDetections,
+      sku: session?.sku || currentSkuContext(),
+    };
+    stopCamera();
+    try {
+      await runOcr();
+    } finally {
+      scanFinalizing = false;
+      bestFrame = null;
+      bestFrameScore = 0;
+    }
+  }
+
+  async function scanVideoFrame(token) {
+    if (token !== scanToken || modal !== "capture" || scanBusy || scanFinalizing) return;
+    const video = document.getElementById("atlas-coc-video");
+    const canvas = document.getElementById("atlas-coc-canvas");
+    if (!video?.videoWidth || !video?.videoHeight || !canvas) {
+      scanLoopTimer = window.setTimeout(() => scanVideoFrame(token), 120);
+      return;
+    }
+    scanBusy = true;
+    scanAttempt += 1;
+    try {
+      captureCurrentFrame(video, canvas);
+      retainBestFrame(canvas);
+      const elapsed = performance.now() - scanStartedAt;
+      const enhanced = elapsed > 900 && scanAttempt % 3 === 0;
+      const detections = Scanner
+        ? await Scanner.decodeFrame(canvas, { enhanced })
+        : (await detectBarcodes(canvas)).map((value) => ({ value, format: "unknown", engine: "native" }));
+      if (token !== scanToken || modal !== "capture") return;
+      const allDetections = rememberDetections(detections);
+      const skuContext = session?.sku || currentSkuContext();
+      const validCandidate = Parser.classifyBarcodes(
+        allDetections.map((item) => item.value),
+        skuContext,
+      ).some((candidate) => candidate.accepted);
+      if (validCandidate) {
+        setCameraStatus("Lot candidate found. Verifying printed characters…");
+        await finishFrameScan(bestFrame || canvas, allDetections);
+        return;
+      }
+      if (elapsed >= 2800) {
+        setCameraStatus("Checking the clearest frame for printed lot text…");
+        await finishFrameScan(bestFrame || canvas, allDetections);
+        return;
+      }
+      setCameraStatus(elapsed > 1000
+        ? "Scanning several frames… hold steady and avoid glare."
+        : "Scanning lot barcode… hold the label inside the guide.");
+    } catch (error) {
+      console.info("Scanner frame retry", error);
+      if (token === scanToken && bestFrame && performance.now() - scanStartedAt >= 3200) {
+        setCameraStatus("Using the clearest frame for printed lot verification…");
+        await finishFrameScan(bestFrame, accumulatedDetections);
+        return;
+      }
+      setCameraStatus("Scanner is retrying this label… hold steady.");
+    } finally {
+      scanBusy = false;
+    }
+    if (token === scanToken && modal === "capture" && !scanFinalizing) {
+      scanLoopTimer = window.setTimeout(() => scanVideoFrame(token), 150);
+    }
   }
 
   async function startCamera() {
     stopCamera();
+    bestFrame = null;
+    bestFrameScore = 0;
+    accumulatedDetections = [];
+    scanAttempt = 0;
+    scanFinalizing = false;
     const video = document.getElementById("atlas-coc-video");
     const status = document.getElementById("atlas-coc-camera-status");
     const button = document.querySelector('[data-coc-action="capture-photo"]');
@@ -594,14 +742,37 @@
     }
     try {
       cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 2560 },
+          height: { ideal: 1440 },
+        },
         audio: false,
       });
       if (!document.getElementById("atlas-coc-video")) return stopCamera();
+      cameraTrack = cameraStream.getVideoTracks()[0] || null;
       video.srcObject = cameraStream;
       await video.play();
+      const capabilities = await Scanner?.configureTrack(cameraTrack) || {};
+      const torch = document.getElementById("atlas-coc-torch");
+      if (torch) torch.hidden = !capabilities.torch;
+      const zoomControl = document.getElementById("atlas-coc-zoom-control");
+      const zoom = document.getElementById("atlas-coc-zoom");
+      if (zoomControl && zoom && capabilities.zoom && capabilities.zoom.max > capabilities.zoom.min) {
+        zoomControl.hidden = false;
+        zoom.min = String(capabilities.zoom.min);
+        zoom.max = String(capabilities.zoom.max);
+        zoom.step = String(capabilities.zoom.step);
+        zoom.value = String(Math.min(capabilities.zoom.max, Math.max(
+          capabilities.zoom.min,
+          capabilities.zoom.min + ((capabilities.zoom.max - capabilities.zoom.min) * 0.18),
+        )));
+      }
       button.disabled = false;
-      status.textContent = "Hold steady, avoid glare, then capture the printed lot.";
+      status.textContent = "Scanning lot barcode… hold the label inside the guide.";
+      scanStartedAt = performance.now();
+      const token = scanToken;
+      scanLoopTimer = window.setTimeout(() => scanVideoFrame(token), 80);
     } catch {
       status.textContent = "Camera access was not granted. Allow access or enter the lot manually.";
       if (manual) manual.hidden = false;
@@ -627,12 +798,6 @@
     } catch {
       return [];
     }
-  }
-
-  function ocrBarcodeCandidates(text) {
-    return String(text || "").toUpperCase().split(/\r?\n/)
-      .map((line) => line.replace(/[^A-Z0-9./_-]/g, "").trim())
-      .filter((line) => line.length >= 8 && line.length <= 80);
   }
 
   async function runOcr() {
@@ -667,47 +832,33 @@
       const firstConfidence = Number(firstResult.data.confidence) || 0;
 
       recognitionPass = 1;
-      capture.status = "Cross-checking the lot read…";
+      capture.status = "Reading the printed text below the barcode…";
       capture.progress = 58;
       renderAll();
       const sourceImage = await loadImage(capture.photo);
-      const enhanced = document.createElement("canvas");
-      enhanced.width = sourceImage.naturalWidth || sourceImage.width;
-      enhanced.height = sourceImage.naturalHeight || sourceImage.height;
-      const enhancedContext = enhanced.getContext("2d", { willReadFrequently: true });
-      enhancedContext.drawImage(sourceImage, 0, 0);
-      const pixels = enhancedContext.getImageData(0, 0, enhanced.width, enhanced.height);
-      for (let index = 0; index < pixels.data.length; index += 4) {
-        const gray = pixels.data[index] * .299 + pixels.data[index + 1] * .587 + pixels.data[index + 2] * .114;
-        const value = gray > 154 ? 255 : 0;
-        pixels.data[index] = value;
-        pixels.data[index + 1] = value;
-        pixels.data[index + 2] = value;
-      }
-      enhancedContext.putImageData(pixels, 0, 0);
-      await worker.setParameters({ tessedit_pageseg_mode: tesseract.PSM.SPARSE_TEXT });
+      const sourceCanvas = document.createElement("canvas");
+      sourceCanvas.width = sourceImage.naturalWidth || sourceImage.width;
+      sourceCanvas.height = sourceImage.naturalHeight || sourceImage.height;
+      sourceCanvas.getContext("2d", { willReadFrequently: true }).drawImage(sourceImage, 0, 0);
+      const enhanced = Scanner?.textBand(sourceCanvas) || sourceCanvas;
+      await worker.setParameters({ tessedit_pageseg_mode: tesseract.PSM.SINGLE_BLOCK });
       const secondResult = await worker.recognize(enhanced);
       const secondText = String(secondResult.data.text || "");
       const secondConfidence = Number(secondResult.data.confidence) || 0;
       const firstFields = Parser.extractLabelFields(firstText);
       const secondFields = Parser.extractLabelFields(secondText);
-      const firstScore = firstConfidence + (firstFields.model ? 30 : 0) + (firstFields.batch ? 40 : 0);
-      const secondScore = secondConfidence + (secondFields.model ? 30 : 0) + (secondFields.batch ? 40 : 0);
-      capture.ocrText = secondScore > firstScore ? secondText : firstText;
+      capture.ocrText = [firstText, secondText].filter(Boolean).join("\n");
       const labeledReadsDisagree = Boolean(firstFields.batch && secondFields.batch &&
         Parser.canonical(firstFields.batch) !== Parser.canonical(secondFields.batch));
       capture.confidence = labeledReadsDisagree
         ? Math.min(55, Math.max(firstConfidence, secondConfidence))
         : Math.max(firstConfidence, secondConfidence);
-      capture.barcodes = [...new Set([
-        ...capture.barcodes,
-        ...ocrBarcodeCandidates(firstText),
-        ...ocrBarcodeCandidates(secondText),
-      ])];
       capture.result = Parser.evaluateCapture({
         barcodes: capture.barcodes,
         ocrText: capture.ocrText,
         ocrConfidence: capture.confidence,
+        sku: capture.sku,
+        barcodeDetections: capture.barcodeDetections,
       });
       capture.progress = 100;
       if (capture.result.status === "confirm") {
@@ -735,20 +886,19 @@
     const video = document.getElementById("atlas-coc-video");
     const canvas = document.getElementById("atlas-coc-canvas");
     if (!video?.videoWidth || !video?.videoHeight || !canvas) return;
-    const sourceX = Math.round(video.videoWidth * .06);
-    const sourceY = Math.round(video.videoHeight * .29);
-    const sourceWidth = Math.round(video.videoWidth * .88);
-    const sourceHeight = Math.round(video.videoHeight * .42);
-    canvas.width = Math.min(1800, sourceWidth);
-    canvas.height = Math.max(300, Math.round((sourceHeight / sourceWidth) * canvas.width));
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
-    const failures = capture.failures;
-    const photo = canvas.toDataURL("image/jpeg", 0.9);
-    const barcodes = await detectBarcodes(canvas);
-    capture = { ...freshCapture(failures), photo, barcodes };
-    stopCamera();
-    await runOcr();
+    captureCurrentFrame(video, canvas);
+    retainBestFrame(canvas);
+    setCameraStatus("Checking the clearest frame…");
+    const source = bestFrame || canvas;
+    let detections = [];
+    try {
+      detections = Scanner
+        ? await Scanner.decodeFrame(source, { enhanced: true })
+        : (await detectBarcodes(source)).map((value) => ({ value, format: "unknown", engine: "native" }));
+    } catch (error) {
+      console.info("Enhanced decoder unavailable; continuing with printed text.", error);
+    }
+    await finishFrameScan(source, rememberDetections(detections));
   }
 
   function acceptLot(value, options = {}, { skipSimilar = false } = {}) {
@@ -824,10 +974,28 @@
     }
     if (action === "manual-lot") { stopCamera(); modal = "manual-lot"; renderAll(); return; }
     if (action === "capture-photo") { button.disabled = true; capturePhoto(); return; }
+    if (action === "toggle-torch") {
+      torchEnabled = !torchEnabled;
+      Promise.resolve(Scanner?.setTorch(cameraTrack, torchEnabled)).then((applied) => {
+        if (!applied) torchEnabled = false;
+        const torch = document.getElementById("atlas-coc-torch");
+        if (torch) {
+          torch.setAttribute("aria-pressed", String(torchEnabled));
+          torch.textContent = torchEnabled ? "Turn Light Off" : "Turn Light On";
+        }
+      });
+      return;
+    }
+    if (action === "set-zoom") {
+      Scanner?.setZoom(cameraTrack, button.value);
+      return;
+    }
     if (action === "confirm-lot") {
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
+        barcodeFormat: capture.result?.barcodeFormat,
         rawBatchText: capture.result?.rawBatchText,
+        sku: capture.sku || session?.sku,
         model: capture.result?.model,
         captureMethod: capture.result?.captureMethod,
         validationMethod: capture.result?.validationMethod,
@@ -839,7 +1007,9 @@
     if (action === "confirm-similar") {
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
+        barcodeFormat: capture.result?.barcodeFormat,
         rawBatchText: capture.result?.rawBatchText,
+        sku: capture.sku || session?.sku,
         model: capture.result?.model,
         captureMethod: capture.result?.captureMethod,
         validationMethod: `${capture.result?.validationMethod || "manual"}_similar_confirmed`,
@@ -978,6 +1148,10 @@
 
   document.addEventListener("input", (event) => {
     const input = event.target;
+    if (input?.id === "atlas-coc-zoom") {
+      Scanner?.setZoom(cameraTrack, input.value);
+      return;
+    }
     if (!input?.matches?.("#atlas-coc-expected-form input[name='expectedBoxes']")) return;
     const form = input.closest("form");
     const button = form?.querySelector("[data-coc-box-confirm]");
@@ -1002,7 +1176,12 @@
         if (error) error.textContent = "Invoice Number is required.";
         return;
       }
-      session = Core.createSession({ invoiceNumber, deviceId: getDeviceId(), employee: getEmployee() });
+      session = Core.createSession({
+        invoiceNumber,
+        deviceId: getDeviceId(),
+        employee: getEmployee(),
+        sku: currentSkuContext(),
+      });
       workflowView = "session";
       persist();
       showToast("COC started · Pallet 1 ready");

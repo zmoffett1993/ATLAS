@@ -41,7 +41,9 @@
         quantity: safeCount(lot.cases),
         model: safeText(lot.model),
         rawBarcode: safeText(lot.rawBarcode),
+        barcodeFormat: safeText(lot.barcodeFormat, 40),
         rawBatchText: safeText(lot.rawBatchText),
+        sku: safeText(lot.sku || safe.sku),
         captureMethod: safeText(lot.captureMethod || lot.verification),
         validationMethod: safeText(lot.validationMethod),
       }));
@@ -61,6 +63,7 @@
     return Object.freeze({
       sessionId: safeText(safe.id),
       invoiceNumber: safeText(safe.invoiceNumber || safe.orderNumber),
+      sku: safeText(safe.sku),
       employee: safeText(safe.employee, 60),
       completedAt: safeText(safe.completedAt, 40),
       palletCount: pallets.length,

@@ -203,6 +203,15 @@
   font-size: 34px;
   text-align: center;
 }
+.atlas-coc-expected-card > [data-coc-box-confirm] {
+  width: max-content;
+  min-width: 220px;
+  max-width: 100%;
+  display: block;
+  justify-self: center;
+  margin: 4px auto 0;
+  padding-inline: 24px;
+}
 .atlas-coc-invoice-line {
   display: flex;
   justify-content: space-between;
@@ -479,9 +488,23 @@
   background: #04132a;
 }
 .atlas-coc-camera video { width: 100%; height: 100%; object-fit: cover; }
-.atlas-coc-camera-guide { position: absolute; inset: 29% 6%; border: 3px solid #38a0ff; border-radius: 13px; box-shadow: 0 0 0 999px rgba(3,15,34,.34); }
+.atlas-coc-camera-guide { position: absolute; inset: 25% 6%; border: 3px solid #38a0ff; border-radius: 13px; box-shadow: 0 0 0 999px rgba(3,15,34,.34); }
 .atlas-coc-camera-guide span { position: absolute; top: -26px; left: 0; color: #fff; font-size: 10px; font-weight: 950; letter-spacing: .14em; }
 .atlas-coc-camera-status { min-height: 42px; margin: 10px 0 0 !important; font-size: 13px; }
+.atlas-coc-camera-controls { display: flex; gap: 10px; align-items: center; justify-content: center; }
+.atlas-coc-camera-controls > button {
+  min-height: 40px;
+  padding: 0 14px;
+  color: var(--coc-blue-dark);
+  font-weight: 850;
+  border: 1px solid #b8cde3;
+  border-radius: 999px;
+  background: #fff;
+}
+.atlas-coc-camera-controls > button[aria-pressed="true"] { color: #fff; background: var(--coc-blue-dark); }
+.atlas-coc-camera-controls > label { display: flex; gap: 8px; align-items: center; color: var(--coc-muted); font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.atlas-coc-camera-controls input { width: min(180px, 42vw); }
+.atlas-coc-camera-controls > [hidden] { display: none; }
 .atlas-coc-photo { width: 100%; max-height: 260px; display: block; margin: 14px 0; object-fit: contain; border: 1px solid #cad8e7; border-radius: 15px; background: #07172c; }
 .atlas-coc-progress { height: 9px; margin: 22px 0 10px; overflow: hidden; border-radius: 9px; background: #e4ecf4; }
 .atlas-coc-progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--coc-blue), #43a7ff); transition: width .2s ease; }

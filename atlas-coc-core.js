@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 3;
+  const SCHEMA_VERSION = 4;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
 
@@ -51,7 +51,9 @@
     };
   }
 
-  function createSession({ invoiceNumber = "", orderNumber = "", deviceId = "", employee = "" } = {}) {
+  function createSession({
+    invoiceNumber = "", orderNumber = "", deviceId = "", employee = "", sku = "",
+  } = {}) {
     const createdAt = timestamp();
     const pallet = createPallet(1);
     const invoice = cleanText(invoiceNumber || orderNumber, MAX_INVOICE_LENGTH);
@@ -61,6 +63,7 @@
       id: makeId("coc"),
       deviceId: cleanText(deviceId, 100),
       invoiceNumber: invoice,
+      sku: cleanText(sku, MAX_LOT_LENGTH).toUpperCase(),
       employee: cleanText(employee, 60),
       status: "active",
       createdAt,
@@ -103,7 +106,9 @@
               ? Math.max(0, Math.min(100, Number(lot.ocrConfidence)))
               : null,
             rawBarcode: cleanText(lot?.rawBarcode, MAX_LOT_LENGTH),
+            barcodeFormat: cleanText(lot?.barcodeFormat, 40),
             rawBatchText: cleanText(lot?.rawBatchText, MAX_LOT_LENGTH),
+            sku: cleanText(lot?.sku || raw?.sku, MAX_LOT_LENGTH).toUpperCase(),
             model: cleanText(lot?.model, MAX_LOT_LENGTH).toUpperCase(),
             captureMethod: cleanText(
               lot?.captureMethod || lot?.verification || "manual",
@@ -200,6 +205,7 @@
       id: cleanText(raw.id, 140) || makeId("coc"),
       deviceId: cleanText(raw.deviceId, 100),
       invoiceNumber: cleanText(raw.invoiceNumber || raw.orderNumber, MAX_INVOICE_LENGTH),
+      sku: cleanText(raw.sku, MAX_LOT_LENGTH).toUpperCase(),
       employee: cleanText(raw.employee, 60),
       status,
       createdAt: cleanText(raw.createdAt, 40) || timestamp(),
@@ -260,7 +266,9 @@
         ? Math.max(0, Math.min(100, Number(options.confidence)))
         : null,
       rawBarcode: cleanText(options.rawBarcode, MAX_LOT_LENGTH),
+      barcodeFormat: cleanText(options.barcodeFormat, 40),
       rawBatchText: cleanText(options.rawBatchText, MAX_LOT_LENGTH),
+      sku: cleanText(options.sku || session.sku, MAX_LOT_LENGTH).toUpperCase(),
       model: cleanText(options.model, MAX_LOT_LENGTH).toUpperCase(),
       captureMethod: cleanText(options.captureMethod || options.verification || "manual", 40),
       validationMethod: cleanText(options.validationMethod, 80),
