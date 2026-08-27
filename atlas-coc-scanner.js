@@ -24,6 +24,7 @@
   function copyCanvas(source) {
     const copy = createCanvas(source.width, source.height);
     copy.getContext("2d", { willReadFrequently: true }).drawImage(source, 0, 0);
+    if (source.atlasRoiMap) copy.atlasRoiMap = source.atlasRoiMap;
     return copy;
   }
 
@@ -96,6 +97,34 @@
       x: positionFactor(tokens[0], "x"),
       y: positionFactor(tokens[1], "y"),
     };
+  }
+
+  function insetRect(rect, insets = {}) {
+    const leftInset = Math.max(0, Number(insets.left) || 0);
+    const rightInset = Math.max(0, Number(insets.right) || 0);
+    const topInset = Math.max(0, Number(insets.top) || 0);
+    const bottomInset = Math.max(0, Number(insets.bottom) || 0);
+    const width = Math.max(0, (Number(rect?.width) || 0) - leftInset - rightInset);
+    const height = Math.max(0, (Number(rect?.height) || 0) - topInset - bottomInset);
+    return {
+      left: (Number(rect?.left) || 0) + leftInset,
+      top: (Number(rect?.top) || 0) + topInset,
+      width,
+      height,
+    };
+  }
+
+  function guideContentRect(guide) {
+    const rect = guide?.getBoundingClientRect?.();
+    if (!rect) return null;
+    const style = global.getComputedStyle?.(guide);
+    const pixels = (value) => Math.max(0, Number.parseFloat(value) || 0);
+    return insetRect(rect, {
+      left: pixels(style?.borderLeftWidth),
+      right: pixels(style?.borderRightWidth),
+      top: pixels(style?.borderTopWidth),
+      bottom: pixels(style?.borderBottomWidth),
+    });
   }
 
   function mapVisibleRoiToSource({
@@ -198,7 +227,9 @@
   function captureRoi(video, guide, targetCanvas) {
     if (!video?.videoWidth || !video?.videoHeight || !guide || !targetCanvas) return null;
     const videoRect = video.getBoundingClientRect?.();
-    const roiRect = guide.getBoundingClientRect?.();
+    // The employee frames the label inside the blue border. Map that exact
+    // content box, not the outer border box whose pixels are visually covered.
+    const roiRect = guideContentRect(guide);
     if (!videoRect || !roiRect) return null;
     const style = global.getComputedStyle?.(video);
     const map = mapVisibleRoiToSource({
@@ -489,22 +520,13 @@
     if (advanced.length) {
       try { await track.applyConstraints({ advanced }); } catch {}
     }
-    return {
-      torch: Boolean(capabilities.torch),
-    };
-  }
-
-  async function setTorch(track, enabled) {
-    try {
-      await track?.applyConstraints?.({ advanced: [{ torch: Boolean(enabled) }] });
-      return true;
-    } catch {
-      return false;
-    }
+    return true;
   }
 
   global.AtlasCocScannerV2 = Object.freeze({
     ROI,
+    insetRect,
+    guideContentRect,
     mapVisibleRoiToSource,
     captureRoi,
     copyCanvas,
@@ -519,7 +541,6 @@
     buildOcrPasses,
     decodeFrame,
     configureTrack,
-    setTorch,
     debugEnabled,
     logRecognitionTrace,
   });

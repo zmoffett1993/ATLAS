@@ -31,7 +31,6 @@
   let toastTimer = null;
   let cloudTimer = null;
   let cameraStream = null;
-  let cameraTrack = null;
   let scannerState = SCANNER_STATES.IDLE;
   let recognitionToken = 0;
   let activeOcrWorker = null;
@@ -41,7 +40,6 @@
   let bestFrameScore = 0;
   let accumulatedDetections = [];
   let recognitionTrace = null;
-  let torchEnabled = false;
   let discardReturnModal = null;
   let discardReturnScannerState = SCANNER_STATES.IDLE;
   let storageFailure = false;
@@ -530,10 +528,9 @@
       scannerState === SCANNER_STATES.READY;
     const rejected = scannerState === SCANNER_STATES.REJECTED;
     const scannerPanel = active
-      ? `<div class="atlas-coc-camera is-active"><video id="atlas-coc-video" playsinline muted></video><div id="atlas-coc-camera-guide" class="atlas-coc-camera-guide"><span>LOT INFORMATION · ONLY THIS AREA IS READ</span></div></div>
+      ? `<div class="atlas-coc-camera is-active"><video id="atlas-coc-video" playsinline muted></video><div id="atlas-coc-camera-guide" class="atlas-coc-camera-guide" aria-hidden="true"></div></div>
         <p id="atlas-coc-camera-status" class="atlas-coc-camera-status">${scannerState === SCANNER_STATES.STARTING ? "Starting camera…" : "Ready to Scan · nothing is being read yet."}</p>
         <canvas id="atlas-coc-canvas" hidden></canvas>
-        <div class="atlas-coc-camera-controls"><button id="atlas-coc-torch" type="button" data-coc-action="toggle-torch" aria-pressed="false" hidden>Turn Light On</button></div>
         <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 ? "" : "hidden"}>Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="scan-lot" ${scannerState === SCANNER_STATES.STARTING ? "disabled" : ""}>Scan Lot</button></div>`
       : `<div class="atlas-coc-camera-idle" aria-live="polite"><span aria-hidden="true">▣</span><strong>${rejected ? "Unable to Verify Lot" : "Camera Unavailable"}</strong><small>${escapeHtml(capture.status || "Position the label and try again.")}</small></div>
         <p class="atlas-coc-camera-status">No lot was read or saved.</p>
@@ -671,10 +668,8 @@
   }
 
   function stopCamera() {
-    torchEnabled = false;
     cameraStream?.getTracks().forEach((track) => track.stop());
     cameraStream = null;
-    cameraTrack = null;
   }
 
   function cancelScanSession() {
@@ -793,12 +788,10 @@
         return;
       }
       cameraStream = stream;
-      cameraTrack = cameraStream.getVideoTracks()[0] || null;
+      const cameraTrack = cameraStream.getVideoTracks()[0] || null;
       video.srcObject = cameraStream;
       await video.play();
-      const capabilities = await Scanner?.configureTrack(cameraTrack) || {};
-      const torch = document.getElementById("atlas-coc-torch");
-      if (torch) torch.hidden = !capabilities.torch;
+      await Scanner?.configureTrack(cameraTrack);
       scannerState = SCANNER_STATES.READY;
       cameraStarting = false;
       button.disabled = false;
@@ -1174,8 +1167,9 @@
       roi: {
         width: source.width,
         height: source.height,
-        sourceType: "exact_blue_guide_canvas",
+        sourceType: "exact_blue_guide_content_canvas",
         recognitionPolicy: "cropped_roi_only",
+        mapping: source.atlasRoiMap || null,
       },
       barcode: null,
       ocr: null,
@@ -1316,18 +1310,6 @@
     if (action === "rescan-lot") { openCameraReady(); return; }
     if (action === "scan-lot") { capturePhoto(); return; }
     if (action === "manual-lot") { cancelScanSession(); modal = "manual-lot"; renderAll(); return; }
-    if (action === "toggle-torch") {
-      torchEnabled = !torchEnabled;
-      Promise.resolve(Scanner?.setTorch(cameraTrack, torchEnabled)).then((applied) => {
-        if (!applied) torchEnabled = false;
-        const torch = document.getElementById("atlas-coc-torch");
-        if (torch) {
-          torch.setAttribute("aria-pressed", String(torchEnabled));
-          torch.textContent = torchEnabled ? "Turn Light Off" : "Turn Light On";
-        }
-      });
-      return;
-    }
     if (action === "confirm-lot") {
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
