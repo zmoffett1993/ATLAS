@@ -529,22 +529,22 @@
       scannerState === SCANNER_STATES.READY;
     const rejected = scannerState === SCANNER_STATES.REJECTED;
     const scannerPanel = active
-      ? `<div class="atlas-coc-camera is-active"><video id="atlas-coc-video" playsinline muted></video><div class="atlas-coc-scan-shade top"></div><div class="atlas-coc-scan-shade bottom"></div><div class="atlas-coc-camera-guide"><span>PRINTED LOT · MODEL · BATCH · BARCODE</span></div></div>
+      ? `<div class="atlas-coc-camera is-active"><video id="atlas-coc-video" playsinline muted></video><div id="atlas-coc-camera-guide" class="atlas-coc-camera-guide"><span>LOT INFORMATION · ONLY THIS AREA IS READ</span></div></div>
         <p id="atlas-coc-camera-status" class="atlas-coc-camera-status">${scannerState === SCANNER_STATES.STARTING ? "Starting camera…" : "Ready to Scan · nothing is being read yet."}</p>
         <canvas id="atlas-coc-canvas" hidden></canvas>
         <div class="atlas-coc-camera-controls"><button id="atlas-coc-torch" type="button" data-coc-action="toggle-torch" aria-pressed="false" hidden>Turn Light On</button></div>
         <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 ? "" : "hidden"}>Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="scan-lot" ${scannerState === SCANNER_STATES.STARTING ? "disabled" : ""}>Scan Lot</button></div>`
       : `<div class="atlas-coc-camera-idle" aria-live="polite"><span aria-hidden="true">▣</span><strong>${rejected ? "Unable to Verify Lot" : "Camera Unavailable"}</strong><small>${escapeHtml(capture.status || "Position the label and try again.")}</small></div>
         <p class="atlas-coc-camera-status">No lot was read or saved.</p>
-        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="rescan-lot">Retry Camera</button></div>`;
-    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT</span><h2>Scan the printed label</h2>
-      <p>Position the complete label inside the guide. ATLAS will not read anything until you tap Scan Lot.</p>
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="rescan-lot">Retake Photo</button></div>`;
+    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT</span><h2>Scan the lot label</h2>
+      <p>Position the lot information inside the blue guide. Only what is inside the blue guide will be read.</p>
       ${scannerPanel}`, { label: "Scan new lot", className: `atlas-coc-scanner-modal is-${scannerState}` });
   }
 
   function readingModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">READING LOT</span><h2>Checking barcode and printed fields…</h2>
-      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Captured lot label" />` : ""}
+      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Exact cropped recognition area" />` : ""}
       <div class="atlas-coc-progress"><i style="width:${capture.progress}%"></i></div><p>${escapeHtml(capture.status || "Preparing image…")}</p>`, {
       label: "Reading captured lot", dismiss: false,
     });
@@ -563,7 +563,7 @@
             ? "Printed barcode text verified with SKU rules"
         : "Lot barcode identified";
     return modalShell(`<span class="atlas-coc-eyebrow is-success">${verified ? "✓ LOT RECOGNIZED" : "LOT RECOGNIZED"}</span><h2>${escapeHtml(Core.displayLot(capture.text))}</h2>
-      <img class="atlas-coc-photo" src="${capture.photo}" alt="Captured printed lot for verification" />
+      <img class="atlas-coc-photo" src="${capture.photo}" alt="Exact cropped recognition area for verification" />
       <div class="atlas-coc-capture-proof">${result.model ? `<p><span>MODEL</span><strong>${escapeHtml(result.model)}</strong></p>` : ""}${result.rawBatchText ? `<p><span>PRINTED BATCH</span><strong>${escapeHtml(result.rawBatchText)}</strong></p>` : ""}<p><span>CONFIDENCE</span><strong>${verified ? "Verified from independent sources" : "Recognized from one strong source"}</strong></p><p><span>VALIDATION</span><strong>${escapeHtml(verifiedCopy)}</strong></p></div>
       <label class="atlas-coc-verify-check"><input id="atlas-coc-verify-check" type="checkbox" /> <span>I compared <strong>${escapeHtml(capture.text)}</strong> to the printed lot and every character matches.</span></label>
       <p class="atlas-coc-first-case">Confirming this new lot records <strong>Box 1</strong>.</p>
@@ -574,8 +574,9 @@
     const result = capture.result || {};
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">LOT DOES NOT MATCH</span><h2>Rescan the label</h2>
       <p>The barcode and printed batch number did not agree. ATLAS did not save a lot.</p>
+      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Exact cropped recognition area" />` : ""}
       <div class="atlas-coc-compare is-scan-mismatch"><div><span>BARCODE LOT</span><strong>${escapeHtml(result.lot || "—")}</strong></div><div><span>PRINTED LOT</span><strong>${escapeHtml(result.printedLot || "—")}</strong></div></div>
-      <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="rescan-lot">Rescan</button>`, { label: "Barcode and printed lot mismatch", dismiss: false });
+      <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="rescan-lot">Retake Photo</button>`, { label: "Barcode and printed lot mismatch", dismiss: false });
   }
 
   function scanFailedModal() {
@@ -588,6 +589,7 @@
       ambiguous_printed_lot: "More than one possible printed lot was visible.",
       ambiguous_barcode_lot: "More than one possible lot barcode was visible.",
       model_sku_mismatch: "This label may belong to a different product.",
+      roi_capture_failed: "ATLAS could not prepare the exact blue-guide crop.",
     }[capture.result?.reason] || "ATLAS could not confidently verify the lot from this label.";
     const mismatchDetails = mismatch
       ? `<div class="atlas-coc-capture-proof"><p><span>EXPECTED SKU</span><strong>${escapeHtml(capture.result?.expectedModel || capture.sku || "—")}</strong></p><p><span>DETECTED MODEL</span><strong>${escapeHtml(capture.result?.model || "Unclear")}</strong></p></div>`
@@ -596,9 +598,9 @@
       ? `<div class="atlas-coc-candidate-review"><span>POSSIBLE VALUE · VERIFY EVERY CHARACTER</span><strong>${escapeHtml(capture.result.candidateLot)}</strong></div>`
       : "";
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">${mismatch ? "SKU DOES NOT MATCH" : "LOT NEEDS VERIFICATION"}</span><h2>${mismatch ? "Check the carton" : "Could Not Read Lot"}</h2>
-      <p>${escapeHtml(reasonCopy)} No guessed value was saved.</p>
-      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Captured label requiring employee review" />` : ""}${mismatchDetails}${candidate}
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Retake Photo</button><button type="button" class="atlas-coc-primary" data-coc-action="manual-lot">Enter Lot Manually</button></div>`, { label: "Lot not verified", dismiss: false });
+      <p>${escapeHtml(reasonCopy)} ATLAS could not confidently verify the lot inside the scan area. No guessed value was saved.</p>
+      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Exact cropped recognition area requiring employee review" />` : ""}${mismatchDetails}${candidate}
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="rescan-lot">Retake Photo</button></div>`, { label: "Lot not verified", dismiss: false });
   }
 
   function manualLotModal() {
@@ -703,19 +705,9 @@
   }
 
   function captureCurrentFrame(video, canvas) {
-    if (Scanner) return Scanner.captureRoi(video, canvas);
-    if (!video?.videoWidth || !video?.videoHeight || !canvas) return null;
-    const sourceX = Math.round(video.videoWidth * 0.04);
-    const sourceY = Math.round(video.videoHeight * 0.12);
-    const sourceWidth = Math.round(video.videoWidth * 0.92);
-    const sourceHeight = Math.round(video.videoHeight * 0.76);
-    canvas.width = Math.min(1800, sourceWidth);
-    canvas.height = Math.max(360, Math.round((sourceHeight / sourceWidth) * canvas.width));
-    canvas.getContext("2d", { willReadFrequently: true }).drawImage(
-      video, sourceX, sourceY, sourceWidth, sourceHeight,
-      0, 0, canvas.width, canvas.height,
-    );
-    return canvas;
+    const guide = document.getElementById("atlas-coc-camera-guide");
+    if (!Scanner?.captureRoi || !guide) return null;
+    return Scanner.captureRoi(video, guide, canvas);
   }
 
   function retainBestFrame(canvas) {
@@ -1016,6 +1008,17 @@
         sku: capture.sku,
         barcodeDetections: capture.barcodeDetections,
       });
+      Scanner?.logRecognitionTrace?.({
+        expectedSku: capture.sku,
+        roi: capture.photo ? "exact_blue_guide_crop" : "missing",
+        barcodeCandidates: capture.barcodes.length,
+        ocrPasses: readings.length,
+        modelDetected: Boolean(modelVote.value),
+        printedBatchCandidate: batchVote.value || "",
+        parsedBarcodeLot: capture.result?.rawBarcode ? capture.result?.lot || "" : "",
+        final: capture.result?.lot || capture.result?.candidateLot || "",
+        confidence: capture.result?.confidenceState || "needs_verification",
+      });
       capture.progress = 100;
       if (capture.result.status === "confirm") {
         capture.text = capture.result.lot;
@@ -1051,7 +1054,19 @@
     const button = document.querySelector('[data-coc-action="scan-lot"]');
     if (button) button.disabled = true;
     setCameraStatus("Scanning Lot…");
-    captureCurrentFrame(video, canvas);
+    const roiCanvas = captureCurrentFrame(video, canvas);
+    if (!roiCanvas) {
+      stopCamera();
+      capture.status = "The blue-guide crop could not be prepared. Retake the photo.";
+      capture.failures += 1;
+      capture.result = {
+        status: "rescan", reason: "roi_capture_failed", confidenceState: "needs_verification",
+      };
+      modal = { type: "scan-failed" };
+      scannerState = SCANNER_STATES.REJECTED;
+      renderAll();
+      return;
+    }
     retainBestFrame(canvas);
     const source = Scanner?.copyCanvas(bestFrame || canvas) || bestFrame || canvas;
     capture.photo = source.toDataURL("image/jpeg", 0.94);

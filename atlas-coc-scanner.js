@@ -1,9 +1,9 @@
 (function (global) {
   "use strict";
 
-  // The guide is deliberately tall enough to include Model/Batch fields, the
-  // barcode, and its human-readable value in one employee-framed photograph.
-  const ROI = Object.freeze({ x: 0.035, y: 0.08, width: 0.93, height: 0.84 });
+  // The visible guide is the authority for every recognition attempt. Its live
+  // DOM geometry is mapped through object-fit: cover into source-camera pixels.
+  const ROI = Object.freeze({ width: 0.92, aspectRatio: 2.3 });
   const MAX_CAPTURE_WIDTH = 2560;
   const ONE_D_FORMATS = Object.freeze([
     "CODE_128", "CODE_39", "CODE_93", "ITF", "CODABAR",
@@ -61,21 +61,161 @@
     return canvas;
   }
 
-  function captureRoi(video, targetCanvas) {
-    if (!video?.videoWidth || !video?.videoHeight || !targetCanvas) return null;
-    const sourceX = Math.round(video.videoWidth * ROI.x);
-    const sourceY = Math.round(video.videoHeight * ROI.y);
-    const sourceWidth = Math.round(video.videoWidth * ROI.width);
-    const sourceHeight = Math.round(video.videoHeight * ROI.height);
+  const clamp = (value, minimum, maximum) =>
+    Math.max(minimum, Math.min(maximum, Number(value) || 0));
+
+  function positionFactor(token, axis) {
+    const value = String(token || "center").trim().toLowerCase();
+    if (value === "center") return 0.5;
+    if (axis === "x" && value === "left") return 0;
+    if (axis === "x" && value === "right") return 1;
+    if (axis === "y" && value === "top") return 0;
+    if (axis === "y" && value === "bottom") return 1;
+    const percent = value.match(/^(-?\d+(?:\.\d+)?)%$/);
+    return percent ? Number(percent[1]) / 100 : 0.5;
+  }
+
+  function objectPositionFactors(value) {
+    const tokens = String(value || "50% 50%").trim().split(/\s+/).filter(Boolean);
+    if (tokens.length === 1) {
+      if (["top", "bottom"].includes(tokens[0].toLowerCase()))
+        return { x: 0.5, y: positionFactor(tokens[0], "y") };
+      return { x: positionFactor(tokens[0], "x"), y: 0.5 };
+    }
+    return {
+      x: positionFactor(tokens[0], "x"),
+      y: positionFactor(tokens[1], "y"),
+    };
+  }
+
+  function mapVisibleRoiToSource({
+    sourceWidth, sourceHeight, videoRect, roiRect,
+    objectFit = "cover", objectPosition = "50% 50%",
+  } = {}) {
+    const sourceW = Number(sourceWidth);
+    const sourceH = Number(sourceHeight);
+    const previewW = Number(videoRect?.width);
+    const previewH = Number(videoRect?.height);
+    if (![sourceW, sourceH, previewW, previewH].every((value) => value > 0)) return null;
+
+    const left = Math.max(Number(videoRect.left) || 0, Number(roiRect?.left) || 0);
+    const top = Math.max(Number(videoRect.top) || 0, Number(roiRect?.top) || 0);
+    const right = Math.min(
+      (Number(videoRect.left) || 0) + previewW,
+      (Number(roiRect?.left) || 0) + (Number(roiRect?.width) || 0),
+    );
+    const bottom = Math.min(
+      (Number(videoRect.top) || 0) + previewH,
+      (Number(roiRect?.top) || 0) + (Number(roiRect?.height) || 0),
+    );
+    if (right <= left || bottom <= top) return null;
+
+    const roiX = left - (Number(videoRect.left) || 0);
+    const roiY = top - (Number(videoRect.top) || 0);
+    const roiW = right - left;
+    const roiH = bottom - top;
+    const fit = String(objectFit || "cover").toLowerCase();
+    const scale = fit === "contain"
+      ? Math.min(previewW / sourceW, previewH / sourceH)
+      : Math.max(previewW / sourceW, previewH / sourceH);
+    const renderedWidth = sourceW * scale;
+    const renderedHeight = sourceH * scale;
+    const position = objectPositionFactors(objectPosition);
+    const hiddenX = (renderedWidth - previewW) * position.x;
+    const hiddenY = (renderedHeight - previewH) * position.y;
+    const sourceX = clamp((roiX + hiddenX) / scale, 0, sourceW);
+    const sourceY = clamp((roiY + hiddenY) / scale, 0, sourceH);
+    const sourceRight = clamp((roiX + roiW + hiddenX) / scale, sourceX, sourceW);
+    const sourceBottom = clamp((roiY + roiH + hiddenY) / scale, sourceY, sourceH);
+    if (sourceRight - sourceX < 1 || sourceBottom - sourceY < 1) return null;
+
+    return Object.freeze({
+      sourceWidth: sourceW,
+      sourceHeight: sourceH,
+      previewWidth: previewW,
+      previewHeight: previewH,
+      roiX,
+      roiY,
+      roiWidth: roiW,
+      roiHeight: roiH,
+      scale,
+      renderedWidth,
+      renderedHeight,
+      hiddenX,
+      hiddenY,
+      sourceX,
+      sourceY,
+      sourceCropWidth: sourceRight - sourceX,
+      sourceCropHeight: sourceBottom - sourceY,
+      objectFit: fit,
+      objectPosition: String(objectPosition || "50% 50%"),
+    });
+  }
+
+  function debugEnabled() {
+    try {
+      return global.localStorage?.getItem("atlasCocRoiDebug") === "1" ||
+        new URLSearchParams(global.location?.search || "").get("atlasCocRoiDebug") === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function logRoiMap(map) {
+    if (!debugEnabled() || !map) return;
+    console.debug("[ATLAS COC ROI]", {
+      source: `${map.sourceWidth} × ${map.sourceHeight}`,
+      preview: `${map.previewWidth.toFixed(1)} × ${map.previewHeight.toFixed(1)}`,
+      roiDisplay: {
+        x: map.roiX.toFixed(1), y: map.roiY.toFixed(1),
+        width: map.roiWidth.toFixed(1), height: map.roiHeight.toFixed(1),
+      },
+      scale: map.scale.toFixed(5),
+      hidden: { x: map.hiddenX.toFixed(1), y: map.hiddenY.toFixed(1) },
+      sourceRoi: {
+        x: map.sourceX.toFixed(1), y: map.sourceY.toFixed(1),
+        width: map.sourceCropWidth.toFixed(1), height: map.sourceCropHeight.toFixed(1),
+      },
+      objectFit: map.objectFit,
+      objectPosition: map.objectPosition,
+    });
+  }
+
+  function logRecognitionTrace(trace) {
+    if (debugEnabled()) console.debug("[ATLAS COC RECOGNITION]", trace);
+  }
+
+  function captureRoi(video, guide, targetCanvas) {
+    if (!video?.videoWidth || !video?.videoHeight || !guide || !targetCanvas) return null;
+    const videoRect = video.getBoundingClientRect?.();
+    const roiRect = guide.getBoundingClientRect?.();
+    if (!videoRect || !roiRect) return null;
+    const style = global.getComputedStyle?.(video);
+    const map = mapVisibleRoiToSource({
+      sourceWidth: video.videoWidth,
+      sourceHeight: video.videoHeight,
+      videoRect,
+      roiRect,
+      objectFit: style?.objectFit || "cover",
+      objectPosition: style?.objectPosition || "50% 50%",
+    });
+    if (!map) return null;
+    const sourceX = map.sourceX;
+    const sourceY = map.sourceY;
+    const sourceWidth = map.sourceCropWidth;
+    const sourceHeight = map.sourceCropHeight;
     const outputWidth = Math.min(MAX_CAPTURE_WIDTH, sourceWidth);
-    const outputHeight = Math.max(360, Math.round((sourceHeight / sourceWidth) * outputWidth));
-    targetCanvas.width = outputWidth;
+    const outputHeight = Math.max(1, Math.round((sourceHeight / sourceWidth) * outputWidth));
+    targetCanvas.width = Math.max(1, Math.round(outputWidth));
     targetCanvas.height = outputHeight;
     const context = targetCanvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return null;
     context.drawImage(
       video, sourceX, sourceY, sourceWidth, sourceHeight,
-      0, 0, outputWidth, outputHeight,
+      0, 0, targetCanvas.width, targetCanvas.height,
     );
+    targetCanvas.atlasRoiMap = map;
+    logRoiMap(map);
     return targetCanvas;
   }
 
@@ -289,6 +429,7 @@
 
   global.AtlasCocScannerV2 = Object.freeze({
     ROI,
+    mapVisibleRoiToSource,
     captureRoi,
     copyCanvas,
     cropCanvas,
@@ -301,5 +442,7 @@
     decodeFrame,
     configureTrack,
     setTorch,
+    debugEnabled,
+    logRecognitionTrace,
   });
 })(window);
