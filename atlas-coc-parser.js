@@ -4,6 +4,7 @@
   const MIN_OCR_CONFIDENCE = 82;
   const MIN_OCR_ONLY_CONFIDENCE = 88;
   const MIN_MODEL_BATCH_CONFIDENCE = 78;
+  const MIN_PREFIX_OCR_CONFIDENCE = 62;
   const MAX_VALUE_LENGTH = 140;
   const DIRECT_LOT_PATTERN = /^[A-Z]{3,8}\d{4,}(?:-\d+)?$/i;
   const IRRELEVANT_EXACT_CODES = new Set(["10810490030091"]);
@@ -43,52 +44,149 @@
     return endIndexes[matchAt + boundary.length - 1] ?? -1;
   }
 
-  function modernPrefixes(modelValue) {
+  function skuBoundarySignatures(modelValue) {
     const model = clean(modelValue).toUpperCase();
     const parts = model.split("-").map(canonical).filter(Boolean);
     if (parts.length < 2) return [];
-    const withoutFamily = parts.slice(1).join("");
-    const candidates = new Set([withoutFamily]);
-    if (parts.length > 2) candidates.add(parts.slice(-2).join(""));
-    candidates.add(parts[parts.length - 1]);
-    return [...candidates].filter((value) => value.length >= 2)
-      .sort((left, right) => right.length - left.length);
+    // Warehouse lot values omit the product-family segment (for example
+    // CGUB1 or CGAC1) and prepend the remaining SKU structure to the real lot.
+    // This full derived signature is authoritative; short color-only suffixes
+    // are deliberately excluded because they can occur inside legitimate lots.
+    const signature = parts.slice(1).join("");
+    return signature.length >= 4 ? [signature] : [];
+  }
+
+  function modernPrefixes(modelValue) {
+    return skuBoundarySignatures(modelValue);
+  }
+
+  function canonicalRangeEnd(rawValue, start, length) {
+    const raw = clean(rawValue);
+    const indexes = [];
+    for (let index = 0; index < raw.length; index += 1) {
+      if (/[A-Z0-9]/i.test(raw[index])) indexes.push(index + 1);
+    }
+    return indexes[start + length - 1] ?? -1;
+  }
+
+  function prefixMatch(normalizedCandidate, signature, allowFuzzyPrefix) {
+    const exactAt = normalizedCandidate.indexOf(signature);
+    if (exactAt >= 0 && exactAt <= 4) {
+      return { accepted: true, start: exactAt, exact: true, fuzzy: false, distance: 0 };
+    }
+    if (!allowFuzzyPrefix || normalizedCandidate.length < signature.length) return null;
+    const maximumStart = Math.min(4, normalizedCandidate.length - signature.length);
+    for (let start = 0; start <= maximumStart; start += 1) {
+      const candidatePrefix = normalizedCandidate.slice(start, start + signature.length);
+      const equivalent = ocrEquivalent(candidatePrefix) === ocrEquivalent(signature);
+      const distance = equivalent ? 0 : levenshtein(candidatePrefix, signature);
+      // A long, SKU-derived boundary may contain two OCR substitutions under
+      // wrap/glare. This never edits the unknown lot, and fuzzy boundaries are
+      // accepted by confidence logic only when independent OCR passes resolve
+      // to the same untouched lot.
+      const maximumDistance = signature.length >= 8 ? 2 : 1;
+      if (equivalent || distance <= maximumDistance) {
+        return { accepted: true, start, exact: false, fuzzy: true, distance };
+      }
+    }
+    return null;
+  }
+
+  function parseLotCandidate(rawValue, expectedSku = "", {
+    source = "unknown", allowFuzzyPrefix = false,
+  } = {}) {
+    const rawCandidate = clean(rawValue).toUpperCase();
+    const normalizedCandidate = canonical(rawCandidate);
+    const normalizedSku = canonical(expectedSku);
+    const base = {
+      rawCandidate,
+      normalizedCandidate,
+      expectedSku: clean(expectedSku).toUpperCase(),
+      matchedSkuBoundary: "",
+      cleanLot: "",
+      parseMethod: "",
+      source,
+      confidenceSignals: {
+        prefixExact: false,
+        prefixFuzzy: false,
+        directLot: false,
+      },
+    };
+    if (!rawCandidate || isIrrelevantBarcode(rawCandidate)) {
+      return { ...base, accepted: false, reason: "irrelevant_product_code" };
+    }
+
+    for (const signature of skuBoundarySignatures(expectedSku)) {
+      const match = prefixMatch(normalizedCandidate, signature, allowFuzzyPrefix);
+      if (!match) continue;
+      const boundary = canonicalRangeEnd(rawCandidate, match.start, signature.length);
+      const lot = cleanLot(rawCandidate.slice(boundary).replace(/^[^A-Z0-9]+/i, ""));
+      if (!validLotShape(lot)) {
+        return {
+          ...base,
+          accepted: false,
+          reason: "sku_prefix_parse_failed",
+          matchedSkuBoundary: signature,
+        };
+      }
+      return {
+        ...base,
+        accepted: true,
+        matchedSkuBoundary: signature,
+        cleanLot: lot,
+        parseMethod: match.fuzzy ? "known_sku_boundary_ocr" : "known_sku_boundary",
+        prefixStart: match.start,
+        confidenceSignals: {
+          prefixExact: match.exact,
+          prefixFuzzy: match.fuzzy,
+          directLot: false,
+          prefixDistance: match.distance,
+        },
+      };
+    }
+
+    const boundaryOnly = skuBoundarySignatures(expectedSku).includes(normalizedCandidate);
+    if (normalizedCandidate === normalizedSku || boundaryOnly) {
+      return { ...base, accepted: false, reason: "sku_only_candidate" };
+    }
+    if (DIRECT_LOT_PATTERN.test(rawCandidate)) {
+      return {
+        ...base,
+        accepted: true,
+        cleanLot: cleanLot(rawCandidate),
+        parseMethod: "direct_lot",
+        confidenceSignals: { prefixExact: false, prefixFuzzy: false, directLot: true },
+      };
+    }
+    return { ...base, accepted: false, reason: "unclassified_candidate" };
   }
 
   function parseModernBarcode(barcodeValue, modelValue = "", { allowSkuPrefix = true } = {}) {
     const rawBarcode = clean(barcodeValue).toUpperCase();
-    const normalized = canonical(rawBarcode);
-    if (isIrrelevantBarcode(rawBarcode)) {
-      return { accepted: false, reason: "irrelevant_product_code", rawBarcode };
-    }
-    if (allowSkuPrefix) {
-      for (const prefix of modernPrefixes(modelValue)) {
-        if (!normalized.startsWith(prefix)) continue;
-        const boundary = canonicalBoundaryEnd(rawBarcode, prefix);
-        const lot = cleanLot(rawBarcode.slice(boundary).replace(/^[^A-Z0-9]+/i, ""));
-        if (canonical(lot).length >= 6) {
-          return {
-            accepted: true,
-            lot,
-            rawBarcode,
-            model: clean(modelValue).toUpperCase(),
-            rule: "known_model_prefix",
-            score: 100,
-          };
-        }
-      }
-    }
-    if (DIRECT_LOT_PATTERN.test(rawBarcode)) {
+    const parsed = parseLotCandidate(rawBarcode, modelValue, {
+      source: "barcode",
+      allowFuzzyPrefix: false,
+    });
+    if (parsed.accepted && (allowSkuPrefix || !parsed.matchedSkuBoundary)) {
       return {
         accepted: true,
-        lot: rawBarcode,
+        lot: parsed.cleanLot,
         rawBarcode,
         model: clean(modelValue).toUpperCase(),
-        rule: "direct_lot",
-        score: 90,
+        matchedPrefix: parsed.matchedSkuBoundary,
+        rule: parsed.matchedSkuBoundary ? "known_model_prefix" : "direct_lot",
+        score: parsed.matchedSkuBoundary ? 100 : 90,
+        parseDetails: parsed,
       };
     }
-    return { accepted: false, reason: "unclassified_barcode", rawBarcode };
+    return {
+      accepted: false,
+      reason: parsed.reason === "irrelevant_product_code"
+        ? "irrelevant_product_code"
+        : "unclassified_barcode",
+      rawBarcode,
+      parseDetails: parsed,
+    };
   }
 
   function extractField(textValue, labelPattern) {
@@ -201,36 +299,31 @@
 
   function parseStructuredBatch(batchValue, modelValue) {
     const rawBatch = clean(batchValue).toUpperCase();
-    const normalized = canonical(rawBatch);
     if (!rawBatch) return { accepted: false, reason: "structured_batch_missing" };
-    for (const prefix of modernPrefixes(modelValue)) {
-      const matchAt = normalized.indexOf(prefix);
-      // Legacy labels may add a short supplier marker (for example "AT")
-      // before the product/color suffix. A match deeper in the value is not a
-      // safe product boundary and must not trigger arbitrary truncation.
-      if (matchAt < 0 || matchAt > 4) continue;
-      const boundary = canonicalBoundaryEnd(rawBatch, prefix, matchAt);
-      const lot = cleanLot(rawBatch.slice(boundary).replace(/^[^A-Z0-9]+/i, ""));
-      if (validLotShape(lot)) {
-        return {
-          accepted: true,
-          lot,
-          rawBatch,
-          matchedPrefix: prefix,
-          rule: matchAt ? "sku_boundary_after_supplier_marker" : "known_model_prefix",
-        };
-      }
-    }
-    if (validLotShape(rawBatch)) {
+    const parsed = parseLotCandidate(rawBatch, modelValue, {
+      source: "structured_batch_ocr",
+      allowFuzzyPrefix: true,
+    });
+    if (parsed.accepted) {
       return {
         accepted: true,
-        lot: cleanLot(rawBatch),
+        lot: parsed.cleanLot,
         rawBatch,
-        matchedPrefix: "",
-        rule: "clean_structured_batch",
+        matchedPrefix: parsed.matchedSkuBoundary,
+        rule: parsed.matchedSkuBoundary
+          ? (parsed.prefixStart ? "sku_boundary_after_supplier_marker" : "known_model_prefix")
+          : "clean_structured_batch",
+        parseDetails: parsed,
       };
     }
-    return { accepted: false, reason: "structured_batch_invalid", rawBatch };
+    return {
+      accepted: false,
+      reason: parsed.reason === "sku_prefix_parse_failed"
+        ? "sku_prefix_parse_failed"
+        : "structured_batch_invalid",
+      rawBatch,
+      parseDetails: parsed,
+    };
   }
 
   function legacyRuleForModel(modelValue, rules = LEGACY_RULES) {
@@ -309,272 +402,299 @@
       .sort((left, right) => Number(right.score || 0) - Number(left.score || 0));
   }
 
-  function parsePrintedCandidate(value, labelClass, expectedModel) {
-    const source = clean(value);
-    if (!source) return { accepted: false, reason: "empty_printed_value", source };
-    if (labelClass === "model_batch") {
-      const structured = parseStructuredBatch(source, expectedModel);
-      if (structured.accepted) return { ...structured, rawBarcode: source, source };
-      return { ...parseModernBarcode(source, expectedModel), source };
-    }
+  function parsePrintedCandidate(value, expectedModel, {
+    evidenceSource = "printed_text_ocr", allowFuzzyPrefix = true,
+  } = {}) {
+    const rawSource = clean(value);
+    if (!rawSource) return { accepted: false, reason: "empty_printed_value", source: rawSource };
+    const parsed = parseLotCandidate(rawSource, expectedModel, {
+      source: evidenceSource,
+      allowFuzzyPrefix,
+    });
+    if (!parsed.accepted) return { ...parsed, source: rawSource };
     return {
-      ...parseModernBarcode(source, "", { allowSkuPrefix: false }),
-      source,
+      accepted: true,
+      lot: parsed.cleanLot,
+      rawBarcode: rawSource,
+      source: rawSource,
+      matchedPrefix: parsed.matchedSkuBoundary,
+      rule: parsed.matchedSkuBoundary
+        ? (parsed.prefixStart ? "sku_boundary_after_supplier_marker" : "known_model_prefix")
+        : "direct_lot",
+      score: parsed.confidenceSignals.prefixExact ? 100
+        : parsed.confidenceSignals.prefixFuzzy ? 94 : 90,
+      parseDetails: parsed,
+    };
+  }
+
+  function rankOcrCandidates(readings = [], expectedModel = "") {
+    const groups = new Map();
+    const rejected = [];
+    readings.forEach((reading, readingIndex) => {
+      const text = String(reading?.text ?? "");
+      const fields = extractLabelFields(text);
+      const readingConfidence = Math.max(0, Math.min(100, Number(reading?.confidence) || 0));
+      const batchConfidence = Math.max(
+        readingConfidence,
+        Number(reading?.fieldConfidence?.batch) || 0,
+      );
+      const values = [
+        fields.batch ? { value: fields.batch, structuredBatch: fields.hasStructuredBatch } : null,
+        ...extractHumanReadableCandidates(text).map((value) => ({ value, structuredBatch: false })),
+      ].filter(Boolean);
+      const perReading = new Map();
+      values.forEach(({ value, structuredBatch }) => {
+        const parsed = parsePrintedCandidate(value, expectedModel, {
+          evidenceSource: structuredBatch ? "structured_batch_ocr" : "printed_text_ocr",
+          allowFuzzyPrefix: true,
+        });
+        if (!parsed.accepted) {
+          rejected.push({
+            readingId: clean(reading?.id || `pass-${readingIndex + 1}`),
+            rawCandidate: clean(value),
+            reason: parsed.reason,
+          });
+          return;
+        }
+        const key = canonical(parsed.lot);
+        const evidence = {
+          ...parsed,
+          readingId: clean(reading?.id || `pass-${readingIndex + 1}`),
+          confidence: structuredBatch ? batchConfidence : readingConfidence,
+          structuredBatch,
+        };
+        const prior = perReading.get(key);
+        if (!prior || evidence.score > prior.score || evidence.confidence > prior.confidence) {
+          perReading.set(key, evidence);
+        }
+      });
+      perReading.forEach((evidence, key) => {
+        const group = groups.get(key) || {
+          lot: evidence.lot,
+          votes: 0,
+          bestConfidence: 0,
+          prefixExactVotes: 0,
+          prefixFuzzyVotes: 0,
+          structuredBatchVotes: 0,
+          evidence: [],
+        };
+        group.votes += 1;
+        group.bestConfidence = Math.max(group.bestConfidence, evidence.confidence);
+        group.prefixExactVotes += Number(Boolean(evidence.parseDetails?.confidenceSignals?.prefixExact));
+        group.prefixFuzzyVotes += Number(Boolean(evidence.parseDetails?.confidenceSignals?.prefixFuzzy));
+        group.structuredBatchVotes += Number(Boolean(evidence.structuredBatch));
+        group.evidence.push(evidence);
+        groups.set(key, group);
+      });
+    });
+
+    const ranked = [...groups.values()].map((group) => {
+      const strong = (
+        group.structuredBatchVotes > 0 && group.bestConfidence >= MIN_MODEL_BATCH_CONFIDENCE
+      ) || (
+        group.prefixExactVotes > 0 && group.bestConfidence >= MIN_MODEL_BATCH_CONFIDENCE
+      ) || (
+        group.prefixExactVotes >= 2 && group.bestConfidence >= MIN_PREFIX_OCR_CONFIDENCE
+      ) || (
+        group.prefixFuzzyVotes >= 2 && group.bestConfidence >= MIN_PREFIX_OCR_CONFIDENCE
+      ) || (
+        group.votes >= 2 && group.bestConfidence >= MIN_MODEL_BATCH_CONFIDENCE
+      ) || group.bestConfidence >= MIN_OCR_ONLY_CONFIDENCE;
+      const structuralScore = group.prefixExactVotes * 30 + group.prefixFuzzyVotes * 20 +
+        group.structuredBatchVotes * 20;
+      return {
+        ...group,
+        strong,
+        structuralScore,
+        rankScore: group.votes * 100 + structuralScore + group.bestConfidence,
+      };
+    }).sort((left, right) => right.rankScore - left.rankScore);
+    const strongGroups = ranked.filter((group) => group.strong);
+    return {
+      ranked,
+      selected: strongGroups[0] || null,
+      ambiguous: strongGroups.length > 1 &&
+        canonical(strongGroups[0].lot) !== canonical(strongGroups[1].lot),
+      rejected,
     };
   }
 
   function evaluateCapture({
     barcodes = [], ocrText = "", ocrConfidence = 0, fieldConfidence = 0,
-    sku = "", barcodeDetections = [],
+    sku = "", barcodeDetections = [], ocrReadings = [],
   } = {}) {
     const fields = extractLabelFields(ocrText);
     const expectedModel = clean(sku || fields.model).toUpperCase();
     const detectedModel = clean(fields.model).toUpperCase();
     const compatibility = modelCompatibility(detectedModel, expectedModel);
-    const barcodeHasKnownSkuPrefix = modernPrefixes(expectedModel).some((prefix) =>
-      barcodes.some((value) => canonical(value).startsWith(prefix)),
-    );
-    const labelClass = fields.hasStructuredModel || barcodeHasKnownSkuPrefix ||
-      (fields.hasStructuredBatch && detectedModel && compatibility.accepted)
-      ? "model_batch"
-      : "direct_lot";
     const confidence = Number.isFinite(Number(ocrConfidence))
       ? Math.max(0, Math.min(100, Number(ocrConfidence)))
       : 0;
     const trustedFieldConfidence = Number.isFinite(Number(fieldConfidence))
       ? Math.max(0, Math.min(100, Number(fieldConfidence)))
       : 0;
-    const batchEvidenceConfidence = Math.max(confidence, trustedFieldConfidence);
-    const barcodeResults = classifyBarcodes(
-      barcodes,
-      labelClass === "model_batch" ? expectedModel : "",
-      { allowSkuPrefix: labelClass === "model_batch" },
-    );
+    const evidenceReadings = ocrReadings.length ? ocrReadings : [{
+      id: "combined",
+      text: ocrText,
+      confidence,
+      fieldConfidence: { batch: trustedFieldConfidence },
+    }];
+
+    // The expected COC SKU is authoritative context for every candidate. The
+    // parser no longer waits for MODEL NO. to appear inside a barcode-focused
+    // ROI before it is allowed to strip the SKU-derived product boundary.
+    const barcodeResults = classifyBarcodes(barcodes, expectedModel, { allowSkuPrefix: true });
     const acceptedBarcodes = barcodeResults.filter((candidate) => candidate.accepted);
     const distinctBarcodeLots = [...new Set(
       acceptedBarcodes.map((candidate) => canonical(candidate.lot)).filter(Boolean),
     )];
     const barcode = acceptedBarcodes[0] || null;
-    const humanReads = extractHumanReadableCandidates(ocrText);
-    const printedSources = [...new Set([fields.batch, ...humanReads].map(clean).filter(Boolean))];
-    const printedResults = printedSources.map(
-      (value) => parsePrintedCandidate(value, labelClass, expectedModel),
+    const ocrEvidence = rankOcrCandidates(evidenceReadings, expectedModel);
+    const printed = ocrEvidence.selected;
+    const printedLead = printed?.evidence?.slice().sort((left, right) =>
+      (right.score + right.confidence) - (left.score + left.confidence),
+    )[0] || null;
+    const boundaryDetected = Boolean(
+      barcode?.matchedPrefix || ocrEvidence.ranked.some((group) =>
+        group.evidence.some((item) => item.matchedPrefix)),
     );
-    const labeledBatchResult = printedResults.find(
-      (candidate) => candidate.source === fields.batch,
-    ) || null;
-    const trustedPrinted = printedResults.filter((candidate) => candidate.accepted && (
-      (candidate.source === fields.batch && batchEvidenceConfidence >= MIN_MODEL_BATCH_CONFIDENCE) ||
-      (candidate.source !== fields.batch && confidence >= MIN_OCR_ONLY_CONFIDENCE)
-    ));
+    const labelClass = fields.hasStructuredModel || fields.hasStructuredBatch || boundaryDetected
+      ? "model_batch"
+      : "direct_lot";
     const barcodeFormat = clean(
       barcodeDetections.find((item) => canonical(item?.value) === canonical(barcode?.rawBarcode))?.format,
     );
-
-    if (distinctBarcodeLots.length > 1) {
-      return {
-        status: "rescan",
-        reason: "ambiguous_barcode_lot",
-        confidenceState: "needs_verification",
-        labelClass,
-        rawBatchText: fields.batch,
-        model: detectedModel,
-        expectedModel,
-        barcodeCandidates: barcodeResults,
-      };
-    }
-
-    if (barcode) {
-      if (labelClass === "model_batch" && !compatibility.accepted) {
-        return {
-          status: "rescan",
-          reason: "model_sku_mismatch",
-          confidenceState: "needs_verification",
-          labelClass,
-          rawBarcode: barcode.rawBarcode,
-          rawBatchText: fields.batch,
-          model: detectedModel,
-          expectedModel,
-          confidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-      const matchingPrinted = trustedPrinted.find(
-        (candidate) => canonical(candidate.lot) === canonical(barcode.lot),
-      );
-      const labeledBatchLot = labeledBatchResult?.accepted
-        ? labeledBatchResult.lot
-        : cleanLot(fields.batch);
-      if (fields.batch && batchEvidenceConfidence >= MIN_MODEL_BATCH_CONFIDENCE &&
-        canonical(labeledBatchLot) !== canonical(barcode.lot)) {
-        return {
-          status: "mismatch",
-          reason: "barcode_print_mismatch",
-          confidenceState: "needs_verification",
-          labelClass,
-          lot: barcode.lot,
-          printedLot: labeledBatchLot,
-          rawBarcode: barcode.rawBarcode,
-          rawBatchText: fields.batch,
-          model: detectedModel || expectedModel || barcode.model,
-          expectedModel,
-          captureMethod: "barcode",
-          validationMethod: "barcode_print_mismatch",
-          barcodeFormat,
-          confidence: batchEvidenceConfidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-      const conflictingPrinted = trustedPrinted.find(
-        (candidate) => canonical(candidate.lot) !== canonical(barcode.lot),
-      );
-      if (!matchingPrinted && conflictingPrinted) {
-        return {
-          status: "mismatch",
-          reason: "barcode_print_mismatch",
-          confidenceState: "needs_verification",
-          labelClass,
-          lot: barcode.lot,
-          printedLot: conflictingPrinted.lot,
-          rawBarcode: barcode.rawBarcode,
-          rawBatchText: conflictingPrinted.source,
-          model: detectedModel || expectedModel || barcode.model,
-          expectedModel,
-          captureMethod: "barcode",
-          validationMethod: "barcode_print_mismatch",
-          barcodeFormat,
-          confidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-      return {
-        status: "confirm",
-        lot: barcode.lot,
-        confidenceState: matchingPrinted ? "verified" : "recognized",
-        labelClass,
-        rawBarcode: barcode.rawBarcode,
-        rawBatchText: matchingPrinted?.source || fields.batch,
-        model: detectedModel || expectedModel || barcode.model,
-        expectedModel,
-        captureMethod: matchingPrinted ? "barcode_ocr" : "barcode",
-        validationMethod: matchingPrinted ? "barcode_print_match" : barcode.rule,
-        modelMatchMethod: compatibility.method,
-        barcodeFormat,
-        confidence: Math.max(confidence, matchingPrinted ? batchEvidenceConfidence : 0),
-        barcodeCandidates: barcodeResults,
-      };
-    }
-
-    if (labelClass === "model_batch" && fields.batch) {
-      if (!compatibility.accepted) {
-        return {
-          status: "rescan",
-          reason: "model_sku_mismatch",
-          confidenceState: "needs_verification",
-          labelClass,
-          rawBatchText: fields.batch,
-          model: detectedModel,
-          expectedModel,
-          confidence: batchEvidenceConfidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-      if (batchEvidenceConfidence < MIN_MODEL_BATCH_CONFIDENCE) {
-        return {
-          status: "rescan",
-          reason: "low_ocr_confidence",
-          confidenceState: "needs_verification",
-          labelClass,
-          candidateLot: labeledBatchResult?.accepted ? labeledBatchResult.lot : "",
-          rawBatchText: fields.batch,
-          model: detectedModel,
-          expectedModel,
-          confidence: batchEvidenceConfidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-      if (labeledBatchResult?.accepted) {
-        const isLegacy = labeledBatchResult.rule === "sku_boundary_after_supplier_marker";
-        return {
-          status: "confirm",
-          lot: labeledBatchResult.lot,
-          confidenceState: "recognized",
-          labelClass,
-          rawBarcode: "",
-          rawBatchText: fields.batch,
-          model: detectedModel || expectedModel,
-          expectedModel,
-          captureMethod: isLegacy ? "legacy_ocr" : "printed_batch_ocr",
-          validationMethod: labeledBatchResult.rule,
-          modelMatchMethod: compatibility.method,
-          confidence: batchEvidenceConfidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-    }
-
-    if (confidence >= MIN_OCR_ONLY_CONFIDENCE) {
-      const acceptedPrinted = printedResults.filter((candidate) => candidate.accepted);
-      const distinctLots = [...new Set(acceptedPrinted.map((candidate) => canonical(candidate.lot)))];
-      if (distinctLots.length === 1 && acceptedPrinted[0]) {
-        const printed = acceptedPrinted[0];
-        return {
-          status: "confirm",
-          lot: printed.lot,
-          confidenceState: "recognized",
-          labelClass,
-          rawBarcode: "",
-          rawBatchText: printed.source,
-          model: detectedModel || expectedModel,
-          expectedModel,
-          captureMethod: fields.hasStructuredBatch ? "printed_batch_ocr" : "printed_text_ocr",
-          validationMethod: printed.rule === "known_model_prefix"
-            ? "ocr_sku_prefix"
-            : "ocr_direct_lot",
-          confidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-      if (distinctLots.length > 1) {
-        return {
-          status: "rescan",
-          reason: "ambiguous_printed_lot",
-          confidenceState: "needs_verification",
-          labelClass,
-          model: detectedModel || expectedModel,
-          expectedModel,
-          confidence,
-          barcodeCandidates: barcodeResults,
-        };
-      }
-    }
-
-    if (fields.batch) {
-      return {
-        status: "rescan",
-        reason: confidence < MIN_OCR_CONFIDENCE ? "low_ocr_confidence" : "label_fields_not_verified",
-        confidenceState: "needs_verification",
-        labelClass,
-        candidateLot: labeledBatchResult?.accepted ? labeledBatchResult.lot : "",
-        rawBatchText: fields.batch,
-        model: detectedModel,
-        expectedModel,
-        confidence,
-        barcodeCandidates: barcodeResults,
-      };
-    }
-
-    return {
-      status: "rescan",
-      reason: barcodeResults.some((candidate) => candidate.reason === "irrelevant_product_code")
-        ? "lot_barcode_not_identified"
-        : "label_fields_not_verified",
-      confidenceState: "needs_verification",
+    const ocrCandidates = ocrEvidence.ranked.map((group) => ({
+      lot: group.lot,
+      votes: group.votes,
+      bestConfidence: group.bestConfidence,
+      prefixExactVotes: group.prefixExactVotes,
+      prefixFuzzyVotes: group.prefixFuzzyVotes,
+      structuredBatchVotes: group.structuredBatchVotes,
+      strong: group.strong,
+      rawCandidates: group.evidence.map((item) => item.source),
+    }));
+    const hasOcrResult = evidenceReadings.some((reading) => canonical(reading?.text));
+    const skuPrefixParseFailed = barcodeResults.some(
+      (candidate) => candidate.parseDetails?.reason === "sku_prefix_parse_failed",
+    ) || ocrEvidence.rejected.some((candidate) => candidate.reason === "sku_prefix_parse_failed");
+    const failureSignals = [
+      barcodes.length ? "" : "NO_BARCODE_RESULT",
+      hasOcrResult ? "" : "NO_OCR_RESULT",
+      skuPrefixParseFailed ? "SKU_PREFIX_PARSE_FAILED" : "",
+    ].filter(Boolean);
+    const common = {
       labelClass,
+      rawBatchText: fields.batch,
       model: detectedModel,
       expectedModel,
       confidence,
       barcodeCandidates: barcodeResults,
+      ocrCandidates,
+      ocrRejectedCandidates: ocrEvidence.rejected,
+      failureSignals,
+    };
+
+    if (distinctBarcodeLots.length > 1) {
+      return {
+        ...common,
+        status: "rescan",
+        reason: "ambiguous_barcode_lot",
+        failureCode: "AMBIGUOUS_LOT",
+        confidenceState: "needs_verification",
+      };
+    }
+    if (detectedModel && !compatibility.accepted) {
+      return {
+        ...common,
+        status: "rescan",
+        reason: "model_sku_mismatch",
+        failureCode: "SKU_MISMATCH",
+        confidenceState: "needs_verification",
+        rawBarcode: barcode?.rawBarcode || "",
+      };
+    }
+    if (ocrEvidence.ambiguous) {
+      return {
+        ...common,
+        status: "rescan",
+        reason: "ambiguous_printed_lot",
+        failureCode: "AMBIGUOUS_LOT",
+        confidenceState: "needs_verification",
+        candidateLot: printed?.lot || "",
+      };
+    }
+
+    if (barcode) {
+      const printedMatches = printed && canonical(printed.lot) === canonical(barcode.lot);
+      if (printed && !printedMatches) {
+        return {
+          ...common,
+          status: "mismatch",
+          reason: "barcode_print_mismatch",
+          failureCode: "SOURCE_CONFLICT",
+          confidenceState: "needs_verification",
+          lot: barcode.lot,
+          printedLot: printed.lot,
+          rawBarcode: barcode.rawBarcode,
+          rawBatchText: printedLead?.source || fields.batch,
+          model: detectedModel || expectedModel || barcode.model,
+          captureMethod: "barcode",
+          validationMethod: "barcode_print_mismatch",
+          barcodeFormat,
+          confidence: Math.max(confidence, printed.bestConfidence),
+        };
+      }
+      return {
+        ...common,
+        status: "confirm",
+        lot: barcode.lot,
+        confidenceState: printedMatches ? "verified" : "recognized",
+        rawBarcode: barcode.rawBarcode,
+        rawBatchText: printedMatches ? printedLead?.source || fields.batch : fields.batch,
+        model: detectedModel || expectedModel || barcode.model,
+        captureMethod: printedMatches ? "barcode_ocr" : "barcode",
+        validationMethod: printedMatches ? "barcode_print_match" : barcode.rule,
+        modelMatchMethod: compatibility.method,
+        barcodeFormat,
+        confidence: Math.max(confidence, printedMatches ? printed.bestConfidence : 0),
+      };
+    }
+
+    if (printed && printedLead) {
+      const isLegacy = printedLead.rule === "sku_boundary_after_supplier_marker";
+      const isStructured = Boolean(printedLead.structuredBatch);
+      const prefixFuzzy = Boolean(printedLead.parseDetails?.confidenceSignals?.prefixFuzzy);
+      return {
+        ...common,
+        status: "confirm",
+        lot: printed.lot,
+        confidenceState: "recognized",
+        rawBarcode: "",
+        rawBatchText: printedLead.source,
+        model: detectedModel || expectedModel,
+        captureMethod: isLegacy ? "legacy_ocr"
+          : isStructured ? "printed_batch_ocr" : "printed_text_ocr",
+        validationMethod: printedLead.matchedPrefix
+          ? (prefixFuzzy ? "ocr_sku_prefix_consensus" : "ocr_sku_prefix")
+          : "ocr_direct_lot",
+        modelMatchMethod: compatibility.method,
+        confidence: printed.bestConfidence,
+      };
+    }
+
+    const parsedButWeak = ocrEvidence.ranked[0] || null;
+    const productBarcodeOnly = barcodeResults.length > 0 &&
+      barcodeResults.every((candidate) => candidate.reason === "irrelevant_product_code");
+    return {
+      ...common,
+      status: "rescan",
+      reason: productBarcodeOnly ? "lot_barcode_not_identified"
+        : parsedButWeak ? "low_ocr_confidence" : "label_fields_not_verified",
+      failureCode: skuPrefixParseFailed ? "SKU_PREFIX_PARSE_FAILED"
+        : parsedButWeak ? "CONFIDENCE_TOO_LOW" : "NO_VALID_CANDIDATE",
+      confidenceState: "needs_verification",
+      candidateLot: parsedButWeak?.lot || "",
     };
   }
 
@@ -582,11 +702,14 @@
     MIN_OCR_CONFIDENCE,
     MIN_OCR_ONLY_CONFIDENCE,
     MIN_MODEL_BATCH_CONFIDENCE,
+    MIN_PREFIX_OCR_CONFIDENCE,
     LEGACY_RULES,
     canonical,
     cleanLot,
     isIrrelevantBarcode,
+    skuBoundarySignatures,
     modernPrefixes,
+    parseLotCandidate,
     parseModernBarcode,
     extractLabelFields,
     extractHumanReadableCandidates,
@@ -597,6 +720,8 @@
     levenshtein,
     findSimilarLot,
     classifyBarcodes,
+    parsePrintedCandidate,
+    rankOcrCandidates,
     evaluateCapture,
   });
 })(window);

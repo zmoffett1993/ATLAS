@@ -12,6 +12,7 @@
   let zxingReader = null;
 
   const cleanValue = (value) => String(value ?? "").trim().slice(0, 180);
+  const now = () => global.performance?.now?.() ?? Date.now();
 
   function createCanvas(width, height) {
     const canvas = document.createElement("canvas");
@@ -24,6 +25,15 @@
     const copy = createCanvas(source.width, source.height);
     copy.getContext("2d", { willReadFrequently: true }).drawImage(source, 0, 0);
     return copy;
+  }
+
+  function resizeCanvas(source, multiplier = 1, maximumWidth = 3200) {
+    const scale = Math.max(1, Math.min(Number(multiplier) || 1, maximumWidth / source.width));
+    const canvas = createCanvas(source.width * scale, source.height * scale);
+    canvas.getContext("2d", { willReadFrequently: true }).drawImage(
+      source, 0, 0, source.width, source.height, 0, 0, canvas.width, canvas.height,
+    );
+    return canvas;
   }
 
   function cropCanvas(source, region) {
@@ -288,10 +298,17 @@
     return canvas;
   }
 
+  function humanReadableTextRegion(source, mode = "original") {
+    // The exact blue-guide ROI is the only source. This internal crop excludes
+    // most barcode bars so single-line OCR can focus on the printed value.
+    const line = resizeCanvas(cropCanvas(source, {
+      x: 0, y: 0.5, width: 1, height: 0.47,
+    }), 3, 3200);
+    return mode === "original" ? line : imageVariant(line, mode);
+  }
+
   function textBand(source) {
-    return imageVariant(cropCanvas(source, {
-      x: 0, y: 0.42, width: 1, height: 0.58,
-    }), "strong-contrast");
+    return humanReadableTextRegion(source, "strong-contrast");
   }
 
   function labelFieldsRegion(source) {
@@ -304,9 +321,10 @@
     return [
       { id: "original", status: "Reading the complete label…", create: () => copyCanvas(source), mode: "sparse" },
       { id: "fields", status: "Finding Model and Batch fields…", create: () => labelFieldsRegion(source), mode: "block" },
-      { id: "barcode-text", status: "Reading text below the barcode…", create: () => textBand(source), mode: "sparse" },
+      { id: "human-line", status: "Reading the text below the barcode…", create: () => humanReadableTextRegion(source), mode: "line" },
+      { id: "human-line-contrast", status: "Checking wrapped barcode text…", create: () => humanReadableTextRegion(source, "strong-contrast"), mode: "line" },
+      { id: "human-line-threshold", status: "Verifying barcode-text characters…", create: () => humanReadableTextRegion(source, "threshold"), mode: "line" },
       { id: "sharpened", status: "Checking faded and wrapped characters…", create: () => imageVariant(source, "sharpen"), mode: "sparse" },
-      { id: "high-contrast", status: "Verifying the strongest label candidates…", create: () => imageVariant(labelFieldsRegion(source), "threshold"), mode: "block" },
     ];
   }
 
@@ -332,8 +350,11 @@
     return zxingReader;
   }
 
-  async function detectNative(canvas) {
-    if (!global.BarcodeDetector) return [];
+  async function detectNative(canvas, diagnostics = null) {
+    if (!global.BarcodeDetector) {
+      diagnostics?.errors?.push({ engine: "native", code: "UNAVAILABLE" });
+      return [];
+    }
     try {
       const supported = await global.BarcodeDetector.getSupportedFormats?.();
       const wanted = [
@@ -341,6 +362,7 @@
         "ean_13", "ean_8", "upc_a", "upc_e",
       ]
         .filter((format) => !supported?.length || supported.includes(format));
+      if (diagnostics) diagnostics.formats.native = wanted;
       const detector = new global.BarcodeDetector(wanted.length ? { formats: wanted } : undefined);
       const results = await detector.detect(canvas);
       return results.map((result) => ({
@@ -348,19 +370,33 @@
         format: cleanValue(result.format || "unknown"),
         engine: "native",
       })).filter((item) => item.value);
-    } catch {
+    } catch (error) {
+      diagnostics?.errors?.push({
+        engine: "native",
+        code: cleanValue(error?.name || "DECODE_EXCEPTION"),
+        message: cleanValue(error?.message || "Native barcode decode failed."),
+      });
       return [];
     }
   }
 
-  async function detectZxing(canvas) {
+  async function detectZxing(canvas, diagnostics = null) {
     try {
       const reader = getZxingReader();
-      if (!reader) return [];
+      if (!reader) {
+        diagnostics?.errors?.push({ engine: "zxing", code: "UNAVAILABLE" });
+        return [];
+      }
+      if (diagnostics) diagnostics.formats.zxing = [...ONE_D_FORMATS];
       const result = reader.decodeFromCanvas(canvas);
       const value = resultValue(result);
       return value ? [{ value, format: zxingFormat(result), engine: "zxing" }] : [];
-    } catch {
+    } catch (error) {
+      diagnostics?.errors?.push({
+        engine: "zxing",
+        code: cleanValue(error?.name || "NO_RESULT"),
+        message: cleanValue(error?.message || "ZXing did not return a barcode."),
+      });
       return [];
     }
   }
@@ -374,31 +410,71 @@
     return [...values.values()];
   }
 
-  async function decodeFrame(canvas, { enhanced = false, isCancelled = () => false } = {}) {
+  async function decodeFrame(canvas, {
+    enhanced = false, isCancelled = () => false, onTrace = null,
+  } = {}) {
     // Do not stop at the first decoded symbol. Cartons often show UPC, case,
     // product, and lot barcodes together; the parser must receive every viable
     // candidate so it can reject product codes and cross-check the lot.
-    const builders = [() => canvas];
+    const builders = [{ id: "original", create: () => canvas }];
     if (enhanced) builders.push(
-      () => imageVariant(canvas, "grayscale"),
-      () => imageVariant(canvas, "contrast"),
-      () => imageVariant(canvas, "sharpen"),
-      () => imageVariant(canvas, "threshold"),
-      () => rotateCanvas(imageVariant(canvas, "contrast"), 2.5),
-      () => rotateCanvas(imageVariant(canvas, "contrast"), -2.5),
+      { id: "grayscale", create: () => imageVariant(canvas, "grayscale") },
+      { id: "contrast", create: () => imageVariant(canvas, "contrast") },
+      { id: "sharpen", create: () => imageVariant(canvas, "sharpen") },
+      { id: "threshold", create: () => imageVariant(canvas, "threshold") },
+      { id: "rotate-positive", create: () => rotateCanvas(imageVariant(canvas, "contrast"), 2.5) },
+      { id: "rotate-negative", create: () => rotateCanvas(imageVariant(canvas, "contrast"), -2.5) },
     );
+    const startedAt = now();
+    const diagnostics = {
+      input: {
+        width: Number(canvas?.width || 0),
+        height: Number(canvas?.height || 0),
+        sourceType: canvas?.constructor?.name || "Canvas",
+      },
+      formats: { native: [], zxing: [...ONE_D_FORMATS] },
+      variants: [],
+      errors: [],
+      cancelled: false,
+    };
     const found = [];
-    for (const build of builders) {
-      if (isCancelled()) return uniqueDetections(found);
-      // Give the UI a chance to paint the frozen photo and progress state
-      // between expensive still-image variants on mobile Safari.
-      await new Promise((resolve) => global.setTimeout(resolve, 0));
-      if (isCancelled()) return uniqueDetections(found);
-      const source = build();
-      const [native, zxing] = await Promise.all([detectNative(source), detectZxing(source)]);
-      found.push(...native, ...zxing);
+    try {
+      for (const builder of builders) {
+        if (isCancelled()) {
+          diagnostics.cancelled = true;
+          break;
+        }
+        // Give the UI a chance to paint the frozen photo and progress state
+        // between expensive still-image variants on mobile Safari.
+        await new Promise((resolve) => global.setTimeout(resolve, 0));
+        if (isCancelled()) {
+          diagnostics.cancelled = true;
+          break;
+        }
+        const variantStartedAt = now();
+        const source = builder.create();
+        const errorStart = diagnostics.errors.length;
+        const [native, zxing] = await Promise.all([
+          detectNative(source, diagnostics), detectZxing(source, diagnostics),
+        ]);
+        const candidates = [...native, ...zxing];
+        found.push(...candidates);
+        diagnostics.variants.push({
+          id: builder.id,
+          width: source.width,
+          height: source.height,
+          candidates: candidates.map((item) => ({ ...item })),
+          errors: diagnostics.errors.slice(errorStart),
+          durationMs: Math.round(now() - variantStartedAt),
+        });
+      }
+      return uniqueDetections(found);
+    } finally {
+      const selected = uniqueDetections(found);
+      diagnostics.rawCandidates = selected.map((item) => ({ ...item }));
+      diagnostics.durationMs = Math.round(now() - startedAt);
+      try { onTrace?.(diagnostics); } catch {}
     }
-    return uniqueDetections(found);
   }
 
   async function configureTrack(track) {
@@ -432,11 +508,13 @@
     mapVisibleRoiToSource,
     captureRoi,
     copyCanvas,
+    resizeCanvas,
     cropCanvas,
     rotateCanvas,
     qualityScore,
     imageVariant,
     labelFieldsRegion,
+    humanReadableTextRegion,
     textBand,
     buildOcrPasses,
     decodeFrame,

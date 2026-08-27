@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v182-coc-true-roi-crop";
+const VERSION = "atlas-pwa-v183-coc-recognition-root-cause";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,11 +9,11 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=145",
   "./atlas-coc.css?v=9",
   "./atlas-zxing-browser.min.js?v=1",
-  "./atlas-coc-scanner.js?v=4",
-  "./atlas-coc-parser.js?v=4",
+  "./atlas-coc-scanner.js?v=5",
+  "./atlas-coc-parser.js?v=5",
   "./atlas-coc-core.js?v=6",
   "./atlas-coc-excel.js?v=2",
-  "./atlas-coc.js?v=10",
+  "./atlas-coc.js?v=11",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
