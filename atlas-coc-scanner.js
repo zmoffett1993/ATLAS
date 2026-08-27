@@ -1,8 +1,10 @@
 (function (global) {
   "use strict";
 
-  const ROI = Object.freeze({ x: 0.04, y: 0.12, width: 0.92, height: 0.76 });
-  const MAX_CAPTURE_WIDTH = 2400;
+  // The guide is deliberately tall enough to include Model/Batch fields, the
+  // barcode, and its human-readable value in one employee-framed photograph.
+  const ROI = Object.freeze({ x: 0.035, y: 0.08, width: 0.93, height: 0.84 });
+  const MAX_CAPTURE_WIDTH = 2560;
   const ONE_D_FORMATS = Object.freeze([
     "CODE_128", "CODE_39", "CODE_93", "ITF", "CODABAR",
     "EAN_13", "EAN_8", "UPC_A", "UPC_E",
@@ -22,6 +24,41 @@
     const copy = createCanvas(source.width, source.height);
     copy.getContext("2d", { willReadFrequently: true }).drawImage(source, 0, 0);
     return copy;
+  }
+
+  function cropCanvas(source, region) {
+    const sourceX = Math.max(0, Math.round(source.width * region.x));
+    const sourceY = Math.max(0, Math.round(source.height * region.y));
+    const sourceWidth = Math.max(1, Math.min(
+      source.width - sourceX,
+      Math.round(source.width * region.width),
+    ));
+    const sourceHeight = Math.max(1, Math.min(
+      source.height - sourceY,
+      Math.round(source.height * region.height),
+    ));
+    const canvas = createCanvas(sourceWidth, sourceHeight);
+    canvas.getContext("2d", { willReadFrequently: true }).drawImage(
+      source, sourceX, sourceY, sourceWidth, sourceHeight,
+      0, 0, sourceWidth, sourceHeight,
+    );
+    return canvas;
+  }
+
+  function rotateCanvas(source, degrees) {
+    const radians = Number(degrees || 0) * Math.PI / 180;
+    const sine = Math.abs(Math.sin(radians));
+    const cosine = Math.abs(Math.cos(radians));
+    const width = Math.ceil(source.width * cosine + source.height * sine);
+    const height = Math.ceil(source.width * sine + source.height * cosine);
+    const canvas = createCanvas(width, height);
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, width, height);
+    context.translate(width / 2, height / 2);
+    context.rotate(radians);
+    context.drawImage(source, -source.width / 2, -source.height / 2);
+    return canvas;
   }
 
   function captureRoi(video, targetCanvas) {
@@ -77,10 +114,31 @@
     const canvas = copyCanvas(source);
     const context = canvas.getContext("2d", { willReadFrequently: true });
     const image = context.getImageData(0, 0, canvas.width, canvas.height);
+    if (mode === "sharpen") {
+      const original = new Uint8ClampedArray(image.data);
+      const width = canvas.width;
+      const height = canvas.height;
+      for (let y = 1; y < height - 1; y += 1) {
+        for (let x = 1; x < width - 1; x += 1) {
+          const offset = (y * width + x) * 4;
+          for (let channel = 0; channel < 3; channel += 1) {
+            const value = original[offset + channel] * 5
+              - original[offset - 4 + channel]
+              - original[offset + 4 + channel]
+              - original[offset - width * 4 + channel]
+              - original[offset + width * 4 + channel];
+            image.data[offset + channel] = Math.max(0, Math.min(255, value));
+          }
+        }
+      }
+      context.putImageData(image, 0, 0);
+      return canvas;
+    }
     for (let index = 0; index < image.data.length; index += 4) {
       const gray = image.data[index] * 0.299 + image.data[index + 1] * 0.587 + image.data[index + 2] * 0.114;
       let value = gray;
       if (mode === "contrast") value = Math.max(0, Math.min(255, (gray - 128) * 1.75 + 128));
+      if (mode === "strong-contrast") value = Math.max(0, Math.min(255, (gray - 128) * 2.15 + 128));
       if (mode === "threshold") value = gray > 154 ? 255 : 0;
       image.data[index] = value;
       image.data[index + 1] = value;
@@ -91,23 +149,25 @@
   }
 
   function textBand(source) {
-    const sourceY = Math.round(source.height * 0.45);
-    const band = createCanvas(source.width, source.height - sourceY);
-    band.getContext("2d", { willReadFrequently: true }).drawImage(
-      source, 0, sourceY, source.width, source.height - sourceY,
-      0, 0, band.width, band.height,
-    );
-    return imageVariant(band, "contrast");
+    return imageVariant(cropCanvas(source, {
+      x: 0, y: 0.42, width: 1, height: 0.58,
+    }), "strong-contrast");
   }
 
   function labelFieldsRegion(source) {
-    const regionHeight = Math.max(1, Math.round(source.height * 0.52));
-    const region = createCanvas(source.width, regionHeight);
-    region.getContext("2d", { willReadFrequently: true }).drawImage(
-      source, 0, 0, source.width, regionHeight,
-      0, 0, region.width, region.height,
-    );
-    return imageVariant(region, "contrast");
+    return imageVariant(cropCanvas(source, {
+      x: 0, y: 0, width: 1, height: 0.7,
+    }), "contrast");
+  }
+
+  function buildOcrPasses(source) {
+    return [
+      { id: "original", status: "Reading the complete label…", create: () => copyCanvas(source), mode: "sparse" },
+      { id: "fields", status: "Finding Model and Batch fields…", create: () => labelFieldsRegion(source), mode: "block" },
+      { id: "barcode-text", status: "Reading text below the barcode…", create: () => textBand(source), mode: "sparse" },
+      { id: "sharpened", status: "Checking faded and wrapped characters…", create: () => imageVariant(source, "sharpen"), mode: "sparse" },
+      { id: "high-contrast", status: "Verifying the strongest label candidates…", create: () => imageVariant(labelFieldsRegion(source), "threshold"), mode: "block" },
+    ];
   }
 
   function resultValue(result) {
@@ -174,18 +234,29 @@
     return [...values.values()];
   }
 
-  async function decodeFrame(canvas, { enhanced = false } = {}) {
-    const sources = [canvas];
-    if (enhanced) sources.push(
-      imageVariant(canvas, "grayscale"),
-      imageVariant(canvas, "contrast"),
-      imageVariant(canvas, "threshold"),
+  async function decodeFrame(canvas, { enhanced = false, isCancelled = () => false } = {}) {
+    // Do not stop at the first decoded symbol. Cartons often show UPC, case,
+    // product, and lot barcodes together; the parser must receive every viable
+    // candidate so it can reject product codes and cross-check the lot.
+    const builders = [() => canvas];
+    if (enhanced) builders.push(
+      () => imageVariant(canvas, "grayscale"),
+      () => imageVariant(canvas, "contrast"),
+      () => imageVariant(canvas, "sharpen"),
+      () => imageVariant(canvas, "threshold"),
+      () => rotateCanvas(imageVariant(canvas, "contrast"), 2.5),
+      () => rotateCanvas(imageVariant(canvas, "contrast"), -2.5),
     );
     const found = [];
-    for (const source of sources) {
+    for (const build of builders) {
+      if (isCancelled()) return uniqueDetections(found);
+      // Give the UI a chance to paint the frozen photo and progress state
+      // between expensive still-image variants on mobile Safari.
+      await new Promise((resolve) => global.setTimeout(resolve, 0));
+      if (isCancelled()) return uniqueDetections(found);
+      const source = build();
       const [native, zxing] = await Promise.all([detectNative(source), detectZxing(source)]);
       found.push(...native, ...zxing);
-      if (found.length) break;
     }
     return uniqueDetections(found);
   }
@@ -196,22 +267,14 @@
     if (Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("continuous")) {
       advanced.push({ focusMode: "continuous" });
     }
-    if (capabilities.zoom && Number.isFinite(Number(capabilities.zoom.min))) {
-      const minimum = Number(capabilities.zoom.min);
-      const maximum = Number(capabilities.zoom.max);
-      const preferred = Math.min(maximum, Math.max(minimum, minimum + ((maximum - minimum) * 0.18)));
-      advanced.push({ zoom: preferred });
+    if (Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes("continuous")) {
+      advanced.push({ exposureMode: "continuous" });
     }
     if (advanced.length) {
       try { await track.applyConstraints({ advanced }); } catch {}
     }
     return {
       torch: Boolean(capabilities.torch),
-      zoom: capabilities.zoom ? {
-        min: Number(capabilities.zoom.min),
-        max: Number(capabilities.zoom.max),
-        step: Number(capabilities.zoom.step) || 0.1,
-      } : null,
     };
   }
 
@@ -224,26 +287,19 @@
     }
   }
 
-  async function setZoom(track, value) {
-    try {
-      await track?.applyConstraints?.({ advanced: [{ zoom: Number(value) }] });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   global.AtlasCocScannerV2 = Object.freeze({
     ROI,
     captureRoi,
     copyCanvas,
+    cropCanvas,
+    rotateCanvas,
     qualityScore,
     imageVariant,
     labelFieldsRegion,
     textBand,
+    buildOcrPasses,
     decodeFrame,
     configureTrack,
     setTorch,
-    setZoom,
   });
 })(window);

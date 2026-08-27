@@ -509,6 +509,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-modal-actions > [hidden] { display: none; }
 .atlas-coc-scanner-actions > [hidden] + .atlas-coc-primary { grid-column: 1 / -1; }
 .atlas-coc-scanner-actions > .atlas-coc-primary { min-height: 64px; font-size: 18px; }
+.atlas-coc-confirm-actions { grid-template-columns: .72fr 1fr 1.3fr; }
 
 .atlas-coc-camera {
   position: relative;
@@ -546,10 +547,10 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   box-shadow: 0 0 0 3px rgba(8, 107, 255, .18);
 }
 .atlas-coc-camera video { width: 100%; height: 100%; object-fit: cover; }
-.atlas-coc-scan-shade { position: absolute; z-index: 1; left: 0; right: 0; height: 12%; pointer-events: none; background: rgba(3,15,34,.36); }
+.atlas-coc-scan-shade { position: absolute; z-index: 1; left: 0; right: 0; height: 8%; pointer-events: none; background: rgba(3,15,34,.36); }
 .atlas-coc-scan-shade.top { top: 0; }
 .atlas-coc-scan-shade.bottom { bottom: 0; }
-.atlas-coc-camera-guide { position: absolute; z-index: 2; inset: 12% 4%; border: 3px solid #fff; outline: 3px solid #1682ff; border-radius: 13px; box-shadow: 0 0 0 999px rgba(3,15,34,.22); pointer-events: none; }
+.atlas-coc-camera-guide { position: absolute; z-index: 2; inset: 8% 3.5%; border: 3px solid #fff; outline: 3px solid #1682ff; border-radius: 13px; box-shadow: 0 0 0 999px rgba(3,15,34,.22); pointer-events: none; }
 .atlas-coc-camera-guide span { position: absolute; top: 10px; left: 12px; padding: 5px 7px; color: #fff; font-size: 9px; font-weight: 950; letter-spacing: .11em; border-radius: 7px; background: rgba(3,19,40,.68); }
 .atlas-coc-camera-status { min-height: 42px; margin: 10px 0 0 !important; font-size: 13px; }
 .atlas-coc-camera-controls { display: flex; gap: 10px; align-items: center; justify-content: center; }
@@ -563,8 +564,6 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   background: #fff;
 }
 .atlas-coc-camera-controls > button[aria-pressed="true"] { color: #fff; background: var(--coc-blue-dark); }
-.atlas-coc-camera-controls > label { display: flex; gap: 8px; align-items: center; color: var(--coc-muted); font-size: 10px; font-weight: 900; letter-spacing: .1em; }
-.atlas-coc-camera-controls input { width: min(180px, 42vw); }
 .atlas-coc-camera-controls > [hidden] { display: none; }
 .atlas-coc-photo { width: 100%; max-height: 260px; display: block; margin: 14px 0; object-fit: contain; border: 1px solid #cad8e7; border-radius: 15px; background: #07172c; }
 .atlas-coc-progress { height: 9px; margin: 22px 0 10px; overflow: hidden; border-radius: 9px; background: #e4ecf4; }
@@ -581,6 +580,9 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-capture-proof strong,
 .atlas-coc-similar strong { overflow-wrap: anywhere; }
 .atlas-coc-similar { margin: 16px 0; overflow: hidden; border: 1px solid #edc7cb; border-radius: 14px; background: #fff7f8; }
+.atlas-coc-candidate-review { display: grid; gap: 5px; margin: 14px 0; padding: 14px; text-align: center; border: 1px solid #ecd280; border-radius: 14px; background: #fff8df; }
+.atlas-coc-candidate-review span { color: #765509; font-size: 9px; font-weight: 950; letter-spacing: .1em; }
+.atlas-coc-candidate-review strong { overflow-wrap: anywhere; font-size: 23px; }
 .atlas-coc-verify-check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; margin: 15px 0; font-weight: 730; line-height: 1.42; }
 .atlas-coc-verify-check input { width: 21px; height: 21px; accent-color: var(--coc-blue); }
 .atlas-coc-first-case { margin: 12px 0 !important; padding: 10px 12px; color: var(--coc-blue-dark) !important; text-align: center; border-radius: 11px; background: #edf6ff; }
@@ -651,6 +653,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   .atlas-coc-active-lot, .atlas-coc-no-lot { padding: 19px; }
   .atlas-coc-modal-actions { grid-template-columns: 1fr; }
   .atlas-coc-modal-actions > .atlas-coc-primary { grid-row: 1; }
+  .atlas-coc-confirm-actions > .atlas-coc-primary { grid-column: 1; }
   .atlas-coc-report-actions { grid-template-columns: 1fr; }
   .atlas-coc-compare.is-mismatch { grid-template-columns: repeat(3, 1fr); }
   .atlas-coc-compare.is-mismatch strong { font-size: 29px; }

@@ -115,6 +115,14 @@
               40,
             ),
             validationMethod: cleanText(lot?.validationMethod, 80),
+            labelClass: ["model_batch", "direct_lot"].includes(lot?.labelClass)
+              ? lot.labelClass
+              : "",
+            confidenceState: ["verified", "recognized", "needs_verification"].includes(lot?.confidenceState)
+              ? lot.confidenceState
+              : "",
+            expectedModel: cleanText(lot?.expectedModel || raw?.sku, MAX_LOT_LENGTH).toUpperCase(),
+            modelMatchMethod: cleanText(lot?.modelMatchMethod, 40),
             captureConfidence: Number.isFinite(Number(lot?.captureConfidence ?? lot?.ocrConfidence))
               ? Math.max(0, Math.min(100, Number(lot.captureConfidence ?? lot.ocrConfidence)))
               : null,
@@ -272,6 +280,14 @@
       model: cleanText(options.model, MAX_LOT_LENGTH).toUpperCase(),
       captureMethod: cleanText(options.captureMethod || options.verification || "manual", 40),
       validationMethod: cleanText(options.validationMethod, 80),
+      labelClass: ["model_batch", "direct_lot"].includes(options.labelClass)
+        ? options.labelClass
+        : "",
+      confidenceState: ["verified", "recognized", "needs_verification"].includes(options.confidenceState)
+        ? options.confidenceState
+        : "",
+      expectedModel: cleanText(options.expectedModel || session.sku, MAX_LOT_LENGTH).toUpperCase(),
+      modelMatchMethod: cleanText(options.modelMatchMethod, 40),
       captureConfidence: Number.isFinite(Number(options.confidence))
         ? Math.max(0, Math.min(100, Number(options.confidence)))
         : null,

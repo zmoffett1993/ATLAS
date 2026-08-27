@@ -518,7 +518,7 @@
       ? `<div class="atlas-coc-camera is-active"><video id="atlas-coc-video" playsinline muted></video><div class="atlas-coc-scan-shade top"></div><div class="atlas-coc-scan-shade bottom"></div><div class="atlas-coc-camera-guide"><span>PRINTED LOT · MODEL · BATCH · BARCODE</span></div></div>
         <p id="atlas-coc-camera-status" class="atlas-coc-camera-status">${scannerState === SCANNER_STATES.STARTING ? "Starting camera…" : "Ready to Scan · nothing is being read yet."}</p>
         <canvas id="atlas-coc-canvas" hidden></canvas>
-        <div class="atlas-coc-camera-controls"><button id="atlas-coc-torch" type="button" data-coc-action="toggle-torch" aria-pressed="false" hidden>Turn Light On</button><label id="atlas-coc-zoom-control" hidden><span>ZOOM</span><input id="atlas-coc-zoom" type="range" data-coc-action="set-zoom" /></label></div>
+        <div class="atlas-coc-camera-controls"><button id="atlas-coc-torch" type="button" data-coc-action="toggle-torch" aria-pressed="false" hidden>Turn Light On</button></div>
         <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button id="atlas-coc-manual-fallback" type="button" data-coc-action="manual-lot" ${capture.failures >= 2 ? "" : "hidden"}>Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="scan-lot" ${scannerState === SCANNER_STATES.STARTING ? "disabled" : ""}>Scan Lot</button></div>`
       : `<div class="atlas-coc-camera-idle" aria-live="polite"><span aria-hidden="true">▣</span><strong>${rejected ? "Unable to Verify Lot" : "Camera Unavailable"}</strong><small>${escapeHtml(capture.status || "Position the label and try again.")}</small></div>
         <p class="atlas-coc-camera-status">No lot was read or saved.</p>
@@ -538,6 +538,7 @@
 
   function confirmLotModal() {
     const result = capture.result || {};
+    const verified = result.confidenceState === "verified";
     const verifiedCopy = result.validationMethod === "barcode_print_match"
       ? "Barcode + printed batch match"
       : result.captureMethod === "legacy_ocr"
@@ -547,12 +548,12 @@
           : result.captureMethod === "printed_text_ocr"
             ? "Printed barcode text verified with SKU rules"
         : "Lot barcode identified";
-    return modalShell(`<span class="atlas-coc-eyebrow is-success">LOT DETECTED</span><h2>${escapeHtml(Core.displayLot(capture.text))}</h2>
+    return modalShell(`<span class="atlas-coc-eyebrow is-success">${verified ? "✓ LOT RECOGNIZED" : "LOT RECOGNIZED"}</span><h2>${escapeHtml(Core.displayLot(capture.text))}</h2>
       <img class="atlas-coc-photo" src="${capture.photo}" alt="Captured printed lot for verification" />
-      <div class="atlas-coc-capture-proof">${result.model ? `<p><span>MODEL</span><strong>${escapeHtml(result.model)}</strong></p>` : ""}${result.rawBatchText ? `<p><span>PRINTED BATCH</span><strong>${escapeHtml(result.rawBatchText)}</strong></p>` : ""}<p><span>VALIDATION</span><strong>${escapeHtml(verifiedCopy)}</strong></p></div>
+      <div class="atlas-coc-capture-proof">${result.model ? `<p><span>MODEL</span><strong>${escapeHtml(result.model)}</strong></p>` : ""}${result.rawBatchText ? `<p><span>PRINTED BATCH</span><strong>${escapeHtml(result.rawBatchText)}</strong></p>` : ""}<p><span>CONFIDENCE</span><strong>${verified ? "Verified from independent sources" : "Recognized from one strong source"}</strong></p><p><span>VALIDATION</span><strong>${escapeHtml(verifiedCopy)}</strong></p></div>
       <label class="atlas-coc-verify-check"><input id="atlas-coc-verify-check" type="checkbox" /> <span>I compared <strong>${escapeHtml(capture.text)}</strong> to the printed lot and every character matches.</span></label>
       <p class="atlas-coc-first-case">Confirming this new lot records <strong>Box 1</strong>.</p>
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Rescan</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" disabled>Confirm Lot + Box 1</button></div>`, { label: "Confirm recognized lot", dismiss: false });
+      <div class="atlas-coc-modal-actions atlas-coc-confirm-actions"><button type="button" data-coc-action="rescan-lot">Retake</button><button type="button" data-coc-action="manual-lot">Enter / Edit Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" disabled>Confirm Lot + Box 1</button></div>`, { label: "Confirm recognized lot", dismiss: false });
   }
 
   function scanMismatchModal() {
@@ -564,16 +565,26 @@
   }
 
   function scanFailedModal() {
+    const mismatch = capture.result?.reason === "model_sku_mismatch";
     const reasonCopy = {
       low_ocr_confidence: "The Model or Batch characters were not clear enough to verify.",
       lot_barcode_not_identified: "A product or carton barcode was visible, but a valid lot barcode was not confidently identified.",
       legacy_boundary_not_found: "The product/color boundary could not be verified inside the printed Batch number.",
       legacy_rule_not_found: "The label did not match a configured legacy extraction rule.",
       ambiguous_printed_lot: "More than one possible printed lot was visible.",
+      ambiguous_barcode_lot: "More than one possible lot barcode was visible.",
+      model_sku_mismatch: "This label may belong to a different product.",
     }[capture.result?.reason] || "ATLAS could not confidently verify the lot from this label.";
-    return modalShell(`<span class="atlas-coc-eyebrow is-danger">LOT NOT VERIFIED</span><h2>Please rescan the label</h2>
+    const mismatchDetails = mismatch
+      ? `<div class="atlas-coc-capture-proof"><p><span>EXPECTED SKU</span><strong>${escapeHtml(capture.result?.expectedModel || capture.sku || "—")}</strong></p><p><span>DETECTED MODEL</span><strong>${escapeHtml(capture.result?.model || "Unclear")}</strong></p></div>`
+      : "";
+    const candidate = capture.result?.candidateLot
+      ? `<div class="atlas-coc-candidate-review"><span>POSSIBLE VALUE · VERIFY EVERY CHARACTER</span><strong>${escapeHtml(capture.result.candidateLot)}</strong></div>`
+      : "";
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">${mismatch ? "SKU DOES NOT MATCH" : "LOT NEEDS VERIFICATION"}</span><h2>${mismatch ? "Check the carton" : "Could Not Read Lot"}</h2>
       <p>${escapeHtml(reasonCopy)} No guessed value was saved.</p>
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Scan Again</button><button type="button" class="atlas-coc-primary" data-coc-action="manual-lot">Enter Lot Manually</button></div>`, { label: "Lot not verified", dismiss: false });
+      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Captured label requiring employee review" />` : ""}${mismatchDetails}${candidate}
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="rescan-lot">Retake Photo</button><button type="button" class="atlas-coc-primary" data-coc-action="manual-lot">Enter Lot Manually</button></div>`, { label: "Lot not verified", dismiss: false });
   }
 
   function manualLotModal() {
@@ -710,27 +721,21 @@
     return accumulatedDetections;
   }
 
-  async function finishFrameScan(canvas, detections = []) {
+  async function finishFrameScan(canvas, barcodeWork = Promise.resolve([]), token = recognitionToken) {
     if (scanFinalizing || !canvas?.width) return;
     scanFinalizing = true;
     const failures = capture.failures;
     const finalCanvas = Scanner?.copyCanvas(canvas) || canvas;
     const photo = finalCanvas.toDataURL("image/jpeg", 0.94);
-    const uniqueDetections = [...new Map(detections.map((item) => [
-      String(item.value || "").trim().toUpperCase(), item,
-    ])).values()].filter((item) => item.value);
     capture = {
       ...freshCapture(failures),
       photo,
-      barcodes: uniqueDetections.map((item) => item.value),
-      barcodeDetections: uniqueDetections,
       sku: session?.sku || currentSkuContext(),
     };
     scannerState = SCANNER_STATES.VERIFYING;
-    const token = ++recognitionToken;
     stopCamera();
     try {
-      await runOcr(token);
+      await runOcr(token, barcodeWork);
     } finally {
       scanFinalizing = false;
       bestFrame = null;
@@ -786,18 +791,6 @@
       const capabilities = await Scanner?.configureTrack(cameraTrack) || {};
       const torch = document.getElementById("atlas-coc-torch");
       if (torch) torch.hidden = !capabilities.torch;
-      const zoomControl = document.getElementById("atlas-coc-zoom-control");
-      const zoom = document.getElementById("atlas-coc-zoom");
-      if (zoomControl && zoom && capabilities.zoom && capabilities.zoom.max > capabilities.zoom.min) {
-        zoomControl.hidden = false;
-        zoom.min = String(capabilities.zoom.min);
-        zoom.max = String(capabilities.zoom.max);
-        zoom.step = String(capabilities.zoom.step);
-        zoom.value = String(Math.min(capabilities.zoom.max, Math.max(
-          capabilities.zoom.min,
-          capabilities.zoom.min + ((capabilities.zoom.max - capabilities.zoom.min) * 0.18),
-        )));
-      }
       scannerState = SCANNER_STATES.READY;
       cameraStarting = false;
       button.disabled = false;
@@ -834,79 +827,50 @@
     }
   }
 
-  async function runOcr(expectedToken) {
+  async function runOcr(expectedToken, barcodeWork = Promise.resolve([])) {
     modal = "reading";
-    capture.status = "Preparing the lot image…";
+    capture.status = "Preparing the captured label…";
     capture.progress = 5;
     renderAll();
     let worker = null;
+    let ocrError = null;
+    const readings = [];
     try {
       const tesseract = window.atlasTesseract;
-      if (!tesseract?.createWorker) throw new Error("OCR is unavailable. Enter the lot manually.");
+      if (!tesseract?.createWorker) throw new Error("Printed-text recognition is unavailable.");
+      const sourceImageWork = loadImage(capture.photo);
       let recognitionPass = 0;
+      let passCount = 5;
       worker = await tesseract.createWorker("eng", tesseract.OEM.LSTM_ONLY, {
         workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/worker.min.js",
         langPath: "https://tessdata.projectnaptha.com/4.0.0",
         corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@7",
         logger: (message) => {
-          if (expectedToken !== recognitionToken) return;
-          if (message.status === "recognizing text") {
-            capture.progress = 12 + Math.round(((recognitionPass + (message.progress || 0)) / 3) * 82);
-            capture.status = recognitionPass === 0
-              ? "Reading printed characters…"
-              : recognitionPass === 1
-                ? "Checking Model and Batch fields…"
-                : "Cross-checking the text below the barcode…";
-            if (modal === "reading") renderAll();
-          }
+          if (expectedToken !== recognitionToken || message.status !== "recognizing text") return;
+          capture.progress = 10 + Math.round(
+            ((recognitionPass + (message.progress || 0)) / Math.max(1, passCount)) * 82,
+          );
+          if (modal === "reading") renderAll();
         },
       });
       activeOcrWorker = worker;
       await worker.setParameters({
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-./_ ",
         preserve_interword_spaces: "1",
-        tessedit_pageseg_mode: tesseract.PSM.SPARSE_TEXT,
       });
-      const ocrOutput = { text: true, blocks: true };
-      const firstResult = await worker.recognize(capture.photo, {}, ocrOutput);
-      if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
-      const firstText = String(firstResult.data.text || "");
-      const firstConfidence = Number(firstResult.data.confidence) || 0;
-
-      recognitionPass = 1;
-      capture.status = "Checking the Model and Batch fields…";
-      capture.progress = 40;
-      renderAll();
-      const sourceImage = await loadImage(capture.photo);
+      const sourceImage = await sourceImageWork;
       const sourceCanvas = document.createElement("canvas");
       sourceCanvas.width = sourceImage.naturalWidth || sourceImage.width;
       sourceCanvas.height = sourceImage.naturalHeight || sourceImage.height;
       sourceCanvas.getContext("2d", { willReadFrequently: true }).drawImage(sourceImage, 0, 0);
-      const fieldsRegion = Scanner?.labelFieldsRegion(sourceCanvas) || sourceCanvas;
-      await worker.setParameters({ tessedit_pageseg_mode: tesseract.PSM.SINGLE_BLOCK });
-      const secondResult = await worker.recognize(fieldsRegion, {}, ocrOutput);
-      if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
-      const secondText = String(secondResult.data.text || "");
-      const secondConfidence = Number(secondResult.data.confidence) || 0;
-
-      recognitionPass = 2;
-      capture.status = "Reading the printed text below the barcode…";
-      capture.progress = 67;
-      renderAll();
-      const textBand = Scanner?.textBand(sourceCanvas) || sourceCanvas;
-      const thirdResult = await worker.recognize(textBand, {}, ocrOutput);
-      if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
-      const thirdText = String(thirdResult.data.text || "");
-      const thirdConfidence = Number(thirdResult.data.confidence) || 0;
-      const firstFields = Parser.extractLabelFields(firstText);
-      const secondFields = Parser.extractLabelFields(secondText);
-      const thirdFields = Parser.extractLabelFields(thirdText);
-      const results = [firstResult, secondResult, thirdResult];
-      capture.ocrText = [firstText, secondText, thirdText].filter(Boolean).join("\n");
-      const fieldReads = [firstFields, secondFields, thirdFields];
-      const distinctBatchReads = [...new Set(fieldReads.map((item) => Parser.canonical(item.batch)).filter(Boolean))];
-      const labeledReadsDisagree = distinctBatchReads.length > 1;
-      const confidenceFor = (value) => {
+      const passes = Scanner?.buildOcrPasses?.(sourceCanvas) || [
+        { id: "original", status: "Reading the complete label…", create: () => sourceCanvas, mode: "sparse" },
+        { id: "fields", status: "Finding Model and Batch fields…", create: () => Scanner?.labelFieldsRegion?.(sourceCanvas) || sourceCanvas, mode: "block" },
+        { id: "barcode-text", status: "Reading text below the barcode…", create: () => Scanner?.textBand?.(sourceCanvas) || sourceCanvas, mode: "sparse" },
+      ];
+      passCount = passes.length;
+      const ocrOutput = { text: true, blocks: true };
+      const fieldConfidenceFor = (result, value) => {
         const target = Parser.canonical(value);
         if (!target) return 0;
         let best = 0;
@@ -921,22 +885,118 @@
             else if (child && typeof child === "object") visit(child);
           });
         };
-        results.forEach((result) => visit(result?.data?.blocks));
+        visit(result?.data?.blocks);
         return best;
       };
-      const combinedFields = Parser.extractLabelFields(capture.ocrText);
-      const modelConfidence = confidenceFor(combinedFields.model);
-      const batchConfidence = confidenceFor(combinedFields.batch);
-      capture.fieldConfidence = modelConfidence && batchConfidence
-        ? Math.min(modelConfidence, batchConfidence)
-        : Math.max(modelConfidence, batchConfidence);
-      if (labeledReadsDisagree) capture.fieldConfidence = Math.min(55, capture.fieldConfidence);
-      capture.confidence = labeledReadsDisagree
-        ? Math.min(55, Math.max(firstConfidence, secondConfidence, thirdConfidence))
-        : Math.max(firstConfidence, secondConfidence, thirdConfidence);
+      for (let passIndex = 0; passIndex < passes.length; passIndex += 1) {
+        if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
+        const pass = passes[passIndex];
+        recognitionPass = passIndex;
+        capture.status = pass.status;
+        capture.progress = 10 + Math.round((passIndex / passCount) * 82);
+        renderAll();
+        await new Promise((resolve) => window.requestAnimationFrame(resolve));
+        const passSource = typeof pass.create === "function" ? pass.create() : pass.source;
+        await worker.setParameters({
+          tessedit_pageseg_mode: pass.mode === "block"
+            ? tesseract.PSM.SINGLE_BLOCK
+            : tesseract.PSM.SPARSE_TEXT,
+        });
+        const result = await worker.recognize(passSource, {}, ocrOutput);
+        if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
+        const text = String(result.data.text || "");
+        const confidence = Number(result.data.confidence) || 0;
+        const fields = Parser.extractLabelFields(text);
+        readings.push({
+          id: pass.id,
+          text,
+          confidence,
+          fields,
+          fieldConfidence: {
+            model: fieldConfidenceFor(result, fields.model),
+            batch: fieldConfidenceFor(result, fields.batch),
+          },
+        });
+        // A clear structured label normally needs only the original, field,
+        // and barcode-text passes. Difficult labels continue through the
+        // sharpened and high-contrast passes without lowering confidence.
+        if (readings.length >= 3) {
+          const clearStructuredRead = readings.find((reading) =>
+            reading.fields.hasStructuredModel && reading.fields.model &&
+            reading.fields.batch &&
+            Math.max(reading.fieldConfidence.batch, reading.confidence) >= 90,
+          );
+          if (clearStructuredRead) break;
+        }
+      }
+    } catch (error) {
+      ocrError = error;
+      console.info("Printed-text recognition did not complete; checking barcode evidence.", error);
+    } finally {
+      await worker?.terminate?.().catch(() => {});
+      if (activeOcrWorker === worker) activeOcrWorker = null;
+    }
+
+    try {
+      const detections = await Promise.resolve(barcodeWork).catch(() => []);
+      if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
+      rememberDetections(detections);
+      capture.barcodes = accumulatedDetections.map((item) => item.value);
+      capture.barcodeDetections = [...accumulatedDetections];
+      if (ocrError && !capture.barcodes.length) throw ocrError;
+
+      const voteField = (name, structuredFlag) => {
+        const structured = readings.filter((reading) => reading.fields[structuredFlag]);
+        const pool = structured.length ? structured : readings;
+        const groups = new Map();
+        pool.forEach((reading) => {
+          const value = String(reading.fields[name] || "").trim();
+          const key = Parser.canonical(value);
+          if (!key) return;
+          const fieldScore = Math.max(
+            Number(reading.fieldConfidence?.[name]) || 0,
+            Number(reading.confidence) || 0,
+          );
+          const current = groups.get(key) || { value, count: 0, best: 0 };
+          current.count += 1;
+          current.best = Math.max(current.best, fieldScore);
+          if (fieldScore >= current.best) current.value = value;
+          groups.set(key, current);
+        });
+        const ranked = [...groups.values()].sort((left, right) =>
+          (right.count * 100 + right.best) - (left.count * 100 + left.best),
+        );
+        const winner = ranked[0] || { value: "", count: 0, best: 0 };
+        const runnerUp = ranked[1];
+        return {
+          ...winner,
+          ambiguous: Boolean(runnerUp && winner.count === runnerUp.count &&
+            Math.abs(winner.best - runnerUp.best) < 8),
+        };
+      };
+      const modelVote = voteField("model", "hasStructuredModel");
+      const batchVote = voteField("batch", "hasStructuredBatch");
+      const hasStructuredModel = readings.some((reading) => reading.fields.hasStructuredModel);
+      const hasStructuredBatch = readings.some((reading) => reading.fields.hasStructuredBatch);
+      const rawOcr = readings.map((reading) => reading.text).filter(Boolean).join("\n");
+      const anchored = [
+        hasStructuredModel && modelVote.value ? `MODEL NO.: ${modelVote.value}` : "",
+        hasStructuredBatch && batchVote.value ? `BATCH NO.: ${batchVote.value}` : "",
+      ].filter(Boolean).join("\n");
+      capture.ocrText = rawOcr;
+      capture.fieldConfidence = modelVote.value && batchVote.value
+        ? Math.min(modelVote.best, batchVote.best)
+        : Math.max(modelVote.best, batchVote.best);
+      const fieldAmbiguity = modelVote.ambiguous || batchVote.ambiguous;
+      if (fieldAmbiguity) capture.fieldConfidence = Math.min(55, capture.fieldConfidence);
+      capture.confidence = Math.max(0, ...readings.map((reading) => reading.confidence));
+      if (fieldAmbiguity) capture.confidence = Math.min(65, capture.confidence);
+      capture.status = "Matching SKU and verifying lot…";
+      capture.progress = 96;
+      renderAll();
       capture.result = Parser.evaluateCapture({
         barcodes: capture.barcodes,
-        ocrText: capture.ocrText,
+        ocrText: [anchored, rawOcr].filter(Boolean).join("\n"),
         ocrConfidence: capture.confidence,
         fieldConfidence: capture.fieldConfidence,
         sku: capture.sku,
@@ -958,13 +1018,11 @@
       if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
       capture.status = error instanceof Error ? error.message : "The lot could not be read.";
       capture.failures += 1;
-      capture.result = { status: "rescan", reason: "scanner_error" };
+      capture.result = { status: "rescan", reason: "scanner_error", confidenceState: "needs_verification" };
       modal = { type: "scan-failed" };
       scannerState = SCANNER_STATES.REJECTED;
       showToast(capture.status, "warning");
     } finally {
-      await worker?.terminate?.().catch(() => {});
-      if (activeOcrWorker === worker) activeOcrWorker = null;
       if (expectedToken === recognitionToken && isInsideCocWorkflow()) renderAll();
     }
   }
@@ -988,16 +1046,19 @@
     stopCamera();
     modal = "reading";
     renderAll();
-    let detections = [];
-    try {
-      detections = Scanner
-        ? await Scanner.decodeFrame(source, { enhanced: true })
-        : (await detectBarcodes(source)).map((value) => ({ value, format: "unknown", engine: "native" }));
-    } catch (error) {
-      console.info("Enhanced decoder unavailable; continuing with printed text.", error);
-    }
+    const barcodeWork = (Scanner
+      ? Scanner.decodeFrame(source, {
+        enhanced: true,
+        isCancelled: () => expectedToken !== recognitionToken || !isInsideCocWorkflow(),
+      })
+      : detectBarcodes(source).then((values) =>
+        values.map((value) => ({ value, format: "unknown", engine: "native" })),
+      )).catch((error) => {
+        console.info("Enhanced decoder unavailable; continuing with printed text.", error);
+        return [];
+      });
     if (expectedToken !== recognitionToken || !isInsideCocWorkflow() || modal !== "reading") return;
-    await finishFrameScan(source, rememberDetections(detections));
+    await finishFrameScan(source, barcodeWork, expectedToken);
   }
 
   function acceptLot(value, options = {}, { skipSimilar = false } = {}) {
@@ -1124,10 +1185,6 @@
       });
       return;
     }
-    if (action === "set-zoom") {
-      Scanner?.setZoom(cameraTrack, button.value);
-      return;
-    }
     if (action === "confirm-lot") {
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
@@ -1137,6 +1194,10 @@
         model: capture.result?.model,
         captureMethod: capture.result?.captureMethod,
         validationMethod: capture.result?.validationMethod,
+        labelClass: capture.result?.labelClass,
+        confidenceState: capture.result?.confidenceState,
+        expectedModel: capture.result?.expectedModel,
+        modelMatchMethod: capture.result?.modelMatchMethod,
         confidence: capture.result?.confidence,
         verification: "ocr",
       });
@@ -1151,6 +1212,10 @@
         model: capture.result?.model,
         captureMethod: capture.result?.captureMethod,
         validationMethod: `${capture.result?.validationMethod || "manual"}_similar_confirmed`,
+        labelClass: capture.result?.labelClass,
+        confidenceState: capture.result?.confidenceState,
+        expectedModel: capture.result?.expectedModel,
+        modelMatchMethod: capture.result?.modelMatchMethod,
         confidence: capture.result?.confidence,
         verification: capture.result?.captureMethod === "manual" ? "manual" : "ocr",
       }, { skipSimilar: true });
@@ -1299,10 +1364,6 @@
 
   document.addEventListener("input", (event) => {
     const input = event.target;
-    if (input?.id === "atlas-coc-zoom") {
-      Scanner?.setZoom(cameraTrack, input.value);
-      return;
-    }
     if (!input?.matches?.("#atlas-coc-expected-form input[name='expectedBoxes']")) return;
     const form = input.closest("form");
     const button = form?.querySelector("[data-coc-box-confirm]");
