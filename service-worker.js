@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v180-coc-still-image-recognition";
+const VERSION = "atlas-pwa-v181-workflow-mode-direct-complete";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,13 +7,13 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=146",
   "./atlas-dashboard.js?v=145",
-  "./atlas-coc.css?v=7",
+  "./atlas-coc.css?v=8",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=3",
   "./atlas-coc-parser.js?v=4",
-  "./atlas-coc-core.js?v=5",
+  "./atlas-coc-core.js?v=6",
   "./atlas-coc-excel.js?v=2",
-  "./atlas-coc.js?v=8",
+  "./atlas-coc.js?v=9",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

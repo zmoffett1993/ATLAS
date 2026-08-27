@@ -84,6 +84,7 @@
   const currentSkuContext = () => String(
     document.querySelector(".result-card .sku-copy strong")?.textContent || "",
   ).trim().toUpperCase();
+  const isWorkflowSection = () => route === "workflows";
   const isInsideCocWorkflow = () => route === "workflows" &&
     (workflowView === "setup" || workflowView === "session");
   const getDeviceId = () => {
@@ -243,7 +244,7 @@
   }
 
   function barMarkup() {
-    if (!session || isInsideCocWorkflow()) return "";
+    if (!session || isWorkflowSection()) return "";
     if (session.status === "report") {
       return `<button type="button" class="atlas-coc-active-bar is-complete" data-coc-action="resume">
         <span class="atlas-coc-active-bar__signal" aria-hidden="true">✓</span>
@@ -419,15 +420,25 @@
 
   function reviewCompleteModal() {
     const pallet = activePallet();
-    const unfinished = Core.palletTotal(pallet);
+    const progress = pallet ? Core.palletProgress(pallet) : null;
+    const activeRecorded = pallet ? Core.palletTotal(pallet) : 0;
+    const activeHasWork = Boolean(pallet && (activeRecorded > 0 || progress?.expected));
+    const activeReady = Boolean(activeHasWork && progress?.verified);
     const completed = session.pallets.filter(
-      (item) => item.status === "locked" && (item.lots.length || Core.palletTotal(item) > 0),
+      (item) => (item.status === "locked" || (item.id === pallet?.id && activeReady)) &&
+        (item.lots.length || Core.palletTotal(item) > 0),
     );
+    const blocked = activeHasWork && !activeReady;
+    const total = completed.reduce((sum, item) => sum + Core.palletTotal(item), 0);
     return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>Complete this COC?</h2>
       <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}</section>`).join("")}</div>
-      <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(completed.reduce((sum, item) => sum + Core.palletTotal(item), 0), "box")} · ${plural(completed.length, "pallet")}</b></p>
-      ${unfinished ? `<p class="atlas-coc-warning">Pallet ${pallet.number} contains ${plural(unfinished, "box")}. Finish that pallet before completing the COC.</p>` : `<p>The empty Pallet ${pallet.number} draft will not be included. Your final report will remain open for office entry.</p>`}
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep COC Open</button><button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${unfinished ? "disabled" : ""}>Complete COC</button></div>`, { label: "Complete COC review" });
+      <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(total, "box")} · ${plural(completed.length, "pallet")}</b></p>
+      ${blocked
+        ? `<p class="atlas-coc-warning">Pallet ${pallet.number} is not verified. Its confirmed and recorded box counts must match before completing the COC.</p>`
+        : pallet && !activeHasWork
+          ? `<p>The empty Pallet ${pallet.number} draft will not be included. Only the ${plural(completed.length, "verified pallet")} shown above will appear in the final report.</p>`
+          : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will remain open for office entry.</p>`}
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep COC Open</button><button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button></div>`, { label: "Complete COC review" });
   }
 
   function mismatchModal() {
@@ -473,8 +484,11 @@
     const progress = Core.palletProgress(pallet);
     return modalShell(`<span class="atlas-coc-verified-icon" aria-hidden="true">✓</span><span class="atlas-coc-eyebrow is-success">BOX COUNT VERIFIED</span><h2>Pallet ${pallet.number} is complete</h2>
       <div class="atlas-coc-compare is-verified"><div><span>CONFIRMED</span><strong>${progress.expected}</strong></div><div><span>RECORDED</span><strong>${progress.recorded}</strong></div></div>
-      <p>${plural(progress.recorded, "box")} ${progress.recorded === 1 ? "is" : "are"} accounted for. This pallet will be locked when you start the next pallet.</p>
-      <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="start-next-pallet">Start Pallet ${pallet.number + 1}</button>`, {
+      <p>${plural(progress.recorded, "box")} ${progress.recorded === 1 ? "is" : "are"} accounted for. Start another pallet or complete this COC with the verified pallets recorded so far.</p>
+      <div class="atlas-coc-verified-actions">
+        <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="start-next-pallet">Start Pallet ${pallet.number + 1}</button>
+        <button type="button" class="atlas-coc-complete-secondary" data-coc-action="review-complete">Complete COC</button>
+      </div>`, {
       label: `Pallet ${pallet.number} verified`, dismiss: false,
     });
   }
@@ -633,7 +647,7 @@
   }
 
   function renderAll() {
-    document.documentElement.classList.toggle("atlas-coc-work-mode", isInsideCocWorkflow());
+    document.documentElement.classList.toggle("atlas-coc-work-mode", isWorkflowSection());
     const bar = document.getElementById("atlas-coc-active-bar-slot");
     if (bar) bar.innerHTML = barMarkup();
     const home = document.getElementById("atlas-coc-home-slot");
@@ -1503,6 +1517,7 @@
         capture = freshCapture();
         modal = null;
       }
+      route = "workflows";
       workflowView = "landing";
       renderAll();
     },

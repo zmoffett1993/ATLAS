@@ -25,8 +25,8 @@
   margin: 14px auto 2px;
 }
 
-/* Active COC is a focused task mode. Normal ATLAS chrome returns on every
-   route outside the COC, where the active/resume bar remains available. */
+/* Workflows is a focused task environment. Normal ATLAS chrome returns on
+   every route outside Workflows, where the active/resume bar remains available. */
 html.atlas-coc-work-mode .brand-header,
 html.atlas-coc-work-mode .atlas-network-banner,
 html.atlas-coc-work-mode #atlas-coc-active-bar-slot {
@@ -482,6 +482,18 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-compare.is-verified > div { border-color: #a9dfca; background: #ecfbf5; }
 .atlas-coc-verified-icon { width: 62px; height: 62px; display: grid; place-items: center; margin-bottom: 16px; color: #fff; font-size: 34px; font-weight: 950; border-radius: 50%; background: var(--coc-green); box-shadow: 0 12px 26px rgba(10,146,99,.25); }
 .atlas-coc-modal-wide { width: 100%; margin-top: 20px; }
+.atlas-coc-verified-actions { display: grid; gap: 11px; margin-top: 20px; }
+.atlas-coc-verified-actions .atlas-coc-modal-wide { margin-top: 0; }
+.atlas-coc-complete-secondary {
+  width: 100%;
+  min-height: 56px;
+  color: var(--coc-blue-dark);
+  font-weight: 900;
+  border: 1.5px solid #6fa8e9;
+  border-radius: 14px;
+  background: #edf6ff;
+  box-shadow: none;
+}
 .atlas-coc-modal-total { display: grid; place-items: center; margin: 18px 0; padding: 16px; border-radius: 17px; background: var(--coc-soft); }
 .atlas-coc-modal-total strong { font-size: 48px; line-height: 1; }
 .atlas-coc-modal-total span { color: var(--coc-muted); font-size: 11px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }

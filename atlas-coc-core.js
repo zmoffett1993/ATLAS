@@ -473,7 +473,27 @@
   function completeSession(source) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
-    if (pallet && palletTotal(pallet) > 0) throw new Error("FINISH_ACTIVE_PALLET_FIRST");
+    const activeRecorded = pallet ? palletTotal(pallet) : 0;
+    const activeHasWork = Boolean(pallet && (
+      activeRecorded > 0 || positiveInteger(pallet.expectedBoxes)
+    ));
+    if (activeHasWork) {
+      const progress = palletProgress(pallet);
+      if (!progress.expected) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
+      if (progress.recorded !== progress.expected) throw new Error("BOX_COUNT_MISMATCH");
+      if (!progress.verified) throw new Error("PALLET_NOT_VERIFIED");
+      const at = timestamp();
+      pallet.status = "locked";
+      pallet.finishedAt = pallet.finishedAt || at;
+      pallet.verificationState = "completed";
+      pallet.activeLotId = null;
+      withActivity(session, "pallet_finished", {
+        palletNumber: pallet.number,
+        expectedBoxes: progress.expected,
+        recordedBoxes: progress.recorded,
+        finalPallet: true,
+      });
+    }
     const completed = session.pallets.filter(
       (item) => item.status === "locked" && (item.lots.length || palletTotal(item) > 0),
     );
