@@ -10,6 +10,7 @@
     usedRange: "A1:C748",
     entryColumns: Object.freeze(["MODEL NUMBER", "LOT NUMBER", "QUANTITY"]),
     merges: Object.freeze(["A1:C1", "A5:C5", "C3:C4"]),
+    blankFillStyles: Object.freeze({ A6: 7, C2: 5, C3: 17, C4: 17 }),
     print: Object.freeze({ orientation: "portrait", scale: 95, fitToHeight: 0 }),
   });
 
@@ -242,10 +243,32 @@
       .replaceAll("'", "&apos;");
   }
 
+  function locateCell(xml, reference) {
+    const openingPattern = new RegExp(`<c(?=[^>]*\\br="${reference}")[^>]*>`);
+    const openingMatch = openingPattern.exec(xml);
+    if (!openingMatch) return null;
+
+    const start = openingMatch.index;
+    const opening = openingMatch[0];
+    if (opening.endsWith("/>")) {
+      return { start, end: start + opening.length, xml: opening };
+    }
+
+    const closing = "</c>";
+    const closingIndex = xml.indexOf(closing, start + opening.length);
+    if (closingIndex < 0) throw new Error(`COC_TEMPLATE_CELL_INVALID_${reference}`);
+    const end = closingIndex + closing.length;
+    return { start, end, xml: xml.slice(start, end) };
+  }
+
+  function replaceLocatedXml(xml, located, replacement) {
+    return `${xml.slice(0, located.start)}${replacement}${xml.slice(located.end)}`;
+  }
+
   function writeCell(xml, reference, value, { formula = "" } = {}) {
-    const pattern = new RegExp(`<c(?=[^>]*\\br="${reference}")[^>]*(?:\\/>|>[\\s\\S]*?<\\/c>)`);
-    const match = xml.match(pattern)?.[0];
-    if (!match) throw new Error(`COC_TEMPLATE_CELL_MISSING_${reference}`);
+    const located = locateCell(xml, reference);
+    if (!located) throw new Error(`COC_TEMPLATE_CELL_MISSING_${reference}`);
+    const match = located.xml;
     const attributes = match.match(/^<c([^>]*?)(?:\/>|>)/)?.[1]
       ?.replace(/\s+t="[^"]*"/g, "") || ` r="${reference}"`;
     let replacement = `<c${attributes}/>`;
@@ -256,7 +279,31 @@
     } else if (value !== null && value !== undefined && value !== "") {
       replacement = `<c${attributes} t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`;
     }
-    return xml.replace(pattern, replacement);
+    return replaceLocatedXml(xml, located, replacement);
+  }
+
+  function ensureStyledBlankCell(xml, reference, styleId) {
+    const located = locateCell(xml, reference);
+    if (located) {
+      const existing = located.xml;
+      const styled = /\s+s="[^"]*"/.test(existing)
+        ? existing.replace(/\s+s="[^"]*"/, ` s="${styleId}"`)
+        : existing.replace(/^<c/, `<c s="${styleId}"`);
+      return replaceLocatedXml(xml, located, styled);
+    }
+
+    const rowNumber = reference.match(/\d+$/)?.[0];
+    const targetColumn = reference.match(/^[A-Z]+/)?.[0] || "";
+    if (!rowNumber || !targetColumn) throw new Error(`COC_TEMPLATE_CELL_INVALID_${reference}`);
+    const rowPattern = new RegExp(`(<row(?=[^>]*\\br="${rowNumber}")[^>]*>)([\\s\\S]*?)(<\\/row>)`);
+    if (!rowPattern.test(xml)) throw new Error(`COC_TEMPLATE_ROW_MISSING_${rowNumber}`);
+    return xml.replace(rowPattern, (_, opening, body, closing) => {
+      const cell = `<c r="${reference}" s="${styleId}"/>`;
+      const cells = [...body.matchAll(/<c\b[^>]*\br="([A-Z]+)\d+"[^>]*(?:\/>|>[\s\S]*?<\/c>)/g)];
+      const nextCell = cells.find((match) => match[1].localeCompare(targetColumn, undefined, { numeric: true }) > 0);
+      if (!nextCell || nextCell.index === undefined) return `${opening}${body}${cell}${closing}`;
+      return `${opening}${body.slice(0, nextCell.index)}${cell}${body.slice(nextCell.index)}${closing}`;
+    });
   }
 
   async function populateOfficialTemplate({ templateBytes, data, mapping = FINAL_MAPPING }) {
@@ -284,6 +331,9 @@
       populatedSheetXml = writeCell(populatedSheetXml, `A${row.rowNumber}`, row.a);
       populatedSheetXml = writeCell(populatedSheetXml, `B${row.rowNumber}`, row.b);
       populatedSheetXml = writeCell(populatedSheetXml, `C${row.rowNumber}`, row.c, { formula: row.formula });
+    });
+    Object.entries(OFFICIAL_TEMPLATE.blankFillStyles).forEach(([reference, styleId]) => {
+      populatedSheetXml = ensureStyledBlankCell(populatedSheetXml, reference, styleId);
     });
     zip.file(sheetPath, populatedSheetXml);
 

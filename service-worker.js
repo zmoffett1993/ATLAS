@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v188-coc-pallet-first-excel";
+const VERSION = "atlas-pwa-v189-coc-complete-template-fills";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -14,7 +14,7 @@ const APP_SHELL = [
   "./atlas-coc-case-quantities.js?v=1",
   "./atlas-coc-core.js?v=8",
   "./atlas-jszip.min.js?v=1",
-  "./atlas-coc-excel.js?v=4",
+  "./atlas-coc-excel.js?v=5",
   "./atlas-coc.js?v=14",
   "./NEW COC 2.xlsx?v=20260827",
   "./atlas-guided-workflows.css?v=4",
