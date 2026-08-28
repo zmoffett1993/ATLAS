@@ -70,6 +70,24 @@
       const totalQuantity = lots.reduce((sum, lot) => sum + lot.quantity, 0);
       if (totalBoxes !== progress.recorded || totalBoxes !== progress.expected)
         throw new Error(`PALLET_${pallet.number}_TOTAL_MISMATCH`);
+      const modelNames = new Map();
+      lots.forEach((lot) => {
+        const key = canonicalModel(lot.model);
+        if (key && !modelNames.has(key)) modelNames.set(key, lot.model);
+      });
+      const modelBlocks = [...modelNames.entries()].map(([key, modelNumber]) => {
+        const modelLots = lots.filter((lot) => canonicalModel(lot.model) === key);
+        const caseQuantities = new Set(modelLots.map((lot) => lot.caseQuantity));
+        if (caseQuantities.size !== 1)
+          throw new Error(`INCONSISTENT_CASE_QUANTITY_${modelNumber}`);
+        return {
+          modelNumber,
+          caseQuantity: modelLots[0]?.caseQuantity,
+          totalBoxes: modelLots.reduce((sum, lot) => sum + lot.boxes, 0),
+          totalQuantity: modelLots.reduce((sum, lot) => sum + lot.quantity, 0),
+          lots: modelLots,
+        };
+      });
       return {
         palletNumber: pallet.number,
         expectedBoxes: progress.expected,
@@ -77,6 +95,7 @@
         totalQuantity,
         verified: true,
         lots,
+        modelBlocks,
       };
     });
 
@@ -133,15 +152,15 @@
   function buildDetailRows(data, mapping = FINAL_MAPPING) {
     let rowNumber = mapping.detailRows.first;
     const rows = [];
-    data.models.forEach((model) => {
-      model.blocks.forEach((block, blockIndex) => {
+    data.pallets.forEach((pallet) => {
+      pallet.modelBlocks.forEach((block) => {
         rows.push({
           rowNumber: rowNumber++,
           type: "pallet",
-          modelNumber: blockIndex === 0 ? model.modelNumber : "",
-          palletNumber: block.palletNumber,
-          a: blockIndex === 0 ? model.modelNumber : "",
-          b: `PALLET ${block.palletNumber}`,
+          modelNumber: block.modelNumber,
+          palletNumber: pallet.palletNumber,
+          a: block.modelNumber,
+          b: `PALLET ${pallet.palletNumber}`,
           c: null,
         });
         const firstQuantityRow = rowNumber;
@@ -149,8 +168,8 @@
           rows.push({
             rowNumber: rowNumber++,
             type: "lot",
-            modelNumber: model.modelNumber,
-            palletNumber: block.palletNumber,
+            modelNumber: block.modelNumber,
+            palletNumber: pallet.palletNumber,
             cleanLot: lot.cleanLot,
             boxes: lot.boxes,
             caseQuantity: lot.caseQuantity,
@@ -163,8 +182,8 @@
         rows.push({
           rowNumber: rowNumber++,
           type: "total",
-          modelNumber: model.modelNumber,
-          palletNumber: block.palletNumber,
+          modelNumber: block.modelNumber,
+          palletNumber: pallet.palletNumber,
           a: "",
           b: "TOTAL QTY",
           c: block.totalQuantity,
