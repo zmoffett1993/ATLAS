@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 5;
+  const SCHEMA_VERSION = 6;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
   const MAX_CUSTOMER_LENGTH = 160;
@@ -67,6 +67,9 @@
       createdAt: timestamp(),
       finishedAt: null,
       activeLotId: null,
+      activeModel: "",
+      models: [],
+      modelNumbers: [],
       lots: [],
       history: [],
       expectedBoxes: null,
@@ -96,9 +99,9 @@
     if (!invoice) throw new Error("INVOICE_REQUIRED");
     if (!customer) throw new Error("CUSTOMER_REQUIRED");
     if (!ifValue) throw new Error("IF_NUMBER_REQUIRED");
-    if (!selectedModels.length || selectedModels.some((model) => !model.caseQuantity))
+    if (selectedModels.some((model) => !model.caseQuantity))
       throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
-    const activeModel = selectedModels[0].modelNumber;
+    const activeModel = "";
     return {
       schemaVersion: SCHEMA_VERSION,
       id: makeId("coc"),
@@ -117,7 +120,7 @@
       completedAt: null,
       activePalletId: pallet.id,
       pallets: [pallet],
-      activity: [{ type: "session_started", at: createdAt, models: selectedModels.length }],
+      activity: [{ type: "session_started", at: createdAt, models: 0 }],
     };
   }
 
@@ -142,6 +145,21 @@
       const id = cleanText(source?.id, 140) || makeId("pallet");
       if (seenPallets.has(id)) throw new Error("DUPLICATE_PALLET_ID");
       seenPallets.add(id);
+      const suppliedPalletModels = Array.isArray(source?.models)
+        ? source.models
+        : Array.isArray(source?.modelNumbers)
+          ? source.modelNumbers
+          : [];
+      let palletModels = normalizeModels(suppliedPalletModels, createdAt);
+      if (!palletModels.length && source?.status === "active" && (raw.activeModel || raw.sku)) {
+        const legacyActive = modelRecordFor(raw.activeModel || raw.sku);
+        if (legacyActive) palletModels = [legacyActive];
+      }
+      const palletModelRecordFor = (value) => {
+        const key = canonicalModel(value);
+        return palletModels.find((model) => canonicalModel(model.modelNumber) === key) ||
+          modelRecordFor(value);
+      };
       const seenLots = new Set();
       const lots = (Array.isArray(source?.lots) ? source.lots : [])
         .slice(0, 500)
@@ -153,7 +171,7 @@
           const duplicateKey = `${canonicalModel(model)}:${canonical}`;
           if (seenLots.has(duplicateKey)) throw new Error("DUPLICATE_LOT");
           seenLots.add(duplicateKey);
-          const linkedModel = modelRecordFor(model);
+          const linkedModel = palletModelRecordFor(model);
           return {
             id: cleanText(lot?.id, 140) || makeId("lot"),
             lot: rawLot,
@@ -193,6 +211,15 @@
             confirmedBy: cleanText(lot?.confirmedBy, 60),
           };
         });
+      palletModels = normalizeModels([
+        ...palletModels,
+        ...lots.map((lot) => ({
+          modelNumber: lot.model,
+          catalogModel: lot.model,
+          caseQuantity: lot.caseQuantity,
+          addedAt: lot.createdAt,
+        })),
+      ], createdAt);
       const lotIds = new Set(lots.map((lot) => lot.id));
       const history = (Array.isArray(source?.history) ? source.history : [])
         .filter((entry) => entry?.kind === "case" && lotIds.has(entry.lotId))
@@ -230,6 +257,11 @@
           at: cleanText(entry?.at, 40) || timestamp(),
         }))
         .filter((entry) => entry.next);
+      let activeModel = cleanModel(source?.activeModel);
+      if (!palletModels.some((model) => canonicalModel(model.modelNumber) === canonicalModel(activeModel))) {
+        activeModel = lots.find((lot) => lot.id === source?.activeLotId)?.model ||
+          palletModels[0]?.modelNumber || "";
+      }
       return {
         id,
         number: index + 1,
@@ -241,6 +273,9 @@
           : Object.prototype.hasOwnProperty.call(source || {}, "activeLotId")
             ? null
             : lots[0]?.id || null,
+        activeModel,
+        models: palletModels,
+        modelNumbers: palletModels.map((model) => model.modelNumber),
         lots,
         history,
         expectedBoxes,
@@ -255,12 +290,15 @@
         expectedBoxesInferred: Boolean(source?.expectedBoxesInferred || inferredExpected),
       };
     });
-    const inferredModels = pallets.flatMap((pallet) => pallet.lots.map((lot) => ({
-      modelNumber: lot.model,
-      catalogModel: lot.model,
-      caseQuantity: lot.caseQuantity,
-      addedAt: lot.createdAt,
-    })));
+    const inferredModels = pallets.flatMap((pallet) => [
+      ...(pallet.models || []),
+      ...pallet.lots.map((lot) => ({
+        modelNumber: lot.model,
+        catalogModel: lot.model,
+        caseQuantity: lot.caseQuantity,
+        addedAt: lot.createdAt,
+      })),
+    ]);
     models = normalizeModels([...models, ...inferredModels], createdAt);
     if (!pallets.length && raw.status !== "report") pallets.push(createPallet(1));
     const status = raw.status === "report" ? "report" : "active";
@@ -281,9 +319,12 @@
       activePalletId = null;
       pallets.forEach((pallet) => { pallet.status = "locked"; });
     }
-    let activeModel = cleanModel(raw.activeModel || raw.sku);
-    if (!models.some((model) => canonicalModel(model.modelNumber) === canonicalModel(activeModel)))
-      activeModel = models[0]?.modelNumber || "";
+    const activePalletRecord = pallets.find((pallet) => pallet.id === activePalletId) || null;
+    let activeModel = cleanModel(activePalletRecord?.activeModel);
+    if (!activePalletRecord?.models?.some(
+      (model) => canonicalModel(model.modelNumber) === canonicalModel(activeModel),
+    )) activeModel = activePalletRecord?.models?.[0]?.modelNumber || "";
+    if (activePalletRecord) activePalletRecord.activeModel = activeModel;
     return {
       schemaVersion: SCHEMA_VERSION,
       id: cleanText(raw.id, 140) || makeId("coc"),
@@ -320,8 +361,12 @@
   );
   const modelRecord = (session, value) => {
     const key = canonicalModel(value);
-    return session?.models?.find((model) => canonicalModel(model.modelNumber) === key) || null;
+    const pallet = activePallet(session);
+    return pallet?.models?.find((model) => canonicalModel(model.modelNumber) === key) ||
+      session?.models?.find((model) => canonicalModel(model.modelNumber) === key) || null;
   };
+  const palletModels = (session, pallet = activePallet(session)) =>
+    Array.isArray(pallet?.models) ? pallet.models : [];
   const palletProgress = (pallet) => {
     const expected = positiveInteger(pallet?.expectedBoxes);
     const recorded = palletTotal(pallet);
@@ -351,7 +396,9 @@
     const canonical = canonicalLot(lotText);
     if (!canonical) throw new Error("LOT_REQUIRED");
     const selectedModel = cleanModel(options.model || session.activeModel || session.sku);
-    const selectedModelRecord = modelRecord(session, selectedModel);
+    const selectedModelRecord = pallet.models?.find(
+      (model) => canonicalModel(model.modelNumber) === canonicalModel(selectedModel),
+    );
     if (!selectedModelRecord?.caseQuantity) throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
     const duplicate = pallet.lots.find((lot) =>
       lot.canonical === canonical && canonicalModel(lot.model) === canonicalModel(selectedModel));
@@ -392,6 +439,7 @@
     };
     pallet.lots.push(lot);
     pallet.activeLotId = lot.id;
+    pallet.activeModel = selectedModel;
     session.activeModel = selectedModel;
     session.sku = selectedModel;
     pallet.history.push({ kind: "case", lotId: lot.id, at });
@@ -414,6 +462,7 @@
     if (!pallet || !selected)
       throw new Error("LOT_NOT_FOUND");
     pallet.activeLotId = lotId;
+    pallet.activeModel = selected.model || pallet.activeModel;
     session.activeModel = selected.model || session.activeModel;
     session.sku = session.activeModel || session.sku;
     return withActivity(session, "lot_selected", { palletNumber: pallet.number, lotId });
@@ -423,29 +472,43 @@
     const session = sanitize(clone(source));
     const normalized = normalizeModelRecord(record);
     if (!normalized?.caseQuantity) throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
-    const existing = modelRecord(session, normalized.modelNumber);
+    const pallet = activePallet(session);
+    if (!pallet || session.status !== "active") throw new Error("NO_ACTIVE_PALLET");
+    const existingOnPallet = pallet.models?.find(
+      (model) => canonicalModel(model.modelNumber) === canonicalModel(normalized.modelNumber),
+    );
+    const existing = session.models?.find(
+      (model) => canonicalModel(model.modelNumber) === canonicalModel(normalized.modelNumber),
+    );
+    const selected = existingOnPallet || existing || normalized;
     if (!existing) session.models.push(normalized);
     session.modelNumbers = session.models.map((model) => model.modelNumber);
-    session.activeModel = existing?.modelNumber || normalized.modelNumber;
+    if (!existingOnPallet) pallet.models.push(selected);
+    pallet.modelNumbers = pallet.models.map((model) => model.modelNumber);
+    pallet.activeModel = selected.modelNumber;
+    session.activeModel = selected.modelNumber;
     session.sku = session.activeModel;
-    const pallet = activePallet(session);
-    if (pallet) pallet.activeLotId = pallet.lots.find(
+    pallet.activeLotId = pallet.lots.find(
       (lot) => canonicalModel(lot.model) === canonicalModel(session.activeModel),
     )?.id || null;
-    return withActivity(session, existing ? "model_selected" : "model_added", {
+    return withActivity(session, existingOnPallet ? "model_selected" : "model_added", {
+      palletNumber: pallet.number,
       model: session.activeModel,
-      caseQuantity: existing?.caseQuantity || normalized.caseQuantity,
+      caseQuantity: selected.caseQuantity,
     });
   }
 
   function selectModel(source, value) {
     const session = sanitize(clone(source));
-    const selected = modelRecord(session, value);
+    const pallet = activePallet(session);
+    const selected = pallet?.models?.find(
+      (model) => canonicalModel(model.modelNumber) === canonicalModel(value),
+    );
     if (!selected?.caseQuantity) throw new Error("MODEL_NOT_FOUND");
+    pallet.activeModel = selected.modelNumber;
     session.activeModel = selected.modelNumber;
     session.sku = selected.modelNumber;
-    const pallet = activePallet(session);
-    if (pallet) pallet.activeLotId = [...pallet.lots].reverse().find(
+    pallet.activeLotId = [...pallet.lots].reverse().find(
       (lot) => canonicalModel(lot.model) === canonicalModel(selected.modelNumber),
     )?.id || null;
     return withActivity(session, "model_selected", {
@@ -488,6 +551,7 @@
       ) || pallet.lots[0];
       pallet.activeLotId = replacement?.id || null;
       if (replacement?.model) {
+        pallet.activeModel = replacement.model;
         session.activeModel = replacement.model;
         session.sku = replacement.model;
       }
@@ -577,6 +641,8 @@
     const next = createPallet(session.pallets.length + 1);
     session.pallets.push(next);
     session.activePalletId = next.id;
+    session.activeModel = "";
+    session.sku = "";
     return withActivity(session, "pallet_finished", {
       palletNumber: pallet.number,
       expectedBoxes: progress.expected,
@@ -605,10 +671,9 @@
     target.verificationAttemptedAt = null;
     target.verifiedAt = null;
     target.activeLotId = target.lots[0]?.id || null;
-    if (target.lots[0]?.model) {
-      session.activeModel = target.lots[0].model;
-      session.sku = target.lots[0].model;
-    }
+    target.activeModel = target.lots[0]?.model || target.models?.[0]?.modelNumber || "";
+    session.activeModel = target.activeModel;
+    session.sku = target.activeModel;
     session.activePalletId = target.id;
     session.pallets.forEach((pallet) => {
       if (pallet.id !== target.id) {
@@ -693,6 +758,7 @@
     sessionUnitTotal,
     lotUnitQuantity,
     modelRecord,
+    palletModels,
     palletProgress,
     canonicalLot,
     displayLot,

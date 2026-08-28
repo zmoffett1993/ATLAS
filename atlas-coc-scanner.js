@@ -21,6 +21,49 @@
     return canvas;
   }
 
+  async function canvasFromImageFile(file, { maximumWidth = 3200 } = {}) {
+    if (!(file instanceof Blob) || !String(file.type || "").startsWith("image/"))
+      throw new Error("IMAGE_FILE_REQUIRED");
+    let source = null;
+    let revoke = "";
+    try {
+      if (global.createImageBitmap) {
+        try {
+          source = await global.createImageBitmap(file, { imageOrientation: "from-image" });
+        } catch {
+          source = await global.createImageBitmap(file);
+        }
+      } else {
+        revoke = URL.createObjectURL(file);
+        source = await new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new Error("IMAGE_DECODE_FAILED"));
+          image.src = revoke;
+        });
+      }
+      const sourceWidth = source.width || source.naturalWidth;
+      const sourceHeight = source.height || source.naturalHeight;
+      if (!sourceWidth || !sourceHeight) throw new Error("IMAGE_DIMENSIONS_REQUIRED");
+      const scale = Math.min(1, (Math.max(1, Number(maximumWidth) || 3200)) / sourceWidth);
+      const canvas = createCanvas(sourceWidth * scale, sourceHeight * scale);
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+      canvas.atlasCapture = Object.freeze({
+        sourceWidth,
+        sourceHeight,
+        outputWidth: canvas.width,
+        outputHeight: canvas.height,
+        fileType: cleanValue(file.type),
+        fileSize: Number(file.size || 0),
+      });
+      return canvas;
+    } finally {
+      source?.close?.();
+      if (revoke) URL.revokeObjectURL(revoke);
+    }
+  }
+
   function copyCanvas(source) {
     const copy = createCanvas(source.width, source.height);
     copy.getContext("2d", { willReadFrequently: true }).drawImage(source, 0, 0);
@@ -222,6 +265,24 @@
 
   function logRecognitionTrace(trace) {
     if (debugEnabled()) console.debug("[ATLAS COC RECOGNITION]", trace);
+    try {
+      const key = "atlas-coc-scan-diagnostics-v3";
+      const prior = JSON.parse(global.localStorage?.getItem(key) || "[]");
+      const entry = {
+        at: new Date().toISOString(),
+        expectedSku: cleanValue(trace?.expectedSku),
+        capture: trace?.capture || null,
+        barcodeCandidates: (trace?.barcode?.rawCandidates || []).slice(0, 12).map((item) => ({
+          value: cleanValue(item?.value), format: cleanValue(item?.format), engine: cleanValue(item?.engine),
+        })),
+        finalLot: cleanValue(trace?.finalLot),
+        finalState: cleanValue(trace?.finalState),
+        failureReason: cleanValue(trace?.failureReason),
+        stageFailures: (trace?.stageFailures || []).slice(0, 12).map(cleanValue),
+        totalProcessingTimeMs: Number(trace?.totalProcessingTimeMs) || null,
+      };
+      global.localStorage?.setItem(key, JSON.stringify([entry, ...(Array.isArray(prior) ? prior : [])].slice(0, 20)));
+    } catch {}
   }
 
   function captureRoi(video, guide, targetCanvas) {
@@ -523,12 +584,13 @@
     return true;
   }
 
-  global.AtlasCocScannerV2 = Object.freeze({
+  const scannerApi = Object.freeze({
     ROI,
     insetRect,
     guideContentRect,
     mapVisibleRoiToSource,
     captureRoi,
+    canvasFromImageFile,
     copyCanvas,
     resizeCanvas,
     cropCanvas,
@@ -544,4 +606,6 @@
     debugEnabled,
     logRecognitionTrace,
   });
+  global.AtlasCocScannerV3 = scannerApi;
+  global.AtlasCocScannerV2 = scannerApi;
 })(window);
