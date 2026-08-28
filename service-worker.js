@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v185-coc-exact-roi-boundary";
+const VERSION = "atlas-pwa-v186-coc-company-excel-data";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,13 +7,16 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=146",
   "./atlas-dashboard.js?v=145",
-  "./atlas-coc.css?v=10",
+  "./atlas-coc.css?v=11",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=6",
   "./atlas-coc-parser.js?v=5",
-  "./atlas-coc-core.js?v=6",
-  "./atlas-coc-excel.js?v=2",
-  "./atlas-coc.js?v=12",
+  "./atlas-coc-case-quantities.js?v=1",
+  "./atlas-coc-core.js?v=7",
+  "./atlas-jszip.min.js?v=1",
+  "./atlas-coc-excel.js?v=3",
+  "./atlas-coc.js?v=13",
+  "./NEW COC 2.xlsx?v=20260827",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

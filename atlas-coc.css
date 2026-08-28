@@ -171,6 +171,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 }
 
 .atlas-coc-form-card { padding: 22px; }
+.atlas-coc-form-card > label { margin-bottom: 17px; }
 .atlas-coc-form-card label,
 .atlas-coc-manual-form label,
 .atlas-coc-lot-field { display: block; }
@@ -599,11 +600,101 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-manual-form label { margin-bottom: 14px; }
 .atlas-coc-form-error { min-height: 20px; color: var(--coc-red); font-weight: 750; }
 
+.atlas-coc-model-fields {
+  min-width: 0;
+  margin: 4px 0 18px;
+  padding: 0;
+  border: 0;
+}
+.atlas-coc-model-fields legend {
+  margin-bottom: 10px;
+  font-weight: 900;
+}
+.atlas-coc-model-row {
+  position: relative;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #d3e0ee;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+.atlas-coc-model-row label { margin: 0; }
+.atlas-coc-model-result {
+  min-height: 18px;
+  margin: 8px 2px 0;
+  color: var(--coc-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+.atlas-coc-model-result.is-valid { color: var(--coc-green); }
+.atlas-coc-model-result.is-invalid { color: var(--coc-red); }
+.atlas-coc-add-model-row,
+.atlas-coc-remove-model {
+  min-height: 43px;
+  color: var(--coc-blue-dark);
+  font-weight: 850;
+  border: 1px solid #b9d2ed;
+  border-radius: 12px;
+  background: #fff;
+}
+.atlas-coc-add-model-row { width: 100%; }
+.atlas-coc-remove-model { width: 100%; margin-top: 10px; color: #8b5960; border-color: #e3c5c9; }
+
+.atlas-coc-session-meta {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--coc-line);
+  border-radius: 16px;
+  background: #fff;
+}
+.atlas-coc-session-meta span { min-width: 0; }
+.atlas-coc-session-meta small,
+.atlas-coc-session-meta strong { display: block; }
+.atlas-coc-session-meta small { margin-bottom: 4px; color: var(--coc-muted); font-size: 9px; font-weight: 900; letter-spacing: .1em; }
+.atlas-coc-session-meta strong { overflow-wrap: anywhere; font-size: 13px; }
+
+.atlas-coc-model-switcher {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(150px, 1fr) auto;
+  gap: 11px;
+  align-items: end;
+  margin: 12px 0 18px;
+  padding: 15px;
+  border: 1px solid #bcd6f3;
+  border-radius: 17px;
+  background: #eef7ff;
+}
+.atlas-coc-model-switcher > div span,
+.atlas-coc-model-switcher > div strong,
+.atlas-coc-model-switcher > div small { display: block; }
+.atlas-coc-model-switcher > div span,
+.atlas-coc-model-switcher label > span { color: var(--coc-blue-dark); font-size: 9px; font-weight: 950; letter-spacing: .12em; }
+.atlas-coc-model-switcher > div strong { margin: 3px 0; overflow-wrap: anywhere; font-size: 15px; }
+.atlas-coc-model-switcher > div small { color: var(--coc-muted); }
+.atlas-coc-model-switcher select,
+.atlas-coc-model-switcher button {
+  width: 100%;
+  min-height: 45px;
+  padding: 0 11px;
+  color: var(--coc-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid #a9c9eb;
+  border-radius: 12px;
+  background: #fff;
+}
+.atlas-coc-model-switcher > p { grid-column: 1 / -1; margin: 0; color: var(--coc-muted); font-size: 11px; }
+.atlas-coc-active-lot > small { display: block; margin: -10px 0 16px; color: var(--coc-muted); font-weight: 800; }
+
 .atlas-coc-report-head { padding: 23px; color: #fff; border-radius: 23px; background: linear-gradient(135deg, #07305f, #0876e9); }
 .atlas-coc-report-head > span { font-size: 11px; font-weight: 950; letter-spacing: .16em; color: #bce1ff; }
 .atlas-coc-report-head h1 { margin: 6px 0; font-size: 31px; }
 .atlas-coc-report-head p { margin: 0; color: #d9ebff; }
-.atlas-coc-report-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.atlas-coc-report-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
 .atlas-coc-report-summary > div { display: grid; place-items: center; padding: 17px; border: 1px solid var(--coc-line); border-radius: 17px; background: #fff; }
 .atlas-coc-report-summary strong { font-size: 34px; }
 .atlas-coc-report-summary span { color: var(--coc-muted); font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
@@ -624,6 +715,12 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-report-row small { color: var(--coc-blue-dark); font-size: 9px; font-weight: 900; letter-spacing: .12em; }
 .atlas-coc-report-row strong { overflow-wrap: anywhere; }
 .atlas-coc-report-row b { min-width: 44px; text-align: right; font-size: 29px; }
+.atlas-coc-report-row b small { color: var(--coc-muted); font-size: 8px; letter-spacing: .05em; }
+.atlas-coc-generate-card { margin-top: 15px; padding: 20px; color: #fff; border-radius: 20px; background: linear-gradient(135deg, #082d59, #075abd); box-shadow: 0 14px 30px rgba(6, 54, 115, .2); }
+.atlas-coc-generate-card > span { color: #b9dcff; font-size: 9px; font-weight: 950; letter-spacing: .14em; }
+.atlas-coc-generate-card h2 { margin: 5px 0; }
+.atlas-coc-generate-card p { margin: 0 0 16px; color: #d7e9fb; line-height: 1.45; }
+.atlas-coc-generate-card button { width: 100%; background: #fff; color: #07376f; box-shadow: none; }
 .atlas-coc-report-actions { display: grid; grid-template-columns: .8fr 1.4fr; gap: 10px; margin-top: 15px; }
 .atlas-coc-report-actions > button:not(.atlas-coc-primary) { min-height: 58px; color: var(--coc-blue-dark); font-weight: 850; border: 1px solid #acc9e9; border-radius: 15px; background: #fff; }
 .atlas-coc-report-note { color: var(--coc-muted); font-size: 12px; text-align: center; line-height: 1.5; }
@@ -664,6 +761,11 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   .atlas-coc-modal-actions > .atlas-coc-primary { grid-row: 1; }
   .atlas-coc-confirm-actions > .atlas-coc-primary { grid-column: 1; }
   .atlas-coc-report-actions { grid-template-columns: 1fr; }
+  .atlas-coc-session-meta { grid-template-columns: 1fr 1fr; }
+  .atlas-coc-session-meta span:first-child { grid-column: 1 / -1; }
+  .atlas-coc-model-switcher { grid-template-columns: 1fr; align-items: stretch; }
+  .atlas-coc-report-summary { grid-template-columns: 1fr 1fr; }
+  .atlas-coc-report-summary > div:last-child { grid-column: 1 / -1; }
   .atlas-coc-compare.is-mismatch { grid-template-columns: repeat(3, 1fr); }
   .atlas-coc-compare.is-mismatch strong { font-size: 29px; }
   .atlas-coc-report-verification { grid-template-columns: 1fr 1fr; }

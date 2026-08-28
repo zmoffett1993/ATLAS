@@ -1,9 +1,10 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 4;
+  const SCHEMA_VERSION = 5;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
+  const MAX_CUSTOMER_LENGTH = 160;
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const timestamp = () => new Date().toISOString();
@@ -14,6 +15,8 @@
   };
   const cleanText = (value, max) => String(value || "").trim().slice(0, max);
   const cleanLot = (value) => cleanText(value, MAX_LOT_LENGTH);
+  const cleanModel = (value) => cleanText(value, MAX_LOT_LENGTH).toUpperCase();
+  const canonicalModel = (value) => cleanModel(value).replace(/[^A-Z0-9]/g, "");
   const canonicalLot = (value) => cleanLot(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
   const displayLot = (value) => {
     const raw = cleanLot(value);
@@ -29,6 +32,32 @@
     const number = Number(value);
     return Number.isSafeInteger(number) && number > 0 ? number : null;
   };
+
+  function normalizeModelRecord(source, fallbackAddedAt = timestamp()) {
+    const modelNumber = cleanModel(typeof source === "string" ? source : source?.modelNumber);
+    if (!modelNumber) return null;
+    return {
+      modelNumber,
+      catalogModel: cleanModel(source?.catalogModel || modelNumber),
+      caseQuantity: positiveInteger(source?.caseQuantity),
+      sourceRevision: cleanText(source?.sourceRevision, 80),
+      addedAt: cleanText(source?.addedAt, 40) || fallbackAddedAt,
+    };
+  }
+
+  function normalizeModels(values, fallbackAddedAt = timestamp()) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : [])
+      .map((value) => normalizeModelRecord(value, fallbackAddedAt))
+      .filter((record) => {
+        if (!record) return false;
+        const key = canonicalModel(record.modelNumber);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 100);
+  }
 
   function createPallet(number) {
     return {
@@ -52,18 +81,35 @@
   }
 
   function createSession({
-    invoiceNumber = "", orderNumber = "", deviceId = "", employee = "", sku = "",
+    customerName = "", ifNumber = "", invoiceNumber = "", orderNumber = "",
+    deviceId = "", employee = "", sku = "", models = [], modelNumbers = [],
   } = {}) {
     const createdAt = timestamp();
     const pallet = createPallet(1);
     const invoice = cleanText(invoiceNumber || orderNumber, MAX_INVOICE_LENGTH);
+    const customer = cleanText(customerName, MAX_CUSTOMER_LENGTH);
+    const ifValue = cleanText(ifNumber, MAX_INVOICE_LENGTH);
+    const selectedModels = normalizeModels(
+      models.length ? models : modelNumbers.length ? modelNumbers : sku ? [sku] : [],
+      createdAt,
+    );
     if (!invoice) throw new Error("INVOICE_REQUIRED");
+    if (!customer) throw new Error("CUSTOMER_REQUIRED");
+    if (!ifValue) throw new Error("IF_NUMBER_REQUIRED");
+    if (!selectedModels.length || selectedModels.some((model) => !model.caseQuantity))
+      throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
+    const activeModel = selectedModels[0].modelNumber;
     return {
       schemaVersion: SCHEMA_VERSION,
       id: makeId("coc"),
       deviceId: cleanText(deviceId, 100),
+      customerName: customer,
       invoiceNumber: invoice,
-      sku: cleanText(sku, MAX_LOT_LENGTH).toUpperCase(),
+      ifNumber: ifValue,
+      models: selectedModels,
+      modelNumbers: selectedModels.map((model) => model.modelNumber),
+      activeModel,
+      sku: activeModel,
       employee: cleanText(employee, 60),
       status: "active",
       createdAt,
@@ -71,13 +117,26 @@
       completedAt: null,
       activePalletId: pallet.id,
       pallets: [pallet],
-      activity: [{ type: "session_started", at: createdAt }],
+      activity: [{ type: "session_started", at: createdAt, models: selectedModels.length }],
     };
   }
 
   function sanitize(raw) {
     if (!raw || typeof raw !== "object" || !Array.isArray(raw.pallets))
       throw new Error("INVALID_COC_STATE");
+    const createdAt = cleanText(raw.createdAt, 40) || timestamp();
+    const suppliedModels = Array.isArray(raw.models)
+      ? raw.models
+      : Array.isArray(raw.modelNumbers)
+        ? raw.modelNumbers
+        : raw.sku
+          ? [raw.sku]
+          : [];
+    let models = normalizeModels(suppliedModels, createdAt);
+    const modelRecordFor = (value) => {
+      const key = canonicalModel(value);
+      return models.find((model) => canonicalModel(model.modelNumber) === key) || null;
+    };
     const seenPallets = new Set();
     const pallets = raw.pallets.slice(0, 500).map((source, index) => {
       const id = cleanText(source?.id, 140) || makeId("pallet");
@@ -90,8 +149,11 @@
           const rawLot = cleanLot(lot?.lot);
           const canonical = canonicalLot(rawLot);
           if (!canonical) throw new Error("INVALID_LOT");
-          if (seenLots.has(canonical)) throw new Error("DUPLICATE_LOT");
-          seenLots.add(canonical);
+          const model = cleanModel(lot?.model || lot?.expectedModel || raw?.activeModel || raw?.sku);
+          const duplicateKey = `${canonicalModel(model)}:${canonical}`;
+          if (seenLots.has(duplicateKey)) throw new Error("DUPLICATE_LOT");
+          seenLots.add(duplicateKey);
+          const linkedModel = modelRecordFor(model);
           return {
             id: cleanText(lot?.id, 140) || makeId("lot"),
             lot: rawLot,
@@ -108,8 +170,10 @@
             rawBarcode: cleanText(lot?.rawBarcode, MAX_LOT_LENGTH),
             barcodeFormat: cleanText(lot?.barcodeFormat, 40),
             rawBatchText: cleanText(lot?.rawBatchText, MAX_LOT_LENGTH),
-            sku: cleanText(lot?.sku || raw?.sku, MAX_LOT_LENGTH).toUpperCase(),
-            model: cleanText(lot?.model, MAX_LOT_LENGTH).toUpperCase(),
+            sku: cleanModel(lot?.sku || model || raw?.sku),
+            model,
+            detectedModel: cleanModel(lot?.detectedModel),
+            caseQuantity: positiveInteger(lot?.caseQuantity) || linkedModel?.caseQuantity || null,
             captureMethod: cleanText(
               lot?.captureMethod || lot?.verification || "manual",
               40,
@@ -121,7 +185,7 @@
             confidenceState: ["verified", "recognized", "needs_verification"].includes(lot?.confidenceState)
               ? lot.confidenceState
               : "",
-            expectedModel: cleanText(lot?.expectedModel || raw?.sku, MAX_LOT_LENGTH).toUpperCase(),
+            expectedModel: cleanModel(lot?.expectedModel || model || raw?.sku),
             modelMatchMethod: cleanText(lot?.modelMatchMethod, 40),
             captureConfidence: Number.isFinite(Number(lot?.captureConfidence ?? lot?.ocrConfidence))
               ? Math.max(0, Math.min(100, Number(lot.captureConfidence ?? lot.ocrConfidence)))
@@ -174,7 +238,9 @@
         finishedAt: cleanText(source?.finishedAt, 40) || null,
         activeLotId: lotIds.has(source?.activeLotId)
           ? source.activeLotId
-          : lots[0]?.id || null,
+          : Object.prototype.hasOwnProperty.call(source || {}, "activeLotId")
+            ? null
+            : lots[0]?.id || null,
         lots,
         history,
         expectedBoxes,
@@ -189,6 +255,13 @@
         expectedBoxesInferred: Boolean(source?.expectedBoxesInferred || inferredExpected),
       };
     });
+    const inferredModels = pallets.flatMap((pallet) => pallet.lots.map((lot) => ({
+      modelNumber: lot.model,
+      catalogModel: lot.model,
+      caseQuantity: lot.caseQuantity,
+      addedAt: lot.createdAt,
+    })));
+    models = normalizeModels([...models, ...inferredModels], createdAt);
     if (!pallets.length && raw.status !== "report") pallets.push(createPallet(1));
     const status = raw.status === "report" ? "report" : "active";
     let activePalletId = cleanText(raw.activePalletId, 140);
@@ -208,15 +281,23 @@
       activePalletId = null;
       pallets.forEach((pallet) => { pallet.status = "locked"; });
     }
+    let activeModel = cleanModel(raw.activeModel || raw.sku);
+    if (!models.some((model) => canonicalModel(model.modelNumber) === canonicalModel(activeModel)))
+      activeModel = models[0]?.modelNumber || "";
     return {
       schemaVersion: SCHEMA_VERSION,
       id: cleanText(raw.id, 140) || makeId("coc"),
       deviceId: cleanText(raw.deviceId, 100),
+      customerName: cleanText(raw.customerName, MAX_CUSTOMER_LENGTH),
       invoiceNumber: cleanText(raw.invoiceNumber || raw.orderNumber, MAX_INVOICE_LENGTH),
-      sku: cleanText(raw.sku, MAX_LOT_LENGTH).toUpperCase(),
+      ifNumber: cleanText(raw.ifNumber, MAX_INVOICE_LENGTH),
+      models,
+      modelNumbers: models.map((model) => model.modelNumber),
+      activeModel,
+      sku: activeModel || cleanModel(raw.sku),
       employee: cleanText(raw.employee, 60),
       status,
-      createdAt: cleanText(raw.createdAt, 40) || timestamp(),
+      createdAt,
       updatedAt: cleanText(raw.updatedAt, 40) || timestamp(),
       completedAt: cleanText(raw.completedAt, 40) || null,
       activePalletId,
@@ -231,6 +312,16 @@
     (pallet?.lots || []).reduce((total, lot) => total + integer(lot.cases), 0);
   const sessionTotal = (session) =>
     (session?.pallets || []).reduce((total, pallet) => total + palletTotal(pallet), 0);
+  const lotUnitQuantity = (lot) => integer(lot?.cases) * (positiveInteger(lot?.caseQuantity) || 0);
+  const sessionUnitTotal = (session) => (session?.pallets || []).reduce(
+    (sessionUnits, pallet) => sessionUnits + (pallet?.lots || []).reduce(
+      (palletUnits, lot) => palletUnits + lotUnitQuantity(lot), 0,
+    ), 0,
+  );
+  const modelRecord = (session, value) => {
+    const key = canonicalModel(value);
+    return session?.models?.find((model) => canonicalModel(model.modelNumber) === key) || null;
+  };
   const palletProgress = (pallet) => {
     const expected = positiveInteger(pallet?.expectedBoxes);
     const recorded = palletTotal(pallet);
@@ -259,7 +350,11 @@
     const lotText = cleanLot(lotValue);
     const canonical = canonicalLot(lotText);
     if (!canonical) throw new Error("LOT_REQUIRED");
-    const duplicate = pallet.lots.find((lot) => lot.canonical === canonical);
+    const selectedModel = cleanModel(options.model || session.activeModel || session.sku);
+    const selectedModelRecord = modelRecord(session, selectedModel);
+    if (!selectedModelRecord?.caseQuantity) throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
+    const duplicate = pallet.lots.find((lot) =>
+      lot.canonical === canonical && canonicalModel(lot.model) === canonicalModel(selectedModel));
     if (duplicate) return { session, duplicate };
     const at = timestamp();
     const lot = {
@@ -276,8 +371,10 @@
       rawBarcode: cleanText(options.rawBarcode, MAX_LOT_LENGTH),
       barcodeFormat: cleanText(options.barcodeFormat, 40),
       rawBatchText: cleanText(options.rawBatchText, MAX_LOT_LENGTH),
-      sku: cleanText(options.sku || session.sku, MAX_LOT_LENGTH).toUpperCase(),
-      model: cleanText(options.model, MAX_LOT_LENGTH).toUpperCase(),
+      sku: cleanModel(options.sku || selectedModel),
+      model: selectedModel,
+      detectedModel: cleanModel(options.detectedModel),
+      caseQuantity: selectedModelRecord.caseQuantity,
       captureMethod: cleanText(options.captureMethod || options.verification || "manual", 40),
       validationMethod: cleanText(options.validationMethod, 80),
       labelClass: ["model_batch", "direct_lot"].includes(options.labelClass)
@@ -286,7 +383,7 @@
       confidenceState: ["verified", "recognized", "needs_verification"].includes(options.confidenceState)
         ? options.confidenceState
         : "",
-      expectedModel: cleanText(options.expectedModel || session.sku, MAX_LOT_LENGTH).toUpperCase(),
+      expectedModel: cleanModel(options.expectedModel || selectedModel),
       modelMatchMethod: cleanText(options.modelMatchMethod, 40),
       captureConfidence: Number.isFinite(Number(options.confidence))
         ? Math.max(0, Math.min(100, Number(options.confidence)))
@@ -295,21 +392,66 @@
     };
     pallet.lots.push(lot);
     pallet.activeLotId = lot.id;
+    session.activeModel = selectedModel;
+    session.sku = selectedModel;
     pallet.history.push({ kind: "case", lotId: lot.id, at });
     pallet.verificationState = "in_progress";
     pallet.verificationAttemptedAt = null;
     pallet.verifiedAt = null;
-    withActivity(session, "lot_added", { palletNumber: pallet.number, lot: lot.lot });
+    withActivity(session, "lot_added", {
+      palletNumber: pallet.number,
+      lot: lot.lot,
+      model: selectedModel,
+      caseQuantity: selectedModelRecord.caseQuantity,
+    });
     return { session, lot, duplicate: null };
   }
 
   function selectLot(source, lotId) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
-    if (!pallet || !pallet.lots.some((lot) => lot.id === lotId))
+    const selected = pallet?.lots.find((lot) => lot.id === lotId);
+    if (!pallet || !selected)
       throw new Error("LOT_NOT_FOUND");
     pallet.activeLotId = lotId;
+    session.activeModel = selected.model || session.activeModel;
+    session.sku = session.activeModel || session.sku;
     return withActivity(session, "lot_selected", { palletNumber: pallet.number, lotId });
+  }
+
+  function addModel(source, record) {
+    const session = sanitize(clone(source));
+    const normalized = normalizeModelRecord(record);
+    if (!normalized?.caseQuantity) throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
+    const existing = modelRecord(session, normalized.modelNumber);
+    if (!existing) session.models.push(normalized);
+    session.modelNumbers = session.models.map((model) => model.modelNumber);
+    session.activeModel = existing?.modelNumber || normalized.modelNumber;
+    session.sku = session.activeModel;
+    const pallet = activePallet(session);
+    if (pallet) pallet.activeLotId = pallet.lots.find(
+      (lot) => canonicalModel(lot.model) === canonicalModel(session.activeModel),
+    )?.id || null;
+    return withActivity(session, existing ? "model_selected" : "model_added", {
+      model: session.activeModel,
+      caseQuantity: existing?.caseQuantity || normalized.caseQuantity,
+    });
+  }
+
+  function selectModel(source, value) {
+    const session = sanitize(clone(source));
+    const selected = modelRecord(session, value);
+    if (!selected?.caseQuantity) throw new Error("MODEL_NOT_FOUND");
+    session.activeModel = selected.modelNumber;
+    session.sku = selected.modelNumber;
+    const pallet = activePallet(session);
+    if (pallet) pallet.activeLotId = [...pallet.lots].reverse().find(
+      (lot) => canonicalModel(lot.model) === canonicalModel(selected.modelNumber),
+    )?.id || null;
+    return withActivity(session, "model_selected", {
+      palletNumber: pallet?.number,
+      model: selected.modelNumber,
+    });
   }
 
   function addCase(source) {
@@ -341,7 +483,14 @@
     lot.cases -= 1;
     if (lot.cases === 0) {
       pallet.lots = pallet.lots.filter((item) => item.id !== lot.id);
-      pallet.activeLotId = pallet.lots[0]?.id || null;
+      const replacement = [...pallet.lots].reverse().find(
+        (item) => canonicalModel(item.model) === canonicalModel(session.activeModel),
+      ) || pallet.lots[0];
+      pallet.activeLotId = replacement?.id || null;
+      if (replacement?.model) {
+        session.activeModel = replacement.model;
+        session.sku = replacement.model;
+      }
     } else {
       pallet.activeLotId = lot.id;
     }
@@ -456,6 +605,10 @@
     target.verificationAttemptedAt = null;
     target.verifiedAt = null;
     target.activeLotId = target.lots[0]?.id || null;
+    if (target.lots[0]?.model) {
+      session.activeModel = target.lots[0].model;
+      session.sku = target.lots[0].model;
+    }
     session.activePalletId = target.id;
     session.pallets.forEach((pallet) => {
       if (pallet.id !== target.id) {
@@ -498,6 +651,9 @@
       (item) => item.status === "locked" && (item.lots.length || palletTotal(item) > 0),
     );
     if (!completed.length) throw new Error("NO_COMPLETED_PALLETS");
+    if (completed.some((item) => item.lots.some((lot) =>
+      !lot.model || !positiveInteger(lot.caseQuantity))))
+      throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
     session.pallets = completed.map((item, index) => ({
       ...item,
       number: index + 1,
@@ -518,6 +674,7 @@
     return {
       pallets: safe.pallets.length,
       totalCases: sessionTotal(safe),
+      totalUnits: sessionUnitTotal(safe),
       totals: safe.pallets.map((pallet) => palletTotal(pallet)),
       boxVerification: safe.pallets.map((pallet) => ({
         palletNumber: pallet.number,
@@ -533,10 +690,15 @@
     activePallet,
     palletTotal,
     sessionTotal,
+    sessionUnitTotal,
+    lotUnitQuantity,
+    modelRecord,
     palletProgress,
     canonicalLot,
     displayLot,
     addLot,
+    addModel,
+    selectModel,
     selectLot,
     addCase,
     undoCase,
