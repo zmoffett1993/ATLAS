@@ -229,6 +229,14 @@
     return Array.isArray(result?.deliveries) ? result.deliveries : [];
   }
 
+  async function downloadOfficeWorkbook(deliveryId, credentials) {
+    const result = await edgeRequest("coc-receiver", { action: "download-workbook", deliveryId }, { receiverCredentials: credentials });
+    if (!result?.downloadUrl) throw new Error("COC_WORKBOOK_NOT_AVAILABLE");
+    const response = await fetch(result.downloadUrl);
+    if (!response.ok) throw new Error("COC_WORKBOOK_DOWNLOAD_FAILED");
+    return { fileName: clean(result.fileName || "Company_COC.xlsx", 160), blob: await response.blob() };
+  }
+
   async function acknowledgeDelivery(deliveryId, credentials) {
     return edgeRequest("coc-receiver", { action: "acknowledge", deliveryId }, { receiverCredentials: credentials });
   }
@@ -318,6 +326,7 @@
     verifyReceiver,
     heartbeat,
     receiverInbox,
+    downloadOfficeWorkbook,
     acknowledgeDelivery,
     markOfficeCompleted,
     subscribeToDeliveries,
