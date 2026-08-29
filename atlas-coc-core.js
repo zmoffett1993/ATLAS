@@ -380,6 +380,25 @@
     };
   };
 
+  const boxLimitMessage = (pallet) => {
+    const number = integer(pallet?.number) || 1;
+    const count = positiveInteger(pallet?.expectedBoxes) || 0;
+    return `Approved box count reached. Pallet ${number} is limited to ${count} boxes. Finish the pallet or correct the approved count before adding another box.`;
+  };
+
+  function assertBoxCapacity(pallet, increment = 1) {
+    const expected = positiveInteger(pallet?.expectedBoxes);
+    if (!expected) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
+    if (palletTotal(pallet) + integer(increment) > expected) {
+      const error = new Error(boxLimitMessage(pallet));
+      error.code = "APPROVED_BOX_COUNT_REACHED";
+      error.palletNumber = pallet.number;
+      error.expectedBoxes = expected;
+      error.recordedBoxes = palletTotal(pallet);
+      throw error;
+    }
+  }
+
   function withActivity(session, type, detail = {}) {
     session.updatedAt = timestamp();
     session.activity = [...(session.activity || []), { type, at: session.updatedAt, ...detail }]
@@ -403,6 +422,7 @@
     const duplicate = pallet.lots.find((lot) =>
       lot.canonical === canonical && canonicalModel(lot.model) === canonicalModel(selectedModel));
     if (duplicate) return { session, duplicate };
+    assertBoxCapacity(pallet);
     const at = timestamp();
     const lot = {
       id: makeId("lot"),
@@ -522,7 +542,7 @@
     const pallet = activePallet(session);
     const lot = pallet?.lots.find((item) => item.id === pallet.activeLotId);
     if (!pallet || !lot) throw new Error("NO_ACTIVE_LOT");
-    if (!positiveInteger(pallet.expectedBoxes)) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
+    assertBoxCapacity(pallet);
     lot.cases += 1;
     pallet.history.push({ kind: "case", lotId: lot.id, at: timestamp() });
     pallet.verificationState = "in_progress";
@@ -574,6 +594,11 @@
     if (!pallet || session.status !== "active") throw new Error("NO_ACTIVE_PALLET");
     const next = positiveInteger(value);
     if (!next) throw new Error("INVALID_EXPECTED_BOX_COUNT");
+    if (next < palletTotal(pallet)) {
+      const error = new Error("The approved box count cannot be lower than the boxes already recorded.");
+      error.code = "EXPECTED_BOX_COUNT_BELOW_RECORDED";
+      throw error;
+    }
     const previous = positiveInteger(pallet.expectedBoxes);
     const at = timestamp();
     if (previous && previous !== next) {
@@ -716,6 +741,8 @@
       (item) => item.status === "locked" && (item.lots.length || palletTotal(item) > 0),
     );
     if (!completed.length) throw new Error("NO_COMPLETED_PALLETS");
+    if (completed.some((item) => palletTotal(item) > positiveInteger(item.expectedBoxes)))
+      throw new Error("APPROVED_BOX_COUNT_EXCEEDED");
     if (completed.some((item) => item.lots.some((lot) =>
       !lot.model || !positiveInteger(lot.caseQuantity))))
       throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
@@ -760,6 +787,8 @@
     modelRecord,
     palletModels,
     palletProgress,
+    boxLimitMessage,
+    assertBoxCapacity,
     canonicalLot,
     displayLot,
     addLot,

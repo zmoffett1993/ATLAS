@@ -3,7 +3,7 @@
 
   const OFFICIAL_TEMPLATE = Object.freeze({
     fileName: "NEW COC 2.xlsx",
-    url: "./NEW COC 2.xlsx?v=20260827",
+    url: "private://coc-templates/NEW COC 2.xlsx",
     sha256: "d12f37c2b81152e88ee5f6f92c6573459511bae05026c2f9eed75554b2eeac4c",
     visibility: "company_internal",
     sheetName: "Sheet1",
@@ -20,7 +20,7 @@
     invoiceCell: "B3",
     ifNumberCell: "B4",
     detailRows: Object.freeze({ first: 7, last: 748, columns: "A:C" }),
-    palletNotation: "PALLET {number}",
+    palletNotation: "{lot} (Pallet {number})",
     overflowStrategy: "block_generation_when_rows_exceed_748",
   });
 
@@ -153,50 +153,24 @@
   function buildDetailRows(data, mapping = FINAL_MAPPING) {
     let rowNumber = mapping.detailRows.first;
     const rows = [];
-    data.pallets.forEach((pallet) => {
-      pallet.modelBlocks.forEach((block) => {
+    [...data.pallets]
+      .sort((left, right) => left.palletNumber - right.palletNumber)
+      .forEach((pallet) => pallet.lots.forEach((lot) => {
         rows.push({
           rowNumber: rowNumber++,
-          type: "pallet",
-          modelNumber: block.modelNumber,
+          type: "lot",
+          modelNumber: lot.model,
           palletNumber: pallet.palletNumber,
-          a: block.modelNumber,
-          b: `PALLET ${pallet.palletNumber}`,
-          c: null,
+          cleanLot: lot.cleanLot,
+          boxes: lot.boxes,
+          caseQuantity: lot.caseQuantity,
+          a: lot.model,
+          b: `${lot.cleanLot} (Pallet ${pallet.palletNumber})`,
+          c: lot.quantity,
         });
-        const firstQuantityRow = rowNumber;
-        block.lots.forEach((lot) => {
-          rows.push({
-            rowNumber: rowNumber++,
-            type: "lot",
-            modelNumber: block.modelNumber,
-            palletNumber: pallet.palletNumber,
-            cleanLot: lot.cleanLot,
-            boxes: lot.boxes,
-            caseQuantity: lot.caseQuantity,
-            a: "",
-            b: lot.cleanLot,
-            c: lot.quantity,
-          });
-        });
-        const lastQuantityRow = rowNumber - 1;
-        rows.push({
-          rowNumber: rowNumber++,
-          type: "total",
-          modelNumber: block.modelNumber,
-          palletNumber: pallet.palletNumber,
-          a: "",
-          b: "TOTAL QTY",
-          c: block.totalQuantity,
-          formula: `SUM(C${firstQuantityRow}:C${lastQuantityRow})`,
-        });
-        rows.push({ rowNumber: rowNumber++, type: "separator", a: "", b: "", c: null });
-      });
-    });
-    if (rows.at(-1)?.type === "separator") rows.pop();
-    const contentRows = rows.filter((row) => row.type !== "separator");
-    const lastContentRow = contentRows.length
-      ? contentRows[contentRows.length - 1].rowNumber
+      }));
+    const lastContentRow = rows.length
+      ? rows[rows.length - 1].rowNumber
       : mapping.detailRows.first;
     if (lastContentRow > mapping.detailRows.last) throw new Error("COC_TEMPLATE_ROW_CAPACITY_EXCEEDED");
     return Object.freeze({ rows, lastContentRow });
@@ -337,15 +311,8 @@
     });
     zip.file(sheetPath, populatedSheetXml);
 
-    const populatedWorkbookXml = workbookXml.replace(/<calcPr\b([^>]*)\/?>(?:<\/calcPr>)?/, (_, attributes) => {
-      const cleaned = String(attributes)
-        .replace(/\s+calcMode="[^"]*"/g, "")
-        .replace(/\s+fullCalcOnLoad="[^"]*"/g, "")
-        .replace(/\s+forceFullCalc="[^"]*"/g, "")
-        .replace(/\/\s*$/, "");
-      return `<calcPr${cleaned} calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/>`;
-    });
-    zip.file(workbookPath, populatedWorkbookXml);
+    // No formulas are introduced; keep the master workbook metadata byte-for-byte.
+    zip.file(workbookPath, workbookXml);
     return zip.generateAsync({
       type: "uint8array",
       compression: "DEFLATE",
@@ -354,9 +321,9 @@
   }
 
   async function loadMasterTemplate(template = OFFICIAL_TEMPLATE) {
-    const response = await fetch(template.url, { cache: "no-cache" });
-    if (!response.ok) throw new Error(`COC_TEMPLATE_LOAD_FAILED_${response.status}`);
-    return new Uint8Array(await response.arrayBuffer());
+    if (!global.AtlasCocDelivery?.loadOfficialTemplate)
+      throw new Error("COC_PRIVATE_TEMPLATE_SERVICE_REQUIRED");
+    return global.AtlasCocDelivery.loadOfficialTemplate(template);
   }
 
   async function saveGeneratedWorkbook({ fileName, bytes }) {

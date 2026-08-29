@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v189-coc-complete-template-fills";
+const VERSION = "atlas-pwa-v192-single-name-auth";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,17 +6,23 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=146",
-  "./atlas-dashboard.js?v=145",
+  "./atlas-dashboard.js?v=147",
+  "./atlas-auth.css?v=2",
+  "./atlas-auth.js?v=2",
   "./atlas-coc.css?v=12",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=5",
   "./atlas-coc-case-quantities.js?v=1",
-  "./atlas-coc-core.js?v=8",
+  "./atlas-coc-core.js?v=9",
   "./atlas-jszip.min.js?v=1",
-  "./atlas-coc-excel.js?v=5",
-  "./atlas-coc.js?v=14",
-  "./NEW COC 2.xlsx?v=20260827",
+  "./atlas-coc-storage.js?v=1",
+  "./atlas-coc-delivery.js?v=1",
+  "./atlas-coc-excel.js?v=6",
+  "./atlas-coc.js?v=15",
+  "./coc-receiver/index.html",
+  "./coc-receiver/receiver.css?v=1",
+  "./coc-receiver/receiver.js?v=1",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
@@ -116,7 +122,13 @@ self.addEventListener("fetch", (event) => {
 
   if (isNavigation) {
     event.respondWith(
-      networkFirst(request, SHELL_CACHE, caches.match("./index.html")),
+      networkFirst(
+        request,
+        SHELL_CACHE,
+        caches.match(url.pathname.startsWith("/coc-receiver")
+          ? "./coc-receiver/index.html"
+          : "./index.html"),
+      ),
     );
     return;
   }

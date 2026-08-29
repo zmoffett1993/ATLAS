@@ -284,6 +284,8 @@
   };
 
   const getSession = () => {
+    const shared = window.AtlasAuth?.getSession?.();
+    if (shared) return shared;
     try {
       const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
       if (!saved?.access_token) return null;
@@ -479,7 +481,15 @@
       state.undoSnapshots = protectedResults[3].status === "fulfilled" ? protectedResults[3].value : [];
       state.deleteRequests = protectedResults[4].status === "fulfilled" ? protectedResults[4].value : [];
       state.currentProfile =
-        state.profiles.find((profile) => profile.user_id === state.session?.user?.id) || null;
+        state.profiles.find((profile) => profile.user_id === state.session?.user?.id)
+        || (state.session?.user?.id ? {
+          user_id: state.session.user.id,
+          display_name: state.session.user.user_metadata?.display_name || state.session.user.app_metadata?.login_name || "ATLAS user",
+          role: state.session.user.app_metadata?.atlas_role || state.session.user.app_metadata?.role || "picker",
+        } : null);
+      if (state.currentProfile && !["supervisor", "admin"].includes(state.currentProfile.role)) {
+        state.accessRequired = true;
+      }
       if (state.currentProfile?.role !== "admin" && state.view === "access") {
         state.view = "operations";
       }
@@ -535,7 +545,7 @@
     try {
       const result = await adminApi("list");
       state.adminUsers = (result.users || []).sort((left, right) =>
-        String(left.display_name || left.email).localeCompare(String(right.display_name || right.email)),
+        String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name)),
       );
       state.adminUsersLoaded = true;
     } catch (error) {
@@ -578,14 +588,21 @@
     );
   };
 
-  const renderAccess = () => `
+  const renderAccess = () => state.session && state.currentProfile && !["supervisor", "admin"].includes(state.currentProfile.role) ? `
+    <div class="atlas-dashboard-access">
+      <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-light.svg?v=131" alt="ATLAS Warehouse Management">
+      <p class="atlas-dashboard-eyebrow">PICKER ACCESS</p>
+      <h2>Dashboard access is not included</h2>
+      <p>Your account can use warehouse tools and COC workflows. Operational history and account controls are limited to supervisors and administrators.</p>
+      <button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-sign-out>Sign Out</button>
+    </div>` : `
     <div class="atlas-dashboard-access">
       <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-light.svg?v=131" alt="ATLAS Warehouse Management">
       <p class="atlas-dashboard-eyebrow">AUTHORIZED ACCESS</p>
       <h2>Supervisor sign in</h2>
       <p>Operational history includes employee names and detailed inventory changes. Sign in with an ATLAS supervisor or administrator account to continue.</p>
       <form class="atlas-dashboard-access-form" data-sign-in>
-        <label><span>Email address</span><input type="email" name="email" autocomplete="username" required></label>
+        <label><span>Name</span><input type="text" name="login_name" autocomplete="username" required></label>
         <label><span>Password</span>${passwordField({ autocomplete: "current-password" })}</label>
         <p class="atlas-dashboard-access-message" data-access-message></p>
         <button class="atlas-dashboard-button atlas-dashboard-button--primary" type="submit">Open Dashboard</button>
@@ -772,7 +789,7 @@
   };
 
   const roleLabel = (role) =>
-    ({ admin: "Administrator", supervisor: "Supervisor", picker: "Picker" })[role] || "Picker";
+    ({ admin: "Administrator", supervisor: "Supervisor", office_receiver: "Office Receiver", picker: "Picker" })[role] || "Picker";
 
   const renderAccountModal = () => {
     if (!state.accountModal) return "";
@@ -786,7 +803,7 @@
             <button type="button" class="atlas-account-modal-close" data-account-close aria-label="Close">×</button>
             <span class="atlas-account-modal-icon is-danger" aria-hidden="true">!</span>
             <h2 id="atlasAccountConfirmTitle">Delete this account permanently?</h2>
-            <p><strong>${escapeHtml(user.display_name || user.email)}</strong> will no longer be able to sign in. This action cannot be undone. Historical warehouse activity will remain intact.</p>
+            <p><strong>${escapeHtml(user.display_name || user.login_name)}</strong> will no longer be able to sign in. This action cannot be undone. Historical warehouse activity will remain intact.</p>
             <div class="atlas-account-modal-actions">
               <button type="button" class="atlas-dashboard-button" data-account-close>Cancel</button>
               <button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger" data-account-delete data-user-id="${escapeHtml(user.id)}">Delete Account</button>
@@ -801,14 +818,13 @@
           <button type="button" class="atlas-account-modal-close" data-account-close aria-label="Close">×</button>
           <p class="atlas-dashboard-eyebrow">ADMINISTRATOR CONTROL</p>
           <h2 id="atlasAccountModalTitle">${isCreate ? "Add ATLAS Account" : "Manage Account"}</h2>
-          <p>${isCreate ? "Create a private sign-in and choose exactly what this employee can access." : `Update ${escapeHtml(user.display_name || user.email)} without opening Supabase.`}</p>
+          <p>${isCreate ? "Create a simple employee name-and-password sign-in and choose exactly what this employee can access." : `Update ${escapeHtml(user.display_name || user.login_name)} without opening Supabase.`}</p>
           <form class="atlas-account-form" data-${isCreate ? "account-create" : "account-update"}>
             ${isCreate ? "" : `<input type="hidden" name="user_id" value="${escapeHtml(user.id)}">`}
             <div class="atlas-account-form-grid">
-              <label><span>Display name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required></label>
-              <label><span>Login email</span><input type="email" name="email" value="${escapeHtml(isCreate ? "" : user.email)}" autocomplete="off" required></label>
+              <label><span>Name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required><small>This is both the employee's displayed name and the name they use to sign in.</small></label>
               <label><span>ATLAS role</span><select name="role" required>
-                ${["picker", "supervisor", "admin"].map((role) => `<option value="${role}" ${!isCreate && user.role === role ? "selected" : ""}>${roleLabel(role)}</option>`).join("")}
+                ${["picker", "office_receiver", "supervisor", "admin"].map((role) => `<option value="${role}" ${!isCreate && user.role === role ? "selected" : ""}>${roleLabel(role)}</option>`).join("")}
               </select></label>
               ${isCreate ? `<label><span>Password</span>${passwordField({ autocomplete: "new-password", minlength: 10 })}<small>At least 10 characters</small></label>` : ""}
             </div>
@@ -838,8 +854,8 @@
     const admins = state.adminUsers.filter((user) => user.active && user.role === "admin").length;
     const rows = state.adminUsers.map((user) => `
       <article class="atlas-account-row ${user.active ? "" : "is-disabled"}">
-        <span class="atlas-dashboard-avatar">${escapeHtml(initials(user.display_name || user.email))}</span>
-        <span class="atlas-account-identity"><strong>${escapeHtml(user.display_name || "Unnamed account")}${user.is_current ? " <small>(You)</small>" : ""}</strong><span>${escapeHtml(user.email)}</span></span>
+        <span class="atlas-dashboard-avatar">${escapeHtml(initials(user.display_name || user.login_name))}</span>
+        <span class="atlas-account-identity"><strong>${escapeHtml(user.display_name || "Unnamed account")}${user.is_current ? " <small>(You)</small>" : ""}</strong><span>${escapeHtml(roleLabel(user.role))} account</span></span>
         <span class="atlas-account-role is-${escapeHtml(user.role)}">${escapeHtml(roleLabel(user.role))}</span>
         <span class="atlas-account-status"><i class="${user.active ? "is-active" : ""}"></i>${user.active ? "Active" : "Inactive (legacy)"}</span>
         <span class="atlas-account-last"><small>Last sign-in</small><strong>${escapeHtml(accountDate(user.last_sign_in_at))}</strong></span>
@@ -873,7 +889,7 @@
     const created = operationalRows.filter((row) => row.key === "create").length;
     const cleared = operationalRows.filter((row) => row.label === "Cleared location").length;
     const rangeLabel = ({ today: "Today", week: "This Week", "7": "Last 7 Days", "30": "Last 30 Days", custom: "Custom Range" })[state.range] || "Selected range";
-    const sessionName = state.session?.user?.email || "Supervisor";
+    const sessionName = window.AtlasAuth?.displayName?.(state.session) || state.session?.user?.user_metadata?.display_name || "Supervisor";
     const isAdmin = state.currentProfile?.role === "admin";
     const canViewNotifications = ["supervisor", "admin"].includes(state.currentProfile?.role);
     const notifications = todayNotifications();
@@ -1056,13 +1072,13 @@
     submit.disabled = true;
     submit.textContent = "Signing in…";
     try {
-      const payload = await api("/auth/v1/token?grant_type=password", {
-        token: null,
-        method: "POST",
-        body: { email: form.elements.email.value.trim(), password: form.elements.password.value },
-      });
-      payload.expires_at = payload.expires_at || Math.floor(Date.now() / 1000) + Number(payload.expires_in || 3600);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+      const payload = window.AtlasAuth
+        ? await window.AtlasAuth.signIn(form.elements.login_name.value, form.elements.password.value)
+        : await api("/auth/v1/token?grant_type=password", {
+          token: null,
+          method: "POST",
+          body: { email: form.elements.login_name.value.trim(), password: form.elements.password.value },
+        });
       state.session = payload;
       state.accessRequired = false;
       state.skus = [];
@@ -1076,7 +1092,8 @@
 
   const signOut = async () => {
     const token = state.session?.access_token;
-    sessionStorage.removeItem(SESSION_KEY);
+    if (window.AtlasAuth) await window.AtlasAuth.signOut();
+    else sessionStorage.removeItem(SESSION_KEY);
     state.session = null;
     state.skus = [];
     state.locations = [];
@@ -1088,7 +1105,7 @@
     state.adminUsers = [];
     state.adminUsersLoaded = false;
     state.accountModal = null;
-    if (token) api("/auth/v1/logout", { token, method: "POST" }).catch(() => {});
+    if (token && !window.AtlasAuth) api("/auth/v1/logout", { token, method: "POST" }).catch(() => {});
     await loadData();
   };
 
@@ -1145,7 +1162,6 @@
       event.preventDefault();
       runAdminAction("create", {
         display_name: form.elements.display_name.value,
-        email: form.elements.email.value,
         role: form.elements.role.value,
         password: form.elements.password.value,
       }, form);
@@ -1154,7 +1170,6 @@
       runAdminAction("update", {
         user_id: form.elements.user_id.value,
         display_name: form.elements.display_name.value,
-        email: form.elements.email.value,
         role: form.elements.role.value,
       }, form);
     } else if (form.matches("[data-account-password]")) {
@@ -1194,6 +1209,12 @@
     state.session = getSession();
     mount();
     connectMenu();
+  });
+  window.addEventListener("atlas-auth-changed", (event) => {
+    state.session = event.detail?.session || null;
+    state.skus = [];
+    state.locations = [];
+    if (state.open) loadData();
   });
   window.atlasOpenDashboard = openDashboard;
 })();

@@ -1,3 +1,11 @@
+# ATLAS — COC Office Delivery Update
+
+This package adds the warehouse Certificate of Compliance workflow, hard pallet box ceiling, exact blue-region scanner, IndexedDB completed history, private official-workbook generation, secure send/receipt lifecycle, and dedicated `/coc-receiver/` office inbox.
+
+The uploaded source identified employees by initials but did not establish Supabase Auth sessions. Secure delivery deliberately requires a real Supabase Auth user/access token. Follow `docs/COC_OFFICE_DELIVERY_DEPLOYMENT.md` before production acceptance, and see `evidence/TEST_RESULTS.md` for verified and production-only checks.
+
+The historical Sprint 3 notes below are retained for repository context.
+
 # ATLAS — Sprint 3 Design Foundation
 
 This build begins **ATLAS Design System 1.0** while preserving the validated warehouse search application and Supabase connection.

@@ -1,0 +1,15 @@
+.atlas-auth-backdrop{position:fixed;inset:0;z-index:1000000;display:grid;place-items:center;padding:20px;background:rgba(3,20,43,.74);backdrop-filter:blur(12px)}
+.atlas-auth-modal{position:relative;width:min(100%,430px);padding:34px;border-radius:28px;background:#fff;color:#071f43;box-shadow:0 28px 80px rgba(0,13,35,.38);font-family:inherit}
+.atlas-auth-close{position:absolute;top:16px;right:16px;width:44px;height:44px;border:0;border-radius:50%;background:#edf3fa;color:#536b86;font-size:30px;line-height:1;cursor:pointer}
+.atlas-auth-eyebrow{margin:0 0 10px;color:#0b5bc3;font-size:13px;font-weight:900;letter-spacing:.18em}
+.atlas-auth-modal h2{margin:0 0 12px;font-size:34px;line-height:1.05}
+.atlas-auth-modal>p:not(.atlas-auth-eyebrow){color:#60748e;line-height:1.45}
+.atlas-auth-person{font-size:22px!important;font-weight:850;color:#071f43!important}
+.atlas-auth-modal form{display:grid;gap:16px;margin-top:24px}
+.atlas-auth-modal label{display:grid;gap:7px;color:#233b59;font-size:14px;font-weight:800}
+.atlas-auth-modal input{width:100%;box-sizing:border-box;min-height:54px;padding:0 15px;border:1.5px solid #bfd0e2;border-radius:14px;background:#f9fbfe;color:#071f43;font:inherit;font-size:17px}
+.atlas-auth-modal input:focus{outline:3px solid rgba(17,112,235,.17);border-color:#1170eb}
+.atlas-auth-primary{width:100%;min-height:56px;border:0;border-radius:15px;background:linear-gradient(135deg,#1175ff,#0d50bd);color:#fff;font:inherit;font-size:17px;font-weight:900;cursor:pointer}
+.atlas-auth-primary:disabled{opacity:.65;cursor:wait}
+.atlas-auth-message{min-height:20px;margin:0!important;color:#a02935!important;font-size:14px;font-weight:750}
+@media(max-width:480px){.atlas-auth-backdrop{align-items:end;padding:10px}.atlas-auth-modal{padding:30px 22px 24px;border-radius:26px}}

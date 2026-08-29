@@ -6,15 +6,15 @@
   const Excel = window.AtlasCocExcel;
   const Catalog = window.AtlasCocCaseQuantities;
   const Scanner = window.AtlasCocScannerV3 || window.AtlasCocScannerV2;
-  if (!Core || !Parser || !Excel || !Catalog) {
+  const Storage = window.AtlasCocStorage;
+  const Delivery = window.AtlasCocDelivery;
+  if (!Core || !Parser || !Excel || !Catalog || !Storage || !Delivery) {
     console.error("ATLAS COC modules did not load.");
     return;
   }
 
   const ACTIVE_KEY = "atlas-coc-active-v1";
-  const ARCHIVE_KEY = "atlas-coc-archive-v1";
   const DEVICE_KEY = "atlas-coc-device-id-v1";
-  const MAX_ARCHIVES = 20;
   const SCANNER_STATES = Object.freeze({
     IDLE: "idle",
     STARTING: "starting",
@@ -40,6 +40,11 @@
   let discardReturnScannerState = SCANNER_STATES.IDLE;
   let storageFailure = false;
   let exportInProgress = false;
+  let completedRecords = [];
+  let selectedCompleted = null;
+  let stationPresence = { online: false, reachable: false };
+  let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
+  let cameraStream = null;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
     status: "", progress: 0, failures,
@@ -77,6 +82,7 @@
     });
   };
   const getEmployee = () => String(localStorage.getItem("atlasEmployee") || "").trim();
+  const currentUserId = () => Delivery.currentUser()?.id || "";
   const currentSkuContext = () => String(
     document.querySelector(".result-card .sku-copy strong")?.textContent || "",
   ).trim().toUpperCase();
@@ -132,17 +138,6 @@
     return true;
   }
 
-  function archiveCurrent() {
-    if (!session) return;
-    let archives = [];
-    try {
-      const stored = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || "[]");
-      if (Array.isArray(stored)) archives = stored;
-    } catch {}
-    archives.unshift({ ...session, archivedAt: new Date().toISOString() });
-    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archives.slice(0, MAX_ARCHIVES)));
-  }
-
   function apiConfig() {
     const config = window.atlasSupabaseConfig;
     return config?.url && config?.key ? config : null;
@@ -150,12 +145,13 @@
 
   async function cloudRpc(name, body, { keepalive = false } = {}) {
     const config = apiConfig();
-    if (!config || !navigator.onLine) return null;
+    const accessToken = Delivery.getAuthSession()?.access_token;
+    if (!config || !navigator.onLine || !accessToken) return null;
     const response = await fetch(`${config.url}/rest/v1/rpc/${name}`, {
       method: "POST",
       headers: {
         apikey: config.key,
-        Authorization: `Bearer ${config.key}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -231,6 +227,7 @@
       .find((item) => item.textContent?.toLowerCase().includes("workflows"));
     button?.click();
     workflowView = resume && session ? "session" : "landing";
+    if (resume && session?.status === "report") refreshStationPresence();
     if (resume && session?.status === "active") {
       const pallet = activePallet();
       const progress = pallet ? Core.palletProgress(pallet) : null;
@@ -275,7 +272,49 @@
         <button type="button" class="atlas-coc-primary" data-coc-action="${session ? "resume" : "start-setup"}">${session ? activeCopy : "Start COC"}<span aria-hidden="true">›</span></button>
         ${session?.status === "active" ? `<small>Your unfinished COC is protected on this device.</small>` : ""}
       </section>
+      <button type="button" class="atlas-coc-history-card" data-coc-action="show-completed">
+        <span><strong>COMPLETED COCs</strong><small>Reports stored on this device</small></span>
+        <span>View completed reports <b aria-hidden="true">›</b></span>
+      </button>
+      ${Delivery.isSupervisor() ? `<button type="button" class="atlas-coc-history-card" data-coc-action="receiver-setup"><span><strong>OFFICE COC RECEIVER</strong><small>Supervisor setup</small></span><span>Approve a station <b aria-hidden="true">›</b></span></button>` : ""}
     </div>`;
+  }
+
+  function historyDateLabel(value) {
+    const date = new Date(value);
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) return "TODAY";
+    return date.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }).toUpperCase();
+  }
+
+  function completedListMarkup() {
+    const groups = new Map();
+    completedRecords.forEach((record) => {
+      const label = historyDateLabel(record.completedAt);
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(record);
+    });
+    return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button>
+      <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COCs</h1><p>Read-only reports saved for the signed-in employee on this device.</p></header>
+      ${groups.size ? [...groups].map(([label, records]) => `<section><h2>${escapeHtml(label)}</h2>${records.map((record) => `<button type="button" class="atlas-coc-history-row" data-coc-action="open-completed" data-coc-id="${escapeHtml(record.cocId)}"><span><strong>${escapeHtml(record.invoiceNumber)}</strong><b>${escapeHtml(record.customerName)}</b><small>${escapeHtml(record.ifNumber)} · ${plural(record.palletCount, "pallet")} · ${plural(record.totalConfirmedBoxes, "box")}</small><small>Completed ${new Date(record.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><i aria-hidden="true">›</i></button>`).join("")}</section>`).join("") : `<div class="atlas-coc-empty-list">No completed COCs are stored for this user on this device.</div>`}
+    </div>`;
+  }
+
+  function completedDetailMarkup() {
+    const record = selectedCompleted;
+    if (!record) return completedListMarkup();
+    const snapshot = record.reportSnapshot || {};
+    return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-completed">‹ Completed COCs</button>
+      <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COC</h1></header>
+      <section class="atlas-coc-completed-detail">
+        <dl><div><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
+        <div class="atlas-coc-readonly-pallets">${(snapshot.pallets || []).map((pallet) => `<section><h2>Pallet ${pallet.number}</h2>${(pallet.lots || []).map((lot) => `<p><strong>${escapeHtml(lot.model)}</strong><span>Lot ${escapeHtml(lot.lot)} · ${plural(lot.cases, "box")}</span></p>`).join("")}</section>`).join("")}</div>
+        <button type="button" class="atlas-coc-primary" data-coc-action="download-completed">Download Company COC</button>
+      </section></div>`;
+  }
+
+  function receiverSetupMarkup() {
+    return `<div class="atlas-coc-page"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button><header class="atlas-coc-page-head"><span>SUPERVISOR SETUP</span><h1>Office COC Receiver</h1><p>Open <strong>/coc-receiver/</strong> on the office computer, then approve its six-digit pairing code here.</p></header><form id="atlas-coc-pairing-form" class="atlas-coc-form-card"><label><strong>Pairing Code</strong><input name="pairingCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><p class="atlas-coc-form-error" aria-live="polite"></p><button class="atlas-coc-primary" type="submit">Approve Office COC Station</button></form></div>`;
   }
 
   function modelOptionsMarkup() {
@@ -403,13 +442,14 @@
     const finished = completedPallets();
     const locked = finished.length;
     const difference = total - pallet.expectedBoxes;
+    const atLimit = total >= pallet.expectedBoxes;
     return `<div class="atlas-coc-page atlas-coc-counting">
       <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
+      ${sessionHeaderMarkup()}
       <header class="atlas-coc-count-head">
-        <div><span>COC${session.invoiceNumber ? ` · INVOICE ${escapeHtml(session.invoiceNumber)}` : ""}</span><h1>Pallet ${pallet.number}</h1><small>${locked ? `${plural(locked, "pallet")} completed · ` : ""}Saved automatically</small></div>
+        <div><span>PALLET</span><h1>${pallet.number}</h1>${locked ? `<small>${plural(locked, "pallet")} completed</small>` : ""}</div>
         <div class="atlas-coc-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes}</strong><span>Recorded / Confirmed Boxes</span></div>
       </header>
-      ${sessionHeaderMarkup()}
       ${activeModelMarkup(pallet)}
       ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed pallet total. Review before finishing.</p>` : ""}
       ${finished.length ? `<section class="atlas-coc-pallet-progress" aria-label="Completed pallets">
@@ -418,11 +458,12 @@
       </section>` : ""}
       ${lot ? `<section class="atlas-coc-active-lot">
         <span>ACTIVE LOT · ${escapeHtml(lot.model || activeModelContext())}</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2><strong>${plural(lot.cases, "box")}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small>
-        <button type="button" class="atlas-coc-add-case" data-coc-action="add-case"><span aria-hidden="true">+</span> ADD BOX</button>
-      </section>` : `<section class="atlas-coc-no-lot"><span>PALLET ${pallet.number} · ${escapeHtml(activeModelContext())}</span><h2>No Lot Recorded for This Model</h2><p>Scan and verify the first lot for this model. The confirmed lot records the first box.</p>
-        <button type="button" class="atlas-coc-primary" data-coc-action="new-lot">+ New Lot</button></section>`}
+        <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
+      </section>` : `<section class="atlas-coc-no-lot"><span>PALLET ${pallet.number} · ${escapeHtml(activeModelContext())}</span>
+        <button type="button" class="atlas-coc-primary" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>+ New Lot</button></section>`}
+      ${atLimit ? `<p class="atlas-coc-limit-message">${escapeHtml(Core.boxLimitMessage(pallet))}</p>` : ""}
       ${lot ? `<div class="atlas-coc-secondary-actions">
-        <button type="button" data-coc-action="new-lot">+ New Lot</button>
+        <button type="button" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>+ New Lot</button>
         <button type="button" data-coc-action="undo" ${pallet.history.length ? "" : "disabled"}>↶ Undo Last Box</button>
       </div>` : ""}
       <section class="atlas-coc-lots">
@@ -443,27 +484,102 @@
 
   function reportMarkup() {
     const total = Core.sessionTotal(session);
-    const totalUnits = Core.sessionUnitTotal(session);
     return `<div class="atlas-coc-page atlas-coc-report">
-      <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
-      <header class="atlas-coc-report-head"><span>COC COMPLETE</span><h1>Final Count Report</h1>
-        <p>${session.invoiceNumber ? `Invoice <strong>${escapeHtml(session.invoiceNumber)}</strong> · ` : ""}${formatDate(session.completedAt)}</p></header>
-      ${sessionHeaderMarkup()}
-      <section class="atlas-coc-report-summary"><div><strong>${session.pallets.length}</strong><span>Pallets</span></div><div><strong>${total}</strong><span>Total Boxes</span></div><div><strong>${formatQuantity(totalUnits)}</strong><span>Total Units</span></div></section>
-      <div class="atlas-coc-report-pallets">${session.pallets.map((pallet) => `
-        <section class="atlas-coc-report-pallet"><header><h2>Pallet ${pallet.number}</h2><strong>${plural(Core.palletTotal(pallet), "box")}</strong></header>
-          <p class="atlas-coc-report-verification"><span>Confirmed <strong>${pallet.expectedBoxes || "—"}</strong></span><span>Recorded <strong>${Core.palletTotal(pallet)}</strong></span><span class="${Core.palletProgress(pallet).verified ? "is-verified" : "is-unverified"}">${Core.palletProgress(pallet).verified ? "✓ Verified" : "Verification unavailable"}</span></p>
-          <div>${pallet.lots.map((lot) => `<div class="atlas-coc-report-row"><span><small>${lot.model ? `MODEL ${escapeHtml(lot.model)} · ` : ""}LOT</small><strong>${escapeHtml(Core.displayLot(lot.lot))}</strong></span><b>${lot.cases}<small> BOXES · ${formatQuantity(Core.lotUnitQuantity(lot))} UNITS</small></b></div>`).join("") || `<p>No lots recorded</p>`}</div>
-          <button type="button" class="atlas-coc-reopen-report" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(pallet.id)}">Reopen Pallet ${pallet.number}</button>
-        </section>`).join("")}</div>
-      <div class="atlas-coc-generate-card"><span>OFFICIAL COMPANY FILE</span><h2>Generate completed COC</h2><p>ATLAS will populate Customer, Invoice, IF Number, models, clean lots, and calculated quantities in the official Excel template.</p><button type="button" class="atlas-coc-primary" data-coc-action="generate-coc" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "Generating…" : "Generate Company COC"}</button></div>
-      <div class="atlas-coc-report-actions"><button type="button" data-coc-action="copy-report">Copy Report</button><button type="button" class="atlas-coc-primary" data-coc-action="review-close">Finish &amp; Close COC</button></div>
-      <p class="atlas-coc-report-note">Generate and save the official Excel file before closing this COC.</p>
-      ${discardFooterMarkup()}
+      <header class="atlas-coc-transfer-head"><span>COC COMPLETE ✓</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
+      <section class="atlas-coc-destination"><span>Destination</span><h2>🖥 Office COC Station</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the Office COC Inbox.</p>`}<button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button></section>
     </div>`;
   }
 
+  function sendStatusMarkup() {
+    const phase = sendState.phase;
+    if (phase === "preparing" || phase === "sending") return `<div class="atlas-coc-page atlas-coc-send-state"><div class="atlas-coc-spinner" aria-hidden="true"></div><h1>${phase === "preparing" ? "PREPARING REPORT" : "SENDING TO OFFICE"}</h1><p>Keep ATLAS open while the completed COC is securely transferred.</p></div>`;
+    if (phase === "received" || phase === "office_completed") return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? "Office COC Station completed the report." : "Office COC Station received the report."}</p><section><strong>${escapeHtml(session?.invoiceNumber || sendState.invoiceNumber)}</strong><b>${escapeHtml(session?.customerName || sendState.customerName)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
+    if (phase === "failed") return `<div class="atlas-coc-page atlas-coc-send-state"><h1>SEND NOT COMPLETED</h1><p>${escapeHtml(sendState.error || "The office transfer could not be confirmed. Your completed COC is still open and nothing was lost.")}</p><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office">TRY AGAIN</button><button type="button" data-coc-action="return-to-report">Back</button></div>`;
+    return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>SENT ✓</h1><p>The completed COC was sent to:</p><h2>Office COC Station</h2><p>Waiting for receipt…</p></div>`;
+  }
+
+  async function refreshCompletedHistory() {
+    completedRecords = currentUserId() ? await Storage.listCompleted(currentUserId()) : [];
+    if (workflowView === "history") renderAll();
+  }
+
+  async function refreshStationPresence() {
+    try {
+      const result = await Delivery.stationStatus();
+      stationPresence = { online: Boolean(result?.online), reachable: true, ...result };
+    } catch {
+      stationPresence = { online: false, reachable: navigator.onLine };
+    }
+    if (session?.status === "report" && workflowView === "session") renderAll();
+  }
+
+  async function approvePairingFromLink() {
+    const url = new URL(window.location.href);
+    const qrToken = url.searchParams.get("cocPair");
+    if (!qrToken) return;
+    url.searchParams.delete("cocPair");
+    history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    if (!Delivery.isSupervisor()) { showToast("A signed-in supervisor must approve this receiver.", "warning"); return; }
+    try { await Delivery.approvePairing({ qrToken }); showToast("Office COC Station approved"); }
+    catch (error) { showToast(error?.message || "The receiver QR code could not be approved.", "warning"); }
+  }
+
+  async function pollReceipt(deliveryId, userId) {
+    for (let attempt = 0; attempt < 60 && sendState.deliveryId === deliveryId; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      try {
+        const record = (await Delivery.deliveryStatuses([deliveryId]))[0];
+        if (!record) continue;
+        await Storage.updateDeliveryStatus(session?.id || sendState.cocId, userId, record);
+        if (record.status === "OFFICE_COMPLETED") {
+          sendState = { ...sendState, phase: "office_completed", officeCompletedAt: record.office_completed_at };
+          renderAll(); return;
+        }
+        if (record.status === "RECEIVED") {
+          sendState = { ...sendState, phase: "received", receivedAt: record.received_at };
+          renderAll();
+        }
+      } catch {}
+    }
+  }
+
+  async function sendCompletedCoc() {
+    if (!session || session.status !== "report" || exportInProgress) return;
+    const userId = currentUserId();
+    if (!userId) {
+      sendState = { phase: "failed", error: "Sign in to ATLAS before sending this compliance report." };
+      workflowView = "send-status"; renderAll(); return;
+    }
+    exportInProgress = true;
+    sendState = { phase: "preparing", cocId: session.id, invoiceNumber: session.invoiceNumber, customerName: session.customerName, palletCount: session.pallets.length, totalBoxes: Core.sessionTotal(session) };
+    workflowView = "send-status"; renderAll();
+    try {
+      const generated = await Excel.generateCompanyCoc(session, { saveGeneratedWorkbook: async () => {} });
+      const workbookBlob = new Blob([generated.bytes], { type: Delivery.MIME_XLSX });
+      const idempotencyKey = `coc:${session.id}:office:${Delivery.STATION_KEY}`;
+      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "WAREHOUSE_COMPLETE" });
+      await Storage.putPending({ cocId: session.id, userId, idempotencyKey, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob });
+      sendState = { ...sendState, phase: "sending" }; renderAll();
+      const receipt = await Delivery.submitCoc({ cocId: session.id, idempotencyKey, snapshot: session, workbookBytes: generated.bytes, workbookFileName: generated.fileName });
+      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "SENT", officeTransferId: receipt.deliveryId, sentAt: receipt.sentAt });
+      await Storage.deletePending(session.id);
+      sendState = { ...sendState, phase: "sent", deliveryId: receipt.deliveryId, sentAt: receipt.sentAt };
+      localStorage.removeItem(ACTIVE_KEY);
+      session = null;
+      renderAll();
+      pollReceipt(receipt.deliveryId, userId);
+    } catch (error) {
+      console.error("ATLAS COC office transfer failed.", error);
+      sendState = { ...sendState, phase: "failed", error: error?.message === "COC_TEMPLATE_SIGNATURE_MISMATCH" ? "The official workbook failed its integrity check. Nothing was sent." : error?.message === "ATLAS_AUTH_REQUIRED" ? "Sign in to ATLAS before sending this compliance report." : "The office transfer was not accepted. Your completed COC remains open; try again when the phone can reach Supabase." };
+      renderAll();
+    } finally { exportInProgress = false; }
+  }
+
   function workflowMarkup() {
+    if (workflowView === "history") return completedListMarkup();
+    if (workflowView === "history-detail") return completedDetailMarkup();
+    if (workflowView === "receiver-setup") return receiverSetupMarkup();
+    if (workflowView === "send-status") return sendStatusMarkup();
     if (workflowView === "setup" && !session) return setupMarkup();
     if (workflowView === "session" && session)
       return session.status === "report" ? reportMarkup() : countingMarkup();
@@ -485,8 +601,8 @@
   function reviewPalletModal() {
     const pallet = activePallet();
     const progress = Core.palletProgress(pallet);
-    return modalShell(`<span class="atlas-coc-eyebrow">REVIEW PALLET ${pallet.number}</span><h2>Verify this pallet?</h2>
-      <div class="atlas-coc-compare"><div><span>CONFIRMED</span><strong>${progress.expected}</strong></div><div><span>RECORDED</span><strong>${progress.recorded}</strong></div></div>
+    return modalShell(`<span class="atlas-coc-eyebrow">REVIEW PALLET ${pallet.number}</span><h2>Verify Pallet ${pallet.number} Box Count</h2>
+      <div class="atlas-coc-compare"><div><span>CONFIRMED</span><small>BOX COUNT</small><strong>${progress.expected}</strong></div><div><span>RECORDED</span><small>BOX COUNT</small><strong>${progress.recorded}</strong></div></div>
       <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${plural(lot.cases, "box")}</strong></div>`).join("") || `<p>No lots recorded.</p>`}</div>
       <p>The pallet can only be completed when the confirmed and recorded box counts match.</p>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="verify-pallet">Verify &amp; Finish</button></div>`, { label: `Review pallet ${pallet.number}` });
@@ -511,7 +627,7 @@
         ? `<p class="atlas-coc-warning">Pallet ${pallet.number} is not verified. Its confirmed and recorded box counts must match before completing the COC.</p>`
         : pallet && !activeHasWork
           ? `<p>The empty Pallet ${pallet.number} draft will not be included. Only the ${plural(completed.length, "verified pallet")} shown above will appear in the final report.</p>`
-          : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will remain open for office entry.</p>`}
+          : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will be ready for office completion.</p>`}
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep COC Open</button><button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button></div>`, { label: "Complete COC review" });
   }
 
@@ -537,7 +653,7 @@
   function editExpectedModal() {
     const pallet = activePallet();
     return modalShell(`<span class="atlas-coc-eyebrow">CORRECT BOX COUNT</span><h2>Pallet ${pallet.number}</h2>
-      <p>Correct the confirmed box count only when the original total was entered incorrectly.</p>
+      <p>Correct the confirmed box count only when the original total was recorded incorrectly.</p>
       <form id="atlas-coc-edit-expected-form" class="atlas-coc-manual-form">
         <label><strong>Total Boxes on Pallet ${pallet.number}</strong><input name="expectedBoxes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" value="${pallet.expectedBoxes}" required /></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
@@ -586,12 +702,6 @@
     });
   }
 
-  function closeReportModal() {
-    return modalShell(`<span class="atlas-coc-eyebrow">CLOSE COC</span><h2>Finished entering this report?</h2>
-      <p>Closing removes the active COC indicators. A device history copy is retained, but this report will no longer be the active workflow.</p>
-      <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Keep Report Open</button><button type="button" data-coc-action="close-report">Finish &amp; Close</button></div>`, { label: "Close completed COC", dismiss: false });
-  }
-
   function storageErrorModal() {
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">SAVE PROBLEM</span><h2>Stop counting for a moment</h2>
       <p>ATLAS could not preserve the latest COC state on this device. Do not add another box until saving succeeds.</p>
@@ -599,11 +709,11 @@
   }
 
   function captureModal() {
-    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT · ${escapeHtml(activeModelContext())}</span><h2>Photograph the complete label</h2>
-      <p>Fill the camera frame with one clear carton label. Include the barcode, Model No., and Batch No. ATLAS reads the full-resolution photo only after you take it.</p>
-      <div class="atlas-coc-capture-first" aria-hidden="true"><span>1</span><strong>Open Camera</strong><i>›</i><span>2</span><strong>Take Photo</strong><i>›</i><span>3</span><strong>Confirm Lot</strong></div>
-      <input id="atlas-coc-photo-input" type="file" accept="image/*" capture="environment" hidden />
-      <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="choose-photo">Open Camera</button></div>`, {
+    return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT · ${escapeHtml(activeModelContext())}</span><h2>Align the label inside the blue frame</h2>
+      <p>Only pixels inside the blue frame are read. Nothing is scanned until you tap Scan Lot.</p>
+      <div class="atlas-coc-live-camera"><video id="atlas-coc-live-video" autoplay muted playsinline></video><div id="atlas-coc-roi-guide" aria-hidden="true"></div><p id="atlas-coc-camera-status">Starting camera…</p></div>
+      <canvas id="atlas-coc-roi-canvas" hidden></canvas>
+      <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="scan-live-roi">Scan Lot</button></div>`, {
       label: "Photograph new lot", className: "atlas-coc-scanner-modal is-capture-first",
     });
   }
@@ -681,14 +791,24 @@
 
   function addModelModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">ADD MODEL</span><h2>Add another model</h2>
-      <p>Enter the complete model number. ATLAS will apply the stored CASE QTY automatically and use this model to validate new lot scans.</p>
+      <p>Search the approved model catalog. ATLAS applies the stored CASE QTY and validates new lot scans against your selection.</p>
       <form id="atlas-coc-add-model-form" class="atlas-coc-manual-form">
-        <label><strong>Model Number</strong><input name="modelNumber" list="atlas-coc-modal-model-options" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Example: CGUB1-60MLV3-BKBK" required /></label>
-        <datalist id="atlas-coc-modal-model-options">${modelOptionsMarkup()}</datalist>
+        <label><strong>Model Number</strong><input name="modelNumber" class="atlas-coc-model-search" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Type any part of a model" role="combobox" aria-expanded="false" aria-controls="atlas-coc-model-suggestions" required /></label>
+        <div id="atlas-coc-model-suggestions" class="atlas-coc-model-suggestions" role="listbox"></div>
         <p class="atlas-coc-model-result" aria-live="polite">Enter the complete model number on the shipment.</p>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
         <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Add &amp; Select Model</button></div>
       </form>`, { label: "Add COC model" });
+  }
+
+  function updateModelSuggestions(input) {
+    const target = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions") || document.getElementById("atlas-coc-model-suggestions");
+    if (!target) return;
+    const query = Catalog.normalize(input.value);
+    const existing = new Set(Core.palletModels(session, activePallet()).map((model) => Catalog.normalize(model.modelNumber)));
+    const matches = Catalog.list().filter((record) => !existing.has(Catalog.normalize(record.modelNumber)) && (!query || Catalog.normalize(record.modelNumber).includes(query))).slice(0, 12);
+    target.innerHTML = matches.map((record) => `<button type="button" role="option" data-coc-action="select-model-suggestion" data-model="${escapeHtml(record.modelNumber)}"><strong>${escapeHtml(record.modelNumber)}</strong><small>${formatQuantity(record.caseQuantity)} units/case</small></button>`).join("");
+    input.setAttribute("aria-expanded", String(Boolean(matches.length)));
   }
 
   function duplicateModal(lot) {
@@ -709,7 +829,6 @@
     if (modal === "review-pallet") return reviewPalletModal();
     if (modal === "review-complete") return reviewCompleteModal();
     if (modal === "discard") return discardModal();
-    if (modal === "close-report") return closeReportModal();
     if (modal === "capture") return captureModal();
     if (modal === "reading") return readingModal();
     if (modal === "confirm-lot") return confirmLotModal();
@@ -753,6 +872,37 @@
     worker?.terminate?.().catch(() => {});
     scannerState = SCANNER_STATES.IDLE;
     accumulatedDetections = [];
+    cameraStream?.getTracks?.().forEach((track) => track.stop());
+    cameraStream = null;
+  }
+
+  async function startLiveCamera() {
+    const video = document.getElementById("atlas-coc-live-video");
+    const status = document.getElementById("atlas-coc-camera-status");
+    if (!video || cameraStream) return;
+    if (!navigator.mediaDevices?.getUserMedia) { if (status) status.textContent = "Live camera is unavailable. Enter the lot manually."; return; }
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+      video.srcObject = cameraStream;
+      await video.play();
+      await Scanner.configureTrack?.(cameraStream.getVideoTracks()[0]);
+      if (status) status.textContent = "Camera ready — align the label, then tap Scan Lot.";
+      scannerState = SCANNER_STATES.READY;
+    } catch { if (status) status.textContent = "Camera access is unavailable. Enter the lot manually."; }
+  }
+
+  function scanLiveRoi() {
+    const video = document.getElementById("atlas-coc-live-video");
+    const guide = document.getElementById("atlas-coc-roi-guide");
+    const canvas = document.getElementById("atlas-coc-roi-canvas");
+    const roi = Scanner.captureRoi?.(video, guide, canvas);
+    if (!roi) { showToast("Camera is not ready yet.", "warning"); return; }
+    roi.toBlob((blob) => {
+      if (!blob) { showToast("The label crop could not be captured.", "warning"); return; }
+      cameraStream?.getTracks?.().forEach((track) => track.stop());
+      cameraStream = null;
+      processCapturedPhoto(blob);
+    }, "image/jpeg", 0.94);
   }
 
   function openCameraReady() {
@@ -763,6 +913,7 @@
     scannerState = SCANNER_STATES.READY;
     modal = "capture";
     renderAll();
+    window.requestAnimationFrame(startLiveCamera);
   }
 
   function rememberDetections(detections = []) {
@@ -771,13 +922,6 @@
       String(item.value || "").trim().toUpperCase(), item,
     ])).values()].filter((item) => item.value);
     return accumulatedDetections;
-  }
-
-  function openPhotoPicker() {
-    const input = document.getElementById("atlas-coc-photo-input");
-    if (!input) return;
-    input.value = "";
-    input.click();
   }
 
   async function processCapturedPhoto(file) {
@@ -1179,34 +1323,12 @@
       navigator.vibrate?.(18);
       showToast("New lot confirmed · Box 1 recorded");
     } catch (error) {
-      showToast(error?.message === "MODEL_CASE_QUANTITY_REQUIRED"
-        ? "Select a model with a stored case quantity first."
-        : "Enter a valid lot number.", "warning");
+      showToast(error?.code === "APPROVED_BOX_COUNT_REACHED"
+        ? error.message
+        : error?.message === "MODEL_CASE_QUANTITY_REQUIRED"
+          ? "Select a model with a stored case quantity first."
+          : "Enter a valid lot number.", "warning");
     }
-  }
-
-  function copyReport() {
-    if (!session) return;
-    const lines = [
-      "ATLAS COC FINAL COUNT REPORT",
-      session.customerName ? `Customer: ${session.customerName}` : "",
-      session.invoiceNumber ? `Invoice: ${session.invoiceNumber}` : "",
-      session.ifNumber ? `IF Number: ${session.ifNumber}` : "",
-      `Completed: ${formatDate(session.completedAt)}`,
-      `Pallets: ${session.pallets.length}`,
-      `Total Boxes: ${Core.sessionTotal(session)}`,
-      `Total Units: ${formatQuantity(Core.sessionUnitTotal(session))}`,
-      "",
-    ].filter(Boolean);
-    session.pallets.forEach((pallet) => {
-      lines.push(`Pallet ${pallet.number} — Confirmed ${pallet.expectedBoxes || "—"} · Recorded ${Core.palletTotal(pallet)} · ${Core.palletProgress(pallet).verified ? "Verified" : "Verification unavailable"}`);
-      pallet.lots.forEach((lot) => lines.push(`  ${lot.model} · ${lot.lot} — ${lot.cases} boxes × ${formatQuantity(lot.caseQuantity)} = ${formatQuantity(Core.lotUnitQuantity(lot))}`));
-      lines.push("");
-    });
-    navigator.clipboard?.writeText(lines.join("\n")).then(
-      () => showToast("COC report copied"),
-      () => showToast("Could not copy report", "warning"),
-    );
   }
 
   function backWithinCoc() {
@@ -1251,6 +1373,10 @@
     }
     if (action === "coc-back") { backWithinCoc(); return; }
     if (action === "start-setup") { workflowView = "setup"; renderAll(); return; }
+    if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; await refreshCompletedHistory(); renderAll(); return; }
+    if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workflowView = "history-detail"; renderAll(); return; }
+    if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
+    if (action === "receiver-setup") { workflowView = "receiver-setup"; renderAll(); return; }
     if (action === "resume") { navigateWorkflows({ resume: true }); return; }
     if (action === "close-modal") { cancelScanSession(); modal = null; renderAll(); return; }
     if (action === "add-model-row") {
@@ -1263,14 +1389,21 @@
       return;
     }
     if (action === "add-coc-model") { modal = "add-model"; renderAll(); return; }
+    if (action === "select-model-suggestion") {
+      const form = button.closest("form"); const input = form?.elements?.modelNumber;
+      if (input) { input.value = button.dataset.model || ""; updateModelInputFeedback(input); updateModelSuggestions(input); input.focus(); }
+      return;
+    }
     if (action === "review-mismatch") { modal = null; renderAll(); return; }
     if (action === "edit-expected") { modal = { type: "edit-expected" }; renderAll(); return; }
     if (action === "show-mismatch") { modal = { type: "mismatch" }; renderAll(); return; }
     if (action === "new-lot") {
-      capture = freshCapture(); openCameraReady(); openPhotoPicker(); return;
+      const pallet = activePallet();
+      if (pallet && Core.palletTotal(pallet) >= pallet.expectedBoxes) { showToast(Core.boxLimitMessage(pallet), "warning"); return; }
+      capture = freshCapture(); openCameraReady(); return;
     }
-    if (action === "rescan-lot") { openCameraReady(); openPhotoPicker(); return; }
-    if (action === "choose-photo") { openPhotoPicker(); return; }
+    if (action === "rescan-lot") { openCameraReady(); return; }
+    if (action === "scan-live-roi") { scanLiveRoi(); return; }
     if (action === "manual-lot") { cancelScanSession(); modal = "manual-lot"; renderAll(); return; }
     if (action === "confirm-lot") {
       acceptLot(capture.text, {
@@ -1325,7 +1458,7 @@
         add?.classList.add("is-confirmed");
         window.setTimeout(() => add?.classList.remove("is-confirmed"), 180);
         if (!navigator.onLine) showToast("Box saved on device — connection pending", "info");
-      } catch { showToast("Choose or add a lot first.", "warning"); }
+      } catch (error) { showToast(error?.code === "APPROVED_BOX_COUNT_REACHED" ? error.message : "Choose or add a lot first.", "warning"); }
       return;
     }
     if (action === "undo") {
@@ -1391,7 +1524,7 @@
     }
     if (action === "review-complete") { modal = "review-complete"; renderAll(); return; }
     if (action === "complete-coc") {
-      try { session = Core.completeSession(session); modal = null; workflowView = "session"; persist(); showToast("COC complete · report ready"); }
+      try { session = Core.completeSession(session); modal = null; workflowView = "session"; persist(); refreshStationPresence(); showToast("COC complete · ready to send"); }
       catch { showToast("Finish the active pallet first.", "warning"); }
       return;
     }
@@ -1414,36 +1547,9 @@
       cloudRpc("atlas_close_coc_session", { p_session_id: id, p_device_id: deviceId }, { keepalive: true }).catch(() => {});
       showToast("Unfinished COC discarded", "info"); return;
     }
-    if (action === "copy-report") { copyReport(); return; }
-    if (action === "generate-coc") {
-      if (exportInProgress) return;
-      exportInProgress = true;
-      renderAll();
-      try {
-        const generated = await Excel.generateCompanyCoc(session);
-        showToast(`${generated.fileName} ready`);
-      } catch (error) {
-        console.error("ATLAS could not generate the company COC.", error);
-        const message = error?.message === "COC_TEMPLATE_SIGNATURE_MISMATCH"
-          ? "The official COC template did not pass its safety check."
-          : error?.message?.startsWith("MODEL_CASE_QUANTITY_REQUIRED")
-            ? "A used model is missing its case quantity."
-            : "The company COC could not be generated. Try again.";
-        showToast(message, "warning");
-      } finally {
-        exportInProgress = false;
-        renderAll();
-      }
-      return;
-    }
-    if (action === "review-close") { modal = "close-report"; renderAll(); return; }
-    if (action === "close-report") {
-      const id = session?.id; const deviceId = session?.deviceId;
-      cancelScanSession();
-      archiveCurrent(); session = null; modal = null; workflowView = "landing"; persist({ cloud: false });
-      cloudRpc("atlas_close_coc_session", { p_session_id: id, p_device_id: deviceId }, { keepalive: true }).catch(() => {});
-      showToast("COC closed"); return;
-    }
+    if (action === "send-to-office") { await sendCompletedCoc(); return; }
+    if (action === "return-to-report") { workflowView = "session"; sendState = { phase: "ready" }; refreshStationPresence(); renderAll(); return; }
+    if (action === "finish-transfer") { session = null; localStorage.removeItem(ACTIVE_KEY); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "retry-save") {
       if (persist()) { modal = null; renderAll(); showToast("COC saved on this device"); }
       return;
@@ -1458,11 +1564,6 @@
   });
 
   document.addEventListener("change", (event) => {
-    if (event.target.id === "atlas-coc-photo-input") {
-      const file = event.target.files?.[0] || null;
-      if (file) processCapturedPhoto(file);
-      return;
-    }
     if (event.target.id === "atlas-coc-verify-check") {
       const confirm = document.querySelector('[data-coc-action="confirm-lot"]');
       if (confirm) confirm.disabled = !event.target.checked;
@@ -1491,6 +1592,7 @@
     if (input?.matches?.("input[name='modelNumber']")) {
       input.value = input.value.toUpperCase();
       updateModelInputFeedback(input);
+      updateModelSuggestions(input);
       updatePalletSetupButton(input.closest("form"));
       return;
     }
@@ -1504,6 +1606,14 @@
   });
 
   document.addEventListener("submit", (event) => {
+    if (event.target.id === "atlas-coc-pairing-form") {
+      event.preventDefault();
+      const error = event.target.querySelector(".atlas-coc-form-error");
+      const pairingCode = String(new FormData(event.target).get("pairingCode") || "").replace(/\D/g, "");
+      if (pairingCode.length !== 6) { error.textContent = "Enter the six-digit code shown on the office receiver."; return; }
+      Delivery.approvePairing({ pairingCode }).then(() => { showToast("Office COC Station approved"); workflowView = "landing"; renderAll(); }).catch((failure) => { error.textContent = failure?.message || "The pairing code could not be approved."; });
+      return;
+    }
     if (event.target.id === "atlas-coc-start-form") {
       event.preventDefault();
       const data = new FormData(event.target);
@@ -1579,7 +1689,7 @@
         session = Core.setExpectedBoxCount(session, expected);
         persist();
         showToast(`Pallet ${activePallet()?.number} ready · ${plural(expected, "box")}`);
-      } catch { error.textContent = "The pallet setup could not be saved."; }
+      } catch (failure) { error.textContent = failure?.code === "EXPECTED_BOX_COUNT_BELOW_RECORDED" ? failure.message : "The pallet setup could not be saved."; }
       return;
     }
     if (event.target.id === "atlas-coc-edit-expected-form") {
@@ -1596,6 +1706,7 @@
         error.textContent = "Enter a different confirmed box count.";
         return;
       }
+      if (next < Core.palletTotal(activePallet())) { error.textContent = "The approved box count cannot be lower than the boxes already recorded."; return; }
       modal = { type: "confirm-expected-change", previous, next };
       renderAll();
       return;
@@ -1635,7 +1746,7 @@
     }
     const modalKey = typeof modal === "string" ? modal : modal?.type;
     const protectedModals = [
-      "discard", "close-report", "reading", "confirm-lot", "duplicate", "mismatch",
+      "discard", "reading", "confirm-lot", "duplicate", "mismatch",
       "edit-expected", "confirm-expected-change", "verified", "scan-mismatch", "scan-failed",
       "similar", "reopen",
     ];
@@ -1688,8 +1799,8 @@
   readSession();
   Catalog.loadRemote();
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => { renderAll(); restoreFromCloud(); }, { once: true });
+    document.addEventListener("DOMContentLoaded", () => { renderAll(); restoreFromCloud(); approvePairingFromLink(); }, { once: true });
   } else {
-    renderAll(); restoreFromCloud();
+    renderAll(); restoreFromCloud(); approvePairingFromLink();
   }
 })();
