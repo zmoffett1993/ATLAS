@@ -20,7 +20,7 @@
     invoiceCell: "B3",
     ifNumberCell: "B4",
     detailRows: Object.freeze({ first: 7, last: 748, columns: "A:C" }),
-    palletNotation: "{lot} (Pallet {number})",
+    palletNotation: "PALLET {number}",
     overflowStrategy: "block_generation_when_rows_exceed_748",
   });
 
@@ -155,18 +155,41 @@
     const rows = [];
     [...data.pallets]
       .sort((left, right) => left.palletNumber - right.palletNumber)
-      .forEach((pallet) => pallet.lots.forEach((lot) => {
+      .forEach((pallet) => pallet.modelBlocks.forEach((block) => {
         rows.push({
           rowNumber: rowNumber++,
-          type: "lot",
-          modelNumber: lot.model,
+          type: "pallet",
+          modelNumber: block.modelNumber,
           palletNumber: pallet.palletNumber,
-          cleanLot: lot.cleanLot,
-          boxes: lot.boxes,
-          caseQuantity: lot.caseQuantity,
-          a: lot.model,
-          b: `${lot.cleanLot} (Pallet ${pallet.palletNumber})`,
-          c: lot.quantity,
+          a: block.modelNumber,
+          b: `PALLET ${pallet.palletNumber}`,
+          c: null,
+        });
+        const firstLotRow = rowNumber;
+        block.lots.forEach((lot) => {
+          rows.push({
+            rowNumber: rowNumber++,
+            type: "lot",
+            modelNumber: lot.model,
+            palletNumber: pallet.palletNumber,
+            cleanLot: lot.cleanLot,
+            boxes: lot.boxes,
+            caseQuantity: lot.caseQuantity,
+            a: "",
+            b: lot.cleanLot,
+            c: lot.quantity,
+          });
+        });
+        const lastLotRow = rowNumber - 1;
+        rows.push({
+          rowNumber: rowNumber++,
+          type: "total",
+          modelNumber: block.modelNumber,
+          palletNumber: pallet.palletNumber,
+          a: "",
+          b: "TOTAL QTY",
+          c: block.totalQuantity,
+          formula: `SUM(C${firstLotRow}:C${lastLotRow})`,
         });
       }));
     const lastContentRow = rows.length
@@ -311,7 +334,8 @@
     });
     zip.file(sheetPath, populatedSheetXml);
 
-    // No formulas are introduced; keep the master workbook metadata byte-for-byte.
+    // Totals include cached numeric values, so the workbook remains correct even
+    // before Excel performs its normal formula recalculation.
     zip.file(workbookPath, workbookXml);
     return zip.generateAsync({
       type: "uint8array",
