@@ -567,6 +567,49 @@
     });
   }
 
+  function updateModelCaseQuantity(source, modelValue, quantity) {
+    const session = sanitize(clone(source));
+    if (session.status !== "active") throw new Error("COC_NOT_EDITABLE");
+    const key = canonicalModel(modelValue);
+    const next = positiveInteger(quantity);
+    if (!key) throw new Error("MODEL_NOT_FOUND");
+    if (!next) throw new Error("INVALID_CASE_QUANTITY");
+
+    const matchingModels = [
+      ...(session.models || []),
+      ...session.pallets.flatMap((pallet) => pallet.models || []),
+    ].filter((model) => canonicalModel(model.modelNumber) === key);
+    const matchingLots = session.pallets.flatMap((pallet) => pallet.lots || [])
+      .filter((lot) => canonicalModel(lot.model) === key);
+    if (!matchingModels.length && !matchingLots.length) throw new Error("MODEL_NOT_FOUND");
+    const previous = [...new Set([
+      ...matchingModels.map((model) => positiveInteger(model.caseQuantity)),
+      ...matchingLots.map((lot) => positiveInteger(lot.caseQuantity)),
+    ].filter(Boolean))];
+
+    matchingModels.forEach((model) => {
+      model.caseQuantity = next;
+      model.sourceRevision = "EMPLOYEE CORRECTED FOR THIS COC";
+    });
+    matchingLots.forEach((lot) => {
+      lot.caseQuantity = next;
+      lot.validationMethod = "employee_quantity_correction";
+      lot.confirmedBy = cleanText(session.employee, 60);
+    });
+    const active = activePallet(session);
+    if (active?.lots.some((lot) => canonicalModel(lot.model) === key)) {
+      active.verificationState = "in_progress";
+      active.verificationAttemptedAt = null;
+      active.verifiedAt = null;
+    }
+    return withActivity(session, "case_quantity_corrected", {
+      model: matchingModels[0]?.modelNumber || matchingLots[0]?.model || cleanModel(modelValue),
+      previousCaseQuantities: previous,
+      caseQuantity: next,
+      scope: "current_coc",
+    });
+  }
+
   function addModel(source, record) {
     const session = sanitize(clone(source));
     const normalized = normalizeModelRecord(record);
@@ -916,6 +959,7 @@
     removeModel,
     selectLot,
     updateLot,
+    updateModelCaseQuantity,
     addCase,
     undoCase,
     setExpectedBoxCount,

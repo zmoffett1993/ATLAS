@@ -759,9 +759,10 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   font-size: 12px;
   font-weight: 750;
 }
-.atlas-coc-model-result.is-valid { color: var(--coc-green); }
+.atlas-coc-model-result.is-valid { display: grid; justify-items: center; color: var(--coc-green); text-align: center; }
 .atlas-coc-model-result.is-manual { color: #9a6510; }
 .atlas-coc-model-result.is-invalid { color: var(--coc-red); }
+.atlas-coc-correct-quantity { display: block; width: fit-content; min-height: 32px !important; margin: 8px auto 0; padding: 0 11px !important; color: var(--coc-blue-dark) !important; font: inherit; font-size: 10px !important; font-weight: 900 !important; border: 1px solid #a9c9eb !important; border-radius: 9px !important; background: #fff !important; }
 .atlas-coc-manual-quantity {
   margin-top: 12px;
   padding: 13px;

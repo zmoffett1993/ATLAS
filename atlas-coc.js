@@ -465,7 +465,7 @@
 
   function manualCaseQuantityMarkup() {
     return `<div class="atlas-coc-manual-quantity" data-coc-manual-quantity-wrap hidden>
-      <label><strong>Units per Box</strong><small>ATLAS does not have a stored CASE QTY for this SKU. Enter the quantity printed on the case or packing information.</small>
+      <label><strong>Units per Box</strong><small data-coc-manual-quantity-help>ATLAS does not have a stored CASE QTY for this SKU. Enter the quantity printed on the case or packing information.</small>
         <input name="manualCaseQuantity" data-coc-manual-quantity type="text" inputmode="numeric" pattern="[0-9]*" maxlength="7" autocomplete="off" placeholder="Enter units per box" /></label>
     </div>`;
   }
@@ -482,9 +482,18 @@
   }
 
   function workflowModelRecord(value, manualQuantity = null, { allowManual = true } = {}) {
-    const stored = Catalog.recordForSession(value) || Core.modelRecord(session, value);
-    if (stored?.caseQuantity) return stored;
+    const stored = Core.modelRecord(session, value) || Catalog.recordForSession(value);
     const modelNumber = Catalog.normalize(value);
+    const correctedQuantity = allowManual ? positiveWhole(manualQuantity) : null;
+    if (modelNumber && correctedQuantity) return {
+      ...(stored || {}),
+      modelNumber,
+      catalogModel: stored?.catalogModel || modelNumber,
+      caseQuantity: correctedQuantity,
+      sourceRevision: stored ? "EMPLOYEE CORRECTED FOR THIS COC" : "EMPLOYEE ENTERED FOR THIS COC",
+      addedAt: stored?.addedAt || new Date().toISOString(),
+    };
+    if (stored?.caseQuantity) return stored;
     const caseQuantity = allowManual ? positiveWhole(manualQuantity) : null;
     if (!modelNumber || !caseQuantity) return null;
     return {
@@ -541,9 +550,9 @@
     result.classList.toggle("is-valid", Boolean(resolved));
     result.classList.toggle("is-manual", needsManual);
     result.classList.toggle("is-invalid", Boolean(value && !resolved && !needsManual));
-    result.textContent = resolved
-      ? `${resolved.catalogModel || resolved.modelNumber} · ${formatQuantity(resolved.caseQuantity)} units per case`
-      : needsManual
+    if (resolved) {
+      result.innerHTML = `<span>${escapeHtml(resolved.catalogModel || resolved.modelNumber)} · ${formatQuantity(resolved.caseQuantity)} units per case</span><button type="button" class="atlas-coc-correct-quantity" data-coc-action="correct-model-quantity" data-model="${escapeHtml(resolved.modelNumber)}">Correct Quantity</button>`;
+    } else result.textContent = needsManual
         ? "Case quantity not stored — enter the units per box below."
       : value
         ? "Select the complete SKU from the list."
@@ -613,7 +622,8 @@
     return `<section class="atlas-coc-model-switcher" aria-label="Active model">
       <div class="atlas-coc-model-summary"><span>ACTIVE MODEL</span>
         <strong>${escapeHtml(active?.modelNumber || "Choose a model")}</strong>
-        <small>${active?.caseQuantity ? `${formatQuantity(active.caseQuantity)} units per case` : "Case quantity unavailable"}</small></div>
+        <small>${active?.caseQuantity ? `${formatQuantity(active.caseQuantity)} units per case` : "Case quantity unavailable"}</small>
+        ${active?.caseQuantity ? `<button type="button" class="atlas-coc-correct-quantity" data-coc-action="correct-model-quantity" data-model="${escapeHtml(active.modelNumber)}">Correct Quantity</button>` : ""}</div>
       <div class="atlas-coc-model-actions"><button type="button" data-coc-action="add-coc-model">+ Add SKU</button>
         <button type="button" data-coc-action="manage-coc-models">Edit / Remove</button></div>
     </section>`;
@@ -986,6 +996,18 @@
       </form>`, { label: `Correct confirmed box count for pallet ${pallet.number}`, dismiss: false });
   }
 
+  function correctModelQuantityModal(modelNumber) {
+    const model = Core.modelRecord(session, modelNumber);
+    if (!model) return "";
+    return modalShell(`<span class="atlas-coc-eyebrow">CORRECT QUANTITY</span><h2>${escapeHtml(model.modelNumber)}</h2>
+      <p>Correct the units packed in each box for this SKU. This correction applies to every occurrence of this SKU in the current COC only; it does not overwrite the master SKU database.</p>
+      <form id="atlas-coc-correct-quantity-form" class="atlas-coc-manual-form" data-model="${escapeHtml(model.modelNumber)}">
+        <label><strong>Units per Box</strong><input name="caseQuantity" data-coc-correct-quantity type="text" inputmode="numeric" pattern="[0-9]*" maxlength="7" value="${model.caseQuantity}" autocomplete="off" required autofocus /></label>
+        <p class="atlas-coc-form-error" aria-live="polite"></p>
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Save Correct Quantity</button></div>
+      </form>`, { label: `Correct case quantity for ${model.modelNumber}` });
+  }
+
   function confirmExpectedChangeModal(change) {
     return modalShell(`<span class="atlas-coc-eyebrow">CONFIRM COUNT CHANGE</span><h2>${change.previous} → ${change.next} boxes</h2>
       <p>Change the confirmed box count for Pallet ${activePallet()?.number}? The recorded boxes and lot details will not change.</p>
@@ -1173,7 +1195,7 @@
       <div class="atlas-coc-model-manager">${models.map((model) => {
         const isActive = model.modelNumber === activeModelContext();
         const count = pallet.lots.filter((lot) => lot.model === model.modelNumber).reduce((total, lot) => total + lot.cases, 0);
-        return `<section class="${isActive ? "is-active" : ""}"><div><strong>${escapeHtml(model.modelNumber)}</strong><small>${formatQuantity(model.caseQuantity)} units per case${isActive ? " · Active" : ""}</small></div>
+        return `<section class="${isActive ? "is-active" : ""}"><div><strong>${escapeHtml(model.modelNumber)}</strong><small>${formatQuantity(model.caseQuantity)} units per case${isActive ? " · Active" : ""}</small><button type="button" class="atlas-coc-correct-quantity" data-coc-action="correct-model-quantity" data-model="${escapeHtml(model.modelNumber)}">Correct Quantity</button></div>
           ${isActive ? "" : `<button type="button" data-coc-action="select-coc-model" data-model="${escapeHtml(model.modelNumber)}">Use this model</button>`}
           <button type="button" class="is-remove" data-coc-action="review-remove-coc-model" data-model="${escapeHtml(model.modelNumber)}">Remove SKU</button>
           ${count ? `<small class="atlas-coc-model-protected">${plural(count, "box")} currently ${count === 1 ? "uses" : "use"} this SKU</small>` : models.length <= 1 ? `<small class="atlas-coc-model-protected">Add a replacement SKU before removing this one</small>` : ""}
@@ -1238,6 +1260,7 @@
     if (modal?.type === "duplicate") return duplicateModal(modal.lot);
     if (modal?.type === "mismatch") return mismatchModal();
     if (modal?.type === "edit-expected") return editExpectedModal();
+    if (modal?.type === "correct-model-quantity") return correctModelQuantityModal(modal.model);
     if (modal?.type === "confirm-expected-change") return confirmExpectedChangeModal(modal);
     if (modal?.type === "verified") return verifiedModal();
     // Old rejection states from interrupted pre-update sessions are converted
@@ -1921,6 +1944,33 @@
     if (action === "add-coc-model") { modal = "add-model"; renderAll(); return; }
     if (action === "manage-coc-models") { modal = "manage-models"; renderAll(); return; }
     if (action === "return-manage-models") { modal = "manage-models"; renderAll(); return; }
+    if (action === "correct-model-quantity") {
+      const row = button.closest(".atlas-coc-model-row");
+      const modelInput = row?.querySelector("input[name='modelNumber']");
+      if (row && modelInput) {
+        const model = Core.modelRecord(session, button.dataset.model) || Catalog.resolve(button.dataset.model);
+        const controls = manualQuantityControls(modelInput);
+        if (!model?.caseQuantity || !controls.wrap || !controls.input) return;
+        controls.wrap.hidden = false;
+        controls.wrap.dataset.model = Catalog.normalize(modelInput.value);
+        controls.wrap.dataset.correction = "true";
+        controls.input.value = model.caseQuantity;
+        const help = controls.wrap.querySelector("[data-coc-manual-quantity-help]");
+        if (help) help.textContent = "Enter the corrected units per box for this COC. The master SKU database will not be changed.";
+        const result = row.querySelector(".atlas-coc-model-result");
+        if (result) {
+          result.classList.remove("is-valid", "is-invalid");
+          result.classList.add("is-manual");
+          result.textContent = `Correcting ${model.modelNumber} · currently ${formatQuantity(model.caseQuantity)} units per case`;
+        }
+        updatePalletSetupButton(row.closest("form"));
+        controls.input.focus();
+        return;
+      }
+      modal = { type: "correct-model-quantity", model: button.dataset.model };
+      renderAll();
+      return;
+    }
     if (action === "show-all-lots") { modal = "all-lots"; renderAll(); return; }
     if (action === "select-coc-model") {
       try {
@@ -2202,7 +2252,7 @@
   document.addEventListener("beforeinput", (event) => {
     const input = event.target;
     if (!input?.matches?.(
-      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity]",
+      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity]",
     )) return;
     if (event.data && /\D/.test(event.data)) event.preventDefault();
   });
@@ -2245,10 +2295,10 @@
       updatePalletSetupButton(input.closest("form"));
       return;
     }
-    if (input?.matches?.("[data-coc-manual-quantity]")) {
+    if (input?.matches?.("[data-coc-manual-quantity], [data-coc-correct-quantity]")) {
       input.value = input.value.replace(/\D/g, "");
       const form = input.closest("form");
-      updatePalletSetupButton(form);
+      if (input.matches("[data-coc-manual-quantity]")) updatePalletSetupButton(form);
       const error = form?.querySelector?.(".atlas-coc-form-error");
       if (error && positiveWhole(input.value)) error.textContent = "";
       return;
@@ -2375,6 +2425,31 @@
       renderAll();
       return;
     }
+    if (event.target.id === "atlas-coc-correct-quantity-form") {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      const next = positiveWhole(data.get("caseQuantity"));
+      const modelNumber = event.target.dataset.model;
+      const previous = Core.modelRecord(session, modelNumber)?.caseQuantity;
+      const error = event.target.querySelector(".atlas-coc-form-error");
+      if (!next) {
+        error.textContent = "Enter a whole number greater than zero.";
+        return;
+      }
+      if (next === previous) {
+        error.textContent = "Enter a different quantity, or press Cancel.";
+        return;
+      }
+      try {
+        session = Core.updateModelCaseQuantity(session, modelNumber, next);
+        modal = null;
+        persist();
+        showToast(`${modelNumber} corrected · ${formatQuantity(next)} units per box`);
+      } catch {
+        error.textContent = "The corrected quantity could not be saved.";
+      }
+      return;
+    }
     if (event.target.id === "atlas-coc-edit-lot-form") {
       event.preventDefault();
       const data = new FormData(event.target);
@@ -2437,7 +2512,7 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.target?.matches?.(
-      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity]",
+      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity]",
     ) && ["e", "E", "+", "-", ".", ","].includes(event.key)) {
       event.preventDefault();
       return;
