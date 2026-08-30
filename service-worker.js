@@ -1,12 +1,12 @@
-const VERSION = "atlas-pwa-v221-framed-coc-preview-and-subtle-hover";
+const VERSION = "atlas-pwa-v222-dashboard-coc-oversight";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=146",
-  "./atlas-dashboard.js?v=148",
+  "./atlas-dashboard.css?v=147",
+  "./atlas-dashboard.js?v=149",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
   "./atlas-coc.css?v=33",

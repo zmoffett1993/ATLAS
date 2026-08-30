@@ -1796,6 +1796,119 @@ html.atlas-dashboard-open #root {
   .atlas-dashboard-drawer-product { margin: 18px 0 21px; }
 }
 
+/* Protected COC Receiver oversight. */
+.atlas-dashboard-coc-center,
+.atlas-dashboard-coc-detail { display: grid; gap: 18px; }
+.atlas-dashboard-coc-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.atlas-dashboard-coc-metrics article { min-height: 112px; padding: 20px 22px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--atlas-dashboard-line); border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(11, 35, 64, 0.05); }
+.atlas-dashboard-coc-metrics article.is-awaiting { background: linear-gradient(145deg, #fff, #fff9e9); }
+.atlas-dashboard-coc-metrics article.is-completed { background: linear-gradient(145deg, #fff, #eefaf3); }
+.atlas-dashboard-coc-metrics span { color: #61748d; font-size: 10px; font-weight: 850; letter-spacing: .12em; }
+.atlas-dashboard-coc-metrics strong { margin-top: 7px; color: var(--atlas-dashboard-navy); font-size: 32px; line-height: 1; }
+.atlas-dashboard-coc-metrics small { margin-top: 7px; color: var(--atlas-dashboard-muted); font-size: 11px; }
+.atlas-dashboard-coc-panel { overflow: hidden; border: 1px solid var(--atlas-dashboard-line); border-radius: 18px; background: #fff; box-shadow: 0 12px 32px rgba(11, 35, 64, 0.06); }
+.atlas-dashboard-coc-panel > header { padding: 22px 24px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--atlas-dashboard-line); }
+.atlas-dashboard-coc-panel h2 { margin: 0; color: var(--atlas-dashboard-navy); font-size: 23px; }
+.atlas-dashboard-coc-panel header span:not(.atlas-dashboard-coc-live) { display: block; margin-top: 5px; color: var(--atlas-dashboard-muted); font-size: 13px; }
+.atlas-dashboard-coc-live { flex: 0 0 auto; padding: 7px 10px; color: #08734a; border: 1px solid #b8dfcf; border-radius: 999px; background: #ecf9f3; font-size: 9px; font-weight: 850; letter-spacing: .1em; }
+.atlas-dashboard-coc-sections { padding: 0 22px; display: flex; gap: 25px; border-bottom: 1px solid var(--atlas-dashboard-line); }
+.atlas-dashboard-coc-sections button { min-height: 48px; padding: 0 2px; color: #64758b; border: 0; border-bottom: 3px solid transparent; background: transparent; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+.atlas-dashboard-coc-sections button:hover { color: var(--atlas-dashboard-blue); background: #f8fbff; }
+.atlas-dashboard-coc-sections button.is-active { color: var(--atlas-dashboard-blue); border-bottom-color: var(--atlas-dashboard-blue); }
+.atlas-dashboard-coc-toolbar { padding: 16px 22px; display: grid; grid-template-columns: minmax(240px, 1fr) 180px auto; gap: 10px; border-bottom: 1px solid var(--atlas-dashboard-line); background: #fbfcfe; }
+.atlas-dashboard-coc-toolbar input,
+.atlas-dashboard-coc-toolbar select { min-height: 42px; padding: 0 12px; color: var(--atlas-dashboard-ink); border: 1px solid #ccd8e6; border-radius: 10px; background: #fff; font: inherit; font-size: 12px; }
+.atlas-dashboard-coc-toolbar input:focus,
+.atlas-dashboard-coc-toolbar select:focus { outline: 3px solid rgba(15, 92, 203, .12); border-color: #7ca8dd; }
+.atlas-dashboard-coc-table-wrap { width: 100%; overflow-x: auto; }
+.atlas-dashboard-coc-table-wrap table { width: 100%; min-width: 980px; border-collapse: collapse; }
+.atlas-dashboard-coc-table-wrap th { padding: 12px 16px; color: #687a90; background: #f7f9fc; border-bottom: 1px solid var(--atlas-dashboard-line); text-align: left; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.atlas-dashboard-coc-table-wrap td { padding: 15px 16px; color: #34475f; border-bottom: 1px solid #e8edf3; font-size: 12px; vertical-align: middle; }
+.atlas-dashboard-coc-table-wrap tbody tr:hover { background: #f8fbff; }
+.atlas-dashboard-coc-table-wrap td strong { color: var(--atlas-dashboard-navy); font-weight: 700; }
+.atlas-dashboard-coc-status { display: inline-flex; padding: 5px 8px; color: #40556e; border-radius: 999px; background: #edf2f7; font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
+.atlas-dashboard-coc-status.is-sent,
+.atlas-dashboard-coc-status.is-received { color: #915b00; background: #fff3d5; }
+.atlas-dashboard-coc-status.is-completed { color: #08734a; background: #e7f7ef; }
+.atlas-dashboard-coc-status.is-archived { color: #5b5278; background: #efebf8; }
+.atlas-dashboard-coc-row-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.atlas-dashboard-coc-row-actions button { padding: 6px 8px; color: #0f5ccb; border: 1px solid #b8cee9; border-radius: 7px; background: #f7fbff; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
+.atlas-dashboard-coc-row-actions button:hover { background: #e8f3ff; border-color: #82aee0; }
+.atlas-dashboard-coc-row-actions button.is-delete { color: #a22626; border-color: #e6b8b8; background: #fff7f7; }
+.atlas-dashboard-coc-row-actions button.is-delete:hover { background: #ffeaea; border-color: #d88e8e; }
+.atlas-dashboard-coc-panel > footer { min-height: 52px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; color: var(--atlas-dashboard-muted); font-size: 11px; }
+.atlas-dashboard-coc-panel > footer div { display: flex; align-items: center; gap: 10px; }
+.atlas-dashboard-coc-panel > footer button { width: 30px; height: 30px; color: var(--atlas-dashboard-navy); border: 1px solid #ccd8e6; border-radius: 8px; background: #fff; cursor: pointer; }
+.atlas-dashboard-coc-panel > footer button:hover:not(:disabled) { color: #0f5ccb; background: #eef6ff; }
+.atlas-dashboard-coc-panel > footer button:disabled { opacity: .35; cursor: default; }
+.atlas-dashboard-coc-empty { padding: 38px; color: var(--atlas-dashboard-muted); text-align: center; }
+.atlas-dashboard-coc-notice,
+.atlas-dashboard-coc-error { padding: 13px 16px; color: #116441; border: 1px solid #b8dfcf; border-radius: 11px; background: #ecf9f3; font-size: 12px; font-weight: 650; }
+.atlas-dashboard-coc-error { color: #9b2828; border-color: #edbcbc; background: #fff2f2; }
+.atlas-dashboard-coc-back { width: fit-content; padding: 0; color: var(--atlas-dashboard-blue); border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.atlas-dashboard-coc-back:hover { color: #084897; text-decoration: underline; }
+.atlas-dashboard-coc-detail { width: min(100%, 1120px); margin: 0 auto; }
+.atlas-dashboard-coc-detail-head { padding: 25px 27px; border: 1px solid var(--atlas-dashboard-line); border-radius: 17px; background: linear-gradient(135deg, #fff, #f5f9ff); }
+.atlas-dashboard-coc-detail-head h2 { margin: 0; color: var(--atlas-dashboard-navy); font-size: clamp(27px, 4vw, 42px); line-height: 1.08; }
+.atlas-dashboard-coc-detail-head > span { display: block; margin-top: 7px; color: #526780; font-size: 15px; font-weight: 650; }
+.atlas-dashboard-coc-fields { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
+.atlas-dashboard-coc-fields div { padding: 16px 18px; border: 1px solid var(--atlas-dashboard-line); border-radius: 13px; background: #fff; }
+.atlas-dashboard-coc-fields dt { color: #6b7d92; font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.atlas-dashboard-coc-fields dd { margin: 6px 0 0; color: var(--atlas-dashboard-navy); font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.atlas-dashboard-coc-pallets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.atlas-dashboard-coc-pallet { overflow: hidden; border: 1px solid #cad8e7; border-radius: 15px; background: #fff; }
+.atlas-dashboard-coc-pallet > header { padding: 14px 16px; display: flex; justify-content: space-between; gap: 10px; color: #fff; background: linear-gradient(125deg, #0b376b, #0f5cbd); }
+.atlas-dashboard-coc-pallet h3 { margin: 0; font-size: 12px; letter-spacing: .08em; }
+.atlas-dashboard-coc-pallet header strong { font-size: 12px; }
+.atlas-dashboard-coc-lot { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid #e5ebf2; }
+.atlas-dashboard-coc-lot > span { min-width: 0; }
+.atlas-dashboard-coc-lot span > strong { display: block; color: var(--atlas-dashboard-navy); font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.atlas-dashboard-coc-lot small { display: block; margin-top: 7px; color: #728197; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.atlas-dashboard-coc-lot small b { color: var(--atlas-dashboard-navy); font-size: 13px; font-weight: 650; letter-spacing: 0; }
+.atlas-dashboard-coc-lot > b { flex: 0 0 auto; color: #526780; font-size: 11px; font-weight: 650; text-align: right; }
+.atlas-dashboard-coc-detail-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.atlas-dashboard-coc-preview-status { min-height: 320px; display: grid; place-items: center; align-content: center; gap: 10px; color: var(--atlas-dashboard-muted); text-align: center; border: 1px solid var(--atlas-dashboard-line); background: #fff; }
+.atlas-dashboard-coc-preview-status strong { color: var(--atlas-dashboard-navy); }
+.atlas-dashboard-coc-preview-status p { margin: 0; font-size: 12px; }
+.atlas-dashboard-coc-preview-status.is-error { color: #9b2828; }
+.atlas-dashboard-spinner { width: 28px; height: 28px; border: 3px solid #d5e1ee; border-top-color: #0f5ccb; border-radius: 50%; animation: atlas-dashboard-spin .8s linear infinite; }
+@keyframes atlas-dashboard-spin { to { transform: rotate(360deg); } }
+.atlas-dashboard-coc-modal-backdrop { position: fixed; inset: 0; z-index: 10120; padding: 20px; display: grid; place-items: center; background: rgba(4, 20, 40, .55); backdrop-filter: blur(3px); }
+.atlas-dashboard-coc-modal { width: min(100%, 520px); padding: 27px; border-radius: 18px; background: #fff; box-shadow: 0 25px 70px rgba(2, 16, 34, .3); }
+.atlas-dashboard-coc-modal h2 { margin: 0; color: var(--atlas-dashboard-navy); font-size: 26px; }
+.atlas-dashboard-coc-modal > p:not(.atlas-dashboard-eyebrow):not(.atlas-dashboard-coc-form-error) { color: var(--atlas-dashboard-muted); line-height: 1.55; }
+.atlas-dashboard-coc-modal label { margin-top: 15px; display: grid; gap: 7px; color: #43566f; font-size: 11px; font-weight: 800; }
+.atlas-dashboard-coc-modal textarea,
+.atlas-dashboard-coc-modal input { width: 100%; box-sizing: border-box; padding: 11px 12px; color: var(--atlas-dashboard-ink); border: 1px solid #c5d2e1; border-radius: 10px; background: #fff; font: inherit; }
+.atlas-dashboard-coc-modal textarea { min-height: 86px; resize: vertical; }
+.atlas-dashboard-coc-modal > div { margin-top: 19px; display: flex; justify-content: flex-end; gap: 9px; }
+.atlas-dashboard-coc-form-error { min-height: 17px; margin: 10px 0 0; color: #ad2929; font-size: 11px; font-weight: 700; }
+
+@media (max-width: 900px) {
+  .atlas-dashboard-coc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .atlas-dashboard-coc-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .atlas-dashboard-coc-pallets { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .atlas-dashboard-coc-metrics { gap: 9px; }
+  .atlas-dashboard-coc-metrics article { min-height: 94px; padding: 15px; }
+  .atlas-dashboard-coc-metrics strong { font-size: 27px; }
+  .atlas-dashboard-coc-panel > header { padding: 18px; display: grid; }
+  .atlas-dashboard-coc-live { width: fit-content; }
+  .atlas-dashboard-coc-sections { padding: 0 12px; gap: 15px; overflow-x: auto; }
+  .atlas-dashboard-coc-sections button { white-space: nowrap; }
+  .atlas-dashboard-coc-toolbar { padding: 13px; grid-template-columns: 1fr; }
+  .atlas-dashboard-coc-panel > footer { padding: 12px 15px; align-items: flex-start; flex-direction: column; }
+  .atlas-dashboard-coc-fields { grid-template-columns: 1fr 1fr; }
+  .atlas-dashboard-coc-detail-head { padding: 21px; }
+  .atlas-dashboard-coc-lot { align-items: flex-start; }
+  .atlas-dashboard-coc-detail-actions { display: grid; grid-template-columns: 1fr; }
+  .atlas-dashboard-coc-detail-actions .atlas-dashboard-button { width: 100%; }
+  .atlas-dashboard-coc-modal > div { display: grid; grid-template-columns: 1fr; }
+  .atlas-dashboard-coc-modal .atlas-dashboard-button { width: 100%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .atlas-dashboard *,
   .atlas-dashboard *::before,
