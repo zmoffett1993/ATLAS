@@ -343,6 +343,45 @@
     </div>`;
   }
 
+  function completedPalletSummaryMarkup(snapshot) {
+    return (snapshot.pallets || []).map((pallet) => {
+      const lots = Array.isArray(pallet.lots) ? pallet.lots : [];
+      const totalBoxes = lots.reduce((sum, lot) => sum + Number(lot.cases || 0), 0);
+      const groups = new Map();
+      lots.forEach((lot) => {
+        const model = String(lot.model || "UNKNOWN SKU");
+        if (!groups.has(model)) groups.set(model, []);
+        groups.get(model).push(lot);
+      });
+      return `<section class="atlas-coc-completed-pallet"><header><h2>Pallet ${pallet.number}</h2><b>${plural(totalBoxes, "box")}</b></header>${[...groups].map(([model, modelLots]) => `<div class="atlas-coc-completed-model"><h3>${escapeHtml(model)}</h3>${modelLots.map((lot) => `<div class="atlas-coc-completed-lot"><span><small>LOT</small><strong>${escapeHtml(Core.displayLot(lot.lot))}</strong></span><b>${plural(Number(lot.cases || 0), "box")}</b></div>`).join("")}</div>`).join("")}</section>`;
+    }).join("");
+  }
+
+  function officialCocSheetMarkup(snapshot) {
+    const rows = (snapshot.pallets || []).map((pallet) => {
+      const lots = Array.isArray(pallet.lots) ? pallet.lots : [];
+      const modelOrder = [];
+      const groups = new Map();
+      lots.forEach((lot) => {
+        const model = String(lot.model || "UNKNOWN SKU");
+        if (!groups.has(model)) { groups.set(model, []); modelOrder.push(model); }
+        groups.get(model).push(lot);
+      });
+      return modelOrder.map((model) => {
+        const modelLots = groups.get(model);
+        const totalQuantity = modelLots.reduce((sum, lot) => sum + Number(lot.cases || 0) * Number(lot.caseQuantity || 0), 0);
+        return `<tr class="atlas-coc-sheet-model"><th>${escapeHtml(model)}</th><th>PALLET ${pallet.number}</th><td></td></tr>${modelLots.map((lot) => `<tr><td></td><td>${escapeHtml(Core.displayLot(lot.lot))}</td><td>${(Number(lot.cases || 0) * Number(lot.caseQuantity || 0)).toLocaleString()}</td></tr>`).join("")}<tr class="atlas-coc-sheet-total"><td></td><th>TOTAL QTY</th><td>${totalQuantity.toLocaleString()}</td></tr>`;
+      }).join("");
+    }).join("");
+    return `<section class="atlas-coc-official-sheet" aria-label="Official COC spreadsheet preview"><h2>Certificate of Compliance Information Form</h2><div class="atlas-coc-sheet-fields"><div><strong>CUSTOMER NAME</strong><span>${escapeHtml(snapshot.customerName || "—")}</span></div><div><strong>INV-NUMBER</strong><span>${escapeHtml(snapshot.invoiceNumber || "—")}</span></div><div><strong>IF-NUMBER</strong><span>${escapeHtml(snapshot.ifNumber || "—")}</span></div></div><div class="atlas-coc-sheet-table-wrap"><table><thead><tr><th>MODEL NUMBER</th><th>LOT NUMBER<br><small>(Pallet listed for each model)</small></th><th>QUANTITY</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }
+
+  function completedOfficialPreviewMarkup() {
+    const record = selectedCompleted;
+    if (!record) return completedListMarkup();
+    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-completed-official">‹ Completed COC</button><header class="atlas-coc-page-head"><span>READ-ONLY PREVIEW</span><h1>Official COC</h1><p>View the completed spreadsheet without downloading it.</p></header>${officialCocSheetMarkup(record.reportSnapshot || {})}</div>`;
+  }
+
   function completedDetailMarkup() {
     const record = selectedCompleted;
     if (!record) return completedListMarkup();
@@ -350,10 +389,10 @@
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-completed">‹ Completed COCs</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COC</h1></header>
       <section class="atlas-coc-completed-detail">
-        <dl><div><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
-        <div class="atlas-coc-readonly-pallets">${(snapshot.pallets || []).map((pallet) => `<section><h2>Pallet ${pallet.number}</h2>${(pallet.lots || []).map((lot) => `<p><strong>${escapeHtml(lot.model)}</strong><span>Lot ${escapeHtml(lot.lot)} · ${plural(lot.cases, "box")}</span></p>`).join("")}</section>`).join("")}</div>
+        <dl class="atlas-coc-completed-meta"><div class="is-wide"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div class="is-wide"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
+        <div class="atlas-coc-readonly-pallets">${completedPalletSummaryMarkup(snapshot)}</div>
         <div class="atlas-coc-completed-actions">
-          <button type="button" class="atlas-coc-primary" data-coc-action="download-completed">Download Company COC</button>
+          <button type="button" class="atlas-coc-primary" data-coc-action="view-completed-official">View Official COC</button>
           <button type="button" data-coc-action="review-resend-completed" ${record.officeTransferStatus === "OFFICE_COMPLETED" ? "disabled" : ""}>${record.officeTransferStatus === "OFFICE_COMPLETED" ? "Completed by Office" : "Resend to Office"}</button>
         </div>
       </section></div>`;
@@ -472,7 +511,7 @@
   function setupMarkup() {
     return `<div class="atlas-coc-page atlas-coc-setup">
       <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
-      <header class="atlas-coc-page-head"><span>START COC</span><h1>COC Information</h1><p>Enter the three header fields for the company COC.</p></header>
+      <header class="atlas-coc-page-head"><span>START COC</span><h1>COC Information</h1><p>Enter the three header fields for the official COC.</p></header>
       <form id="atlas-coc-start-form" class="atlas-coc-form-card atlas-coc-header-form">
         <label><strong>Customer Name</strong>
           <input name="customerName" maxlength="160" autocomplete="organization" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Enter customer name" required /></label>
@@ -731,7 +770,7 @@
       return;
     }
     if (!(record.workbookBlob instanceof Blob) || !record.workbookBlob.size) {
-      showToast("The saved company workbook is unavailable on this device.", "warning");
+      showToast("The saved official workbook is unavailable on this device.", "warning");
       return;
     }
     resendInProgress = true;
@@ -775,6 +814,7 @@
   function workflowMarkup() {
     if (workflowView === "history") return completedListMarkup();
     if (workflowView === "history-detail") return completedDetailMarkup();
+    if (workflowView === "official-preview") return completedOfficialPreviewMarkup();
     if (workflowView === "receiver-setup") return receiverSetupMarkup();
     if (workflowView === "send-status") return sendStatusMarkup();
     if (workflowView === "setup" && !session) return setupMarkup();
@@ -910,7 +950,7 @@
     const record = selectedCompleted;
     if (!record) return "";
     return modalShell(`<span class="atlas-coc-eyebrow">RESEND COMPLETED COC</span><h2>${escapeHtml(record.invoiceNumber)}</h2>
-      <p>This sends the saved company workbook to the Office COC Station again. It does not rebuild the spreadsheet or delete the existing office record.</p>
+      <p>This sends the saved official workbook to the Office COC Station again. It does not rebuild the spreadsheet or delete the existing office record.</p>
       <div class="atlas-coc-final-review"><section><header><strong>${escapeHtml(record.customerName)}</strong><b>${plural(record.palletCount, "pallet")}</b></header><div><span>IF ${escapeHtml(record.ifNumber)}</span><strong>${plural(record.totalConfirmedBoxes, "box")}</strong></div></section></div>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal" ${resendInProgress ? "disabled" : ""}>Cancel</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-resend-completed" ${resendInProgress ? "disabled" : ""}>${resendInProgress ? "Resending…" : "Resend to Office"}</button></div>`, {
       label: "Resend completed COC", dismiss: !resendInProgress, showBack: false, showDiscard: false,
@@ -1686,6 +1726,8 @@
     if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workflowView = "history-detail"; renderAll(); return; }
     if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
+    if (action === "view-completed-official") { workflowView = "official-preview"; renderAll(); return; }
+    if (action === "close-completed-official") { workflowView = "history-detail"; renderAll(); return; }
     if (action === "review-resend-completed") { modal = "resend-completed"; renderAll(); return; }
     if (action === "confirm-resend-completed") { await resendCompletedCoc(); return; }
     if (action === "receiver-setup") { workflowView = "receiver-setup"; renderAll(); return; }
