@@ -709,7 +709,22 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   font-weight: 750;
 }
 .atlas-coc-model-result.is-valid { color: var(--coc-green); }
+.atlas-coc-model-result.is-manual { color: #9a6510; }
 .atlas-coc-model-result.is-invalid { color: var(--coc-red); }
+.atlas-coc-manual-quantity {
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid #b9d5f1;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f6fbff, #edf6ff);
+}
+.atlas-coc-manual-quantity[hidden] { display: none; }
+.atlas-coc-manual-quantity label { margin: 0; }
+.atlas-coc-manual-quantity label > strong,
+.atlas-coc-manual-quantity label > small { display: block; }
+.atlas-coc-manual-quantity label > strong { color: var(--coc-blue-dark); }
+.atlas-coc-manual-quantity label > small { margin-top: 4px; color: var(--coc-muted); font-size: 12px; line-height: 1.4; }
+.atlas-coc-manual-quantity input { min-height: 54px; margin-top: 9px; font-size: 20px; text-align: center; }
 .atlas-coc-add-model-row,
 .atlas-coc-remove-model {
   min-height: 43px;

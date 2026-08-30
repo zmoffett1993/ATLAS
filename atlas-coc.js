@@ -225,6 +225,25 @@
   const lotsForModel = (pallet, modelNumber) => (pallet?.lots || [])
     .filter((lot) => modelKey(lot.model) === modelKey(modelNumber));
 
+  function scrollWorkflowToTop() {
+    const reset = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      document.querySelector(".atlas-workflows-view")?.scrollTo?.({
+        top: 0, left: 0, behavior: "auto",
+      });
+    };
+    reset();
+    // iOS can restore the removed modal button's former scroll position on
+    // the next paint. Reassert the top after both the DOM and layout settle.
+    window.requestAnimationFrame(() => {
+      reset();
+      window.requestAnimationFrame(reset);
+    });
+  }
+
   function navigateWorkflows({ resume = false } = {}) {
     if (resume) {
       cancelScanSession();
@@ -340,27 +359,90 @@
     return `<div class="atlas-coc-page"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button><header class="atlas-coc-page-head"><span>SUPERVISOR SETUP</span><h1>Office COC Receiver</h1><p>Open <strong>/coc-receiver/</strong> on the office computer, then approve its six-digit pairing code here.</p></header><form id="atlas-coc-pairing-form" class="atlas-coc-form-card"><label><strong>Pairing Code</strong><input name="pairingCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><p class="atlas-coc-form-error" aria-live="polite"></p><button class="atlas-coc-primary" type="submit">Approve Office COC Station</button></form></div>`;
   }
 
+  function manualCaseQuantityMarkup() {
+    return `<div class="atlas-coc-manual-quantity" data-coc-manual-quantity-wrap hidden>
+      <label><strong>Units per Box</strong><small>ATLAS does not have a stored CASE QTY for this SKU. Enter the quantity printed on the case or packing information.</small>
+        <input name="manualCaseQuantity" data-coc-manual-quantity type="text" inputmode="numeric" pattern="[0-9]*" maxlength="7" autocomplete="off" placeholder="Enter units per box" /></label>
+    </div>`;
+  }
+
   function modelFieldMarkup({ removable = false, compact = false } = {}) {
     return `<div class="atlas-coc-model-row">
       <label><strong>Model Number</strong>${compact ? "" : "<small>Colors do not change CASE QTY</small>"}
         <input name="modelNumber" class="atlas-coc-model-search" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Start typing the SKU" role="combobox" aria-expanded="false" required /></label>
       <div class="atlas-coc-model-suggestions" role="listbox"></div>
       <p class="atlas-coc-model-result" aria-live="polite">Enter the complete model number on the shipment.</p>
+      ${manualCaseQuantityMarkup()}
       ${removable ? `<button type="button" class="atlas-coc-remove-model" data-coc-action="remove-model-row">Remove Model</button>` : ""}
     </div>`;
+  }
+
+  function workflowModelRecord(value, manualQuantity = null, { allowManual = true } = {}) {
+    const stored = Catalog.recordForSession(value) || Core.modelRecord(session, value);
+    if (stored?.caseQuantity) return stored;
+    const modelNumber = Catalog.normalize(value);
+    const caseQuantity = allowManual ? positiveWhole(manualQuantity) : null;
+    if (!modelNumber || !caseQuantity) return null;
+    return {
+      modelNumber,
+      catalogModel: modelNumber,
+      caseQuantity,
+      sourceRevision: "EMPLOYEE ENTERED FOR THIS COC",
+      addedAt: new Date().toISOString(),
+    };
+  }
+
+  function exactSkuSuggestion(value) {
+    const key = Catalog.normalize(value);
+    if (!key || typeof Catalog.suggestionList !== "function") return false;
+    return Catalog.suggestionList().some((item) => Catalog.normalize(item.modelNumber) === key);
+  }
+
+  function manualQuantityControls(input) {
+    const scope = input?.closest?.(".atlas-coc-model-row, form");
+    return {
+      wrap: scope?.querySelector?.("[data-coc-manual-quantity-wrap]") || null,
+      input: scope?.querySelector?.("[data-coc-manual-quantity]") || null,
+    };
+  }
+
+  function revealManualQuantity(form, modelValue) {
+    const modelInput = form?.elements?.modelNumber;
+    const controls = manualQuantityControls(modelInput);
+    if (controls.wrap) controls.wrap.hidden = false;
+    const result = form?.querySelector?.(".atlas-coc-model-result");
+    if (result) {
+      result.classList.remove("is-valid", "is-invalid");
+      result.classList.add("is-manual");
+      result.textContent = `${Catalog.normalize(modelValue)} needs a case quantity.`;
+    }
+    controls.input?.focus?.();
   }
 
   function updateModelInputFeedback(input) {
     const result = input.closest(".atlas-coc-model-row, form")?.querySelector(".atlas-coc-model-result");
     if (!result) return;
     const value = input.value.trim();
-    const resolved = Catalog.resolve(value);
+    const resolved = Catalog.resolve(value) || Core.modelRecord(session, value);
+    const controls = manualQuantityControls(input);
+    const needsManual = Boolean(value && !resolved && exactSkuSuggestion(value));
+    if (controls.wrap) {
+      const modelKeyValue = Catalog.normalize(value);
+      if (controls.wrap.dataset.model !== modelKeyValue) {
+        if (controls.input) controls.input.value = "";
+        controls.wrap.dataset.model = modelKeyValue;
+      }
+      controls.wrap.hidden = !needsManual;
+    }
     result.classList.toggle("is-valid", Boolean(resolved));
-    result.classList.toggle("is-invalid", Boolean(value && !resolved));
+    result.classList.toggle("is-manual", needsManual);
+    result.classList.toggle("is-invalid", Boolean(value && !resolved && !needsManual));
     result.textContent = resolved
-      ? `${resolved.catalogModel} · ${formatQuantity(resolved.caseQuantity)} units per case`
+      ? `${resolved.catalogModel || resolved.modelNumber} · ${formatQuantity(resolved.caseQuantity)} units per case`
+      : needsManual
+        ? "Case quantity not stored — enter the units per box below."
       : value
-        ? "No numeric CASE QTY is stored for this model."
+        ? "Select the complete SKU from the list."
         : "Enter the complete model number on the shipment.";
   }
 
@@ -369,8 +451,13 @@
     const button = form.querySelector("[data-coc-box-confirm]");
     const count = positiveWhole(form.elements.expectedBoxes?.value);
     const modelInput = form.elements.modelNumber;
+    const controls = manualQuantityControls(modelInput);
     const modelReady = Core.palletModels(session, activePallet()).length > 0 ||
-      Boolean(modelInput && Catalog.resolve(modelInput.value));
+      Boolean(modelInput && workflowModelRecord(
+        modelInput.value,
+        controls.input?.value,
+        { allowManual: Boolean(controls.wrap && !controls.wrap.hidden) },
+      ));
     if (!button) return;
     button.disabled = !count || !modelReady;
     button.textContent = count && modelReady
@@ -816,11 +903,12 @@
 
   function addModelModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">ADD SKU</span><h2>Add SKU to this pallet</h2>
-      <p>Search the approved model catalog. ATLAS applies the stored CASE QTY and validates new lot scans against your selection.</p>
+      <p>Select or enter the model number. ATLAS applies the stored CASE QTY automatically; if one is unavailable, enter the units per box once for this COC.</p>
       <form id="atlas-coc-add-model-form" class="atlas-coc-manual-form">
         <label><strong>SKU / Model Number</strong><input name="modelNumber" class="atlas-coc-model-search" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Type any part of a SKU" role="combobox" aria-expanded="false" aria-controls="atlas-coc-model-suggestions" required /></label>
         <div id="atlas-coc-model-suggestions" class="atlas-coc-model-suggestions" role="listbox"></div>
         <p class="atlas-coc-model-result" aria-live="polite">Enter the complete model number on the shipment.</p>
+        ${manualCaseQuantityMarkup()}
         <p class="atlas-coc-form-error" aria-live="polite"></p>
         <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Add &amp; Select SKU</button></div>
       </form>`, { label: "Add COC SKU" });
@@ -1590,7 +1678,9 @@
         const suggestions = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions");
         if (suggestions) suggestions.innerHTML = "";
         input.setAttribute("aria-expanded", "false");
-        input.focus();
+        const controls = manualQuantityControls(input);
+        if (controls.wrap && !controls.wrap.hidden) controls.input?.focus?.();
+        else input.focus();
       }
       return;
     }
@@ -1730,7 +1820,7 @@
     }
     if (action === "review-complete") { modal = "review-complete"; renderAll(); return; }
     if (action === "complete-coc") {
-      try { session = Core.completeSession(session); modal = null; workflowView = "session"; persist(); refreshStationPresence(); showToast("COC complete · ready to send"); }
+      try { session = Core.completeSession(session); modal = null; workflowView = "session"; persist(); scrollWorkflowToTop(); refreshStationPresence(); showToast("COC complete · ready to send"); }
       catch { showToast("Finish the active pallet first.", "warning"); }
       return;
     }
@@ -1748,7 +1838,7 @@
       return;
     }
     if (action === "send-to-office") { await sendCompletedCoc(); return; }
-    if (action === "return-to-report") { workflowView = "session"; sendState = { phase: "ready" }; refreshStationPresence(); renderAll(); return; }
+    if (action === "return-to-report") { workflowView = "session"; sendState = { phase: "ready" }; refreshStationPresence(); renderAll(); scrollWorkflowToTop(); return; }
     if (action === "finish-transfer") { session = null; localStorage.removeItem(ACTIVE_KEY); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "retry-save") {
       if (persist()) { modal = null; renderAll(); showToast("COC saved on this device"); }
@@ -1778,7 +1868,7 @@
   document.addEventListener("beforeinput", (event) => {
     const input = event.target;
     if (!input?.matches?.(
-      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes']",
+      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity]",
     )) return;
     if (event.data && /\D/.test(event.data)) event.preventDefault();
   });
@@ -1815,6 +1905,14 @@
       updateModelInputFeedback(input);
       updateModelSuggestions(input);
       updatePalletSetupButton(input.closest("form"));
+      return;
+    }
+    if (input?.matches?.("[data-coc-manual-quantity]")) {
+      input.value = input.value.replace(/\D/g, "");
+      const form = input.closest("form");
+      updatePalletSetupButton(form);
+      const error = form?.querySelector?.(".atlas-coc-form-error");
+      if (error && positiveWhole(input.value)) error.textContent = "";
       return;
     }
     if (!input?.matches?.("#atlas-coc-expected-form input[name='expectedBoxes']")) return;
@@ -1870,10 +1968,14 @@
       event.preventDefault();
       const data = new FormData(event.target);
       const value = String(data.get("modelNumber") || "").trim();
-      const record = Catalog.recordForSession(value);
+      const record = workflowModelRecord(value, data.get("manualCaseQuantity"));
       const error = event.target.querySelector(".atlas-coc-form-error");
       if (!record) {
-        if (error) error.textContent = "No numeric CASE QTY is stored for this model.";
+        if (value) revealManualQuantity(event.target, value);
+        else event.target.elements.modelNumber?.focus?.();
+        if (error) error.textContent = value
+          ? "Enter the number of units packed in each box for this SKU."
+          : "Enter the complete SKU / Model Number.";
         return;
       }
       try {
@@ -1898,10 +2000,12 @@
       try {
         if (!Core.palletModels(session, activePallet()).length) {
           const modelValue = String(data.get("modelNumber") || "").trim();
-          const record = Catalog.recordForSession(modelValue);
+          const record = workflowModelRecord(modelValue, data.get("manualCaseQuantity"));
           if (!record) {
+            if (modelValue) revealManualQuantity(event.target, modelValue);
+            else event.target.elements.modelNumber?.focus?.();
             error.textContent = modelValue
-              ? "No numeric CASE QTY is stored for this model."
+              ? "Enter the number of units packed in each box for this SKU."
               : `Enter the first Model Number on Pallet ${activePallet()?.number || 1}.`;
             return;
           }
@@ -1960,7 +2064,7 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.target?.matches?.(
-      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes']",
+      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity]",
     ) && ["e", "E", "+", "-", ".", ","].includes(event.key)) {
       event.preventDefault();
       return;
