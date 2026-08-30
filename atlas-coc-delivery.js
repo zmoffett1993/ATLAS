@@ -224,9 +224,35 @@
     return edgeRequest("coc-receiver", { action: "heartbeat", stationKey: STATION_KEY }, { receiverCredentials: credentials });
   }
 
-  async function receiverInbox(credentials) {
-    const result = await edgeRequest("coc-receiver", { action: "receiver-inbox", stationKey: STATION_KEY }, { receiverCredentials: credentials });
-    return Array.isArray(result?.deliveries) ? result.deliveries : [];
+  async function receiverInbox(credentials, options = {}) {
+    const result = await edgeRequest("coc-receiver", {
+      action: "receiver-inbox",
+      stationKey: STATION_KEY,
+      section: clean(options.section || "", 20),
+      page: Number(options.page || 1),
+      pageSize: Number(options.pageSize || 8),
+      search: clean(options.search || "", 120),
+      sort: clean(options.sort || "newest", 30),
+      dayStart: clean(options.dayStart || "", 40),
+    }, { receiverCredentials: credentials });
+    return options.withMeta ? result : Array.isArray(result?.deliveries) ? result.deliveries : [];
+  }
+
+  async function archiveOfficeCompleted(deliveryIds, credentials, { all = false } = {}) {
+    return edgeRequest("coc-receiver", {
+      action: "archive-completed",
+      stationKey: STATION_KEY,
+      deliveryIds: Array.isArray(deliveryIds) ? deliveryIds.slice(0, 100) : [],
+      archiveAll: Boolean(all),
+    }, { receiverCredentials: credentials });
+  }
+
+  async function restoreOfficeArchived(deliveryIds, credentials) {
+    return edgeRequest("coc-receiver", {
+      action: "restore-archived",
+      stationKey: STATION_KEY,
+      deliveryIds: Array.isArray(deliveryIds) ? deliveryIds.slice(0, 100) : [],
+    }, { receiverCredentials: credentials });
   }
 
   async function downloadOfficeWorkbook(deliveryId, credentials) {
@@ -326,6 +352,8 @@
     verifyReceiver,
     heartbeat,
     receiverInbox,
+    archiveOfficeCompleted,
+    restoreOfficeArchived,
     downloadOfficeWorkbook,
     acknowledgeDelivery,
     markOfficeCompleted,
