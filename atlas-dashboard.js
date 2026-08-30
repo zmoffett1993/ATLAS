@@ -600,7 +600,7 @@
       <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-light.svg?v=131" alt="ATLAS Warehouse Management">
       <p class="atlas-dashboard-eyebrow">AUTHORIZED ACCESS</p>
       <h2>Supervisor sign in</h2>
-      <p>Operational history includes employee names and detailed inventory changes. Sign in with an ATLAS supervisor or administrator account to continue.</p>
+      <p>Operational history includes employee names and detailed inventory changes. Sign in once with an ATLAS supervisor or administrator account; this device will remain signed in until you sign out.</p>
       <form class="atlas-dashboard-access-form" data-sign-in>
         <label><span>Name</span><input type="text" name="login_name" autocomplete="username" required></label>
         <label><span>Password</span>${passwordField({ autocomplete: "current-password" })}</label>
@@ -822,7 +822,8 @@
           <form class="atlas-account-form" data-${isCreate ? "account-create" : "account-update"}>
             ${isCreate ? "" : `<input type="hidden" name="user_id" value="${escapeHtml(user.id)}">`}
             <div class="atlas-account-form-grid">
-              <label><span>Name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required><small>This is both the employee's displayed name and the name they use to sign in.</small></label>
+              <label><span>Display name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required><small>The name shown on ATLAS records and activity.</small></label>
+              <label><span>Sign-in name</span><input type="text" name="login_name" value="${escapeHtml(isCreate ? "" : user.login_name)}" autocomplete="off" placeholder="Example: Zach" required><small>The simple name this employee enters with their password.</small></label>
               <label><span>ATLAS role</span><select name="role" required>
                 ${["picker", "office_receiver", "supervisor", "admin"].map((role) => `<option value="${role}" ${!isCreate && user.role === role ? "selected" : ""}>${roleLabel(role)}</option>`).join("")}
               </select></label>
@@ -1162,6 +1163,7 @@
       event.preventDefault();
       runAdminAction("create", {
         display_name: form.elements.display_name.value,
+        login_name: form.elements.login_name.value,
         role: form.elements.role.value,
         password: form.elements.password.value,
       }, form);
@@ -1170,6 +1172,7 @@
       runAdminAction("update", {
         user_id: form.elements.user_id.value,
         display_name: form.elements.display_name.value,
+        login_name: form.elements.login_name.value,
         role: form.elements.role.value,
       }, form);
     } else if (form.matches("[data-account-password]")) {

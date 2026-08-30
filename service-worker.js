@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v198-coc-assisted-scan-autofill";
+const VERSION = "atlas-pwa-v199-persistent-personal-login";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,9 +6,9 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=146",
-  "./atlas-dashboard.js?v=147",
+  "./atlas-dashboard.js?v=148",
   "./atlas-auth.css?v=2",
-  "./atlas-auth.js?v=2",
+  "./atlas-auth.js?v=3",
   "./atlas-coc.css?v=16",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",

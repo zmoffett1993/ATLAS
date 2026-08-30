@@ -6,8 +6,10 @@
   const LEGACY_DASHBOARD_KEY = "atlas-dashboard-session-v1";
   const INTERNAL_DOMAIN = "users.atlas.invalid";
   const REFRESH_MARGIN_MS = 60_000;
+  const REFRESH_RETRY_MS = 30_000;
   let modal = null;
   let refreshPromise = null;
+  let refreshTimer = null;
 
   const config = () => {
     const value = global.atlasSupabaseConfig;
@@ -51,6 +53,7 @@
     global.localStorage?.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
     global.sessionStorage?.setItem(LEGACY_DASHBOARD_KEY, JSON.stringify(session));
     global.dispatchEvent(new CustomEvent("atlas-auth-changed", { detail: { session } }));
+    scheduleRefresh(session);
     syncMenu();
     return session;
   };
@@ -79,12 +82,29 @@
     return payload;
   };
 
+  const permanentRefreshFailure = (error) => [400, 401, 403].includes(Number(error?.status || 0));
+
+  function scheduleRefresh(session = storedSession(), retryInMs = 0) {
+    if (refreshTimer) global.clearTimeout(refreshTimer);
+    refreshTimer = null;
+    if (!session?.refresh_token) return;
+    const expiresAt = Number(session.expires_at || 0) * 1000;
+    const delay = retryInMs || Math.max(0, expiresAt - Date.now() - REFRESH_MARGIN_MS);
+    refreshTimer = global.setTimeout(() => refresh(session), delay);
+  }
+
   const refresh = async (session = storedSession()) => {
     if (!session?.refresh_token) return null;
     if (refreshPromise) return refreshPromise;
     refreshPromise = request("/auth/v1/token?grant_type=refresh_token", { refresh_token: session.refresh_token })
       .then(persist)
-      .catch(() => { clearSession(); return null; })
+      .catch((error) => {
+        // Only an invalid/revoked refresh token should forget this device.
+        // Wi-Fi, rate-limit, and server failures keep the saved login and retry.
+        if (permanentRefreshFailure(error)) clearSession();
+        else scheduleRefresh(session, REFRESH_RETRY_MS);
+        return null;
+      })
       .finally(() => { refreshPromise = null; });
     return refreshPromise;
   };
@@ -107,6 +127,8 @@
   };
 
   function clearSession() {
+    if (refreshTimer) global.clearTimeout(refreshTimer);
+    refreshTimer = null;
     global.localStorage?.removeItem(AUTH_STORAGE_KEY);
     global.sessionStorage?.removeItem(LEGACY_DASHBOARD_KEY);
     global.dispatchEvent(new CustomEvent("atlas-auth-changed", { detail: { session: null } }));
@@ -146,9 +168,9 @@
         <button type="button" class="atlas-auth-close" data-auth-close aria-label="Close">×</button>
         <p class="atlas-auth-eyebrow">ATLAS ACCOUNT</p>
         <h2 id="atlasAuthTitle">Sign in</h2>
-        <p>Use your employee name and ATLAS password.</p>
+        <p>Use your employee name and ATLAS password. You will stay signed in on this device until you sign out.</p>
         <form data-auth-form>
-          <label><span>Name</span><input name="login_name" autocomplete="username" required></label>
+          <label><span>Employee name</span><input name="login_name" autocomplete="username" autocapitalize="words" required></label>
           <label><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
           <p class="atlas-auth-message" data-auth-message role="alert"></p>
           <button type="submit" class="atlas-auth-primary">Sign In</button>
@@ -207,7 +229,26 @@
 
   const observer = new MutationObserver(syncMenu);
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  global.addEventListener("DOMContentLoaded", () => { syncMenu(); refresh(storedSession()); });
+  const restore = () => {
+    const session = storedSession();
+    syncMenu();
+    if (!session) return;
+    const expiresAt = Number(session.expires_at || 0) * 1000;
+    if (!expiresAt || expiresAt <= Date.now() + REFRESH_MARGIN_MS) refresh(session);
+    else scheduleRefresh(session);
+  };
+  global.addEventListener("DOMContentLoaded", restore);
+  global.addEventListener("online", restore);
+  global.addEventListener("visibilitychange", () => {
+    if (!global.document?.hidden) restore();
+  });
+  global.addEventListener("storage", (event) => {
+    if (event?.key !== AUTH_STORAGE_KEY) return;
+    const session = storedSession();
+    syncMenu();
+    global.dispatchEvent(new CustomEvent("atlas-auth-changed", { detail: { session } }));
+    if (session) scheduleRefresh(session);
+  });
 
   global.AtlasAuth = Object.freeze({
     AUTH_STORAGE_KEY,
@@ -220,5 +261,6 @@
     signOut,
     open: openModal,
     displayName,
+    restore,
   });
 })(window);
