@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v228-full-coc-pallet-editing";
+const VERSION = "atlas-pwa-v229-explicit-lot-sku-removal";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=151",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=36",
+  "./atlas-coc.css?v=37",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=8",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=16",
-  "./atlas-coc.js?v=35",
+  "./atlas-coc.js?v=36",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=14",
   "./coc-receiver/receiver.js?v=13",

@@ -1025,14 +1025,47 @@
     if (!pallet || !lot) return "";
     const models = Core.palletModels(session, pallet);
     return modalShell(`<span class="atlas-coc-eyebrow">EDIT PALLET ${pallet.number}</span><h2>Edit lot details</h2>
-      <p>Correct the SKU, lot code, or number of boxes. Enter 0 boxes to remove this lot from the pallet.</p>
+      <p>Correct the SKU, lot code, or number of boxes. Use the removal buttons below when a lot or SKU does not belong on this pallet.</p>
       <form id="atlas-coc-edit-lot-form" class="atlas-coc-manual-form" data-lot-id="${escapeHtml(lot.id)}">
         <label><strong>SKU / Model Number</strong><select name="model" required>${models.map((model) => `<option value="${escapeHtml(model.modelNumber)}" ${modelKey(model.modelNumber) === modelKey(lot.model) ? "selected" : ""}>${escapeHtml(model.modelNumber)}</option>`).join("")}</select></label>
         <label><strong>Lot Code</strong><input name="lotNumber" value="${escapeHtml(Core.displayLot(lot.lot))}" maxlength="120" autocapitalize="characters" autocomplete="off" required /></label>
-        <label><strong>Boxes for This Lot</strong><input name="boxes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${lot.cases}" required /></label>
+        <label><strong>Boxes for This Lot</strong><input name="boxes" type="text" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="6" value="${lot.cases}" required /></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
         <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Save Lot Changes</button></div>
+        <div class="atlas-coc-edit-remove-actions"><button type="button" data-coc-action="manage-coc-models">Manage / Remove SKU</button><button type="button" class="is-danger" data-coc-action="review-remove-lot" data-lot-id="${escapeHtml(lot.id)}">Remove This Lot</button></div>
       </form>`, { label: `Edit lot on pallet ${pallet.number}` });
+  }
+
+  function confirmRemoveLotModal(lotId) {
+    const pallet = activePallet();
+    const lot = pallet?.lots.find((item) => item.id === lotId);
+    if (!pallet || !lot) return "";
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">REMOVE LOT</span><h2>Remove ${escapeHtml(Core.displayLot(lot.lot))}?</h2>
+      <p>This removes ${plural(lot.cases, "box")} assigned to this lot from Pallet ${pallet.number}. The pallet must be verified again before the COC can be completed.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="edit-lot" data-lot-id="${escapeHtml(lot.id)}">Keep Lot</button><button type="button" class="atlas-coc-danger" data-coc-action="confirm-remove-lot" data-lot-id="${escapeHtml(lot.id)}">Remove Lot</button></div>`, {
+      label: `Remove lot from pallet ${pallet.number}`, dismiss: false,
+    });
+  }
+
+  function confirmRemoveModelModal(modelNumber) {
+    const pallet = activePallet();
+    const models = Core.palletModels(session, pallet);
+    const model = models.find((item) => modelKey(item.modelNumber) === modelKey(modelNumber));
+    if (!pallet || !model) return "";
+    const count = pallet.lots.filter((lot) => modelKey(lot.model) === modelKey(model.modelNumber))
+      .reduce((total, lot) => total + lot.cases, 0);
+    const isLast = models.length <= 1;
+    const removable = !count && !isLast;
+    const explanation = isLast
+      ? "Every pallet must keep at least one SKU. Add the replacement SKU first, then remove this one."
+      : count
+        ? `${plural(count, "box")} still ${count === 1 ? "uses" : "use"} this SKU. Remove those lots or assign them to another SKU first.`
+        : `This removes the unused SKU from Pallet ${pallet.number}. It does not change any other pallet.`;
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">REMOVE SKU</span><h2>${escapeHtml(model.modelNumber)}</h2>
+      <p>${escapeHtml(explanation)}</p>
+      <div class="atlas-coc-modal-actions ${removable ? "" : "atlas-coc-modal-actions--stack"}"><button type="button" data-coc-action="return-manage-models">${removable ? "Keep SKU" : "Go Back"}</button>${removable ? `<button type="button" class="atlas-coc-danger" data-coc-action="confirm-remove-coc-model" data-model="${escapeHtml(model.modelNumber)}">Remove SKU</button>` : ""}</div>`, {
+      label: `Remove SKU from pallet ${pallet.number}`, dismiss: false,
+    });
   }
 
   function discardModal() {
@@ -1136,14 +1169,14 @@
     const pallet = activePallet();
     const models = Core.palletModels(session, pallet);
     return modalShell(`<span class="atlas-coc-eyebrow">SKUs ON PALLET ${pallet?.number || 1}</span><h2>Edit or remove a SKU</h2>
-      <p>Choose the SKU for the next lot or remove an unused one. A SKU with counted boxes stays protected until those boxes are undone.</p>
+      <p>Choose a SKU for editing or tap its small Remove SKU button. ATLAS will prevent removal while recorded lots still use it.</p>
       <div class="atlas-coc-model-manager">${models.map((model) => {
         const isActive = model.modelNumber === activeModelContext();
         const count = pallet.lots.filter((lot) => lot.model === model.modelNumber).reduce((total, lot) => total + lot.cases, 0);
-        const removable = models.length > 1 && count === 0;
         return `<section class="${isActive ? "is-active" : ""}"><div><strong>${escapeHtml(model.modelNumber)}</strong><small>${formatQuantity(model.caseQuantity)} units per case${isActive ? " · Active" : ""}</small></div>
           ${isActive ? "" : `<button type="button" data-coc-action="select-coc-model" data-model="${escapeHtml(model.modelNumber)}">Use this model</button>`}
-          ${removable ? `<button type="button" class="is-remove" data-coc-action="remove-coc-model" data-model="${escapeHtml(model.modelNumber)}">Remove</button>` : count ? `<small class="atlas-coc-model-protected">Undo ${plural(count, "box")} before removing</small>` : ""}
+          <button type="button" class="is-remove" data-coc-action="review-remove-coc-model" data-model="${escapeHtml(model.modelNumber)}">Remove SKU</button>
+          ${count ? `<small class="atlas-coc-model-protected">${plural(count, "box")} currently ${count === 1 ? "uses" : "use"} this SKU</small>` : models.length <= 1 ? `<small class="atlas-coc-model-protected">Add a replacement SKU before removing this one</small>` : ""}
         </section>`;
       }).join("")}</div>`, { label: "Edit or remove pallet SKUs" });
   }
@@ -1213,6 +1246,8 @@
     if (modal?.type === "similar") return similarLotModal(modal.similar);
     if (modal?.type === "reopen") return reopenPalletModal(modal.palletId);
     if (modal?.type === "edit-lot") return editLotModal(modal.lotId);
+    if (modal?.type === "confirm-remove-lot") return confirmRemoveLotModal(modal.lotId);
+    if (modal?.type === "confirm-remove-model") return confirmRemoveModelModal(modal.model);
     return "";
   }
 
@@ -1885,6 +1920,7 @@
     }
     if (action === "add-coc-model") { modal = "add-model"; renderAll(); return; }
     if (action === "manage-coc-models") { modal = "manage-models"; renderAll(); return; }
+    if (action === "return-manage-models") { modal = "manage-models"; renderAll(); return; }
     if (action === "show-all-lots") { modal = "all-lots"; renderAll(); return; }
     if (action === "select-coc-model") {
       try {
@@ -1908,6 +1944,27 @@
         showToast(error?.code === "MODEL_HAS_RECORDED_LOTS"
           ? "Undo the boxes recorded under this model before removing it."
           : "Keep at least one model on a pallet.", "warning");
+      }
+      return;
+    }
+    if (action === "review-remove-coc-model") {
+      modal = { type: "confirm-remove-model", model: button.dataset.model };
+      renderAll();
+      return;
+    }
+    if (action === "confirm-remove-coc-model") {
+      try {
+        session = Core.removeModel(session, button.dataset.model);
+        persist();
+        modal = "manage-models";
+        renderAll();
+        showToast("SKU removed from this pallet.");
+      } catch (error) {
+        modal = { type: "confirm-remove-model", model: button.dataset.model };
+        renderAll();
+        showToast(error?.code === "MODEL_HAS_RECORDED_LOTS"
+          ? "Remove or reassign the recorded lots first."
+          : "Add a replacement SKU before removing this one.", "warning");
       }
       return;
     }
@@ -2016,6 +2073,36 @@
     if (action === "edit-lot") {
       modal = { type: "edit-lot", lotId: button.dataset.lotId };
       renderAll();
+      return;
+    }
+    if (action === "review-remove-lot") {
+      modal = { type: "confirm-remove-lot", lotId: button.dataset.lotId };
+      renderAll();
+      return;
+    }
+    if (action === "confirm-remove-lot") {
+      const pallet = activePallet();
+      const lot = pallet?.lots.find((item) => item.id === button.dataset.lotId);
+      if (!lot) {
+        modal = null;
+        renderAll();
+        showToast("That lot is no longer on this pallet.", "warning");
+        return;
+      }
+      try {
+        session = Core.updateLot(session, lot.id, {
+          lot: lot.lot,
+          model: lot.model,
+          cases: 0,
+        });
+        modal = null;
+        persist();
+        showToast("Lot removed from this pallet · verify quantities again");
+      } catch {
+        modal = { type: "edit-lot", lotId: lot.id };
+        renderAll();
+        showToast("That lot could not be removed.", "warning");
+      }
       return;
     }
     if (action === "review-pallet") { modal = "review-pallet"; renderAll(); return; }
@@ -2300,8 +2387,8 @@
         error.textContent = "Enter a valid lot code.";
         return;
       }
-      if (!Number.isInteger(boxes) || boxes < 0) {
-        error.textContent = "Enter a whole number of boxes, or 0 to remove the lot.";
+      if (!Number.isInteger(boxes) || boxes < 1) {
+        error.textContent = "Enter at least 1 box. Use Remove This Lot when the lot should be deleted.";
         return;
       }
       try {
@@ -2312,9 +2399,7 @@
         });
         modal = null;
         persist();
-        showToast(boxes === 0
-          ? "Lot removed from this pallet."
-          : "Lot details updated · verify the pallet again");
+        showToast("Lot details updated · verify the pallet again");
       } catch (failure) {
         error.textContent = failure?.code === "DUPLICATE_LOT"
           ? "That lot already exists under the selected SKU."

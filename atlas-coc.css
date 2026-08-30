@@ -821,7 +821,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-model-manager strong,.atlas-coc-model-manager small { display:block; }
 .atlas-coc-model-manager strong { font-size:14px; overflow-wrap:anywhere; }.atlas-coc-model-manager small { margin-top:3px; color:var(--coc-muted); font-size:11px; }
 .atlas-coc-model-manager button,.atlas-coc-add-another-model { min-height:38px; padding:0 10px; color:var(--coc-blue-dark); font:inherit; font-size:11px; font-weight:900; border:1px solid #a9c9eb; border-radius:10px; background:#fff; }
-.atlas-coc-model-manager .is-remove { color:#9a3942; border-color:#e5c6ca; }.atlas-coc-model-protected { grid-column:1 / -1; color:#866523!important; }.atlas-coc-add-another-model { width:100%; }
+.atlas-coc-model-manager .is-remove { grid-column:2; color:#9a3942; border-color:#e5c6ca; }.atlas-coc-model-protected { grid-column:1 / -1; color:#866523!important; }.atlas-coc-add-another-model { width:100%; }
 .atlas-coc-count-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:2px 0 10px; padding:8px 2px; color:var(--coc-ink); border-radius:0; background:none; box-shadow:none; }
 .atlas-coc-count-head > span { color:var(--coc-blue-dark); font-size:12px; font-weight:950; letter-spacing:.14em; text-transform:uppercase; }
 .atlas-coc-count-head > strong { font-size:18px; line-height:1.15; white-space:nowrap; }.atlas-coc-count-head > strong.is-over { color:var(--coc-red); }
@@ -1114,6 +1114,9 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-count-confirmation { display: flex; flex-wrap: wrap; gap: 10px; }
 .atlas-coc-count-confirmation button { flex: 1 1 160px; }
 .atlas-coc-manual-form select { width: 100%; min-height: 50px; padding: 0 13px; color: var(--coc-ink); font: inherit; font-weight: 750; border: 1px solid #bdcde0; border-radius: 12px; background: #fff; }
+.atlas-coc-edit-remove-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--coc-line); }
+.atlas-coc-edit-remove-actions button { min-height: 38px; padding: 0 11px; color: var(--coc-blue-dark); font: inherit; font-size: 11px; font-weight: 850; border: 1px solid #aac9ea; border-radius: 10px; background: #fff; }
+.atlas-coc-edit-remove-actions button.is-danger { color: #943943; border-color: #e2bcc1; background: #fffafa; }
 
 .atlas-coc-report-head { padding: 23px; color: #fff; border-radius: 23px; background: linear-gradient(135deg, #07305f, #0876e9); }
 .atlas-coc-report-head > span { font-size: 11px; font-weight: 950; letter-spacing: .16em; color: #bce1ff; }
