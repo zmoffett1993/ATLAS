@@ -1800,9 +1800,14 @@ html.atlas-dashboard-open #root {
 .atlas-dashboard-coc-center,
 .atlas-dashboard-coc-detail { display: grid; gap: 18px; }
 .atlas-dashboard-coc-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-.atlas-dashboard-coc-metrics article { min-height: 112px; padding: 20px 22px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--atlas-dashboard-line); border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(11, 35, 64, 0.05); }
-.atlas-dashboard-coc-metrics article.is-awaiting { background: linear-gradient(145deg, #fff, #fff9e9); }
-.atlas-dashboard-coc-metrics article.is-completed { background: linear-gradient(145deg, #fff, #eefaf3); }
+.atlas-dashboard-coc-metrics article { min-height: 112px; padding: 20px 22px; display: flex; align-items: center; gap: 16px; border: 1px solid #d7e1ec; border-radius: 16px; background: rgba(255,255,255,.92); box-shadow: 0 8px 24px rgba(11, 35, 64, 0.05); }
+.atlas-dashboard-coc-metrics article.is-awaiting { border-color: #a8ccfb; background: linear-gradient(135deg,#fff,#f2f8ff); }
+.atlas-dashboard-coc-metrics article > div { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.atlas-dashboard-coc-metric-icon { width: 48px; height: 48px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 14px; background: #edf2f7; color: #526780; }
+.atlas-dashboard-coc-metric-icon svg { width: 24px; height: 24px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.atlas-dashboard-coc-metrics article.is-awaiting .atlas-dashboard-coc-metric-icon { background: #e5f1ff; color: #0871e8; }
+.atlas-dashboard-coc-metrics article.is-received .atlas-dashboard-coc-metric-icon { background: #e9f7ff; color: #1678a7; }
+.atlas-dashboard-coc-metrics article.is-completed .atlas-dashboard-coc-metric-icon { background: #e4f8ef; color: #079966; }
 .atlas-dashboard-coc-metrics span { color: #61748d; font-size: 10px; font-weight: 850; letter-spacing: .12em; }
 .atlas-dashboard-coc-metrics strong { margin-top: 7px; color: var(--atlas-dashboard-navy); font-size: 32px; line-height: 1; }
 .atlas-dashboard-coc-metrics small { margin-top: 7px; color: var(--atlas-dashboard-muted); font-size: 11px; }
@@ -1892,7 +1897,9 @@ html.atlas-dashboard-open #root {
 
 @media (max-width: 620px) {
   .atlas-dashboard-coc-metrics { gap: 9px; }
-  .atlas-dashboard-coc-metrics article { min-height: 94px; padding: 15px; }
+  .atlas-dashboard-coc-metrics article { min-height: 94px; padding: 13px; gap: 10px; }
+  .atlas-dashboard-coc-metric-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .atlas-dashboard-coc-metric-icon svg { width: 20px; height: 20px; }
   .atlas-dashboard-coc-metrics strong { font-size: 27px; }
   .atlas-dashboard-coc-panel > header { padding: 18px; display: grid; }
   .atlas-dashboard-coc-live { width: fit-content; }

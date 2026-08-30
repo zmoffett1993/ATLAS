@@ -1,12 +1,12 @@
-const VERSION = "atlas-pwa-v226-coc-readability-and-filenames";
+const VERSION = "atlas-pwa-v227-matched-coc-status-cards";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=147",
-  "./atlas-dashboard.js?v=150",
+  "./atlas-dashboard.css?v=148",
+  "./atlas-dashboard.js?v=151",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
   "./atlas-coc.css?v=35",

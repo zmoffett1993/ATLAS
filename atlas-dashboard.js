@@ -392,6 +392,16 @@
   const cocStatus = (record) => record?.receiver_archived_at ? "Archived" : ({ SENT: "Sent", RECEIVED: "Received", OFFICE_COMPLETED: "Completed" })[record?.status] || "Warehouse complete";
   const cocRecordDate = (record) => record?.office_completed_at || record?.received_at || record?.sent_at || record?.created_at;
   const cocCanDelete = (record) => record?.status === "OFFICE_COMPLETED";
+  const cocMetricIcon = (kind) => {
+    const paths = {
+      all: '<path d="M9 5h6M9 9h6M9 13h4"/><path d="M9 3h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/>',
+      awaiting: '<path d="M9 5h6M9 9h6M9 13h4"/><path d="M9 3h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/>',
+      received: '<path d="M4 14h4l2 3h4l2-3h4"/><path d="M6 4h12l2 10v6H4v-6z"/>',
+      completed: '<path d="m6 12 4 4 8-9"/><circle cx="12" cy="12" r="9"/>',
+    };
+    return `<i class="atlas-dashboard-coc-metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${paths[kind] || paths.all}</svg></i>`;
+  };
+  const cocMetricCard = (kind, label, value, note = "") => `<article class="is-${kind}">${cocMetricIcon(kind)}<div><span>${label}</span><strong>${Number(value || 0).toLocaleString()}</strong>${note ? `<small>${note}</small>` : ""}</div></article>`;
 
   const renderPreservingScroll = () => {
     const top = window.scrollY || document.documentElement.scrollTop || 0;
@@ -1087,7 +1097,7 @@
     return `<section class="atlas-dashboard-coc-center">
       ${state.cocNotice ? `<div class="atlas-dashboard-coc-notice">${escapeHtml(state.cocNotice)}</div>` : ""}
       ${state.cocError ? `<div class="atlas-dashboard-coc-error">${escapeHtml(state.cocError)}</div>` : ""}
-      <div class="atlas-dashboard-coc-metrics"><article><span>ALL COCs</span><strong>${state.cocMetrics.total.toLocaleString()}</strong></article><article class="is-awaiting"><span>AWAITING</span><strong>${state.cocMetrics.awaiting.toLocaleString()}</strong><small>Requires office review</small></article><article><span>RECEIVED TODAY</span><strong>${state.cocMetrics.receivedToday.toLocaleString()}</strong></article><article class="is-completed"><span>COMPLETED TODAY</span><strong>${state.cocMetrics.completedToday.toLocaleString()}</strong></article></div>
+      <div class="atlas-dashboard-coc-metrics">${cocMetricCard("all", "ALL COCs", state.cocMetrics.total)}${cocMetricCard("awaiting", "AWAITING", state.cocMetrics.awaiting, "Requires office review")}${cocMetricCard("received", "RECEIVED TODAY", state.cocMetrics.receivedToday)}${cocMetricCard("completed", "COMPLETED TODAY", state.cocMetrics.completedToday)}</div>
       <article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">LIVE COMPLIANCE OVERSIGHT</p><h2>COC Receiver Activity</h2><span>Review every office COC without pairing this dashboard as a Receiver.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
         <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["active","Incoming"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
         <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, or IF number" aria-label="Search COCs"><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button></div>
