@@ -187,6 +187,9 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 }
 .atlas-coc-primary:disabled { opacity: .45; box-shadow: none; }
 .atlas-coc-primary span { font-size: 24px; }
+.atlas-coc-completed-actions { display: grid; gap: 10px; }
+.atlas-coc-completed-actions > button:not(.atlas-coc-primary) { min-height: 52px; padding: 0 18px; color: var(--coc-blue-dark); font-weight: 850; border: 1px solid #acc9e9; border-radius: 15px; background: #fff; }
+.atlas-coc-completed-actions > button:disabled { color: #8796a9; border-color: #d5dfea; background: #f4f7fa; }
 .atlas-coc-back {
   padding: 8px 0;
   color: var(--coc-blue-dark);

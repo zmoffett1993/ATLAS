@@ -90,7 +90,7 @@
     const createdAt = timestamp();
     const pallet = createPallet(1);
     const invoice = cleanText(invoiceNumber || orderNumber, MAX_INVOICE_LENGTH);
-    const customer = cleanText(customerName, MAX_CUSTOMER_LENGTH);
+    const customer = cleanText(customerName, MAX_CUSTOMER_LENGTH).toUpperCase();
     const ifValue = cleanText(ifNumber, MAX_INVOICE_LENGTH);
     const selectedModels = normalizeModels(
       models.length ? models : modelNumbers.length ? modelNumbers : sku ? [sku] : [],
@@ -329,7 +329,7 @@
       schemaVersion: SCHEMA_VERSION,
       id: cleanText(raw.id, 140) || makeId("coc"),
       deviceId: cleanText(raw.deviceId, 100),
-      customerName: cleanText(raw.customerName, MAX_CUSTOMER_LENGTH),
+      customerName: cleanText(raw.customerName, MAX_CUSTOMER_LENGTH).toUpperCase(),
       invoiceNumber: cleanText(raw.invoiceNumber || raw.orderNumber, MAX_INVOICE_LENGTH),
       ifNumber: cleanText(raw.ifNumber, MAX_INVOICE_LENGTH),
       models,

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v213-coc-balance-and-priority";
+const VERSION = "atlas-pwa-v214-coc-resend-and-pallet-guide-editor";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,17 +9,17 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=148",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=26",
+  "./atlas-coc.css?v=27",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=7",
   "./atlas-coc-case-quantities.js?v=2",
-  "./atlas-coc-core.js?v=11",
+  "./atlas-coc-core.js?v=12",
   "./atlas-jszip.min.js?v=1",
-  "./atlas-coc-storage.js?v=1",
-  "./atlas-coc-delivery.js?v=3",
-  "./atlas-coc-excel.js?v=8",
-  "./atlas-coc.js?v=27",
+  "./atlas-coc-storage.js?v=2",
+  "./atlas-coc-delivery.js?v=4",
+  "./atlas-coc-excel.js?v=9",
+  "./atlas-coc.js?v=28",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=7",
   "./coc-receiver/receiver.js?v=7",

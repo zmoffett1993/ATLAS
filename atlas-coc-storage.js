@@ -73,7 +73,7 @@
     const normalized = {
       cocId: text(record?.cocId, 140),
       userId: text(record?.userId, 140),
-      customerName: text(record?.customerName, 160),
+      customerName: text(record?.customerName, 160).toUpperCase(),
       invoiceNumber: text(record?.invoiceNumber, 80),
       ifNumber: text(record?.ifNumber, 80),
       completedAt: text(record?.completedAt, 40),

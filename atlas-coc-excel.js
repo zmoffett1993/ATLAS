@@ -137,7 +137,7 @@
 
     return Object.freeze({
       sessionId: safeText(safe.id),
-      customerName: safeText(safe.customerName),
+      customerName: safeText(safe.customerName).toUpperCase(),
       invoiceNumber: safeText(safe.invoiceNumber || safe.orderNumber),
       ifNumber: safeText(safe.ifNumber),
       employee: safeText(safe.employee, 60),

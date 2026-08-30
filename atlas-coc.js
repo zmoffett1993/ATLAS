@@ -41,6 +41,7 @@
   let exportInProgress = false;
   let completedRecords = [];
   let selectedCompleted = null;
+  let resendInProgress = false;
   let stationPresence = { online: false, reachable: false };
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
   let resumeRenderToken = 0;
@@ -351,7 +352,10 @@
       <section class="atlas-coc-completed-detail">
         <dl><div><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
         <div class="atlas-coc-readonly-pallets">${(snapshot.pallets || []).map((pallet) => `<section><h2>Pallet ${pallet.number}</h2>${(pallet.lots || []).map((lot) => `<p><strong>${escapeHtml(lot.model)}</strong><span>Lot ${escapeHtml(lot.lot)} · ${plural(lot.cases, "box")}</span></p>`).join("")}</section>`).join("")}</div>
-        <button type="button" class="atlas-coc-primary" data-coc-action="download-completed">Download Company COC</button>
+        <div class="atlas-coc-completed-actions">
+          <button type="button" class="atlas-coc-primary" data-coc-action="download-completed">Download Company COC</button>
+          <button type="button" data-coc-action="review-resend-completed" ${record.officeTransferStatus === "OFFICE_COMPLETED" ? "disabled" : ""}>${record.officeTransferStatus === "OFFICE_COMPLETED" ? "Completed by Office" : "Resend to Office"}</button>
+        </div>
       </section></div>`;
   }
 
@@ -471,7 +475,7 @@
       <header class="atlas-coc-page-head"><span>START COC</span><h1>COC Information</h1><p>Enter the three header fields for the company COC.</p></header>
       <form id="atlas-coc-start-form" class="atlas-coc-form-card atlas-coc-header-form">
         <label><strong>Customer Name</strong>
-          <input name="customerName" maxlength="160" autocomplete="organization" placeholder="Enter customer name" required /></label>
+          <input name="customerName" maxlength="160" autocomplete="organization" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Enter customer name" required /></label>
         <label><strong>Invoice Number</strong>
           <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" required /></label>
         <label><strong>IF Number</strong>
@@ -718,6 +722,56 @@
     } finally { exportInProgress = false; }
   }
 
+  async function resendCompletedCoc() {
+    const record = selectedCompleted;
+    const userId = currentUserId();
+    if (!record || resendInProgress) return;
+    if (!userId) {
+      showToast("Sign in to ATLAS before resending this COC.", "warning");
+      return;
+    }
+    if (!(record.workbookBlob instanceof Blob) || !record.workbookBlob.size) {
+      showToast("The saved company workbook is unavailable on this device.", "warning");
+      return;
+    }
+    resendInProgress = true;
+    renderAll();
+    try {
+      const workbookBytes = new Uint8Array(await record.workbookBlob.arrayBuffer());
+      const idempotencyKey = `coc:${record.cocId}:office:${Delivery.STATION_KEY}`;
+      const receipt = await Delivery.submitCoc({
+        cocId: record.cocId,
+        idempotencyKey,
+        snapshot: record.reportSnapshot,
+        workbookBytes,
+        workbookFileName: record.workbookFileName,
+        forceResend: true,
+      });
+      await Storage.upsertCompleted({
+        ...record,
+        officeTransferStatus: "SENT",
+        officeTransferId: receipt.deliveryId,
+        sentAt: receipt.sentAt,
+        receivedAt: null,
+        officeCompletedAt: null,
+      });
+      selectedCompleted = await Storage.getCompleted(record.cocId, userId);
+      modal = null;
+      showToast("COC resent to Office COC Station");
+    } catch (error) {
+      console.error("ATLAS COC resend failed.", error);
+      const message = error?.message === "COC_ALREADY_COMPLETED_AT_OFFICE"
+        ? "This COC is already completed at the office and cannot be resent."
+        : error?.message === "ATLAS_AUTH_REQUIRED"
+          ? "Sign in to ATLAS before resending this COC."
+          : "The resend was not accepted. The saved COC is unchanged; check the connection and try again.";
+      showToast(message, "warning");
+    } finally {
+      resendInProgress = false;
+      renderAll();
+    }
+  }
+
   function workflowMarkup() {
     if (workflowView === "history") return completedListMarkup();
     if (workflowView === "history-detail") return completedDetailMarkup();
@@ -852,6 +906,17 @@
       <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="retry-save">Retry Saving</button></div>`, { label: "COC save problem", dismiss: false });
   }
 
+  function resendCompletedModal() {
+    const record = selectedCompleted;
+    if (!record) return "";
+    return modalShell(`<span class="atlas-coc-eyebrow">RESEND COMPLETED COC</span><h2>${escapeHtml(record.invoiceNumber)}</h2>
+      <p>This sends the saved company workbook to the Office COC Station again. It does not rebuild the spreadsheet or delete the existing office record.</p>
+      <div class="atlas-coc-final-review"><section><header><strong>${escapeHtml(record.customerName)}</strong><b>${plural(record.palletCount, "pallet")}</b></header><div><span>IF ${escapeHtml(record.ifNumber)}</span><strong>${plural(record.totalConfirmedBoxes, "box")}</strong></div></section></div>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal" ${resendInProgress ? "disabled" : ""}>Cancel</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-resend-completed" ${resendInProgress ? "disabled" : ""}>${resendInProgress ? "Resending…" : "Resend to Office"}</button></div>`, {
+      label: "Resend completed COC", dismiss: !resendInProgress, showBack: false, showDiscard: false,
+    });
+  }
+
   function captureModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT · ${escapeHtml(activeModelContext())}</span><h2>Align the label inside the blue frame</h2>
       <div class="atlas-coc-live-camera"><video id="atlas-coc-live-video" autoplay muted playsinline></video><div id="atlas-coc-roi-guide" aria-hidden="true"></div><p id="atlas-coc-camera-status">Starting camera…</p></div>
@@ -982,6 +1047,7 @@
     if (modal === "add-model") return addModelModal();
     if (modal === "all-lots") return allLotsModal();
     if (modal === "storage-error") return storageErrorModal();
+    if (modal === "resend-completed") return resendCompletedModal();
     if (modal?.type === "duplicate") return duplicateModal(modal.lot);
     if (modal?.type === "mismatch") return mismatchModal();
     if (modal?.type === "edit-expected") return editExpectedModal();
@@ -1620,6 +1686,8 @@
     if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workflowView = "history-detail"; renderAll(); return; }
     if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
+    if (action === "review-resend-completed") { modal = "resend-completed"; renderAll(); return; }
+    if (action === "confirm-resend-completed") { await resendCompletedCoc(); return; }
     if (action === "receiver-setup") { workflowView = "receiver-setup"; renderAll(); return; }
     if (action === "resume") { navigateWorkflows({ resume: true }); return; }
     if (action === "retry-resume") {
@@ -1875,6 +1943,10 @@
 
   document.addEventListener("input", (event) => {
     const input = event.target;
+    if (input?.matches?.("#atlas-coc-start-form input[name='customerName']")) {
+      input.value = input.value.toUpperCase();
+      return;
+    }
     if (input?.id === "atlas-coc-lot-review-input") {
       input.value = input.value.toUpperCase();
       const next = input.value.trim();
@@ -1936,7 +2008,7 @@
     if (event.target.id === "atlas-coc-start-form") {
       event.preventDefault();
       const data = new FormData(event.target);
-      const customerName = String(data.get("customerName") || "").trim();
+      const customerName = String(data.get("customerName") || "").trim().toUpperCase();
       const invoiceNumber = String(data.get("invoiceNumber") || "").trim();
       const ifNumber = String(data.get("ifNumber") || "").trim();
       const error = event.target.querySelector(".atlas-coc-form-error");

@@ -121,7 +121,7 @@
     return edgeRequest("coc-receiver", { action: "station-status", stationKey: STATION_KEY });
   }
 
-  async function submitCoc({ cocId, idempotencyKey, snapshot, workbookBytes, workbookFileName }) {
+  async function submitCoc({ cocId, idempotencyKey, snapshot, workbookBytes, workbookFileName, forceResend = false }) {
     const result = await edgeRequest("submit-coc-to-office", {
       cocId,
       idempotencyKey,
@@ -130,6 +130,7 @@
       workbookFileName,
       workbookBase64: bytesToBase64(workbookBytes),
       workbookMimeType: MIME_XLSX,
+      forceResend: Boolean(forceResend),
     });
     if (!result?.deliveryId || result?.status !== "SENT") throw new Error("COC_SEND_NOT_CONFIRMED");
     return result;
