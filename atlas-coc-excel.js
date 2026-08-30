@@ -447,14 +447,45 @@
 
   function previewStyleAttribute(style) {
     const pixels = Number(style.fontSize || 11) * 96 / 72;
-    const responsiveSize = Math.max(6.5, pixels / 9).toFixed(3);
     return [
       `font-family:${previewEscape(style.fontFamily)},Calibri,Arial,sans-serif`,
-      `font-size:clamp(6.5px,${responsiveSize}cqw,${pixels.toFixed(2)}px)`,
+      `font-size:${pixels.toFixed(2)}px`,
       `font-weight:${style.fontWeight}`, `font-style:${style.fontStyle}`, `color:${style.color}`,
       `background:${style.background}`, `border:${style.border}`, `text-align:${style.align}`,
-      `vertical-align:${style.vertical}`, `white-space:${style.wrap ? "pre-wrap" : "normal"}`,
+      `vertical-align:${style.vertical}`, `white-space:${style.wrap ? "pre-wrap" : "nowrap"}`,
     ].join(";");
+  }
+
+  const previewColumnPixels = (width) => Math.max(1, Math.floor(Number(width || 10) * 7 + 5));
+  let workbookPreviewObserver = null;
+
+  function sizeOfficialWorkbookPreview(frame) {
+    const canvas = frame?.querySelector?.(".atlas-workbook-preview-canvas");
+    const sheetWidth = Number(frame?.dataset?.sheetWidth || 0);
+    const sheetHeight = Number(frame?.dataset?.sheetHeight || 0);
+    if (!canvas || !sheetWidth || !sheetHeight) return;
+    frame.style.maxWidth = `${sheetWidth + 2}px`;
+    const availableWidth = Math.max(1, frame.clientWidth - 2);
+    const scale = Math.min(1, availableWidth / sheetWidth);
+    canvas.style.width = `${sheetWidth}px`;
+    canvas.style.height = `${sheetHeight}px`;
+    canvas.style.transform = `scale(${scale})`;
+    frame.style.height = `${Math.ceil(sheetHeight * scale) + 2}px`;
+    frame.style.setProperty("--atlas-workbook-scale", String(scale));
+  }
+
+  function fitOfficialWorkbookPreviews(root = global.document) {
+    const frames = root?.querySelectorAll?.(".atlas-workbook-preview-frame[data-sheet-width]") || [];
+    if (global.ResizeObserver && !workbookPreviewObserver) {
+      workbookPreviewObserver = new global.ResizeObserver((entries) => entries.forEach((entry) => sizeOfficialWorkbookPreview(entry.target)));
+    }
+    frames.forEach((frame) => {
+      sizeOfficialWorkbookPreview(frame);
+      if (workbookPreviewObserver && frame.dataset.previewObserved !== "true") {
+        frame.dataset.previewObserved = "true";
+        workbookPreviewObserver.observe(frame);
+      }
+    });
   }
 
   /** Render the actual populated XLSX bytes as a fit-to-width, read-only sheet. */
@@ -507,12 +538,14 @@
       for (let index = first; index <= last; index += 1) columns[index - 1] = width;
     });
     const columnCount = Math.max(3, columns.length), widths = Array.from({ length: columnCount }, (_, index) => Number(columns[index] || 10));
-    const totalWidth = widths.reduce((sum, value) => sum + value, 0);
-    const rowHeights = new Map(previewDescendants(sheet, "row").map((row) => [Number(row.getAttribute("r")), Number(row.getAttribute("ht") || 14.25)]));
+    const pixelWidths = widths.map(previewColumnPixels), sheetWidth = pixelWidths.reduce((sum, value) => sum + value, 0);
+    const defaultRowHeight = Number(previewDescendants(sheet, "sheetFormatPr")[0]?.getAttribute("defaultRowHeight") || 14.25);
+    const rowHeights = new Map(previewDescendants(sheet, "row").map((row) => [Number(row.getAttribute("r")), Number(row.getAttribute("ht") || defaultRowHeight)]));
     const finalRow = Math.min(lastValueRow + 1, FINAL_MAPPING.detailRows.last);
-    let body = "";
+    let body = "", sheetHeight = 0;
     for (let row = 1; row <= finalRow; row += 1) {
-      const rowPixels = Number(rowHeights.get(row) || 14.25) * 96 / 72;
+      const rowPixels = Number(rowHeights.get(row) || defaultRowHeight) * 96 / 72;
+      sheetHeight += rowPixels;
       let rowMarkup = "";
       for (let column = 1; column <= columnCount; column += 1) {
         const reference = `${previewColumnName(column)}${row}`;
@@ -521,10 +554,10 @@
         const spans = `${merge?.colSpan > 1 ? ` colspan="${merge.colSpan}"` : ""}${merge?.rowSpan > 1 ? ` rowspan="${merge.rowSpan}"` : ""}`;
         rowMarkup += `<td${spans} style="${previewStyleAttribute(cell.style)}">${previewEscape(cell.value)}</td>`;
       }
-      body += `<tr style="height:clamp(13px,${(rowPixels / 9).toFixed(3)}cqw,${rowPixels.toFixed(2)}px)">${rowMarkup}</tr>`;
+      body += `<tr style="height:${rowPixels.toFixed(2)}px">${rowMarkup}</tr>`;
     }
-    const columnsMarkup = widths.map((width) => `<col style="width:${(width / totalWidth * 100).toFixed(4)}%">`).join("");
-    return `<section class="atlas-workbook-preview" aria-label="Read-only preview of the generated Official COC workbook"><div class="atlas-workbook-preview-badge">ACTUAL XLSX · READ ONLY</div><div class="atlas-workbook-preview-frame"><table><colgroup>${columnsMarkup}</colgroup><tbody>${body}</tbody></table></div></section>`;
+    const columnsMarkup = pixelWidths.map((width) => `<col style="width:${width}px">`).join("");
+    return `<section class="atlas-workbook-preview" aria-label="Read-only preview of the generated Official COC workbook"><div class="atlas-workbook-preview-badge">ACTUAL XLSX · READ ONLY</div><div class="atlas-workbook-preview-frame" data-sheet-width="${sheetWidth}" data-sheet-height="${sheetHeight.toFixed(2)}"><div class="atlas-workbook-preview-canvas"><table style="width:${sheetWidth}px"><colgroup>${columnsMarkup}</colgroup><tbody>${body}</tbody></table></div></div><p class="atlas-workbook-preview-zoom-note">Pinch to zoom for a closer look</p></section>`;
   }
 
   async function loadMasterTemplate(template = OFFICIAL_TEMPLATE) {
@@ -580,6 +613,7 @@
     outputFileName,
     populateOfficialTemplate,
     renderOfficialWorkbookPreview,
+    fitOfficialWorkbookPreviews,
     generateCompanyCoc,
   });
 })(window);

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v217-swipe-pallets-and-receiver-readability";
+const VERSION = "atlas-pwa-v218-true-scale-preview-and-compact-desktop-actions";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=148",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=30",
+  "./atlas-coc.css?v=31",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=7",
@@ -18,11 +18,11 @@ const APP_SHELL = [
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
-  "./atlas-coc-excel.js?v=10",
-  "./atlas-coc.js?v=31",
+  "./atlas-coc-excel.js?v=11",
+  "./atlas-coc.js?v=32",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=10",
-  "./coc-receiver/receiver.js?v=10",
+  "./coc-receiver/receiver.css?v=11",
+  "./coc-receiver/receiver.js?v=11",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

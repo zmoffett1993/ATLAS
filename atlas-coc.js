@@ -1140,6 +1140,7 @@
     if (workflows) {
       try {
         workflows.innerHTML = workflowMarkup();
+        window.requestAnimationFrame?.(() => Excel.fitOfficialWorkbookPreviews?.(workflows));
       } catch (error) {
         renderError = error;
         console.error("ATLAS protected a COC that could not be displayed.", error);
