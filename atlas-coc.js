@@ -44,6 +44,7 @@
   let selectedCompleted = null;
   let stationPresence = { online: false, reachable: false };
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
+  let resumeRenderToken = 0;
   let cameraStream = null;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
@@ -234,10 +235,25 @@
       if (progress?.state === "count_mismatch") modal = { type: "mismatch" };
       if (progress?.state === "verified") modal = { type: "verified" };
     }
-    window.requestAnimationFrame(() => {
-      renderAll();
-      window.scrollTo({ top: 0, behavior: "auto" });
-    });
+    // Changing primary tabs causes React to replace the page subtree. On a
+    // resume from Home, the COC render can otherwise happen just before the
+    // new Workflows root is mounted, leaving a blank screen. Wait for the
+    // actual destination node and render into the node that will remain.
+    const token = ++resumeRenderToken;
+    const renderWhenReady = (attempt = 0) => {
+      if (token !== resumeRenderToken) return;
+      if (document.getElementById("atlas-coc-workflows-root")) {
+        renderAll();
+        window.scrollTo({ top: 0, behavior: "auto" });
+        return;
+      }
+      if (attempt < 30) {
+        window.requestAnimationFrame(() => renderWhenReady(attempt + 1));
+        return;
+      }
+      console.error("ATLAS could not mount the Workflows screen for COC resume.");
+    };
+    renderWhenReady();
   }
 
   function barMarkup() {
@@ -859,19 +875,56 @@
   function renderAll() {
     document.documentElement.classList.toggle("atlas-coc-work-mode", isWorkflowSection());
     const bar = document.getElementById("atlas-coc-active-bar-slot");
-    if (bar) bar.innerHTML = barMarkup();
+    if (bar) {
+      try {
+        bar.innerHTML = barMarkup();
+      } catch (error) {
+        console.error("ATLAS could not render the active COC shortcut.", error);
+        bar.innerHTML = "";
+      }
+    }
     const home = document.getElementById("atlas-coc-home-slot");
     if (home) home.innerHTML = "";
     const workflows = document.getElementById("atlas-coc-workflows-root");
-    if (workflows) workflows.innerHTML = workflowMarkup();
+    let renderError = null;
+    if (workflows) {
+      try {
+        workflows.innerHTML = workflowMarkup();
+      } catch (error) {
+        renderError = error;
+        console.error("ATLAS protected a COC that could not be displayed.", error);
+        workflows.innerHTML = `<div class="atlas-coc-page atlas-coc-resume-error">
+          <span class="atlas-coc-eyebrow is-danger">COC RECOVERY</span>
+          <h1>This saved COC could not open</h1>
+          <p>Your COC is still saved. Reload ATLAS and try once more. If this is an old test COC you no longer need, you can safely discard it.</p>
+          <div class="atlas-coc-recovery-actions">
+            <button type="button" class="atlas-coc-primary" data-coc-action="retry-resume">Try Resume Again</button>
+            <button type="button" data-coc-action="review-discard">Discard Old COC</button>
+          </div>
+        </div>`;
+      }
+    }
     let modalRoot = document.getElementById("atlas-coc-modal-root");
     if (!modalRoot) {
       modalRoot = document.createElement("div");
       modalRoot.id = "atlas-coc-modal-root";
       document.body.appendChild(modalRoot);
     }
-    modalRoot.innerHTML = modalMarkup();
-    document.documentElement.classList.toggle("atlas-coc-modal-open", Boolean(modal));
+    if (renderError) {
+      modalRoot.innerHTML = "";
+      document.documentElement.classList.remove("atlas-coc-modal-open");
+      return;
+    }
+    try {
+      modalRoot.innerHTML = modalMarkup();
+      document.documentElement.classList.toggle("atlas-coc-modal-open", Boolean(modal));
+    } catch (error) {
+      console.error("ATLAS could not display the COC dialog.", error);
+      modal = null;
+      modalRoot.innerHTML = "";
+      document.documentElement.classList.remove("atlas-coc-modal-open");
+      showToast("The dialog could not open. Your COC is still saved.", "warning");
+    }
   }
 
   function cancelScanSession() {
@@ -1387,6 +1440,11 @@
     if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
     if (action === "receiver-setup") { workflowView = "receiver-setup"; renderAll(); return; }
     if (action === "resume") { navigateWorkflows({ resume: true }); return; }
+    if (action === "retry-resume") {
+      readSession();
+      navigateWorkflows({ resume: true });
+      return;
+    }
     if (action === "close-modal") { cancelScanSession(); modal = null; renderAll(); return; }
     if (action === "add-model-row") {
       button.insertAdjacentHTML("beforebegin", modelFieldMarkup({ removable: true }));

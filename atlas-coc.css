@@ -106,6 +106,20 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   padding: 18px 0 120px;
 }
 .atlas-coc-page { color: var(--coc-ink); }
+.atlas-coc-resume-error {
+  max-width: 620px;
+  margin: 20px auto;
+  padding: 28px;
+  border: 1px solid #d4dfeb;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(8, 39, 78, .12);
+}
+.atlas-coc-resume-error h1 { margin: 8px 0 12px; font-size: clamp(28px, 7vw, 42px); line-height: 1.05; }
+.atlas-coc-resume-error > p { margin: 0; color: var(--coc-muted); line-height: 1.55; }
+.atlas-coc-recovery-actions { display: grid; gap: 11px; margin-top: 24px; }
+.atlas-coc-recovery-actions > button { min-height: 54px; border: 1px solid #b8cce2; border-radius: 15px; background: #fff; color: var(--coc-blue-dark); font-weight: 850; }
+.atlas-coc-recovery-actions > .atlas-coc-primary { border: 0; color: #fff; }
 .atlas-coc-page-head { margin: 12px 2px 22px; }
 .atlas-coc-page-head > span,
 .atlas-coc-eyebrow,

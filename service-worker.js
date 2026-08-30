@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v194-coc-counting-simplified";
+const VERSION = "atlas-pwa-v195-coc-resume-recovery";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=147",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=2",
-  "./atlas-coc.css?v=13",
+  "./atlas-coc.css?v=14",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=5",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=1",
   "./atlas-coc-delivery.js?v=2",
   "./atlas-coc-excel.js?v=7",
-  "./atlas-coc.js?v=16",
+  "./atlas-coc.js?v=17",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=1",
   "./coc-receiver/receiver.js?v=2",
