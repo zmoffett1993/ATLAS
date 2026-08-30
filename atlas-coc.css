@@ -735,7 +735,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   box-shadow: 0 14px 30px rgba(4,31,70,.18);
 }
 .atlas-coc-session-kicker { grid-column: 1 / -1; margin: 0; color: #9fd0ff; font-size: 10px; font-weight: 950; letter-spacing: .17em; }
-.atlas-coc-session-customer { grid-column: 1 / -1; padding-bottom: 12px; border-bottom: 1px solid rgba(185,218,251,.25); }
+.atlas-coc-session-customer { grid-column: 1 / -1; padding-bottom: 12px; border-bottom: 1px solid rgba(185,218,251,.25); text-align: center; }
 .atlas-coc-session-meta span { min-width: 0; }
 .atlas-coc-session-meta small,
 .atlas-coc-session-meta strong { display: block; }
