@@ -757,8 +757,41 @@
     url.searchParams.delete("cocPair");
     history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
     if (!Delivery.isSupervisor()) { showToast("A signed-in supervisor must approve this receiver.", "warning"); return; }
-    try { await Delivery.approvePairing({ qrToken }); showToast("Office COC Station approved"); }
-    catch (error) { showToast(error?.message || "The receiver QR code could not be approved.", "warning"); }
+    await requestPairingApproval({ qrToken });
+  }
+
+  const isReceiverReplacementConflict = (error) =>
+    error?.status === 409 || error?.message === "STATION_ALREADY_HAS_ACTIVE_RECEIVER";
+
+  function pairingFailureMessage(error) {
+    if (error?.message === "PAIRING_CODE_INVALID_OR_EXPIRED")
+      return "That pairing code is invalid or has expired. Create a new code on the office computer.";
+    if (error?.message === "SUPERVISOR_REQUIRED")
+      return "A signed-in supervisor or administrator must approve this receiver.";
+    return error?.message || "The pairing code could not be approved.";
+  }
+
+  async function requestPairingApproval(approval, { replaceExisting = false, errorElement = null } = {}) {
+    try {
+      await Delivery.approvePairing({ ...approval, replaceExisting });
+      modal = null;
+      workflowView = "landing";
+      renderAll();
+      showToast(replaceExisting
+        ? "Real office computer paired · previous receiver disconnected"
+        : "Office COC Station approved");
+      return true;
+    } catch (error) {
+      if (!replaceExisting && isReceiverReplacementConflict(error)) {
+        modal = { type: "replace-receiver", approval: { ...approval } };
+        renderAll();
+        return false;
+      }
+      const message = pairingFailureMessage(error);
+      if (errorElement) errorElement.textContent = message;
+      else showToast(message, "warning");
+      return false;
+    }
   }
 
   async function pollReceipt(deliveryId, userId) {
@@ -1010,6 +1043,15 @@
     });
   }
 
+  function replaceReceiverModal() {
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">RECEIVER ALREADY PAIRED</span><h2>Replace the current office computer?</h2>
+      <p>ATLAS already has an active Office COC Receiver. Replacing it will immediately disconnect that computer and pair the computer showing the new code.</p>
+      <p class="atlas-coc-warning"><strong>Your COCs are safe.</strong> This does not delete the Office COC Station, completed spreadsheets, or Dashboard history. Only the old computer's receiver access is revoked.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="cancel-receiver-replacement">Cancel</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-receiver-replacement">Replace Existing Receiver</button></div>`, {
+      label: "Replace existing Office COC Receiver", dismiss: false, showBack: false, showDiscard: false,
+    });
+  }
+
   function captureModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT · ${escapeHtml(activeModelContext())}</span><h2>Align the label inside the blue frame</h2>
       <div class="atlas-coc-live-camera"><video id="atlas-coc-live-video" autoplay muted playsinline></video><div id="atlas-coc-roi-guide" aria-hidden="true"></div><p id="atlas-coc-camera-status">Starting camera…</p></div>
@@ -1141,6 +1183,7 @@
     if (modal === "all-lots") return allLotsModal();
     if (modal === "storage-error") return storageErrorModal();
     if (modal === "resend-completed") return resendCompletedModal();
+    if (modal?.type === "replace-receiver") return replaceReceiverModal();
     if (modal?.type === "duplicate") return duplicateModal(modal.lot);
     if (modal?.type === "mismatch") return mismatchModal();
     if (modal?.type === "edit-expected") return editExpectedModal();
@@ -1787,6 +1830,20 @@
     if (action === "review-resend-completed") { modal = "resend-completed"; renderAll(); return; }
     if (action === "confirm-resend-completed") { await resendCompletedCoc(); return; }
     if (action === "receiver-setup") { workflowView = "receiver-setup"; renderAll(); return; }
+    if (action === "cancel-receiver-replacement") { modal = null; renderAll(); return; }
+    if (action === "confirm-receiver-replacement") {
+      const approval = modal?.type === "replace-receiver" ? modal.approval : null;
+      if (!approval?.pairingCode && !approval?.qrToken) {
+        modal = null;
+        renderAll();
+        showToast("Create a new pairing code on the office computer.", "warning");
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "Replacing…";
+      await requestPairingApproval(approval, { replaceExisting: true });
+      return;
+    }
     if (action === "resume") { navigateWorkflows({ resume: true }); return; }
     if (action === "retry-resume") {
       readSession();
@@ -2100,7 +2157,7 @@
       const error = event.target.querySelector(".atlas-coc-form-error");
       const pairingCode = String(new FormData(event.target).get("pairingCode") || "").replace(/\D/g, "");
       if (pairingCode.length !== 6) { error.textContent = "Enter the six-digit code shown on the office receiver."; return; }
-      Delivery.approvePairing({ pairingCode }).then(() => { showToast("Office COC Station approved"); workflowView = "landing"; renderAll(); }).catch((failure) => { error.textContent = failure?.message || "The pairing code could not be approved."; });
+      requestPairingApproval({ pairingCode }, { errorElement: error });
       return;
     }
     if (event.target.id === "atlas-coc-start-form") {

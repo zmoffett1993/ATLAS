@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v224-customer-ready-coc-filenames";
+const VERSION = "atlas-pwa-v225-safe-receiver-replacement";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=15",
-  "./atlas-coc.js?v=33",
+  "./atlas-coc.js?v=34",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=13",
   "./coc-receiver/receiver.js?v=13",
