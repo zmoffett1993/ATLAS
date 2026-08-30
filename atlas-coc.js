@@ -555,7 +555,7 @@
     const total = Core.sessionTotal(session);
     return `<div class="atlas-coc-page atlas-coc-report">
       <header class="atlas-coc-transfer-head"><span>COC COMPLETE ✓</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
-      <section class="atlas-coc-destination"><span>Destination</span><h2>🖥 Office COC Station</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the Office COC Inbox.</p>`}<button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button></section>
+      <section class="atlas-coc-destination"><span>Destination</span><h2>🖥 Office COC Station</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the Office COC Inbox.</p>`}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></section>
     </div>`;
   }
 
@@ -563,7 +563,7 @@
     const phase = sendState.phase;
     if (phase === "preparing" || phase === "sending") return `<div class="atlas-coc-page atlas-coc-send-state"><div class="atlas-coc-spinner" aria-hidden="true"></div><h1>${phase === "preparing" ? "PREPARING REPORT" : "SENDING TO OFFICE"}</h1><p>Keep ATLAS open while the completed COC is securely transferred.</p></div>`;
     if (phase === "received" || phase === "office_completed") return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? "Office COC Station completed the report." : "Office COC Station received the report."}</p><section><strong>${escapeHtml(session?.invoiceNumber || sendState.invoiceNumber)}</strong><b>${escapeHtml(session?.customerName || sendState.customerName)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
-    if (phase === "failed") return `<div class="atlas-coc-page atlas-coc-send-state"><h1>SEND NOT COMPLETED</h1><p>${escapeHtml(sendState.error || "The office transfer could not be confirmed. Your completed COC is still open and nothing was lost.")}</p><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office">TRY AGAIN</button><button type="button" data-coc-action="return-to-report">Back</button></div>`;
+    if (phase === "failed") return `<div class="atlas-coc-page atlas-coc-send-state"><h1>SEND NOT COMPLETED</h1><p>${escapeHtml(sendState.error || "The office transfer could not be confirmed. Your completed COC is still open and nothing was lost.")}</p><div class="atlas-coc-send-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office">TRY AGAIN</button><button type="button" data-coc-action="return-to-report">Back to Report</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></div>`;
     return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>SENT ✓</h1><p>The completed COC was sent to:</p><h2>Office COC Station</h2><p>Waiting for receipt…</p></div>`;
   }
 
@@ -764,9 +764,10 @@
   }
 
   function discardModal() {
-    return modalShell(`<span class="atlas-coc-eyebrow is-danger">DISCARD COC</span><h2>Discard COC?</h2>
-      <p>This will permanently discard the current COC and all saved pallet progress.</p>
-      <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="keep-coc">Keep COC</button><button type="button" class="atlas-coc-danger" data-coc-action="discard-coc">Discard COC</button></div>`, {
+    const completedUnsent = session?.status === "report";
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">${completedUnsent ? "COMPLETED COC NOT SENT" : "DISCARD COC"}</span><h2>${completedUnsent ? "Discard this completed COC?" : "Discard COC?"}</h2>
+      <p>${completedUnsent ? "This completed COC has not been sent to the office. Discarding it removes the report from this device and cannot be undone." : "This will permanently discard the current COC and all saved pallet progress."}</p>
+      <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="keep-coc">${completedUnsent ? "Keep Completed COC" : "Keep COC"}</button><button type="button" class="atlas-coc-danger" data-coc-action="discard-coc">${completedUnsent ? "Discard &amp; Start Over" : "Discard COC"}</button></div>`, {
       label: "Discard COC confirmation", dismiss: false, showBack: false, showDiscard: false,
     });
   }
@@ -1515,6 +1516,7 @@
   }
 
   function discardActiveCoc() {
+    const wasCompleted = session?.status === "report";
     const id = session?.id;
     const deviceId = session?.deviceId;
     cancelScanSession();
@@ -1524,12 +1526,14 @@
     session = null;
     modal = null;
     workflowView = "landing";
+    sendState = { phase: "ready" };
+    countFeedback = null;
     persist({ cloud: false });
     cloudRpc("atlas_close_coc_session", {
       p_session_id: id,
       p_device_id: deviceId,
     }, { keepalive: true }).catch(() => {});
-    showToast("Unfinished COC discarded", "info");
+    showToast(wasCompleted ? "Completed COC discarded · ready to start over" : "Unfinished COC discarded", "info");
   }
 
   async function handleAction(button) {
