@@ -64,6 +64,7 @@
   function noticeMarkup(){return notice?`<div class="receiver-notice is-${notice.tone||"success"}" role="status">${esc(notice.text)}</div>`:""}
   function retentionMarkup(){return credentials&&!selected?`<div class="receiver-retention">${icon("shield")}<span>COC records are retained securely. Archiving removes them from this workspace without deleting company records.</span></div>`:""}
   function render(){root.innerHTML=(!credentials?pairingMarkup():selected&&preview?officialPreviewMarkup():selected?detailMarkup():screen==="archive"?archiveMarkup():inboxMarkup())+retentionMarkup()+dialogMarkup()+noticeMarkup();window.requestAnimationFrame?.(()=>window.AtlasCocExcel?.fitOfficialWorkbookPreviews?.(root))}
+  function renderBackgroundUpdate(){if(!(selected&&preview&&previewState.status==="ready"))render()}
 
   async function loadInbox(){
     if(!credentials)return;const sequence=++loadSequence;loading=true;
@@ -80,13 +81,13 @@
       activeDeliveries=activeResult.deliveries||[];completedDeliveries=listResult.deliveries||[];total=Number(listResult.total||0);
       metrics={awaiting:Number(metricResult.awaiting||activeDeliveries.length),receivedToday:Number(metricResult.receivedToday||0),completedToday:Number(metricResult.completedToday||0)};
       const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));if(page>pages){page=pages;return loadInbox()}
-      connection=navigator.onLine?"connected":"offline";lastSynced=new Date();selectedIds=new Set([...selectedIds].filter((id)=>completedDeliveries.some((item)=>item.id===id)));render();
-    }catch(error){connection=navigator.onLine?"reconnecting":"offline";notice={tone:"error",text:error?.message||"The COC Receiver could not refresh."};render()}
+      connection=navigator.onLine?"connected":"offline";lastSynced=new Date();selectedIds=new Set([...selectedIds].filter((id)=>completedDeliveries.some((item)=>item.id===id)));renderBackgroundUpdate();
+    }catch(error){connection=navigator.onLine?"reconnecting":"offline";notice={tone:"error",text:error?.message||"The COC Receiver could not refresh."};renderBackgroundUpdate()}
     finally{loading=false}
   }
   async function startPairing(){try{pairing=await Delivery.createPairing();render();pollPairing()}catch(error){pairing={status:error.message||"Pairing could not start."};render()}}
   async function pollPairing(){if(!pairing?.pairingSessionId)return;for(let attempt=0;attempt<120&&!credentials;attempt+=1){await new Promise((resolve)=>setTimeout(resolve,2500));try{const result=await Delivery.pairingStatus(pairing.pairingSessionId);pairing={...pairing,...result};if(result.status==="PAIRED"){credentials=result.credentials;render();connect();return}render()}catch(error){pairing={...pairing,status:error.message};render();return}}}
-  function connect(){clearInterval(pollTimer);subscription?.close?.();subscription=Delivery.subscribeToDeliveries({onChange:loadInbox,onState:(state)=>{connection=state;render()}});pollTimer=setInterval(()=>{Delivery.heartbeat(credentials).catch(()=>{});loadInbox()},15000);loadInbox()}
+  function connect(){clearInterval(pollTimer);subscription?.close?.();subscription=Delivery.subscribeToDeliveries({onChange:loadInbox,onState:(state)=>{connection=state;renderBackgroundUpdate()}});pollTimer=setInterval(()=>{Delivery.heartbeat(credentials).catch(()=>{});loadInbox()},15000);loadInbox()}
   function setScreen(next){screen=next;selected=null;preview=false;previewState={status:"idle",html:"",error:"",id:""};selectedIds.clear();openMenu=null;bulkMenu=false;search="";page=1;render();loadInbox()}
   function showNotice(text,tone="success"){notice={text,tone};render();setTimeout(()=>{notice=null;render()},2600)}
   function openConfirmation(type,ids=[]){dialog={type,ids};openMenu=null;bulkMenu=false;render()}
@@ -125,6 +126,6 @@
     if(event.target.matches("[data-select-page]")){if(event.target.checked)completedDeliveries.forEach((item)=>selectedIds.add(item.id));else completedDeliveries.forEach((item)=>selectedIds.delete(item.id));render()}
   });
   window.addEventListener("atlas-auth-changed",async()=>{credentials=null;const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;render();if(credentials)connect()});
-  window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";render()});
+  window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";renderBackgroundUpdate()});
   (async()=>{const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;render();if(credentials)connect()})();
 })();
