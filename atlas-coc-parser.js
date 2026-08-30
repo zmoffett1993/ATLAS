@@ -284,10 +284,10 @@
       return { accepted: true, method: "ocr_equivalent", distance: 0 };
     }
     const distance = levenshtein(model, sku);
-    const ratio = distance / Math.max(model.length, sku.length, 1);
-    if (distance <= 2 && ratio <= 0.15) {
-      return { accepted: true, method: "close_ocr", distance };
-    }
+    // Do not accept a generic edit-distance match for compliance labels.
+    // A one-character difference can be a real product size or family change
+    // (for example 30ML versus 60ML). Formatting differences are already
+    // removed by canonical(), and known OCR substitutions are handled above.
     return { accepted: false, method: "mismatch", distance };
   }
 

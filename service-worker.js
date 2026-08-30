@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v196-coc-recovery-discard";
+const VERSION = "atlas-pwa-v197-coc-full-audit-fix";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -12,14 +12,14 @@ const APP_SHELL = [
   "./atlas-coc.css?v=15",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
-  "./atlas-coc-parser.js?v=5",
+  "./atlas-coc-parser.js?v=6",
   "./atlas-coc-case-quantities.js?v=1",
   "./atlas-coc-core.js?v=10",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=1",
   "./atlas-coc-delivery.js?v=2",
   "./atlas-coc-excel.js?v=7",
-  "./atlas-coc.js?v=18",
+  "./atlas-coc.js?v=19",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=1",
   "./coc-receiver/receiver.js?v=2",

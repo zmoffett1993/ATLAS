@@ -484,7 +484,7 @@
       </section>
       <div class="atlas-coc-finish-actions">
         <button type="button" class="atlas-coc-finish" data-coc-action="review-pallet">Verify &amp; Finish Pallet ${pallet.number}</button>
-        ${locked ? `<button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button>` : ""}
+        ${finished.length ? `<button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button>` : ""}
       </div>
       ${discardFooterMarkup()}
     </div>`;
