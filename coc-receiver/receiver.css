@@ -142,7 +142,7 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 .receiver-official-actions .receiver-primary,.receiver-official-actions .receiver-view-official{width:100%;min-width:0}
 .receiver-view-official{min-height:56px;padding:0 24px;color:#fff;background:linear-gradient(105deg,#0b79f4,#0750b8);border:0;border-radius:14px;font-size:.77rem;font-weight:900;letter-spacing:.045em;box-shadow:0 9px 22px rgba(7,92,198,.19)}
 .receiver-complete,.receiver-restore{min-width:225px;background:linear-gradient(105deg,#0a9b6c,#087b57)}
-.receiver-archive-action{min-width:190px;border:1px solid #875823;background:#875823;color:#fff;box-shadow:0 9px 22px rgba(101,61,24,.18)}
+.receiver-archive-action{min-width:190px;border:1px solid #875823;background:linear-gradient(110deg,#9a672f,#704016);color:#fff;box-shadow:0 9px 22px rgba(101,61,24,.2)}
 .receiver-preview-head{margin:20px 0 16px;text-align:center}
 .receiver-preview-head .receiver-eyebrow{color:#0966cb}
 .receiver-preview-head h1{margin:7px 0 4px;font-size:2rem}
@@ -166,9 +166,11 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 .receiver-preview-download{display:flex;justify-content:center;margin:20px 0 42px}
 .atlas-workbook-preview{width:100%;max-width:980px;margin:0 auto}
 .atlas-workbook-preview-badge{width:fit-content;margin:0 0 9px auto;padding:6px 9px;color:#0a5b44;border:1px solid #a9dbc9;border-radius:999px;background:#eaf8f2;font-size:.58rem;font-weight:950;letter-spacing:.13em}
-.atlas-workbook-preview-frame{width:100%;overflow:hidden;container-type:inline-size;border:1px solid #aab8c5;border-radius:16px;background:#fff;box-shadow:0 16px 44px rgba(5,31,66,.09)}
-.atlas-workbook-preview table{width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;color:#111;line-height:1.12}
-.atlas-workbook-preview td{min-width:0;padding:clamp(1px,.32cqw,4px);overflow-wrap:anywhere}
+.atlas-workbook-preview-frame{position:relative;width:100%;min-height:1px;margin:0 auto;overflow:hidden;box-sizing:border-box;border:1px solid #aab8c5;border-radius:16px;background:#fff;box-shadow:0 16px 44px rgba(5,31,66,.09);touch-action:pan-x pan-y pinch-zoom}
+.atlas-workbook-preview-canvas{position:absolute;top:0;left:0;transform-origin:top left;will-change:transform}
+.atlas-workbook-preview table{table-layout:fixed;border-collapse:collapse;border-spacing:0;color:#111;line-height:1.1}
+.atlas-workbook-preview td{min-width:0;box-sizing:border-box;padding:1px 4px;overflow:hidden;overflow-wrap:normal;word-break:normal}
+.atlas-workbook-preview-zoom-note{margin:10px 0 0;color:#60758e;font-size:.72rem;font-weight:750;text-align:center}
 .receiver-preview-status{min-height:260px;display:grid;place-items:center;align-content:center;gap:11px;padding:35px;text-align:center;color:#526b84;border:1px solid #d2deea;border-radius:20px;background:#f8fbfe}
 .receiver-preview-status strong{color:#092d59;font-size:1.05rem}.receiver-preview-status p{margin:0}.receiver-preview-status.is-error{color:#7e4d55;background:#fff8f8;border-color:#e8c9ce}
 .receiver-preview-spinner{width:38px;height:38px;border:4px solid #d3e2f3;border-top-color:#0867d6;border-radius:50%;animation:receiver-preview-spin .8s linear infinite}
