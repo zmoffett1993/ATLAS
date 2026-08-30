@@ -235,9 +235,26 @@
     return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
   }
 
-  function outputFileName(invoiceNumber) {
-    const safeInvoice = safeText(invoiceNumber, 80).replace(/[^A-Z0-9_-]+/gi, "_") || "UNASSIGNED";
-    return `COC_${safeInvoice}.xlsx`;
+  function fileNamePart(value, fallback) {
+    return safeText(value, 100)
+      .toUpperCase()
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/[. ]+$/g, "")
+      .trim() || fallback;
+  }
+
+  function labelledFileReference(value, label) {
+    const normalized = fileNamePart(value, "UNASSIGNED")
+      .replace(new RegExp(`^${label}[\\s_-]*`, "i"), "") || "UNASSIGNED";
+    return `${label}-${normalized}`;
+  }
+
+  function outputFileName(customerName, invoiceNumber, ifNumber) {
+    const customer = fileNamePart(customerName, "CUSTOMER");
+    const invoice = labelledFileReference(invoiceNumber, "INV");
+    const information = labelledFileReference(ifNumber, "IF");
+    return `${customer} ${invoice} ${information}.xlsx`;
   }
 
   function escapeXml(value) {
@@ -607,7 +624,7 @@
       data,
       template: OFFICIAL_TEMPLATE,
     }));
-    const fileName = outputFileName(data.invoiceNumber);
+    const fileName = outputFileName(data.customerName, data.invoiceNumber, data.ifNumber);
     await saver({ fileName, bytes: outputBytes, data });
     return Object.freeze({ fileName, data, templateHash: masterHash, bytes: outputBytes });
   }

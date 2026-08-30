@@ -447,7 +447,16 @@
     const result = await cocApi("download-workbook", { deliveryId: id });
     const response = await fetch(result.downloadUrl, { cache: "no-store" });
     if (!response.ok) throw new Error("The Official COC workbook could not be opened.");
-    const workbook = { blob: await response.blob(), fileName: result.fileName || "Official_COC.xlsx" };
+    const record = state.cocSelected?.id === id
+      ? state.cocSelected
+      : state.cocRecords.find((item) => item.id === id);
+    const snapshot = record?.report_snapshot || {};
+    const fileName = window.AtlasCocExcel?.outputFileName?.(
+      snapshot.customerName,
+      snapshot.invoiceNumber,
+      snapshot.ifNumber,
+    ) || result.fileName || "Official COC.xlsx";
+    const workbook = { blob: await response.blob(), fileName };
     cocWorkbookCache.set(id, workbook);
     return workbook;
   };
