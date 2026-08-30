@@ -89,13 +89,13 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 
 .receiver-table-wrap{overflow-x:auto}
 .receiver-report-panel table{width:100%;border-collapse:collapse;table-layout:auto}
-.receiver-report-panel th{height:47px;padding:0 13px;border-bottom:1px solid #dce5ee;background:#fbfcfe;color:#63768d;text-align:left;white-space:nowrap;font-size:.64rem;font-weight:900;letter-spacing:.085em}
+.receiver-report-panel th{height:49px;padding:0 13px;border-bottom:1px solid #dce5ee;background:#fbfcfe;color:#63768d;text-align:left;white-space:nowrap;font-size:.7rem;font-weight:850;letter-spacing:.075em}
 .receiver-report-panel th:first-child,.receiver-report-panel td:first-child{width:46px;padding-left:22px}
-.receiver-report-panel td{height:70px;padding:12px 13px;border-bottom:1px solid #e5ebf1;color:#203a59;font-size:.78rem;white-space:nowrap}
+.receiver-report-panel td{height:78px;padding:14px 13px;border-bottom:1px solid #e5ebf1;color:#203a59;font-size:.88rem;line-height:1.35;white-space:nowrap}
 .receiver-report-panel tbody tr{transition:background .15s ease}
 .receiver-report-panel tbody tr:hover,.receiver-report-panel tbody tr.is-selected{background:#f3f8fe}
-.receiver-report-panel td strong{color:#102a49}
-.receiver-report-panel td small{display:block;margin:4px 0 0 22px;color:#8796a8;font-size:.67rem}
+.receiver-report-panel td strong{color:#102a49;font-size:.91rem;font-weight:700}
+.receiver-report-panel td small{display:block;margin:5px 0 0 22px;color:#7b8da2;font-size:.73rem}
 .receiver-date-check{display:inline-grid;width:18px;height:18px;margin-right:7px;border-radius:50%;place-items:center;background:#e3f7ee;color:#079b68;font-size:.69rem;font-weight:900}
 .receiver-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px}
 .receiver-view,.receiver-small-action{height:36px;border:1px solid #c9d7e5;border-radius:9px;background:#fff;color:#0b62c4;font-size:.68rem;font-weight:900}
@@ -124,8 +124,8 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 .receiver-detail-head p{margin:0;color:#5f7590;font-size:1.05rem;font-weight:750}
 .receiver-detail dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin:25px 0}
 .receiver-detail dl div{padding:15px;border-radius:13px;background:#f5f8fb}
-.receiver-detail dt{font-size:.65rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:#71839a}
-.receiver-detail dd{margin:6px 0 0;font-weight:750}
+.receiver-detail dt{font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#71839a}
+.receiver-detail dd{margin:6px 0 0;font-size:.96rem;font-weight:650}
 .receiver-pallet{margin:17px 0;padding:20px 22px;border:1px solid #dce6ef;border-radius:17px;background:#f8fafc}
 .receiver-pallet h3{margin:0 0 10px;font-size:.75rem;letter-spacing:.14em}
 .receiver-lot{padding:12px 0;border-top:1px solid #dce5ed;display:flex;justify-content:space-between;gap:20px}
