@@ -26153,7 +26153,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=209",
+              "./service-worker.js?v=210",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v209-receiver-readability";
+const VERSION = "atlas-pwa-v210-receiver-centered-header";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -21,8 +21,8 @@ const APP_SHELL = [
   "./atlas-coc-excel.js?v=8",
   "./atlas-coc.js?v=24",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=6",
-  "./coc-receiver/receiver.js?v=5",
+  "./coc-receiver/receiver.css?v=7",
+  "./coc-receiver/receiver.js?v=6",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
