@@ -468,9 +468,14 @@
     const availableWidth = Math.max(1, frame.clientWidth - 2);
     const scale = Math.min(1, availableWidth / sheetWidth);
     canvas.style.width = `${sheetWidth}px`;
-    canvas.style.height = `${sheetHeight}px`;
+    canvas.style.height = "auto";
+    canvas.style.transform = "none";
+    const table = canvas.querySelector("table");
+    const renderedHeight = Math.max(sheetHeight, canvas.scrollHeight, table?.offsetHeight || 0);
+    canvas.style.height = `${renderedHeight}px`;
     canvas.style.transform = `scale(${scale})`;
-    frame.style.height = `${Math.ceil(sheetHeight * scale) + 2}px`;
+    frame.style.height = `${Math.ceil(renderedHeight * scale) + 4}px`;
+    frame.dataset.renderedSheetHeight = String(renderedHeight);
     frame.style.setProperty("--atlas-workbook-scale", String(scale));
   }
 

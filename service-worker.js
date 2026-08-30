@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v218-true-scale-preview-and-compact-desktop-actions";
+const VERSION = "atlas-pwa-v219-full-height-true-scale-coc-preview";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -18,7 +18,7 @@ const APP_SHELL = [
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
-  "./atlas-coc-excel.js?v=11",
+  "./atlas-coc-excel.js?v=12",
   "./atlas-coc.js?v=32",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=11",
