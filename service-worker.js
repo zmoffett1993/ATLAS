@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v203-report-loop-escape";
+const VERSION = "atlas-pwa-v204-mobile-menu-readability";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -31,7 +31,7 @@ const APP_SHELL = [
   "./atlas-desktop.css?v=145",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
-  "./atlas-mobile-menu.css?v=1",
+  "./atlas-mobile-menu.css?v=2",
   "./atlas-desktop.js?v=131",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260816-dosing-cup-framed-v104",
