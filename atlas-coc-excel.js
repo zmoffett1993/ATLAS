@@ -353,6 +353,180 @@
     });
   }
 
+  function previewEscape(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function previewChildren(node, localName) {
+    return Array.from(node?.children || []).filter((child) => child.localName === localName);
+  }
+
+  function previewDescendants(node, localName) {
+    return Array.from(node?.getElementsByTagNameNS?.("*", localName) || []);
+  }
+
+  function previewCellPosition(reference) {
+    const match = String(reference || "").match(/^([A-Z]+)(\d+)$/i);
+    if (!match) return null;
+    let column = 0;
+    for (const character of match[1].toUpperCase()) column = column * 26 + character.charCodeAt(0) - 64;
+    return { column, row: Number(match[2]) };
+  }
+
+  function previewColumnName(number) {
+    let value = Number(number), result = "";
+    while (value > 0) { value -= 1; result = String.fromCharCode(65 + (value % 26)) + result; value = Math.floor(value / 26); }
+    return result;
+  }
+
+  function previewTint(hex, tint) {
+    const clean = String(hex || "000000").replace(/^#/, "").slice(-6).padStart(6, "0");
+    const amount = Number(tint || 0);
+    const values = [0, 2, 4].map((offset) => Number.parseInt(clean.slice(offset, offset + 2), 16));
+    const adjusted = values.map((channel) => Math.round(amount < 0 ? channel * (1 + amount) : channel + (255 - channel) * amount));
+    return `#${adjusted.map((channel) => Math.max(0, Math.min(255, channel)).toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  function previewThemeColors(themeDocument) {
+    const scheme = previewDescendants(themeDocument, "clrScheme")[0];
+    const byName = {};
+    Array.from(scheme?.children || []).forEach((entry) => {
+      const color = Array.from(entry.children || [])[0];
+      const raw = color?.getAttribute("val") || "000000";
+      byName[entry.localName] = raw === "window" ? "FFFFFF" : raw === "windowText" ? "000000" : raw;
+    });
+    return [byName.lt1, byName.dk1, byName.lt2, byName.dk2, byName.accent1, byName.accent2, byName.accent3, byName.accent4, byName.accent5, byName.accent6, byName.hlink, byName.folHlink].map((value) => value || "000000");
+  }
+
+  function previewColor(node, themeColors, fallback = "000000") {
+    if (!node) return `#${fallback}`;
+    const rgb = node.getAttribute("rgb");
+    if (rgb) return `#${rgb.slice(-6)}`;
+    const theme = Number(node.getAttribute("theme"));
+    const base = Number.isInteger(theme) ? themeColors[theme] : fallback;
+    return previewTint(base, node.getAttribute("tint"));
+  }
+
+  function previewStyles(stylesDocument, themeColors) {
+    const fonts = previewChildren(previewDescendants(stylesDocument, "fonts")[0], "font").map((font) => ({
+      size: Number(previewDescendants(font, "sz")[0]?.getAttribute("val") || 11),
+      bold: Boolean(previewDescendants(font, "b").length),
+      italic: Boolean(previewDescendants(font, "i").length),
+      color: previewColor(previewDescendants(font, "color")[0], themeColors),
+      family: previewDescendants(font, "name")[0]?.getAttribute("val") || "Calibri",
+    }));
+    const fills = previewChildren(previewDescendants(stylesDocument, "fills")[0], "fill").map((fill) => {
+      const pattern = previewDescendants(fill, "patternFill")[0];
+      if (!pattern || pattern.getAttribute("patternType") !== "solid") return "transparent";
+      return previewColor(previewDescendants(pattern, "fgColor")[0], themeColors, "FFFFFF");
+    });
+    const borders = previewChildren(previewDescendants(stylesDocument, "borders")[0], "border").map((border) => {
+      const hasLine = ["left", "right", "top", "bottom"].some((side) => previewDescendants(border, side)[0]?.getAttribute("style"));
+      return hasLine ? "1px solid #858585" : "0";
+    });
+    return previewChildren(previewDescendants(stylesDocument, "cellXfs")[0], "xf").map((xf) => {
+      const font = fonts[Number(xf.getAttribute("fontId") || 0)] || fonts[0] || {};
+      const alignment = previewDescendants(xf, "alignment")[0];
+      return {
+        fontSize: Number(font.size || 11), fontWeight: font.bold ? 700 : 400,
+        fontStyle: font.italic ? "italic" : "normal", color: font.color || "#000000",
+        fontFamily: font.family || "Calibri", background: fills[Number(xf.getAttribute("fillId") || 0)] || "transparent",
+        border: borders[Number(xf.getAttribute("borderId") || 0)] || "0",
+        align: alignment?.getAttribute("horizontal") || "left",
+        vertical: alignment?.getAttribute("vertical") === "center" ? "middle" : alignment?.getAttribute("vertical") || "middle",
+        wrap: alignment?.getAttribute("wrapText") === "1",
+        numFmtId: Number(xf.getAttribute("numFmtId") || 0),
+      };
+    });
+  }
+
+  function previewStyleAttribute(style) {
+    const pixels = Number(style.fontSize || 11) * 96 / 72;
+    const responsiveSize = Math.max(6.5, pixels / 9).toFixed(3);
+    return [
+      `font-family:${previewEscape(style.fontFamily)},Calibri,Arial,sans-serif`,
+      `font-size:clamp(6.5px,${responsiveSize}cqw,${pixels.toFixed(2)}px)`,
+      `font-weight:${style.fontWeight}`, `font-style:${style.fontStyle}`, `color:${style.color}`,
+      `background:${style.background}`, `border:${style.border}`, `text-align:${style.align}`,
+      `vertical-align:${style.vertical}`, `white-space:${style.wrap ? "pre-wrap" : "normal"}`,
+    ].join(";");
+  }
+
+  /** Render the actual populated XLSX bytes as a fit-to-width, read-only sheet. */
+  async function renderOfficialWorkbookPreview(workbook) {
+    if (!global.JSZip || !global.DOMParser) throw new Error("COC_WORKBOOK_PREVIEW_UNAVAILABLE");
+    const bytes = await bytesFrom(workbook);
+    const zip = await global.JSZip.loadAsync(bytes);
+    const paths = ["xl/worksheets/sheet1.xml", "xl/styles.xml", "xl/sharedStrings.xml", "xl/theme/theme1.xml"];
+    const [sheetXml, stylesXml, sharedXml, themeXml] = await Promise.all(paths.map(async (path) => {
+      const file = zip.file(path); return file ? file.async("string") : "";
+    }));
+    if (!sheetXml || !stylesXml) throw new Error("COC_WORKBOOK_PREVIEW_STRUCTURE_MISSING");
+    const parser = new global.DOMParser();
+    const sheet = parser.parseFromString(sheetXml, "application/xml");
+    const stylesDocument = parser.parseFromString(stylesXml, "application/xml");
+    const sharedDocument = parser.parseFromString(sharedXml || "<sst/>", "application/xml");
+    const themeDocument = parser.parseFromString(themeXml || "<theme/>", "application/xml");
+    const parseErrors = [sheet, stylesDocument, sharedDocument, themeDocument].flatMap((document) => previewDescendants(document, "parsererror"));
+    if (parseErrors.length) throw new Error("COC_WORKBOOK_PREVIEW_XML_INVALID");
+
+    const sharedStrings = previewDescendants(sharedDocument, "si").map((item) => previewDescendants(item, "t").map((text) => text.textContent || "").join(""));
+    const styleList = previewStyles(stylesDocument, previewThemeColors(themeDocument));
+    const cells = new Map();
+    let lastValueRow = 6;
+    previewDescendants(sheet, "c").forEach((cell) => {
+      const reference = cell.getAttribute("r"), position = previewCellPosition(reference);
+      if (!position) return;
+      const type = cell.getAttribute("t") || "";
+      const valueNode = previewDescendants(cell, "v")[0];
+      let value = "";
+      if (type === "s") value = sharedStrings[Number(valueNode?.textContent || 0)] || "";
+      else if (type === "inlineStr") value = previewDescendants(cell, "t").map((text) => text.textContent || "").join("");
+      else value = valueNode?.textContent || "";
+      const styleIndex = Number(cell.getAttribute("s") || 0), style = styleList[styleIndex] || styleList[0] || {};
+      if (value && !Number.isNaN(Number(value)) && [3, 4, 37, 38, 39, 40].includes(style.numFmtId)) value = Number(value).toLocaleString("en-US");
+      if (String(value).trim()) lastValueRow = Math.max(lastValueRow, position.row);
+      cells.set(reference, { value, style });
+    });
+
+    const mergeStarts = new Map(), covered = new Set();
+    previewDescendants(sheet, "mergeCell").forEach((node) => {
+      const [startRef, endRef] = String(node.getAttribute("ref") || "").split(":"), start = previewCellPosition(startRef), end = previewCellPosition(endRef || startRef);
+      if (!start || !end) return;
+      mergeStarts.set(startRef, { colSpan: end.column - start.column + 1, rowSpan: end.row - start.row + 1 });
+      for (let row = start.row; row <= end.row; row += 1) for (let column = start.column; column <= end.column; column += 1) if (row !== start.row || column !== start.column) covered.add(`${previewColumnName(column)}${row}`);
+    });
+    const columns = [];
+    previewDescendants(sheet, "col").forEach((column) => {
+      const first = Number(column.getAttribute("min") || 1), last = Number(column.getAttribute("max") || first), width = Number(column.getAttribute("width") || 10);
+      for (let index = first; index <= last; index += 1) columns[index - 1] = width;
+    });
+    const columnCount = Math.max(3, columns.length), widths = Array.from({ length: columnCount }, (_, index) => Number(columns[index] || 10));
+    const totalWidth = widths.reduce((sum, value) => sum + value, 0);
+    const rowHeights = new Map(previewDescendants(sheet, "row").map((row) => [Number(row.getAttribute("r")), Number(row.getAttribute("ht") || 14.25)]));
+    const finalRow = Math.min(lastValueRow + 1, FINAL_MAPPING.detailRows.last);
+    let body = "";
+    for (let row = 1; row <= finalRow; row += 1) {
+      const rowPixels = Number(rowHeights.get(row) || 14.25) * 96 / 72;
+      let rowMarkup = "";
+      for (let column = 1; column <= columnCount; column += 1) {
+        const reference = `${previewColumnName(column)}${row}`;
+        if (covered.has(reference)) continue;
+        const cell = cells.get(reference) || { value: "", style: styleList[0] || {} }, merge = mergeStarts.get(reference);
+        const spans = `${merge?.colSpan > 1 ? ` colspan="${merge.colSpan}"` : ""}${merge?.rowSpan > 1 ? ` rowspan="${merge.rowSpan}"` : ""}`;
+        rowMarkup += `<td${spans} style="${previewStyleAttribute(cell.style)}">${previewEscape(cell.value)}</td>`;
+      }
+      body += `<tr style="height:clamp(13px,${(rowPixels / 9).toFixed(3)}cqw,${rowPixels.toFixed(2)}px)">${rowMarkup}</tr>`;
+    }
+    const columnsMarkup = widths.map((width) => `<col style="width:${(width / totalWidth * 100).toFixed(4)}%">`).join("");
+    return `<section class="atlas-workbook-preview" aria-label="Read-only preview of the generated Official COC workbook"><div class="atlas-workbook-preview-badge">ACTUAL XLSX · READ ONLY</div><div class="atlas-workbook-preview-frame"><table><colgroup>${columnsMarkup}</colgroup><tbody>${body}</tbody></table></div></section>`;
+  }
+
   async function loadMasterTemplate(template = OFFICIAL_TEMPLATE) {
     if (!global.AtlasCocDelivery?.loadOfficialTemplate)
       throw new Error("COC_PRIVATE_TEMPLATE_SERVICE_REQUIRED");
@@ -405,6 +579,7 @@
     mappingReadiness,
     outputFileName,
     populateOfficialTemplate,
+    renderOfficialWorkbookPreview,
     generateCompanyCoc,
   });
 })(window);

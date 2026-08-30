@@ -17,7 +17,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link id="atlas-app-manifest" rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./atlas-dashboard.css?v=146" />
-    <link rel="stylesheet" href="./atlas-coc.css?v=28" />
+    <link rel="stylesheet" href="./atlas-coc.css?v=29" />
     <script>
       (() => {
         const isAndroid =
@@ -33799,6 +33799,9 @@ Error generating stack: ` +
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr));
         gap: 11px;
       }
+      .atlas-pallet-guide-empty { display: grid; gap: 6px; padding: 24px 18px; text-align: center; color: #61748a; border: 1px dashed #b8cadc; border-radius: 16px; background: #f8fbfe; }
+      .atlas-pallet-guide-empty strong { color: #123b69; font-size: 15px; }
+      .atlas-pallet-guide-empty span { font-size: 12px; line-height: 1.45; }
       .atlas-pallet-guide-layer {
         overflow: hidden;
         background: #ffffff;
@@ -34115,7 +34118,28 @@ Error generating stack: ` +
           const canonicalSku = normalizeSku(sku);
           const profileId = guideData.skuAssignments?.[canonicalSku];
           const profile = profileId ? guideData.profiles?.[profileId] : null;
-          if (!profile || profile.status !== "published") return null;
+          if (!profile) {
+            if (guideOverrides[canonicalSku]) return applyOverride({
+              profileId: `custom-${canonicalSku}`,
+              sku: canonicalSku,
+              totalCases: 0,
+              totalLayers: 0,
+              sequence: [],
+              variants: {},
+              usedVariantIds: [],
+            });
+            return canonicalSku ? {
+              profileId: `custom-${canonicalSku}`,
+              sku: canonicalSku,
+              totalCases: 0,
+              totalLayers: 0,
+              sequence: [],
+              variants: {},
+              usedVariantIds: [],
+              isNew: true,
+            } : null;
+          }
+          if (profile.status !== "published") return null;
 
           const totalCases = Number(profile.totalCasesPerPallet);
           const sequence = Array.isArray(profile.layerSequence)
@@ -34333,7 +34357,10 @@ Error generating stack: ` +
             row.appendChild(palletButton);
           }
           configureActionButton(palletButton, "pallet", showcase);
-          const palletButtonLabel = `Open pallet guide for ${guide.sku}`;
+          const actionLabel = guide.isNew ? "Create Pallet Guide" : "Pallet Guide";
+          const labelNode = palletButton.querySelector(".atlas-result-action-label");
+          if (labelNode && labelNode.textContent !== actionLabel) labelNode.textContent = actionLabel;
+          const palletButtonLabel = `${guide.isNew ? "Create" : "Open"} pallet guide for ${guide.sku}`;
           if (palletButton.getAttribute("aria-label") !== palletButtonLabel) {
             palletButton.setAttribute("aria-label", palletButtonLabel);
           }
@@ -34446,8 +34473,8 @@ Error generating stack: ` +
           const layerCases = [
             ...new Set(guide.sequence.map((id) => Number(guide.variants[id].cases))),
           ];
-          const casesPerLayer = layerCases.join(" / ");
-          const editableBoxesPerLayer = guide.override?.boxesPerLayer || Math.max(...layerCases);
+          const casesPerLayer = layerCases.length ? layerCases.join(" / ") : "—";
+          const editableBoxesPerLayer = guide.override?.boxesPerLayer || (layerCases.length ? Math.max(...layerCases) : "");
 
           const backdrop = document.createElement("div");
           backdrop.className = "atlas-pallet-guide-backdrop";
@@ -34472,14 +34499,14 @@ Error generating stack: ` +
                 </section>
                 <div class="atlas-pallet-guide-control-row">
                   <small class="atlas-pallet-guide-updated"></small>
-                  <button type="button" class="atlas-pallet-guide-edit">Edit Pallet Values</button>
+                  <button type="button" class="atlas-pallet-guide-edit" ${guide.isNew ? "hidden" : ""}>Edit Pallet Values</button>
                 </div>
-                <form class="atlas-pallet-guide-editor" hidden>
-                  <h3>Update pallet standard</h3>
-                  <p>Edit all three pallet values. They must describe the same build; ATLAS validates the combination and redraws any partial final layer.</p>
+                <form class="atlas-pallet-guide-editor" ${guide.isNew ? "" : "hidden"}>
+                  <h3>${guide.isNew ? "Create pallet standard" : "Update pallet standard"}</h3>
+                  <p>${guide.isNew ? "Enter the three pallet values and your initials. ATLAS will save the new guide and create its layer diagram." : "Edit all three pallet values. They must describe the same build; ATLAS validates the combination and redraws any partial final layer."}</p>
                   <div class="atlas-pallet-guide-editor-fields">
-                    <label>Total Boxes Per Pallet<input name="totalCases" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${guide.totalCases}" required></label>
-                    <label>Number Of Layers<input name="totalLayers" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="${guide.totalLayers}" required></label>
+                    <label>Total Boxes Per Pallet<input name="totalCases" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${guide.totalCases || ""}" required></label>
+                    <label>Number Of Layers<input name="totalLayers" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="${guide.totalLayers || ""}" required></label>
                     <label>Boxes Per Layer (Max 12)<input name="boxesPerLayer" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="${editableBoxesPerLayer}" required></label>
                     <label>Your Initials<input name="initials" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. ZM" required></label>
                   </div>
@@ -34497,15 +34524,15 @@ Error generating stack: ` +
           const metricValues = backdrop.querySelectorAll(
             ".atlas-pallet-guide-metric strong",
           );
-          metricValues[0].textContent = String(guide.totalCases);
-          metricValues[1].textContent = String(guide.totalLayers);
+          metricValues[0].textContent = guide.totalCases ? String(guide.totalCases) : "—";
+          metricValues[1].textContent = guide.totalLayers ? String(guide.totalLayers) : "—";
           metricValues[2].textContent = casesPerLayer;
           const updateStatus = backdrop.querySelector(".atlas-pallet-guide-updated");
           if (guide.override) {
             const updated = new Date(guide.override.updatedAt);
             const dateLabel = Number.isNaN(updated.valueOf()) ? "Recently" : updated.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
             updateStatus.textContent = `${dateLabel} · ${guide.override.initials}${guide.override.syncPending ? " · Sync pending" : ""}`;
-          } else updateStatus.textContent = "Published pallet standard";
+          } else updateStatus.textContent = guide.isNew ? "No pallet standard yet" : "Published pallet standard";
 
           const layerGrid = backdrop.querySelector(".atlas-pallet-guide-layer-grid");
           const multipleVariants = guide.usedVariantIds.length > 1;
@@ -34527,6 +34554,7 @@ Error generating stack: ` +
               .appendChild(createLayerDiagram(variant));
             layerGrid.appendChild(layer);
           });
+          if (!guide.usedVariantIds.length) layerGrid.innerHTML = `<div class="atlas-pallet-guide-empty"><strong>Create this pallet guide</strong><span>The visual layer diagram will appear here after the values are saved.</span></div>`;
 
           if (multipleVariants) {
             const sequence = document.createElement("section");
@@ -34563,9 +34591,8 @@ Error generating stack: ` +
             editor.elements.totalCases.focus();
           });
           editor.querySelector(".atlas-pallet-guide-editor-cancel").addEventListener("click", () => {
-            editor.hidden = true;
-            editButton.hidden = false;
-            editButton.focus();
+            if (guide.isNew) { closePalletGuide(); return; }
+            editor.hidden = true; editButton.hidden = false; editButton.focus();
           });
           editor.elements.initials.addEventListener("input", () => {
             editor.elements.initials.value = editor.elements.initials.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -34619,7 +34646,7 @@ Error generating stack: ` +
           });
           document.body.appendChild(backdrop);
           document.body.classList.add("atlas-pallet-guide-open");
-          backdrop.querySelector(".atlas-pallet-guide-close").focus({
+          (guide.isNew ? editor.elements.totalCases : backdrop.querySelector(".atlas-pallet-guide-close")).focus({
             preventScroll: true,
           });
         };
@@ -36310,8 +36337,8 @@ Error generating stack: ` +
     <script src="./atlas-jszip.min.js?v=1" defer></script>
     <script src="./atlas-coc-storage.js?v=2" defer></script>
     <script src="./atlas-coc-delivery.js?v=4" defer></script>
-    <script src="./atlas-coc-excel.js?v=9" defer></script>
-    <script src="./atlas-coc.js?v=29" defer></script>
+    <script src="./atlas-coc-excel.js?v=10" defer></script>
+    <script src="./atlas-coc.js?v=30" defer></script>
   <script src="./atlas-desktop.js?v=131" defer></script>
 
 </body>

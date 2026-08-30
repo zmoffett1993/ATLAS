@@ -41,6 +41,7 @@
   let exportInProgress = false;
   let completedRecords = [];
   let selectedCompleted = null;
+  let workbookPreview = { status: "idle", html: "", error: "", cocId: "" };
   let resendInProgress = false;
   let stationPresence = { online: false, reachable: false };
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
@@ -357,29 +358,33 @@
     }).join("");
   }
 
-  function officialCocSheetMarkup(snapshot) {
-    const rows = (snapshot.pallets || []).map((pallet) => {
-      const lots = Array.isArray(pallet.lots) ? pallet.lots : [];
-      const modelOrder = [];
-      const groups = new Map();
-      lots.forEach((lot) => {
-        const model = String(lot.model || "UNKNOWN SKU");
-        if (!groups.has(model)) { groups.set(model, []); modelOrder.push(model); }
-        groups.get(model).push(lot);
-      });
-      return modelOrder.map((model) => {
-        const modelLots = groups.get(model);
-        const totalQuantity = modelLots.reduce((sum, lot) => sum + Number(lot.cases || 0) * Number(lot.caseQuantity || 0), 0);
-        return `<tr class="atlas-coc-sheet-model"><th>${escapeHtml(model)}</th><th>PALLET ${pallet.number}</th><td></td></tr>${modelLots.map((lot) => `<tr><td></td><td>${escapeHtml(Core.displayLot(lot.lot))}</td><td>${(Number(lot.cases || 0) * Number(lot.caseQuantity || 0)).toLocaleString()}</td></tr>`).join("")}<tr class="atlas-coc-sheet-total"><td></td><th>TOTAL QTY</th><td>${totalQuantity.toLocaleString()}</td></tr>`;
-      }).join("");
-    }).join("");
-    return `<section class="atlas-coc-official-sheet" aria-label="Official COC spreadsheet preview"><h2>Certificate of Compliance Information Form</h2><div class="atlas-coc-sheet-fields"><div><strong>CUSTOMER NAME</strong><span>${escapeHtml(snapshot.customerName || "—")}</span></div><div><strong>INV-NUMBER</strong><span>${escapeHtml(snapshot.invoiceNumber || "—")}</span></div><div><strong>IF-NUMBER</strong><span>${escapeHtml(snapshot.ifNumber || "—")}</span></div></div><div class="atlas-coc-sheet-table-wrap"><table><thead><tr><th>MODEL NUMBER</th><th>LOT NUMBER<br><small>(Pallet listed for each model)</small></th><th>QUANTITY</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
-  }
-
   function completedOfficialPreviewMarkup() {
     const record = selectedCompleted;
     if (!record) return completedListMarkup();
-    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-completed-official">‹ Completed COC</button><header class="atlas-coc-page-head"><span>READ-ONLY PREVIEW</span><h1>Official COC</h1><p>View the completed spreadsheet without downloading it.</p></header>${officialCocSheetMarkup(record.reportSnapshot || {})}</div>`;
+    const body = workbookPreview.status === "ready" && workbookPreview.cocId === record.cocId
+      ? workbookPreview.html
+      : workbookPreview.status === "error"
+        ? `<div class="atlas-coc-preview-status is-error"><strong>Preview unavailable</strong><p>${escapeHtml(workbookPreview.error)}</p><button type="button" data-coc-action="view-completed-official">Try Again</button></div>`
+        : `<div class="atlas-coc-preview-status"><span class="atlas-coc-spinner" aria-hidden="true"></span><strong>Opening the saved Official COC…</strong><p>ATLAS is reading the actual XLSX workbook.</p></div>`;
+    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-completed-official">‹ Completed COC</button><header class="atlas-coc-page-head"><span>ACTUAL WORKBOOK</span><h1>Official COC</h1><p>This read-only view is rendered directly from the saved XLSX file.</p></header>${body}</div>`;
+  }
+
+  async function openCompletedWorkbookPreview() {
+    const record = selectedCompleted;
+    if (!record) return;
+    const cocId = record.cocId;
+    workbookPreview = { status: "loading", html: "", error: "", cocId };
+    workflowView = "official-preview";
+    renderAll();
+    try {
+      if (!record.workbookBlob?.size) throw new Error("The saved Official COC workbook is unavailable on this device.");
+      const html = await Excel.renderOfficialWorkbookPreview(record.workbookBlob);
+      if (selectedCompleted?.cocId !== cocId || workflowView !== "official-preview") return;
+      workbookPreview = { status: "ready", html, error: "", cocId };
+    } catch (error) {
+      workbookPreview = { status: "error", html: "", error: error?.message || "The Official COC could not be opened.", cocId };
+    }
+    renderAll();
   }
 
   function completedDetailMarkup() {
@@ -1723,10 +1728,10 @@
     }
     if (action === "coc-back") { backWithinCoc(); return; }
     if (action === "start-setup") { workflowView = "setup"; renderAll(); return; }
-    if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; await refreshCompletedHistory(); renderAll(); return; }
-    if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workflowView = "history-detail"; renderAll(); return; }
+    if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; await refreshCompletedHistory(); renderAll(); return; }
+    if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; workflowView = "history-detail"; renderAll(); return; }
     if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
-    if (action === "view-completed-official") { workflowView = "official-preview"; renderAll(); return; }
+    if (action === "view-completed-official") { await openCompletedWorkbookPreview(); return; }
     if (action === "close-completed-official") { workflowView = "history-detail"; renderAll(); return; }
     if (action === "review-resend-completed") { modal = "resend-completed"; renderAll(); return; }
     if (action === "confirm-resend-completed") { await resendCompletedCoc(); return; }
