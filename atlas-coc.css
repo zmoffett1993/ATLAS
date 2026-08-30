@@ -893,6 +893,13 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   font-weight: 950;
   letter-spacing: .13em;
 }
+.atlas-coc-lots-title h2 {
+  color: var(--coc-ink);
+  font-size: clamp(16px, 4.4vw, 22px);
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: .035em;
+}
 .atlas-coc-selector-add,
 .atlas-coc-manage-models,
 .atlas-coc-view-all-lots {
@@ -1000,13 +1007,13 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 }
 
 .atlas-coc-count-status {
-  min-height: 126px;
+  min-height: 102px;
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(118px, .65fr);
   align-items: center;
   gap: 15px;
-  margin: 17px 0 11px;
-  padding: 17px 20px;
+  margin: 13px 0 10px;
+  padding: 14px 18px;
   border: 1.5px solid #8cc1f7;
   border-radius: 18px;
   background: linear-gradient(145deg, #f8fcff, #eaf4ff);
@@ -1032,11 +1039,11 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   font-size: clamp(15px, 4vw, 20px);
 }
 .atlas-coc-count-selection b,
-.atlas-coc-count-status.is-empty b { margin-top: 5px; overflow-wrap: anywhere; font-size: 14px; }
+.atlas-coc-count-status.is-empty b { margin-top: 6px; overflow-wrap: anywhere; font-size: clamp(16px, 4.5vw, 21px); font-weight: 750; }
 .atlas-coc-lot-count { text-align: center; }
 .atlas-coc-lot-count strong { color: #0b5dcc; font-size: clamp(28px, 7vw, 39px); line-height: 1; white-space: nowrap; }
 .atlas-coc-lot-count small { margin-top: 7px; color: var(--coc-muted); font-weight: 750; }
-.atlas-coc-count-status.is-empty { min-height: 126px; }
+.atlas-coc-count-status.is-empty { min-height: 102px; }
 .atlas-coc-counting > .atlas-coc-add-case {
   min-height: 66px;
   border-radius: 16px;
@@ -1064,6 +1071,21 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   background: transparent;
 }
 .atlas-coc-count-confirmation button:disabled { color: #9aa8b6; }
+.atlas-coc-report-back { margin-bottom: 2px; color: #41627f; font-size: 13px; }
+.atlas-coc-review-edit {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 13px;
+  color: var(--coc-blue-dark);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  text-align: left;
+  border: 0;
+  border-top: 1px solid #dfe8f0;
+  background: #f7fbff;
+}
+.atlas-coc-final-actions > button:first-child { color: var(--coc-blue-dark); border-color: #9fc6f2; background: #f8fbff; }
 .atlas-coc-counting .atlas-coc-finish-actions { margin-top: 14px; }
 .atlas-coc-counting .atlas-coc-finish:disabled { color: #7793bd; opacity: .62; background: #fbfdff; }
 

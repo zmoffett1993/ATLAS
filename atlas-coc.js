@@ -42,6 +42,7 @@
   let completedRecords = [];
   let selectedCompleted = null;
   let workbookPreview = { status: "idle", html: "", error: "", cocId: "" };
+  let draftWorkbookPreview = { status: "idle", html: "", error: "", cocId: "" };
   let resendInProgress = false;
   let stationPresence = { online: false, reachable: false };
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
@@ -127,6 +128,7 @@
   }
 
   function persist({ cloud = true } = {}) {
+    draftWorkbookPreview = { status: "idle", html: "", error: "", cocId: "" };
     if (session) {
       session = Core.sanitize(session);
       session.updatedAt = new Date().toISOString();
@@ -402,6 +404,45 @@
     renderAll();
   }
 
+  function draftOfficialPreviewMarkup() {
+    const body = draftWorkbookPreview.status === "ready" && draftWorkbookPreview.cocId === session?.id
+      ? draftWorkbookPreview.html
+      : draftWorkbookPreview.status === "error"
+        ? `<div class="atlas-coc-preview-status is-error"><strong>Preview unavailable</strong><p>${escapeHtml(draftWorkbookPreview.error)}</p><button type="button" data-coc-action="view-draft-official">Try Again</button></div>`
+        : `<div class="atlas-coc-preview-status"><span class="atlas-coc-spinner" aria-hidden="true"></span><strong>Building the Official COC preview…</strong><p>ATLAS is populating the actual XLSX workbook without sending it.</p></div>`;
+    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-draft-official">‹ Final Review</button><header class="atlas-coc-page-head"><span>ACTUAL WORKBOOK · NOT SENT</span><h1>Official COC</h1><p>This read-only preview is rendered from the same XLSX file ATLAS will send to the office.</p></header>${body}</div>`;
+  }
+
+  async function openDraftWorkbookPreview() {
+    if (!session) return;
+    const cocId = session.id;
+    draftWorkbookPreview = { status: "loading", html: "", error: "", cocId };
+    modal = null;
+    workflowView = "draft-official-preview";
+    renderAll();
+    try {
+      const previewSession = session.status === "report"
+        ? Core.sanitize(session)
+        : Core.completeSession(session);
+      const generated = await Excel.generateCompanyCoc(previewSession, {
+        saveGeneratedWorkbook: async () => {},
+      });
+      const html = await Excel.renderOfficialWorkbookPreview(generated.bytes);
+      if (session?.id !== cocId || workflowView !== "draft-official-preview") return;
+      draftWorkbookPreview = { status: "ready", html, error: "", cocId };
+    } catch (error) {
+      draftWorkbookPreview = {
+        status: "error",
+        html: "",
+        error: error?.message === "COC_TEMPLATE_SIGNATURE_MISMATCH"
+          ? "The official workbook failed its integrity check. Nothing was changed or sent."
+          : "The Official COC preview could not be built. Check the connection and try again.",
+        cocId,
+      };
+    }
+    renderAll();
+  }
+
   function completedDetailMarkup() {
     const record = selectedCompleted;
     if (!record) return completedListMarkup();
@@ -603,7 +644,7 @@
       if (selected) visibleLots = [...visibleLots.slice(0, 6), selected];
     }
     return `<section class="atlas-coc-count-lots" aria-label="Lots for ${escapeHtml(activeModel)}">
-      <div class="atlas-coc-selector-title"><h2>LOTS FOR ${escapeHtml(activeModel)}</h2></div>
+      <div class="atlas-coc-selector-title atlas-coc-lots-title"><h2>LOTS FOR ${escapeHtml(activeModel)}</h2></div>
       <div class="atlas-coc-lot-grid" role="list" aria-label="Select a lot">${visibleLots.map((item) => {
         const selected = item.id === activeId;
         return `<button type="button" role="listitem" class="atlas-coc-lot-chip ${selected ? "is-active" : ""}" data-coc-action="select-lot" data-lot-id="${escapeHtml(item.id)}" aria-pressed="${selected}">
@@ -616,20 +657,19 @@
   }
 
   function countingStatusMarkup(pallet, lot, atLimit) {
-    const activeModel = activeModelContext();
     if (!lot) return `<section class="atlas-coc-count-status is-empty">
-      <div class="atlas-coc-count-selection"><span>READY TO COUNT</span><strong>${escapeHtml(activeModel)}</strong></div>
+      <div class="atlas-coc-count-selection"><span>READY TO COUNT</span></div>
       <div class="atlas-coc-lot-count"><strong>0 BOXES</strong><small>0 units</small></div>
     </section>
     <button type="button" class="atlas-coc-add-case" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>SCAN FIRST LOT</button>`;
     const selectedLotHasHistory = pallet.history.some((entry) => entry.lotId === lot.id);
     return `<section class="atlas-coc-count-status">
-      <div class="atlas-coc-count-selection"><span>COUNTING</span><strong>${escapeHtml(activeModel)}</strong><b>LOT ${escapeHtml(Core.displayLot(lot.lot))}</b></div>
+      <div class="atlas-coc-count-selection"><span>ACTIVE LOT</span><b>${escapeHtml(Core.displayLot(lot.lot))}</b></div>
       <div class="atlas-coc-lot-count"><strong>${plural(lot.cases, "box").toUpperCase()}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small></div>
     </section>
     <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
     <div class="atlas-coc-count-confirmation">
-      <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box · Lot ${escapeHtml(Core.displayLot(lot.lot))}</button>
+      <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box</button>
     </div>`;
   }
 
@@ -664,18 +704,8 @@
     const finished = completedPallets();
     const difference = total - pallet.expectedBoxes;
     const atLimit = total >= pallet.expectedBoxes;
-    const remaining = Math.max(0, pallet.expectedBoxes - total);
-    const progressCopy = difference > 0
-      ? `${plural(difference, "box")} over approved count`
-      : remaining
-        ? `${plural(remaining, "box")} remaining`
-        : "Count reached — ready to verify";
     return `<div class="atlas-coc-page atlas-coc-counting">
       <button type="button" class="atlas-coc-back atlas-coc-count-back" data-coc-action="coc-back">‹ Back</button>
-      <header class="atlas-coc-count-head">
-        <div class="atlas-coc-pallet-number"><span>PALLET</span><strong>${pallet.number}</strong></div>
-        <div class="atlas-coc-pallet-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes} BOXES</strong><small>${escapeHtml(progressCopy)}</small></div>
-      </header>
       ${countingModelMarkup(pallet)}
       ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed count. Undo a box or correct the count before finishing.</p>` : ""}
       ${countingLotsMarkup(pallet, atLimit)}
@@ -691,6 +721,7 @@
   function reportMarkup() {
     const total = Core.sessionTotal(session);
     return `<div class="atlas-coc-page atlas-coc-report">
+      <button type="button" class="atlas-coc-back atlas-coc-report-back" data-coc-action="review-complete">‹ Back to Review</button>
       <header class="atlas-coc-transfer-head"><span>COC COMPLETE ✓</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
       <section class="atlas-coc-destination"><span>Destination</span><h2>🖥 Office COC Station</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the Office COC Inbox.</p>`}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></section>
     </div>`;
@@ -835,6 +866,7 @@
     if (workflowView === "history") return completedListMarkup();
     if (workflowView === "history-detail") return completedDetailMarkup();
     if (workflowView === "official-preview") return completedOfficialPreviewMarkup();
+    if (workflowView === "draft-official-preview") return draftOfficialPreviewMarkup();
     if (workflowView === "receiver-setup") return receiverSetupMarkup();
     if (workflowView === "send-status") return sendStatusMarkup();
     if (workflowView === "setup" && !session) return setupMarkup();
@@ -866,6 +898,7 @@
   }
 
   function reviewCompleteModal() {
+    const reportMode = session?.status === "report";
     const pallet = activePallet();
     const progress = pallet ? Core.palletProgress(pallet) : null;
     const activeRecorded = pallet ? Core.palletTotal(pallet) : 0;
@@ -877,15 +910,15 @@
     );
     const blocked = activeHasWork && !activeReady;
     const total = completed.reduce((sum, item) => sum + Core.palletTotal(item), 0);
-    return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>Complete this COC?</h2>
-      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}</section>`).join("")}</div>
+    return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>${reportMode ? "Review completed COC" : "Complete this COC?"}</h2>
+      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number}</button>` : ""}</section>`).join("")}</div>
       <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(total, "box")} · ${plural(completed.length, "pallet")}</b></p>
       ${blocked
         ? `<p class="atlas-coc-warning">Pallet ${pallet.number} is not verified. Its confirmed and recorded box counts must match before completing the COC.</p>`
         : pallet && !activeHasWork
           ? `<p>The empty Pallet ${pallet.number} draft will not be included. Only the ${plural(completed.length, "verified pallet")} shown above will appear in the final report.</p>`
           : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will be ready for office completion.</p>`}
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep COC Open</button><button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button></div>`, { label: "Complete COC review" });
+      <div class="atlas-coc-modal-actions atlas-coc-final-actions"><button type="button" data-coc-action="view-draft-official" ${blocked || !completed.length ? "disabled" : ""}>View Official COC</button>${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Return to Send</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button>`}</div>`, { label: "Complete COC review" });
   }
 
   function mismatchModal() {
@@ -1749,6 +1782,8 @@
     if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
     if (action === "view-completed-official") { await openCompletedWorkbookPreview(); return; }
     if (action === "close-completed-official") { workflowView = "history-detail"; renderAll(); return; }
+    if (action === "view-draft-official") { await openDraftWorkbookPreview(); return; }
+    if (action === "close-draft-official") { workflowView = "session"; modal = "review-complete"; renderAll(); return; }
     if (action === "review-resend-completed") { modal = "resend-completed"; renderAll(); return; }
     if (action === "confirm-resend-completed") { await resendCompletedCoc(); return; }
     if (action === "receiver-setup") { workflowView = "receiver-setup"; renderAll(); return; }

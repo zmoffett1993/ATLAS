@@ -52,8 +52,9 @@
     // CGUB1 or CGAC1) and prepend the remaining SKU structure to the real lot.
     // This full derived signature is authoritative; short color-only suffixes
     // are deliberately excluded because they can occur inside legitimate lots.
-    const signature = parts.slice(1).join("");
-    return signature.length >= 4 ? [signature] : [];
+    const fullSku = parts.join("");
+    const warehousePrefix = parts.slice(1).join("");
+    return [...new Set([fullSku, warehousePrefix].filter((value) => value.length >= 4))];
   }
 
   function modernPrefixes(modelValue) {
@@ -69,13 +70,13 @@
     return indexes[start + length - 1] ?? -1;
   }
 
-  function prefixMatch(normalizedCandidate, signature, allowFuzzyPrefix) {
+  function prefixMatch(normalizedCandidate, signature, allowFuzzyPrefix, maximumPrefixStart = 4) {
     const exactAt = normalizedCandidate.indexOf(signature);
-    if (exactAt >= 0 && exactAt <= 4) {
+    if (exactAt >= 0 && exactAt <= maximumPrefixStart) {
       return { accepted: true, start: exactAt, exact: true, fuzzy: false, distance: 0 };
     }
     if (!allowFuzzyPrefix || normalizedCandidate.length < signature.length) return null;
-    const maximumStart = Math.min(4, normalizedCandidate.length - signature.length);
+    const maximumStart = Math.min(maximumPrefixStart, normalizedCandidate.length - signature.length);
     for (let start = 0; start <= maximumStart; start += 1) {
       const candidatePrefix = normalizedCandidate.slice(start, start + signature.length);
       const equivalent = ocrEquivalent(candidatePrefix) === ocrEquivalent(signature);
@@ -117,7 +118,16 @@
     }
 
     for (const signature of skuBoundarySignatures(expectedSku)) {
-      const match = prefixMatch(normalizedCandidate, signature, allowFuzzyPrefix);
+      const isFullSku = signature === normalizedSku;
+      // A complete SKU must begin the scan. The warehouse shorthand may have
+      // a short supplier marker before it, but is never removed from the
+      // middle of an otherwise unknown lot value.
+      const match = prefixMatch(
+        normalizedCandidate,
+        signature,
+        allowFuzzyPrefix && !isFullSku,
+        isFullSku ? 0 : 4,
+      );
       if (!match) continue;
       const boundary = canonicalRangeEnd(rawCandidate, match.start, signature.length);
       const lot = cleanLot(rawCandidate.slice(boundary).replace(/^[^A-Z0-9]+/i, ""));
