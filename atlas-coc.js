@@ -1191,16 +1191,40 @@
     const pallet = activePallet();
     const models = Core.palletModels(session, pallet);
     return modalShell(`<span class="atlas-coc-eyebrow">SKUs ON PALLET ${pallet?.number || 1}</span><h2>Edit or remove a SKU</h2>
-      <p>Choose a SKU for editing or tap its small Remove SKU button. ATLAS will prevent removal while recorded lots still use it.</p>
+      <p>Choose Edit SKU to correct it, or Remove SKU when it does not belong on this pallet. ATLAS will prevent removal while recorded lots still use it.</p>
       <div class="atlas-coc-model-manager">${models.map((model) => {
         const isActive = model.modelNumber === activeModelContext();
         const count = pallet.lots.filter((lot) => lot.model === model.modelNumber).reduce((total, lot) => total + lot.cases, 0);
         return `<section class="${isActive ? "is-active" : ""}"><div><strong>${escapeHtml(model.modelNumber)}</strong><small>${formatQuantity(model.caseQuantity)} units per case${isActive ? " · Active" : ""}</small><button type="button" class="atlas-coc-correct-quantity" data-coc-action="correct-model-quantity" data-model="${escapeHtml(model.modelNumber)}">Correct Quantity</button></div>
-          ${isActive ? "" : `<button type="button" data-coc-action="select-coc-model" data-model="${escapeHtml(model.modelNumber)}">Use this model</button>`}
-          <button type="button" class="is-remove" data-coc-action="review-remove-coc-model" data-model="${escapeHtml(model.modelNumber)}">Remove SKU</button>
+          <div class="atlas-coc-model-manager-actions">
+            ${isActive ? "" : `<button type="button" data-coc-action="select-coc-model" data-model="${escapeHtml(model.modelNumber)}">Use this model</button>`}
+            <button type="button" class="is-edit" data-coc-action="edit-coc-model" data-model="${escapeHtml(model.modelNumber)}">Edit SKU</button>
+            <button type="button" class="is-remove" data-coc-action="review-remove-coc-model" data-model="${escapeHtml(model.modelNumber)}">Remove SKU</button>
+          </div>
           ${count ? `<small class="atlas-coc-model-protected">${plural(count, "box")} currently ${count === 1 ? "uses" : "use"} this SKU</small>` : models.length <= 1 ? `<small class="atlas-coc-model-protected">Add a replacement SKU before removing this one</small>` : ""}
         </section>`;
       }).join("")}</div>`, { label: "Edit or remove pallet SKUs" });
+  }
+
+  function editModelModal(modelNumber) {
+    const pallet = activePallet();
+    const model = Core.palletModels(session, pallet)
+      .find((item) => modelKey(item.modelNumber) === modelKey(modelNumber));
+    if (!pallet || !model) return "";
+    const affectedLots = pallet.lots.filter(
+      (lot) => modelKey(lot.model) === modelKey(model.modelNumber),
+    );
+    const affectedBoxes = affectedLots.reduce((total, lot) => total + lot.cases, 0);
+    return modalShell(`<span class="atlas-coc-eyebrow">EDIT SKU</span><h2>Replace ${escapeHtml(model.modelNumber)}</h2>
+      <p>Choose the correct SKU for Pallet ${pallet.number}. ATLAS will keep ${plural(affectedLots.length, "lot")} and ${plural(affectedBoxes, "box")} attached to it, then recalculate their units using the replacement SKU's quantity.</p>
+      <form id="atlas-coc-edit-model-form" class="atlas-coc-manual-form" data-original-model="${escapeHtml(model.modelNumber)}">
+        <label><strong>Correct SKU / Model Number</strong><input name="modelNumber" class="atlas-coc-model-search" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Type the replacement SKU" role="combobox" aria-expanded="false" aria-controls="atlas-coc-edit-model-suggestions" required autofocus /></label>
+        <div id="atlas-coc-edit-model-suggestions" class="atlas-coc-model-suggestions" role="listbox"></div>
+        <p class="atlas-coc-model-result" aria-live="polite">Enter the correct replacement SKU.</p>
+        ${manualCaseQuantityMarkup()}
+        <p class="atlas-coc-form-error" aria-live="polite"></p>
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="return-manage-models">Cancel</button><button type="submit" class="atlas-coc-primary">Save SKU Change</button></div>
+      </form>`, { label: `Edit SKU ${model.modelNumber} on pallet ${pallet.number}`, dismiss: false });
   }
 
   function allLotsModal() {
@@ -1261,6 +1285,7 @@
     if (modal?.type === "mismatch") return mismatchModal();
     if (modal?.type === "edit-expected") return editExpectedModal();
     if (modal?.type === "correct-model-quantity") return correctModelQuantityModal(modal.model);
+    if (modal?.type === "edit-model") return editModelModal(modal.model);
     if (modal?.type === "confirm-expected-change") return confirmExpectedChangeModal(modal);
     if (modal?.type === "verified") return verifiedModal();
     // Old rejection states from interrupted pre-update sessions are converted
@@ -2002,6 +2027,11 @@
       renderAll();
       return;
     }
+    if (action === "edit-coc-model") {
+      modal = { type: "edit-model", model: button.dataset.model };
+      renderAll();
+      return;
+    }
     if (action === "confirm-remove-coc-model") {
       try {
         session = Core.removeModel(session, button.dataset.model);
@@ -2447,6 +2477,36 @@
         showToast(`${modelNumber} corrected · ${formatQuantity(next)} units per box`);
       } catch {
         error.textContent = "The corrected quantity could not be saved.";
+      }
+      return;
+    }
+    if (event.target.id === "atlas-coc-edit-model-form") {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      const originalModel = event.target.dataset.originalModel;
+      const value = String(data.get("modelNumber") || "").trim();
+      const record = workflowModelRecord(value, data.get("manualCaseQuantity"));
+      const error = event.target.querySelector(".atlas-coc-form-error");
+      if (!record) {
+        if (value) revealManualQuantity(event.target, value);
+        else event.target.elements.modelNumber?.focus?.();
+        if (error) error.textContent = value
+          ? "Enter the number of units packed in each box for this SKU."
+          : "Enter the correct replacement SKU / Model Number.";
+        return;
+      }
+      try {
+        session = Core.updateModel(session, originalModel, record);
+        modal = "manage-models";
+        persist();
+        showToast(`${originalModel} changed to ${record.modelNumber} · verify the pallet again`);
+      } catch (failure) {
+        if (!error) return;
+        error.textContent = failure?.code === "MODEL_ALREADY_ON_PALLET"
+          ? "That SKU is already on this pallet. Edit its lots directly instead."
+          : failure?.message === "MODEL_UNCHANGED"
+            ? "Choose a different SKU, or press Cancel."
+            : "The SKU change could not be saved.";
       }
       return;
     }

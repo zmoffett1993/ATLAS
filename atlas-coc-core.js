@@ -610,6 +610,77 @@
     });
   }
 
+  function updateModel(source, originalValue, replacement) {
+    const session = sanitize(clone(source));
+    const pallet = activePallet(session);
+    if (!pallet || session.status !== "active") throw new Error("NO_ACTIVE_PALLET");
+    const originalKey = canonicalModel(originalValue);
+    const original = pallet.models.find(
+      (model) => canonicalModel(model.modelNumber) === originalKey,
+    );
+    const normalized = normalizeModelRecord(replacement);
+    if (!original) throw new Error("MODEL_NOT_FOUND");
+    if (!normalized?.caseQuantity) throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
+    const replacementKey = canonicalModel(normalized.modelNumber);
+    if (replacementKey === originalKey) throw new Error("MODEL_UNCHANGED");
+    if (pallet.models.some((model) => canonicalModel(model.modelNumber) === replacementKey)) {
+      const error = new Error("MODEL_ALREADY_ON_PALLET");
+      error.code = "MODEL_ALREADY_ON_PALLET";
+      throw error;
+    }
+
+    const sessionReplacement = session.models.find(
+      (model) => canonicalModel(model.modelNumber) === replacementKey,
+    );
+    const selected = sessionReplacement || {
+      ...normalized,
+      sourceRevision: normalized.sourceRevision || "EMPLOYEE CORRECTED FOR THIS COC",
+      addedAt: normalized.addedAt || timestamp(),
+    };
+    if (!sessionReplacement) session.models.push(selected);
+    pallet.models = pallet.models.map((model) =>
+      canonicalModel(model.modelNumber) === originalKey ? selected : model);
+    pallet.modelNumbers = pallet.models.map((model) => model.modelNumber);
+    const changedLots = pallet.lots.filter((lot) => canonicalModel(lot.model) === originalKey);
+    changedLots.forEach((lot) => {
+      lot.model = selected.modelNumber;
+      lot.sku = selected.modelNumber;
+      lot.expectedModel = selected.modelNumber;
+      lot.caseQuantity = selected.caseQuantity;
+      lot.validationMethod = "employee_sku_correction";
+      lot.confirmedBy = cleanText(session.employee, 60);
+    });
+    pallet.activeModel = canonicalModel(pallet.activeModel) === originalKey
+      ? selected.modelNumber : pallet.activeModel;
+    session.activeModel = canonicalModel(session.activeModel) === originalKey
+      ? selected.modelNumber : session.activeModel;
+    session.sku = canonicalModel(session.sku) === originalKey
+      ? selected.modelNumber : session.sku;
+
+    const originalStillUsed = session.pallets.some((item) =>
+      item.models.some((model) => canonicalModel(model.modelNumber) === originalKey) ||
+      item.lots.some((lot) => canonicalModel(lot.model) === originalKey));
+    if (!originalStillUsed) {
+      session.models = session.models.filter(
+        (model) => canonicalModel(model.modelNumber) !== originalKey,
+      );
+    }
+    session.modelNumbers = session.models.map((model) => model.modelNumber);
+    if (changedLots.length) {
+      pallet.verificationState = "in_progress";
+      pallet.verificationAttemptedAt = null;
+      pallet.verifiedAt = null;
+    }
+    return withActivity(session, "model_corrected", {
+      palletNumber: pallet.number,
+      previousModel: original.modelNumber,
+      model: selected.modelNumber,
+      caseQuantity: selected.caseQuantity,
+      affectedLots: changedLots.length,
+      scope: "current_pallet",
+    });
+  }
+
   function addModel(source, record) {
     const session = sanitize(clone(source));
     const normalized = normalizeModelRecord(record);
@@ -960,6 +1031,7 @@
     selectLot,
     updateLot,
     updateModelCaseQuantity,
+    updateModel,
     addCase,
     undoCase,
     setExpectedBoxCount,
