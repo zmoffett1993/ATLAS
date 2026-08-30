@@ -537,6 +537,38 @@
     });
   }
 
+  // A model may be removed from the active pallet only while it has no
+  // recorded lots. This prevents a correction from silently re-labeling
+  // compliance evidence that has already been counted.
+  function removeModel(source, value) {
+    const session = sanitize(clone(source));
+    const pallet = activePallet(session);
+    const selected = pallet?.models?.find(
+      (model) => canonicalModel(model.modelNumber) === canonicalModel(value),
+    );
+    if (!pallet || !selected) throw new Error("MODEL_NOT_FOUND");
+    if (pallet.models.length <= 1) throw new Error("LAST_MODEL_REQUIRED");
+    if (pallet.lots.some((lot) => canonicalModel(lot.model) === canonicalModel(selected.modelNumber))) {
+      const error = new Error("MODEL_HAS_RECORDED_LOTS");
+      error.code = "MODEL_HAS_RECORDED_LOTS";
+      throw error;
+    }
+    pallet.models = pallet.models.filter(
+      (model) => canonicalModel(model.modelNumber) !== canonicalModel(selected.modelNumber),
+    );
+    pallet.modelNumbers = pallet.models.map((model) => model.modelNumber);
+    if (canonicalModel(pallet.activeModel) === canonicalModel(selected.modelNumber)) {
+      pallet.activeModel = pallet.models[0].modelNumber;
+      session.activeModel = pallet.activeModel;
+      session.sku = pallet.activeModel;
+      pallet.activeLotId = null;
+    }
+    return withActivity(session, "model_removed", {
+      palletNumber: pallet.number,
+      model: selected.modelNumber,
+    });
+  }
+
   function addCase(source) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
@@ -794,6 +826,7 @@
     addLot,
     addModel,
     selectModel,
+    removeModel,
     selectLot,
     addCase,
     undoCase,

@@ -400,14 +400,12 @@
 
   function activeModelMarkup(pallet) {
     const active = Core.modelRecord(session, activeModelContext());
-    const availableModels = Core.palletModels(session, pallet);
     return `<section class="atlas-coc-model-switcher" aria-label="Active model">
-      <div><span>ACTIVE MODEL</span><strong>${escapeHtml(active?.modelNumber || "Choose a model")}</strong><small>${active?.caseQuantity ? `${formatQuantity(active.caseQuantity)} units per case` : "Case quantity unavailable"}</small></div>
-      <label><span>Change model</span><select id="atlas-coc-active-model" aria-label="Change active model">
-        ${availableModels.map((model) => `<option value="${escapeHtml(model.modelNumber)}" ${model.modelNumber === active?.modelNumber ? "selected" : ""}>${escapeHtml(model.modelNumber)} · ${formatQuantity(model.caseQuantity)}/case</option>`).join("")}
-      </select></label>
-      <button type="button" data-coc-action="add-coc-model">+ Add Model</button>
-      ${pallet?.activeLotId ? "" : `<p>New lot scans will be checked against this model.</p>`}
+      <div class="atlas-coc-model-summary"><span>ACTIVE MODEL</span>
+        <strong>${escapeHtml(active?.modelNumber || "Choose a model")}</strong>
+        <small>${active?.caseQuantity ? `${formatQuantity(active.caseQuantity)} units per case` : "Case quantity unavailable"}</small></div>
+      <div class="atlas-coc-model-actions"><button type="button" data-coc-action="add-coc-model">+ Add SKU</button>
+        <button type="button" data-coc-action="manage-coc-models">Edit / Remove</button></div>
     </section>`;
   }
 
@@ -440,34 +438,28 @@
     if (!pallet.expectedBoxes || !Core.palletModels(session, pallet).length) return expectedCountMarkup(pallet);
     const total = Core.palletTotal(pallet);
     const finished = completedPallets();
-    const locked = finished.length;
     const difference = total - pallet.expectedBoxes;
     const atLimit = total >= pallet.expectedBoxes;
     return `<div class="atlas-coc-page atlas-coc-counting">
       <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
-      ${sessionHeaderMarkup()}
       <header class="atlas-coc-count-head">
-        <div><span>PALLET</span><h1>${pallet.number}</h1>${locked ? `<small>${plural(locked, "pallet")} completed</small>` : ""}</div>
-        <div class="atlas-coc-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes}</strong><span>Recorded / Confirmed Boxes</span></div>
+        <span>Pallet ${pallet.number}</span>
+        <strong class="${difference > 0 ? "is-over" : ""}">${total} of ${pallet.expectedBoxes} boxes</strong>
       </header>
       ${activeModelMarkup(pallet)}
-      ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed pallet total. Review before finishing.</p>` : ""}
-      ${finished.length ? `<section class="atlas-coc-pallet-progress" aria-label="Completed pallets">
-        <div class="atlas-coc-section-title"><h2>COC Progress</h2><span>${plural(finished.length, "finished pallet")}</span></div>
-        <div>${finished.map((item) => `<button type="button" class="atlas-coc-pallet-chip" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}"><span aria-hidden="true">✓</span><div><strong>Pallet ${item.number}</strong><small>${plural(Core.palletTotal(item), "box")} · ${plural(item.lots.length, "lot")} · Verified &amp; Locked</small></div><b>Review</b></button>`).join("")}</div>
-      </section>` : ""}
+      ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed count. Undo a box or correct the count before finishing.</p>` : ""}
       ${lot ? `<section class="atlas-coc-active-lot">
-        <span>ACTIVE LOT · ${escapeHtml(lot.model || activeModelContext())}</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2><strong>${plural(lot.cases, "box")}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small>
+        <span>ACTIVE LOT</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2><strong>${plural(lot.cases, "box")}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small>
         <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
-      </section>` : `<section class="atlas-coc-no-lot"><span>PALLET ${pallet.number} · ${escapeHtml(activeModelContext())}</span>
+      </section>` : `<section class="atlas-coc-no-lot"><span>Ready to count</span>
         <button type="button" class="atlas-coc-primary" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>+ New Lot</button></section>`}
-      ${atLimit ? `<p class="atlas-coc-limit-message">${escapeHtml(Core.boxLimitMessage(pallet))}</p>` : ""}
+      ${atLimit ? `<p class="atlas-coc-limit-message">Pallet count reached — verify and finish when you are ready.</p>` : ""}
       ${lot ? `<div class="atlas-coc-secondary-actions">
-        <button type="button" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>+ New Lot</button>
-        <button type="button" data-coc-action="undo" ${pallet.history.length ? "" : "disabled"}>↶ Undo Last Box</button>
+        <button type="button" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>New lot</button>
+        <button type="button" data-coc-action="undo" ${pallet.history.length ? "" : "disabled"}>Undo last box</button>
       </div>` : ""}
-      <section class="atlas-coc-lots">
-        <div class="atlas-coc-section-title"><h2>Lots on This Pallet</h2><span>${plural(pallet.lots.length, "lot")}</span></div>
+      <section class="atlas-coc-lots ${pallet.lots.length <= 1 ? "is-compact" : ""}">
+        <div class="atlas-coc-section-title"><h2>Recorded lots</h2><span>${plural(pallet.lots.length, "lot")}</span></div>
         ${pallet.lots.length ? `<div class="atlas-coc-lot-list">${pallet.lots.map((item) => `
           <button type="button" class="atlas-coc-lot-row ${item.id === pallet.activeLotId ? "is-active" : ""}" data-coc-action="select-lot" data-lot-id="${escapeHtml(item.id)}" aria-pressed="${item.id === pallet.activeLotId}">
             <span><small>${item.id === pallet.activeLotId ? "ACTIVE" : "MODEL"} · ${escapeHtml(item.model || "UNASSIGNED")}</small><strong>${escapeHtml(Core.displayLot(item.lot))}</strong></span>
@@ -790,15 +782,31 @@
   }
 
   function addModelModal() {
-    return modalShell(`<span class="atlas-coc-eyebrow">ADD MODEL</span><h2>Add another model</h2>
+    return modalShell(`<span class="atlas-coc-eyebrow">ADD SKU</span><h2>Add SKU to this pallet</h2>
       <p>Search the approved model catalog. ATLAS applies the stored CASE QTY and validates new lot scans against your selection.</p>
       <form id="atlas-coc-add-model-form" class="atlas-coc-manual-form">
-        <label><strong>Model Number</strong><input name="modelNumber" class="atlas-coc-model-search" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Type any part of a model" role="combobox" aria-expanded="false" aria-controls="atlas-coc-model-suggestions" required /></label>
+        <label><strong>SKU / Model Number</strong><input name="modelNumber" class="atlas-coc-model-search" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Type any part of a SKU" role="combobox" aria-expanded="false" aria-controls="atlas-coc-model-suggestions" required /></label>
         <div id="atlas-coc-model-suggestions" class="atlas-coc-model-suggestions" role="listbox"></div>
         <p class="atlas-coc-model-result" aria-live="polite">Enter the complete model number on the shipment.</p>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
-        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Add &amp; Select Model</button></div>
-      </form>`, { label: "Add COC model" });
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Add &amp; Select SKU</button></div>
+      </form>`, { label: "Add COC SKU" });
+  }
+
+  function manageModelsModal() {
+    const pallet = activePallet();
+    const models = Core.palletModels(session, pallet);
+    return modalShell(`<span class="atlas-coc-eyebrow">SKUs ON PALLET ${pallet?.number || 1}</span><h2>Edit or remove a SKU</h2>
+      <p>Choose the SKU for the next lot or remove an unused one. A SKU with counted boxes stays protected until those boxes are undone.</p>
+      <div class="atlas-coc-model-manager">${models.map((model) => {
+        const isActive = model.modelNumber === activeModelContext();
+        const count = pallet.lots.filter((lot) => lot.model === model.modelNumber).reduce((total, lot) => total + lot.cases, 0);
+        const removable = models.length > 1 && count === 0;
+        return `<section class="${isActive ? "is-active" : ""}"><div><strong>${escapeHtml(model.modelNumber)}</strong><small>${formatQuantity(model.caseQuantity)} units per case${isActive ? " · Active" : ""}</small></div>
+          ${isActive ? "" : `<button type="button" data-coc-action="select-coc-model" data-model="${escapeHtml(model.modelNumber)}">Use this model</button>`}
+          ${removable ? `<button type="button" class="is-remove" data-coc-action="remove-coc-model" data-model="${escapeHtml(model.modelNumber)}">Remove</button>` : count ? `<small class="atlas-coc-model-protected">Undo ${plural(count, "box")} before removing</small>` : ""}
+        </section>`;
+      }).join("")}</div>`, { label: "Edit or remove pallet SKUs" });
   }
 
   function updateModelSuggestions(input) {
@@ -833,6 +841,7 @@
     if (modal === "reading") return readingModal();
     if (modal === "confirm-lot") return confirmLotModal();
     if (modal === "manual-lot") return manualLotModal();
+    if (modal === "manage-models") return manageModelsModal();
     if (modal === "add-model") return addModelModal();
     if (modal === "storage-error") return storageErrorModal();
     if (modal?.type === "duplicate") return duplicateModal(modal.lot);
@@ -1389,6 +1398,32 @@
       return;
     }
     if (action === "add-coc-model") { modal = "add-model"; renderAll(); return; }
+    if (action === "manage-coc-models") { modal = "manage-models"; renderAll(); return; }
+    if (action === "select-coc-model") {
+      try {
+        session = Core.selectModel(session, button.dataset.model);
+        modal = null;
+        persist();
+        showToast(`Active model · ${session.activeModel}`);
+      } catch {
+        showToast("That model could not be selected.", "warning");
+      }
+      return;
+    }
+    if (action === "remove-coc-model") {
+      try {
+        session = Core.removeModel(session, button.dataset.model);
+        persist();
+        modal = "manage-models";
+        renderAll();
+        showToast("Model removed from this pallet.");
+      } catch (error) {
+        showToast(error?.code === "MODEL_HAS_RECORDED_LOTS"
+          ? "Undo the boxes recorded under this model before removing it."
+          : "Keep at least one model on a pallet.", "warning");
+      }
+      return;
+    }
     if (action === "select-model-suggestion") {
       const form = button.closest("form"); const input = form?.elements?.modelNumber;
       if (input) { input.value = button.dataset.model || ""; updateModelInputFeedback(input); updateModelSuggestions(input); input.focus(); }
