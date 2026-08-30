@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v200-desktop-coc-resume-layout";
+const VERSION = "atlas-pwa-v201-desktop-pointer-affordance";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -28,7 +28,7 @@ const APP_SHELL = [
   "./atlas-restock.css?v=3",
   "./atlas-restock.js?v=3",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=144",
+  "./atlas-desktop.css?v=145",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=1",

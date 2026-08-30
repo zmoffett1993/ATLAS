@@ -3,6 +3,26 @@
    picker experience remains the source of truth below this desktop query. */
 
 @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  /* Universal desktop affordance: clickable controls always show the hand
+     cursor, while unavailable controls are visibly non-interactive. */
+  html.atlas-desktop button:not(:disabled):not([aria-disabled="true"]),
+  html.atlas-desktop [role="button"]:not([aria-disabled="true"]),
+  html.atlas-desktop input[type="button"]:not(:disabled),
+  html.atlas-desktop input[type="submit"]:not(:disabled),
+  html.atlas-desktop input[type="reset"]:not(:disabled),
+  html.atlas-desktop a[href] {
+    cursor: pointer !important;
+  }
+
+  html.atlas-desktop button:disabled,
+  html.atlas-desktop button[aria-disabled="true"],
+  html.atlas-desktop input[type="button"]:disabled,
+  html.atlas-desktop input[type="submit"]:disabled,
+  html.atlas-desktop input[type="reset"]:disabled,
+  html.atlas-desktop [role="button"][aria-disabled="true"] {
+    cursor: not-allowed !important;
+  }
+
   :root {
     --atlas-desktop-sidebar: 264px;
     --atlas-desktop-inventory-flyout: 304px;
