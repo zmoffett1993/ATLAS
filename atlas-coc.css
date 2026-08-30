@@ -757,6 +757,256 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-secondary-actions { margin:10px 0 14px; }.atlas-coc-secondary-actions button { min-height:44px; border-radius:12px; font-size:13px; }.atlas-coc-lots { margin-top:14px; }.atlas-coc-lots.is-compact .atlas-coc-section-title { padding:12px 15px; }.atlas-coc-lots.is-compact .atlas-coc-lot-list { padding:7px; }.atlas-coc-lots.is-compact .atlas-coc-lot-row { min-height:58px; margin-bottom:0; padding:9px 11px; border-radius:11px; }.atlas-coc-lots.is-compact .atlas-coc-lot-row small { font-size:9px; }.atlas-coc-lots.is-compact .atlas-coc-lot-row strong { font-size:16px; }
 .atlas-coc-active-lot > small { display: block; margin: -10px 0 16px; color: var(--coc-muted); font-weight: 800; }
 
+/* Locked compact pallet counter: SKU rail, multi-lot grid, and one-tap count. */
+.atlas-coc-counting {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.atlas-coc-count-back { align-self: flex-start; margin: 0 0 6px; }
+.atlas-coc-counting .atlas-coc-count-head {
+  position: sticky;
+  top: calc(8px + env(safe-area-inset-top));
+  z-index: 8;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  margin: 0 0 15px;
+  padding: 17px 20px;
+  color: #fff;
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(34, 132, 255, .35), transparent 42%),
+    linear-gradient(125deg, var(--coc-navy), #0a3d84);
+  box-shadow: 0 13px 30px rgba(4, 31, 70, .17);
+}
+.atlas-coc-pallet-number { min-width: 70px; }
+.atlas-coc-pallet-number span,
+.atlas-coc-pallet-number strong,
+.atlas-coc-pallet-total strong,
+.atlas-coc-pallet-total small { display: block; }
+.atlas-coc-pallet-number span {
+  color: #a8d5ff;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .2em;
+}
+.atlas-coc-pallet-number strong { margin-top: 2px; font-size: 37px; line-height: 1; }
+.atlas-coc-pallet-total { min-width: 0; text-align: right; }
+.atlas-coc-pallet-total strong { font-size: clamp(22px, 6vw, 31px); line-height: 1; white-space: nowrap; }
+.atlas-coc-pallet-total small { margin-top: 7px; color: #c9e0f8; font-size: 12px; font-weight: 750; }
+.atlas-coc-pallet-total.is-over strong,
+.atlas-coc-pallet-total.is-over small { color: #ffd1d5; }
+
+.atlas-coc-count-models,
+.atlas-coc-count-lots {
+  min-width: 0;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--coc-line);
+}
+.atlas-coc-selector-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.atlas-coc-selector-title h2 {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--coc-blue-dark);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .13em;
+}
+.atlas-coc-selector-add,
+.atlas-coc-manage-models,
+.atlas-coc-view-all-lots {
+  min-height: 40px;
+  color: var(--coc-blue-dark);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  border: 1px solid #9fc6f2;
+  border-radius: 13px;
+  background: #fff;
+}
+.atlas-coc-selector-add { flex: 0 0 auto; min-width: 76px; padding: 0 14px; }
+.atlas-coc-model-rail {
+  display: flex;
+  gap: 9px;
+  padding: 2px 1px 7px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scroll-snap-type: inline proximity;
+}
+.atlas-coc-model-chip {
+  flex: 0 0 auto;
+  min-width: 178px;
+  min-height: 51px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 13px;
+  color: var(--coc-ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+  border: 1.5px solid #a9cbee;
+  border-radius: 14px;
+  background: #fff;
+  scroll-snap-align: start;
+}
+.atlas-coc-model-chip strong { white-space: nowrap; }
+.atlas-coc-model-chip span { color: var(--coc-muted); font-weight: 900; white-space: nowrap; }
+.atlas-coc-model-chip.is-active {
+  color: #fff;
+  border-color: var(--coc-blue);
+  background: linear-gradient(112deg, #0873fa, #0954c8);
+  box-shadow: 0 7px 17px rgba(7, 87, 202, .2);
+}
+.atlas-coc-model-chip.is-active span { color: #d9ebff; }
+.atlas-coc-manage-models {
+  display: block;
+  min-width: 136px;
+  margin: 4px 0 0 auto;
+  padding: 0 12px;
+}
+
+.atlas-coc-count-lots { padding-bottom: 16px; }
+.atlas-coc-lot-grid,
+.atlas-coc-all-lots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+.atlas-coc-lot-chip {
+  min-width: 0;
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 7px;
+  overflow: hidden;
+  color: var(--coc-ink);
+  font: inherit;
+  font-size: clamp(10px, 2.7vw, 13px);
+  text-align: center;
+  border: 1.5px solid #a9cbee;
+  border-radius: 14px;
+  background: #fff;
+}
+.atlas-coc-lot-chip strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atlas-coc-lot-chip span { flex: 0 0 auto; color: var(--coc-muted); font-weight: 900; }
+.atlas-coc-lot-chip.is-active {
+  color: #fff;
+  border-color: var(--coc-blue);
+  background: linear-gradient(112deg, #0873fa, #0954c8);
+  box-shadow: 0 7px 17px rgba(7, 87, 202, .2);
+}
+.atlas-coc-lot-chip.is-active span { color: #d9ebff; }
+.atlas-coc-new-lot-chip { color: var(--coc-blue-dark); font-weight: 950; }
+.atlas-coc-lot-chip:disabled { color: #97a5b5; border-color: #d5e0eb; background: #f2f5f8; }
+.atlas-coc-view-all-lots {
+  margin-top: 9px;
+  padding: 0 8px;
+  border-color: transparent;
+  background: transparent;
+}
+.atlas-coc-view-all-lots span { margin-right: 5px; font-size: 17px; }
+.atlas-coc-all-lots-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: min(48vh, 420px);
+  margin: 17px 0;
+  padding: 2px;
+  overflow-y: auto;
+}
+
+.atlas-coc-count-status {
+  min-height: 126px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(118px, .65fr);
+  align-items: center;
+  gap: 15px;
+  margin: 17px 0 11px;
+  padding: 17px 20px;
+  border: 1.5px solid #8cc1f7;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #f8fcff, #eaf4ff);
+  box-shadow: 0 9px 24px rgba(8, 85, 180, .09);
+}
+.atlas-coc-count-selection { min-width: 0; padding-right: 15px; border-right: 1px solid #a8cdf4; }
+.atlas-coc-count-selection span,
+.atlas-coc-count-selection strong,
+.atlas-coc-count-selection b,
+.atlas-coc-lot-count strong,
+.atlas-coc-lot-count small { display: block; }
+.atlas-coc-count-selection span,
+.atlas-coc-count-status.is-empty span {
+  color: var(--coc-blue-dark);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .16em;
+}
+.atlas-coc-count-selection strong,
+.atlas-coc-count-status.is-empty strong {
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  font-size: clamp(15px, 4vw, 20px);
+}
+.atlas-coc-count-selection b,
+.atlas-coc-count-status.is-empty b { margin-top: 5px; overflow-wrap: anywhere; font-size: 14px; }
+.atlas-coc-lot-count { text-align: center; }
+.atlas-coc-lot-count strong { color: #0b5dcc; font-size: clamp(28px, 7vw, 39px); line-height: 1; white-space: nowrap; }
+.atlas-coc-lot-count small { margin-top: 7px; color: var(--coc-muted); font-weight: 750; }
+.atlas-coc-count-status.is-empty { display: block; min-height: 0; padding-block: 20px; }
+.atlas-coc-counting > .atlas-coc-add-case {
+  min-height: 66px;
+  border-radius: 16px;
+  font-size: clamp(21px, 6vw, 28px);
+}
+.atlas-coc-counting > .atlas-coc-add-case span { font-size: 32px; }
+.atlas-coc-counting > .atlas-coc-add-case:disabled { opacity: .42; box-shadow: none; }
+.atlas-coc-count-confirmation {
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 0;
+}
+.atlas-coc-count-confirmation button {
+  min-height: 38px;
+  padding: 0;
+  color: var(--coc-blue-dark);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+.atlas-coc-count-confirmation button:disabled { color: #9aa8b6; }
+.atlas-coc-count-feedback {
+  color: var(--coc-green);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: right;
+}
+.atlas-coc-count-feedback.is-info { color: var(--coc-blue-dark); }
+.atlas-coc-counting .atlas-coc-finish-actions { margin-top: 14px; }
+.atlas-coc-counting .atlas-coc-finish:disabled { color: #7793bd; opacity: .62; background: #fbfdff; }
+
 .atlas-coc-report-head { padding: 23px; color: #fff; border-radius: 23px; background: linear-gradient(135deg, #07305f, #0876e9); }
 .atlas-coc-report-head > span { font-size: 11px; font-weight: 950; letter-spacing: .16em; color: #bce1ff; }
 .atlas-coc-report-head h1 { margin: 6px 0; font-size: 31px; }
@@ -839,6 +1089,16 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   .atlas-coc-compare.is-mismatch strong { font-size: 29px; }
   .atlas-coc-report-verification { grid-template-columns: 1fr 1fr; }
   .atlas-coc-report-verification .is-verified { grid-column: 1 / -1; }
+  .atlas-coc-lot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .atlas-coc-counting .atlas-coc-count-head { padding: 15px 17px; }
+  .atlas-coc-count-status { grid-template-columns: minmax(0, 1.25fr) minmax(108px, .75fr); padding: 15px; }
+  .atlas-coc-count-selection { padding-right: 11px; }
+}
+
+@media (max-width: 370px) {
+  .atlas-coc-lot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .atlas-coc-count-status { grid-template-columns: 1fr auto; gap: 10px; }
+  .atlas-coc-lot-count strong { font-size: 26px; }
 }
 
 @media (min-width: 720px) {

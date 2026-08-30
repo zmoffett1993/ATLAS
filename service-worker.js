@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v201-desktop-pointer-affordance";
+const VERSION = "atlas-pwa-v202-compact-coc-counter";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=148",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=17",
+  "./atlas-coc.css?v=18",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=7",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=1",
   "./atlas-coc-delivery.js?v=2",
   "./atlas-coc-excel.js?v=7",
-  "./atlas-coc.js?v=21",
+  "./atlas-coc.js?v=22",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=1",
   "./coc-receiver/receiver.js?v=2",

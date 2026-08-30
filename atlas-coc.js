@@ -29,6 +29,8 @@
   let workflowView = "landing";
   let modal = null;
   let toastTimer = null;
+  let countFeedbackTimer = null;
+  let countFeedback = null;
   let cloudTimer = null;
   let scannerState = SCANNER_STATES.IDLE;
   let recognitionToken = 0;
@@ -215,6 +217,22 @@
   function activeLot() {
     const pallet = activePallet();
     return pallet?.lots.find((lot) => lot.id === pallet.activeLotId) || null;
+  }
+
+  const modelKey = (value) => String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const modelBoxTotal = (pallet, modelNumber) => (pallet?.lots || [])
+    .filter((lot) => modelKey(lot.model) === modelKey(modelNumber))
+    .reduce((total, lot) => total + Number(lot.cases || 0), 0);
+  const lotsForModel = (pallet, modelNumber) => (pallet?.lots || [])
+    .filter((lot) => modelKey(lot.model) === modelKey(modelNumber));
+
+  function setCountFeedback(message, tone = "success") {
+    countFeedback = { message, tone };
+    window.clearTimeout(countFeedbackTimer);
+    countFeedbackTimer = window.setTimeout(() => {
+      countFeedback = null;
+      if (workflowView === "session" && session?.status === "active") renderAll();
+    }, 1800);
   }
 
   function navigateWorkflows({ resume = false } = {}) {
@@ -419,6 +437,65 @@
     </section>`;
   }
 
+  function countingModelMarkup(pallet) {
+    const models = Core.palletModels(session, pallet);
+    const activeModel = activeModelContext();
+    return `<section class="atlas-coc-count-models" aria-label="SKUs on Pallet ${pallet.number}">
+      <div class="atlas-coc-selector-title"><h2>SKUs ON PALLET</h2>
+        <button type="button" class="atlas-coc-selector-add" data-coc-action="add-coc-model">+ SKU</button></div>
+      <div class="atlas-coc-model-rail" role="list" aria-label="Select a SKU">${models.map((model) => {
+        const selected = modelKey(model.modelNumber) === modelKey(activeModel);
+        return `<button type="button" role="listitem" class="atlas-coc-model-chip ${selected ? "is-active" : ""}" data-coc-action="select-coc-model" data-model="${escapeHtml(model.modelNumber)}" aria-pressed="${selected}">
+          <strong>${escapeHtml(model.modelNumber)}</strong><span>· ${modelBoxTotal(pallet, model.modelNumber)}</span></button>`;
+      }).join("")}</div>
+      <button type="button" class="atlas-coc-manage-models" data-coc-action="manage-coc-models">✎&nbsp; Edit / Remove</button>
+    </section>`;
+  }
+
+  function countingLotsMarkup(pallet, atLimit) {
+    const activeModel = activeModelContext();
+    const modelLots = lotsForModel(pallet, activeModel);
+    const activeId = pallet.activeLotId;
+    let visibleLots = modelLots.slice(0, 7);
+    if (activeId && !visibleLots.some((lot) => lot.id === activeId)) {
+      const selected = modelLots.find((lot) => lot.id === activeId);
+      if (selected) visibleLots = [...visibleLots.slice(0, 6), selected];
+    }
+    return `<section class="atlas-coc-count-lots" aria-label="Lots for ${escapeHtml(activeModel)}">
+      <div class="atlas-coc-selector-title"><h2>LOTS FOR ${escapeHtml(activeModel)}</h2></div>
+      <div class="atlas-coc-lot-grid" role="list" aria-label="Select a lot">${visibleLots.map((item) => {
+        const selected = item.id === activeId;
+        return `<button type="button" role="listitem" class="atlas-coc-lot-chip ${selected ? "is-active" : ""}" data-coc-action="select-lot" data-lot-id="${escapeHtml(item.id)}" aria-pressed="${selected}">
+          <strong>${escapeHtml(Core.displayLot(item.lot))}</strong><span>· ${item.cases}</span></button>`;
+      }).join("")}
+        <button type="button" class="atlas-coc-lot-chip atlas-coc-new-lot-chip" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>+ LOT</button>
+      </div>
+      ${modelLots.length > 4 ? `<button type="button" class="atlas-coc-view-all-lots" data-coc-action="show-all-lots"><span aria-hidden="true">▦</span> View All ${modelLots.length} Lots</button>` : ""}
+    </section>`;
+  }
+
+  function countingStatusMarkup(pallet, lot, atLimit) {
+    const activeModel = activeModelContext();
+    if (!lot) return `<section class="atlas-coc-count-status is-empty">
+      <div><span>READY TO COUNT</span><strong>${escapeHtml(activeModel)}</strong><b>Scan the first lot for this SKU</b></div>
+    </section>
+    <button type="button" class="atlas-coc-add-case" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>SCAN FIRST LOT</button>`;
+    const lastEntry = pallet.history[pallet.history.length - 1];
+    const undoLot = pallet.lots.find((item) => item.id === lastEntry?.lotId);
+    const feedback = countFeedback
+      ? `<span class="atlas-coc-count-feedback is-${escapeHtml(countFeedback.tone)}">${escapeHtml(countFeedback.message)}</span>`
+      : `<span class="atlas-coc-count-feedback" aria-hidden="true"></span>`;
+    return `<section class="atlas-coc-count-status">
+      <div class="atlas-coc-count-selection"><span>COUNTING</span><strong>${escapeHtml(activeModel)}</strong><b>LOT ${escapeHtml(Core.displayLot(lot.lot))}</b></div>
+      <div class="atlas-coc-lot-count"><strong>${plural(lot.cases, "box").toUpperCase()}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small></div>
+    </section>
+    <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
+    <div class="atlas-coc-count-confirmation">
+      <button type="button" data-coc-action="undo" ${lastEntry ? "" : "disabled"}>↶ Undo ${undoLot ? escapeHtml(Core.displayLot(undoLot.lot)) : "last box"}</button>
+      ${feedback}
+    </div>`;
+  }
+
   function expectedCountMarkup(pallet) {
     const locked = completedPallets().length;
     const recorded = Core.palletTotal(pallet);
@@ -450,34 +527,24 @@
     const finished = completedPallets();
     const difference = total - pallet.expectedBoxes;
     const atLimit = total >= pallet.expectedBoxes;
+    const remaining = Math.max(0, pallet.expectedBoxes - total);
+    const progressCopy = difference > 0
+      ? `${plural(difference, "box")} over approved count`
+      : remaining
+        ? `${plural(remaining, "box")} remaining`
+        : "Count reached — ready to verify";
     return `<div class="atlas-coc-page atlas-coc-counting">
-      <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
+      <button type="button" class="atlas-coc-back atlas-coc-count-back" data-coc-action="coc-back">‹ Back</button>
       <header class="atlas-coc-count-head">
-        <span>Pallet ${pallet.number}</span>
-        <strong class="${difference > 0 ? "is-over" : ""}">${total} of ${pallet.expectedBoxes} boxes</strong>
+        <div class="atlas-coc-pallet-number"><span>PALLET</span><strong>${pallet.number}</strong></div>
+        <div class="atlas-coc-pallet-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes} BOXES</strong><small>${escapeHtml(progressCopy)}</small></div>
       </header>
-      ${activeModelMarkup(pallet)}
+      ${countingModelMarkup(pallet)}
       ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed count. Undo a box or correct the count before finishing.</p>` : ""}
-      ${lot ? `<section class="atlas-coc-active-lot">
-        <span>ACTIVE LOT</span><h2>${escapeHtml(Core.displayLot(lot.lot))}</h2><strong>${plural(lot.cases, "box")}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small>
-        <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
-      </section>` : `<section class="atlas-coc-no-lot"><span>Ready to count</span>
-        <button type="button" class="atlas-coc-primary" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>+ New Lot</button></section>`}
-      ${atLimit ? `<p class="atlas-coc-limit-message">Pallet count reached — verify and finish when you are ready.</p>` : ""}
-      ${lot ? `<div class="atlas-coc-secondary-actions">
-        <button type="button" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>New lot</button>
-        <button type="button" data-coc-action="undo" ${pallet.history.length ? "" : "disabled"}>Undo last box</button>
-      </div>` : ""}
-      <section class="atlas-coc-lots ${pallet.lots.length <= 1 ? "is-compact" : ""}">
-        <div class="atlas-coc-section-title"><h2>Recorded lots</h2><span>${plural(pallet.lots.length, "lot")}</span></div>
-        ${pallet.lots.length ? `<div class="atlas-coc-lot-list">${pallet.lots.map((item) => `
-          <button type="button" class="atlas-coc-lot-row ${item.id === pallet.activeLotId ? "is-active" : ""}" data-coc-action="select-lot" data-lot-id="${escapeHtml(item.id)}" aria-pressed="${item.id === pallet.activeLotId}">
-            <span><small>${item.id === pallet.activeLotId ? "ACTIVE" : "MODEL"} · ${escapeHtml(item.model || "UNASSIGNED")}</small><strong>${escapeHtml(Core.displayLot(item.lot))}</strong></span>
-            <b>${item.cases}<small> ${item.cases === 1 ? "BOX" : "BOXES"} · ${formatQuantity(Core.lotUnitQuantity(item))} UNITS</small></b>
-          </button>`).join("")}</div>` : `<div class="atlas-coc-empty-list">No lots recorded yet.</div>`}
-      </section>
+      ${countingLotsMarkup(pallet, atLimit)}
+      ${countingStatusMarkup(pallet, lot, atLimit)}
       <div class="atlas-coc-finish-actions">
-        <button type="button" class="atlas-coc-finish" data-coc-action="review-pallet">Verify &amp; Finish Pallet ${pallet.number}</button>
+        <button type="button" class="atlas-coc-finish" data-coc-action="review-pallet" ${difference === 0 && total > 0 ? "" : "disabled"}>Verify &amp; Finish Pallet ${pallet.number}</button>
         ${finished.length ? `<button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC</button>` : ""}
       </div>
       ${discardFooterMarkup()}
@@ -788,6 +855,20 @@
       }).join("")}</div>`, { label: "Edit or remove pallet SKUs" });
   }
 
+  function allLotsModal() {
+    const pallet = activePallet();
+    const activeModel = activeModelContext();
+    const lots = lotsForModel(pallet, activeModel);
+    return modalShell(`<span class="atlas-coc-eyebrow">PALLET ${pallet?.number || 1}</span><h2>All lots for ${escapeHtml(activeModel)}</h2>
+      <p>Tap a lot to make it active for box counting.</p>
+      <div class="atlas-coc-all-lots-grid">${lots.map((item) => {
+        const selected = item.id === pallet?.activeLotId;
+        return `<button type="button" class="atlas-coc-lot-chip ${selected ? "is-active" : ""}" data-coc-action="select-lot" data-lot-id="${escapeHtml(item.id)}" aria-pressed="${selected}">
+          <strong>${escapeHtml(Core.displayLot(item.lot))}</strong><span>· ${item.cases}</span></button>`;
+      }).join("")}</div>
+      <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="new-lot">+ Add New Lot</button>`, { label: `All lots for ${activeModel}` });
+  }
+
   function updateModelSuggestions(input) {
     const target = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions") || document.getElementById("atlas-coc-model-suggestions");
     if (!target) return;
@@ -824,6 +905,7 @@
     if (modal === "manual-lot") return manualLotModal();
     if (modal === "manage-models") return manageModelsModal();
     if (modal === "add-model") return addModelModal();
+    if (modal === "all-lots") return allLotsModal();
     if (modal === "storage-error") return storageErrorModal();
     if (modal?.type === "duplicate") return duplicateModal(modal.lot);
     if (modal?.type === "mismatch") return mismatchModal();
@@ -1387,6 +1469,7 @@
       modal = null;
       capture = freshCapture();
       cancelScanSession();
+      setCountFeedback(`Box 1 added to ${Core.displayLot(result.lot?.lot)} ✓`);
       persist();
       navigator.vibrate?.(18);
       showToast("New lot confirmed · Box 1 recorded");
@@ -1484,10 +1567,12 @@
     }
     if (action === "add-coc-model") { modal = "add-model"; renderAll(); return; }
     if (action === "manage-coc-models") { modal = "manage-models"; renderAll(); return; }
+    if (action === "show-all-lots") { modal = "all-lots"; renderAll(); return; }
     if (action === "select-coc-model") {
       try {
         session = Core.selectModel(session, button.dataset.model);
         modal = null;
+        countFeedback = null;
         persist();
         showToast(`Active model · ${session.activeModel}`);
       } catch {
@@ -1528,6 +1613,7 @@
     if (action === "new-lot") {
       const pallet = activePallet();
       if (pallet && Core.palletTotal(pallet) >= pallet.expectedBoxes) { showToast(Core.boxLimitMessage(pallet), "warning"); return; }
+      countFeedback = null;
       capture = freshCapture(); openCameraReady(); return;
     }
     if (action === "rescan-lot") { openCameraReady(); return; }
@@ -1584,12 +1670,18 @@
       showToast("Existing lot selected"); return;
     }
     if (action === "select-lot") {
-      session = Core.selectLot(session, button.dataset.lotId); persist();
+      session = Core.selectLot(session, button.dataset.lotId);
+      if (modal === "all-lots") modal = null;
+      countFeedback = null;
+      persist();
       showToast("Active lot changed", "info"); return;
     }
     if (action === "add-case") {
       try {
-        session = Core.addCase(session); persist(); navigator.vibrate?.(14);
+        const selectedLot = activeLot();
+        session = Core.addCase(session);
+        setCountFeedback(`Box added to ${Core.displayLot(selectedLot?.lot)} ✓`);
+        persist(); navigator.vibrate?.(14);
         const add = document.querySelector(".atlas-coc-add-case");
         add?.classList.add("is-confirmed");
         window.setTimeout(() => add?.classList.remove("is-confirmed"), 180);
@@ -1603,6 +1695,7 @@
         const lastEntry = pallet?.history[pallet.history.length - 1];
         const previousLot = pallet?.lots.find((item) => item.id === lastEntry?.lotId);
         session = Core.undoCase(session);
+        setCountFeedback(`Box removed from ${Core.displayLot(previousLot?.lot)}`, "info");
         persist();
         const updatedLot = activePallet()?.lots.find((item) => item.id === lastEntry?.lotId);
         const suffix = previousLot?.lot ? `…${Core.canonicalLot(previousLot.lot).slice(-5)}` : "lot";
