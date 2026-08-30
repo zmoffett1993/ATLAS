@@ -461,9 +461,11 @@
 
   function sizeOfficialWorkbookPreview(frame) {
     const canvas = frame?.querySelector?.(".atlas-workbook-preview-canvas");
+    const preview = frame?.closest?.(".atlas-workbook-preview");
     const sheetWidth = Number(frame?.dataset?.sheetWidth || 0);
     const sheetHeight = Number(frame?.dataset?.sheetHeight || 0);
     if (!canvas || !sheetWidth || !sheetHeight) return;
+    if (preview) preview.style.maxWidth = `${sheetWidth + 2}px`;
     frame.style.maxWidth = `${sheetWidth + 2}px`;
     const availableWidth = Math.max(1, frame.clientWidth - 2);
     const scale = Math.min(1, availableWidth / sheetWidth);
@@ -562,7 +564,7 @@
       body += `<tr style="height:${rowPixels.toFixed(2)}px">${rowMarkup}</tr>`;
     }
     const columnsMarkup = pixelWidths.map((width) => `<col style="width:${width}px">`).join("");
-    return `<section class="atlas-workbook-preview" aria-label="Read-only preview of the generated Official COC workbook"><div class="atlas-workbook-preview-badge">ACTUAL XLSX · READ ONLY</div><div class="atlas-workbook-preview-frame" data-sheet-width="${sheetWidth}" data-sheet-height="${sheetHeight.toFixed(2)}"><div class="atlas-workbook-preview-canvas"><table style="width:${sheetWidth}px"><colgroup>${columnsMarkup}</colgroup><tbody>${body}</tbody></table></div></div><p class="atlas-workbook-preview-zoom-note">Pinch to zoom for a closer look</p></section>`;
+    return `<section class="atlas-workbook-preview" aria-label="Read-only preview of the generated Official COC workbook"><div class="atlas-workbook-preview-badge">ACTUAL XLSX · READ ONLY</div><div class="atlas-workbook-preview-frame" data-sheet-width="${sheetWidth}" data-sheet-height="${sheetHeight.toFixed(2)}"><div class="atlas-workbook-preview-canvas"><table style="width:${sheetWidth}px"><colgroup>${columnsMarkup}</colgroup><tbody>${body}</tbody></table></div></div></section>`;
   }
 
   async function loadMasterTemplate(template = OFFICIAL_TEMPLATE) {
