@@ -191,6 +191,15 @@
           c: block.totalQuantity,
           formula: `SUM(C${firstLotRow}:C${lastLotRow})`,
         });
+        rows.push({
+          rowNumber: rowNumber++,
+          type: "spacer",
+          modelNumber: block.modelNumber,
+          palletNumber: pallet.palletNumber,
+          a: "",
+          b: "",
+          c: null,
+        });
       }));
     const lastContentRow = rows.length
       ? rows[rows.length - 1].rowNumber

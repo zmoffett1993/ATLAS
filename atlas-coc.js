@@ -29,8 +29,6 @@
   let workflowView = "landing";
   let modal = null;
   let toastTimer = null;
-  let countFeedbackTimer = null;
-  let countFeedback = null;
   let cloudTimer = null;
   let scannerState = SCANNER_STATES.IDLE;
   let recognitionToken = 0;
@@ -198,6 +196,7 @@
       message = "Count is not safely stored — stop and retry saving";
       tone = "warning";
     }
+    if (tone !== "warning") return;
     let node = document.getElementById("atlas-coc-toast");
     if (!node) {
       node = document.createElement("div");
@@ -225,15 +224,6 @@
     .reduce((total, lot) => total + Number(lot.cases || 0), 0);
   const lotsForModel = (pallet, modelNumber) => (pallet?.lots || [])
     .filter((lot) => modelKey(lot.model) === modelKey(modelNumber));
-
-  function setCountFeedback(message, tone = "success") {
-    countFeedback = { message, tone };
-    window.clearTimeout(countFeedbackTimer);
-    countFeedbackTimer = window.setTimeout(() => {
-      countFeedback = null;
-      if (workflowView === "session" && session?.status === "active") renderAll();
-    }, 1800);
-  }
 
   function navigateWorkflows({ resume = false } = {}) {
     if (resume) {
@@ -418,9 +408,10 @@
     </div>`;
   }
 
-  function sessionHeaderMarkup() {
+  function sessionHeaderMarkup(pallet) {
     return `<div class="atlas-coc-session-meta">
-      <span><small>CUSTOMER</small><strong>${escapeHtml(session.customerName || "—")}</strong></span>
+      <p class="atlas-coc-session-kicker">CURRENT COC · PALLET ${pallet.number} SETUP</p>
+      <span class="atlas-coc-session-customer"><small>CUSTOMER</small><strong>${escapeHtml(session.customerName || "—")}</strong></span>
       <span><small>INVOICE</small><strong>${escapeHtml(session.invoiceNumber || "—")}</strong></span>
       <span><small>IF NUMBER</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
     </div>`;
@@ -446,7 +437,7 @@
       <div class="atlas-coc-model-rail" role="list" aria-label="Select a SKU">${models.map((model) => {
         const selected = modelKey(model.modelNumber) === modelKey(activeModel);
         return `<button type="button" role="listitem" class="atlas-coc-model-chip ${selected ? "is-active" : ""}" data-coc-action="select-coc-model" data-model="${escapeHtml(model.modelNumber)}" aria-pressed="${selected}">
-          <strong>${escapeHtml(model.modelNumber)}</strong><span>· ${modelBoxTotal(pallet, model.modelNumber)}</span></button>`;
+          <strong>${escapeHtml(model.modelNumber)}</strong><span>${plural(modelBoxTotal(pallet, model.modelNumber), "box")}</span></button>`;
       }).join("")}</div>
       <button type="button" class="atlas-coc-manage-models" data-coc-action="manage-coc-models">✎&nbsp; Edit / Remove</button>
     </section>`;
@@ -477,22 +468,18 @@
   function countingStatusMarkup(pallet, lot, atLimit) {
     const activeModel = activeModelContext();
     if (!lot) return `<section class="atlas-coc-count-status is-empty">
-      <div><span>READY TO COUNT</span><strong>${escapeHtml(activeModel)}</strong><b>Scan the first lot for this SKU</b></div>
+      <div class="atlas-coc-count-selection"><span>READY TO COUNT</span><strong>${escapeHtml(activeModel)}</strong></div>
+      <div class="atlas-coc-lot-count"><strong>0 BOXES</strong><small>0 units</small></div>
     </section>
     <button type="button" class="atlas-coc-add-case" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>SCAN FIRST LOT</button>`;
-    const lastEntry = pallet.history[pallet.history.length - 1];
-    const undoLot = pallet.lots.find((item) => item.id === lastEntry?.lotId);
-    const feedback = countFeedback
-      ? `<span class="atlas-coc-count-feedback is-${escapeHtml(countFeedback.tone)}">${escapeHtml(countFeedback.message)}</span>`
-      : `<span class="atlas-coc-count-feedback" aria-hidden="true"></span>`;
+    const selectedLotHasHistory = pallet.history.some((entry) => entry.lotId === lot.id);
     return `<section class="atlas-coc-count-status">
       <div class="atlas-coc-count-selection"><span>COUNTING</span><strong>${escapeHtml(activeModel)}</strong><b>LOT ${escapeHtml(Core.displayLot(lot.lot))}</b></div>
       <div class="atlas-coc-lot-count"><strong>${plural(lot.cases, "box").toUpperCase()}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small></div>
     </section>
     <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
     <div class="atlas-coc-count-confirmation">
-      <button type="button" data-coc-action="undo" ${lastEntry ? "" : "disabled"}>↶ Undo ${undoLot ? escapeHtml(Core.displayLot(undoLot.lot)) : "last box"}</button>
-      ${feedback}
+      <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box · Lot ${escapeHtml(Core.displayLot(lot.lot))}</button>
     </div>`;
   }
 
@@ -505,7 +492,7 @@
       <header class="atlas-coc-page-head"><span>PALLET ${pallet.number} · SETUP</span><h1>Set Up Pallet ${pallet.number}</h1>
         <p>Enter the box count and first model on this pallet.</p></header>
       <form id="atlas-coc-expected-form" class="atlas-coc-form-card atlas-coc-expected-card">
-        ${sessionHeaderMarkup()}
+        ${sessionHeaderMarkup(pallet)}
         <label><strong>Total Boxes on Pallet ${pallet.number}</strong>
           <input name="expectedBoxes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" required autofocus placeholder="Enter box count" aria-describedby="atlas-coc-box-count-error" /></label>
         ${palletModels.length ? activeModelMarkup(pallet) : `<fieldset class="atlas-coc-model-fields atlas-coc-first-model"><legend>First Model on Pallet ${pallet.number}</legend>${modelFieldMarkup({ compact: true })}</fieldset>`}
@@ -780,10 +767,9 @@
 
   function captureModal() {
     return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT · ${escapeHtml(activeModelContext())}</span><h2>Align the label inside the blue frame</h2>
-      <p>Only pixels inside the blue frame are read. Nothing is scanned until you tap Scan Lot.</p>
       <div class="atlas-coc-live-camera"><video id="atlas-coc-live-video" autoplay muted playsinline></video><div id="atlas-coc-roi-guide" aria-hidden="true"></div><p id="atlas-coc-camera-status">Starting camera…</p></div>
       <canvas id="atlas-coc-roi-canvas" hidden></canvas>
-      <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="scan-live-roi">Scan Lot</button></div>`, {
+      <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button type="button" class="atlas-coc-primary" data-coc-action="scan-live-roi">Scan Lot</button><button type="button" class="atlas-coc-manual-lot-button" data-coc-action="manual-lot">Enter Lot Manually</button></div>`, {
       label: "Photograph new lot", className: "atlas-coc-scanner-modal is-capture-first",
     });
   }
@@ -1470,7 +1456,6 @@
       modal = null;
       capture = freshCapture();
       cancelScanSession();
-      setCountFeedback(`Box 1 added to ${Core.displayLot(result.lot?.lot)} ✓`);
       persist();
       navigator.vibrate?.(18);
       showToast("New lot confirmed · Box 1 recorded");
@@ -1527,7 +1512,6 @@
     modal = null;
     workflowView = "landing";
     sendState = { phase: "ready" };
-    countFeedback = null;
     persist({ cloud: false });
     cloudRpc("atlas_close_coc_session", {
       p_session_id: id,
@@ -1576,7 +1560,6 @@
       try {
         session = Core.selectModel(session, button.dataset.model);
         modal = null;
-        countFeedback = null;
         persist();
         showToast(`Active model · ${session.activeModel}`);
       } catch {
@@ -1617,7 +1600,6 @@
     if (action === "new-lot") {
       const pallet = activePallet();
       if (pallet && Core.palletTotal(pallet) >= pallet.expectedBoxes) { showToast(Core.boxLimitMessage(pallet), "warning"); return; }
-      countFeedback = null;
       capture = freshCapture(); openCameraReady(); return;
     }
     if (action === "rescan-lot") { openCameraReady(); return; }
@@ -1676,15 +1658,12 @@
     if (action === "select-lot") {
       session = Core.selectLot(session, button.dataset.lotId);
       if (modal === "all-lots") modal = null;
-      countFeedback = null;
       persist();
       showToast("Active lot changed", "info"); return;
     }
     if (action === "add-case") {
       try {
-        const selectedLot = activeLot();
         session = Core.addCase(session);
-        setCountFeedback(`Box added to ${Core.displayLot(selectedLot?.lot)} ✓`);
         persist(); navigator.vibrate?.(14);
         const add = document.querySelector(".atlas-coc-add-case");
         add?.classList.add("is-confirmed");
@@ -1695,15 +1674,9 @@
     }
     if (action === "undo") {
       try {
-        const pallet = activePallet();
-        const lastEntry = pallet?.history[pallet.history.length - 1];
-        const previousLot = pallet?.lots.find((item) => item.id === lastEntry?.lotId);
-        session = Core.undoCase(session);
-        setCountFeedback(`Box removed from ${Core.displayLot(previousLot?.lot)}`, "info");
+        const selectedLot = activeLot();
+        session = Core.undoCase(session, selectedLot?.id);
         persist();
-        const updatedLot = activePallet()?.lots.find((item) => item.id === lastEntry?.lotId);
-        const suffix = previousLot?.lot ? `…${Core.canonicalLot(previousLot.lot).slice(-5)}` : "lot";
-        showToast(`Last box removed — ${suffix} now ${updatedLot?.cases || 0} boxes`, "info");
       }
       catch { showToast("There is no box to undo.", "warning"); }
       return;

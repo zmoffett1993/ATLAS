@@ -587,11 +587,15 @@
     });
   }
 
-  function undoCase(source) {
+  function undoCase(source, targetLotId = null) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
-    const entry = pallet?.history.pop();
-    if (!pallet || !entry) throw new Error("NOTHING_TO_UNDO");
+    if (!pallet) throw new Error("NOTHING_TO_UNDO");
+    const entryIndex = targetLotId
+      ? pallet.history.map((entry) => entry.lotId).lastIndexOf(targetLotId)
+      : pallet.history.length - 1;
+    if (entryIndex < 0) throw new Error("NOTHING_TO_UNDO");
+    const [entry] = pallet.history.splice(entryIndex, 1);
     if (!positiveInteger(pallet.expectedBoxes)) throw new Error("EXPECTED_BOX_COUNT_REQUIRED");
     const lot = pallet.lots.find((item) => item.id === entry.lotId);
     if (!lot || lot.cases < 1) throw new Error("NOTHING_TO_UNDO");
