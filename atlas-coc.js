@@ -499,8 +499,8 @@
     return `<div class="atlas-coc-session-meta">
       <p class="atlas-coc-session-kicker">CURRENT COC · PALLET ${pallet.number} SETUP</p>
       <span class="atlas-coc-session-customer"><small>CUSTOMER</small><strong>${escapeHtml(session.customerName || "—")}</strong></span>
-      <span><small>INVOICE</small><strong>${escapeHtml(session.invoiceNumber || "—")}</strong></span>
-      <span><small>IF NUMBER</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
+      <span class="atlas-coc-session-reference"><small>INVOICE</small><strong>${escapeHtml(session.invoiceNumber || "—")}</strong></span>
+      <span class="atlas-coc-session-reference"><small>IF NUMBER</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
     </div>`;
   }
 

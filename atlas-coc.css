@@ -751,6 +751,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 }
 .atlas-coc-session-kicker { grid-column: 1 / -1; margin: 0; color: #9fd0ff; font-size: 10px; font-weight: 950; letter-spacing: .17em; }
 .atlas-coc-session-customer { grid-column: 1 / -1; padding-bottom: 12px; border-bottom: 1px solid rgba(185,218,251,.25); text-align: center; }
+.atlas-coc-session-reference { width: 100%; text-align: center; }
 .atlas-coc-session-meta span { min-width: 0; }
 .atlas-coc-session-meta small,
 .atlas-coc-session-meta strong { display: block; }
@@ -1078,6 +1079,23 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   .atlas-coc-active-bar { min-height: 58px; padding: 9px 11px; border-radius: 14px; }
   .atlas-coc-active-bar b { padding: 7px 8px; font-size: 9px; }
   .atlas-coc-launch-card { padding: 19px; }
+  .atlas-coc-history-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 72px;
+    margin-top: 12px;
+    padding: 13px 16px;
+    border-radius: 16px;
+    box-shadow: 0 7px 18px rgba(8,38,77,.045);
+  }
+  .atlas-coc-history-card > span { display: block; min-width: 0; }
+  .atlas-coc-history-card > span:first-child strong,
+  .atlas-coc-history-card > span:first-child small { display: block; }
+  .atlas-coc-history-card > span:first-child strong { font-size: .72rem; letter-spacing: .13em; }
+  .atlas-coc-history-card > span:first-child small { margin-top: 4px; font-size: .7rem; }
+  .atlas-coc-history-card > span:last-child { display: flex; justify-content: flex-end; font-size: 0; }
+  .atlas-coc-history-card > span:last-child b { font-size: 1.35rem; }
   .atlas-coc-count-head { padding: 8px 2px; }
   .atlas-coc-total { min-width: 76px; }
   .atlas-coc-total strong { font-size: 29px; }

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v212-coc-manual-case-quantity";
+const VERSION = "atlas-pwa-v213-coc-balance-and-priority";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=148",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=25",
+  "./atlas-coc.css?v=26",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=7",
@@ -19,10 +19,10 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=1",
   "./atlas-coc-delivery.js?v=3",
   "./atlas-coc-excel.js?v=8",
-  "./atlas-coc.js?v=26",
+  "./atlas-coc.js?v=27",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=7",
-  "./coc-receiver/receiver.js?v=6",
+  "./coc-receiver/receiver.js?v=7",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
