@@ -21,6 +21,8 @@
   const esc=(value)=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   const plural=(count,word)=>`${Number(count||0).toLocaleString()} ${word}${Number(count)===1?"":word==="box"?"es":"s"}`;
   const snapshot=(record)=>record?.report_snapshot||{};
+  const recordById=(id)=>[selected,...activeDeliveries,...completedDeliveries].find((record)=>record?.id===id)||null;
+  const officialFileName=(record,fallback="Official COC.xlsx")=>{const snap=snapshot(record);return window.AtlasCocExcel?.outputFileName?.(snap.customerName,snap.invoiceNumber,snap.ifNumber)||fallback};
   const submitterName=(record)=>record?.submitted_by_display_name||snapshot(record).employeeDisplayName||snapshot(record).employee||"—";
   const recordTotals=(record)=>{const pallets=snapshot(record).pallets||[];return{pallets:pallets.length,boxes:pallets.reduce((sum,pallet)=>sum+(pallet.lots||[]).reduce((n,lot)=>n+Number(lot.cases||0),0),0)}};
   const time=(value)=>value?new Date(value).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"—";
@@ -92,7 +94,7 @@
   function showNotice(text,tone="success"){notice={text,tone};render();setTimeout(()=>{notice=null;render()},2600)}
   function openConfirmation(type,ids=[]){dialog={type,ids};openMenu=null;bulkMenu=false;render()}
   async function confirmDialog(){const pending=dialog;if(!pending)return;dialog=null;render();try{let result;if(pending.type.startsWith("restore"))result=await Delivery.restoreOfficeArchived(pending.ids,credentials);else result=await Delivery.archiveOfficeCompleted(pending.ids,credentials,{all:pending.type==="archive-all"});selected=null;selectedIds.clear();await loadInbox();showNotice(`${plural(result.updated||pending.ids.length,"COC")} ${pending.type.startsWith("restore")?"restored":"archived"}.`)}catch(error){showNotice(error?.message||"The archive could not be updated.","error")}}
-  async function loadWorkbook(id){if(workbookCache.has(id))return workbookCache.get(id);const workbook=await Delivery.downloadOfficeWorkbook(id,credentials);workbookCache.set(id,workbook);return workbook}
+  async function loadWorkbook(id){if(workbookCache.has(id))return workbookCache.get(id);const workbook=await Delivery.downloadOfficeWorkbook(id,credentials);workbook.fileName=officialFileName(recordById(id),workbook.fileName);workbookCache.set(id,workbook);return workbook}
   async function openOfficialPreview(id){const recordId=id||selected?.id;if(!recordId)return;preview=true;previewState={status:"loading",html:"",error:"",id:recordId};render();try{const workbook=await loadWorkbook(recordId);const html=await window.AtlasCocExcel.renderOfficialWorkbookPreview(workbook.blob);if(!selected||selected.id!==recordId||!preview)return;previewState={status:"ready",html,error:"",id:recordId}}catch(error){previewState={status:"error",html:"",error:error?.message||"The Official COC could not be opened.",id:recordId}}render()}
   async function download(button){button.disabled=true;try{const workbook=await loadWorkbook(button.dataset.id);window.AtlasCocStorage?.downloadBlob(workbook.blob,workbook.fileName)}catch(error){showNotice(error?.message||"The official COC could not be downloaded.","error")}finally{button.disabled=false}}
 
