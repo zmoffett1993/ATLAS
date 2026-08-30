@@ -85,7 +85,7 @@
 
   function createSession({
     customerName = "", ifNumber = "", invoiceNumber = "", orderNumber = "",
-    deviceId = "", employee = "", sku = "", models = [], modelNumbers = [],
+    deviceId = "", employee = "", employeeDisplayName = "", sku = "", models = [], modelNumbers = [],
   } = {}) {
     const createdAt = timestamp();
     const pallet = createPallet(1);
@@ -114,6 +114,7 @@
       activeModel,
       sku: activeModel,
       employee: cleanText(employee, 60),
+      employeeDisplayName: cleanText(employeeDisplayName || employee, 100),
       status: "active",
       createdAt,
       updatedAt: createdAt,
@@ -337,6 +338,7 @@
       activeModel,
       sku: activeModel || cleanModel(raw.sku),
       employee: cleanText(raw.employee, 60),
+      employeeDisplayName: cleanText(raw.employeeDisplayName || raw.employee, 100),
       status,
       createdAt,
       updatedAt: cleanText(raw.updatedAt, 40) || timestamp(),

@@ -84,6 +84,14 @@
     });
   };
   const getEmployee = () => String(localStorage.getItem("atlasEmployee") || "").trim();
+  const getEmployeeDisplayName = () => {
+    const authSession = window.AtlasAuth?.getSession?.() || Delivery.getAuthSession?.() || null;
+    return String(
+      window.AtlasAuth?.displayName?.(authSession) ||
+      authSession?.user?.user_metadata?.display_name ||
+      getEmployee(),
+    ).trim();
+  };
   const currentUserId = () => Delivery.currentUser()?.id || "";
   const currentSkuContext = () => String(
     document.querySelector(".result-card .sku-copy strong")?.textContent || "",
@@ -345,7 +353,9 @@
   }
 
   function completedPalletSummaryMarkup(snapshot) {
-    return (snapshot.pallets || []).map((pallet) => {
+    const pallets = snapshot.pallets || [];
+    const multiple = pallets.length > 1;
+    return pallets.map((pallet, index) => {
       const lots = Array.isArray(pallet.lots) ? pallet.lots : [];
       const totalBoxes = lots.reduce((sum, lot) => sum + Number(lot.cases || 0), 0);
       const groups = new Map();
@@ -354,7 +364,12 @@
         if (!groups.has(model)) groups.set(model, []);
         groups.get(model).push(lot);
       });
-      return `<section class="atlas-coc-completed-pallet"><header><h2>Pallet ${pallet.number}</h2><b>${plural(totalBoxes, "box")}</b></header>${[...groups].map(([model, modelLots]) => `<div class="atlas-coc-completed-model"><h3>${escapeHtml(model)}</h3>${modelLots.map((lot) => `<div class="atlas-coc-completed-lot"><span><small>LOT</small><strong>${escapeHtml(Core.displayLot(lot.lot))}</strong></span><b>${plural(Number(lot.cases || 0), "box")}</b></div>`).join("")}</div>`).join("")}</section>`;
+      const swipeHint = !multiple ? "" : index === 0
+        ? "← SWIPE"
+        : index === pallets.length - 1
+          ? "SWIPE →"
+          : "← SWIPE →";
+      return `<article class="atlas-coc-pallet-slide" role="group" aria-label="Pallet ${pallet.number} of ${pallets.length}">${swipeHint ? `<div class="atlas-coc-swipe-hint" aria-hidden="true">${swipeHint}</div>` : ""}<section class="atlas-coc-completed-pallet"><header><h2>Pallet ${pallet.number}</h2><b>${plural(totalBoxes, "box")}</b></header>${[...groups].map(([model, modelLots]) => `<div class="atlas-coc-completed-model"><h3>${escapeHtml(model)}</h3>${modelLots.map((lot) => `<div class="atlas-coc-completed-lot"><span><small>LOT</small><strong>${escapeHtml(Core.displayLot(lot.lot))}</strong></span><b>${plural(Number(lot.cases || 0), "box")}</b></div>`).join("")}</div>`).join("")}</section></article>`;
     }).join("");
   }
 
@@ -395,7 +410,7 @@
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COC</h1></header>
       <section class="atlas-coc-completed-detail">
         <dl class="atlas-coc-completed-meta"><div class="is-wide"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div class="is-wide"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
-        <div class="atlas-coc-readonly-pallets">${completedPalletSummaryMarkup(snapshot)}</div>
+        <div class="atlas-coc-readonly-pallets ${(snapshot.pallets || []).length > 1 ? "is-carousel" : ""}" ${(snapshot.pallets || []).length > 1 ? 'aria-label="Swipe through pallets"' : ""}>${completedPalletSummaryMarkup(snapshot)}</div>
         <div class="atlas-coc-completed-actions">
           <button type="button" class="atlas-coc-primary" data-coc-action="view-completed-official">View Official COC</button>
           <button type="button" data-coc-action="review-resend-completed" ${record.officeTransferStatus === "OFFICE_COMPLETED" ? "disabled" : ""}>${record.officeTransferStatus === "OFFICE_COMPLETED" ? "Completed by Office" : "Resend to Office"}</button>
@@ -2077,6 +2092,7 @@
         ifNumber,
         deviceId: getDeviceId(),
         employee: getEmployee(),
+        employeeDisplayName: getEmployeeDisplayName(),
       });
       workflowView = "session";
       persist();

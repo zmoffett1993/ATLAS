@@ -195,6 +195,8 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-completed-meta > .is-wide { grid-column: 1 / -1; }
 .atlas-coc-completed-meta dd { overflow-wrap: anywhere; }
 .atlas-coc-readonly-pallets { display: grid; gap: 14px; margin: 22px 0; }
+.atlas-coc-pallet-slide { min-width: 0; }
+.atlas-coc-swipe-hint { display: none; }
 .atlas-coc-readonly-pallets .atlas-coc-completed-pallet { margin: 0; padding: 0; overflow: hidden; border: 1px solid #d5e1ed; border-radius: 17px; background: #f7faff; }
 .atlas-coc-completed-pallet > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; color: #fff; background: #0b356d; }
 .atlas-coc-completed-pallet > header h2 { margin: 0; font-size: 16px; }
@@ -1123,6 +1125,35 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-toast.is-info { background: #205784; }
 
 @media (max-width: 560px) {
+  .atlas-coc-readonly-pallets.is-carousel {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 0;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .atlas-coc-readonly-pallets.is-carousel::-webkit-scrollbar { display: none; }
+  .atlas-coc-readonly-pallets.is-carousel .atlas-coc-pallet-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .atlas-coc-readonly-pallets.is-carousel .atlas-coc-swipe-hint {
+    min-height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 7px;
+    color: #31608f;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .18em;
+  }
   #atlas-coc-active-bar-slot { width: calc(100% - 20px); margin-top: 9px; }
   .atlas-coc-active-bar { min-height: 58px; padding: 9px 11px; border-radius: 14px; }
   .atlas-coc-active-bar b { padding: 7px 8px; font-size: 9px; }
