@@ -899,7 +899,7 @@
           <p>Your COC is still saved. Reload ATLAS and try once more. If this is an old test COC you no longer need, you can safely discard it.</p>
           <div class="atlas-coc-recovery-actions">
             <button type="button" class="atlas-coc-primary" data-coc-action="retry-resume">Try Resume Again</button>
-            <button type="button" data-coc-action="review-discard">Discard Old COC</button>
+            <button type="button" data-coc-action="discard-recovery-coc">Discard Old COC</button>
           </div>
         </div>`;
       }
@@ -1426,6 +1426,24 @@
     renderAll();
   }
 
+  function discardActiveCoc() {
+    const id = session?.id;
+    const deviceId = session?.deviceId;
+    cancelScanSession();
+    capture = freshCapture();
+    discardReturnModal = null;
+    discardReturnScannerState = SCANNER_STATES.IDLE;
+    session = null;
+    modal = null;
+    workflowView = "landing";
+    persist({ cloud: false });
+    cloudRpc("atlas_close_coc_session", {
+      p_session_id: id,
+      p_device_id: deviceId,
+    }, { keepalive: true }).catch(() => {});
+    showToast("Unfinished COC discarded", "info");
+  }
+
   async function handleAction(button) {
     const action = button.dataset.cocAction;
     if (!action) return;
@@ -1443,6 +1461,10 @@
     if (action === "retry-resume") {
       readSession();
       navigateWorkflows({ resume: true });
+      return;
+    }
+    if (action === "discard-recovery-coc") {
+      discardActiveCoc();
       return;
     }
     if (action === "close-modal") { cancelScanSession(); modal = null; renderAll(); return; }
@@ -1631,14 +1653,8 @@
     }
     if (action === "keep-coc") { restoreAfterDiscardReview(); return; }
     if (action === "discard-coc") {
-      const id = session?.id; const deviceId = session?.deviceId;
-      cancelScanSession();
-      capture = freshCapture();
-      discardReturnModal = null;
-      discardReturnScannerState = SCANNER_STATES.IDLE;
-      session = null; modal = null; workflowView = "landing"; persist({ cloud: false });
-      cloudRpc("atlas_close_coc_session", { p_session_id: id, p_device_id: deviceId }, { keepalive: true }).catch(() => {});
-      showToast("Unfinished COC discarded", "info"); return;
+      discardActiveCoc();
+      return;
     }
     if (action === "send-to-office") { await sendCompletedCoc(); return; }
     if (action === "return-to-report") { workflowView = "session"; sendState = { phase: "ready" }; refreshStationPresence(); renderAll(); return; }

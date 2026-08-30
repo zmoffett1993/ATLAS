@@ -119,7 +119,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-resume-error > p { margin: 0; color: var(--coc-muted); line-height: 1.55; }
 .atlas-coc-recovery-actions { display: grid; gap: 11px; margin-top: 24px; }
 .atlas-coc-recovery-actions > button { min-height: 54px; border: 1px solid #b8cce2; border-radius: 15px; background: #fff; color: var(--coc-blue-dark); font-weight: 850; }
-.atlas-coc-recovery-actions > .atlas-coc-primary { border: 0; color: #fff; }
+.atlas-coc-recovery-actions > .atlas-coc-primary { border: 0; color: #fff; background: linear-gradient(110deg, var(--coc-blue), #0648b6); }
 .atlas-coc-page-head { margin: 12px 2px 22px; }
 .atlas-coc-page-head > span,
 .atlas-coc-eyebrow,
