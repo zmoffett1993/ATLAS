@@ -550,7 +550,10 @@
     )];
     const barcode = acceptedBarcodes[0] || null;
     const ocrEvidence = rankOcrCandidates(evidenceReadings, expectedModel);
-    const printed = ocrEvidence.selected;
+    // Recognition and validation are deliberately separate. The best OCR
+    // candidate is still useful even when it does not clear the old confidence
+    // threshold; the employee, not the parser, is the final authority.
+    const printed = ocrEvidence.selected || ocrEvidence.ranked[0] || null;
     const printedLead = printed?.evidence?.slice().sort((left, right) =>
       (right.score + right.confidence) - (left.score + left.confidence),
     )[0] || null;
@@ -595,106 +598,81 @@
       failureSignals,
     };
 
-    if (distinctBarcodeLots.length > 1) {
-      return {
-        ...common,
-        status: "rescan",
-        reason: "ambiguous_barcode_lot",
-        failureCode: "AMBIGUOUS_LOT",
-        confidenceState: "needs_verification",
-      };
-    }
-    if (detectedModel && !compatibility.accepted) {
-      return {
-        ...common,
-        status: "rescan",
-        reason: "model_sku_mismatch",
-        failureCode: "SKU_MISMATCH",
-        confidenceState: "needs_verification",
-        rawBarcode: barcode?.rawBarcode || "",
-      };
-    }
-    if (ocrEvidence.ambiguous) {
-      return {
-        ...common,
-        status: "rescan",
-        reason: "ambiguous_printed_lot",
-        failureCode: "AMBIGUOUS_LOT",
-        confidenceState: "needs_verification",
-        candidateLot: printed?.lot || "",
-      };
-    }
+    const printedLot = cleanLot(printed?.lot || "");
+    const barcodeLot = cleanLot(barcode?.lot || "");
+    const sourcesAgree = Boolean(
+      barcodeLot && printedLot && canonical(barcodeLot) === canonical(printedLot),
+    );
+    const modelMismatch = Boolean(detectedModel && !compatibility.accepted);
+    const ambiguous = distinctBarcodeLots.length > 1 || ocrEvidence.ambiguous;
 
-    if (barcode) {
-      const printedMatches = printed && canonical(printed.lot) === canonical(barcode.lot);
-      if (printed && !printedMatches) {
-        return {
-          ...common,
-          status: "mismatch",
-          reason: "barcode_print_mismatch",
-          failureCode: "SOURCE_CONFLICT",
-          confidenceState: "needs_verification",
-          lot: barcode.lot,
-          printedLot: printed.lot,
-          rawBarcode: barcode.rawBarcode,
-          rawBatchText: printedLead?.source || fields.batch,
-          model: detectedModel || expectedModel || barcode.model,
-          captureMethod: "barcode",
-          validationMethod: "barcode_print_mismatch",
-          barcodeFormat,
-          confidence: Math.max(confidence, printed.bestConfidence),
-        };
-      }
-      return {
-        ...common,
-        status: "confirm",
-        lot: barcode.lot,
-        confidenceState: printedMatches ? "verified" : "recognized",
-        rawBarcode: barcode.rawBarcode,
-        rawBatchText: printedMatches ? printedLead?.source || fields.batch : fields.batch,
-        model: detectedModel || expectedModel || barcode.model,
-        captureMethod: printedMatches ? "barcode_ocr" : "barcode",
-        validationMethod: printedMatches ? "barcode_print_match" : barcode.rule,
-        modelMatchMethod: compatibility.method,
-        barcodeFormat,
-        confidence: Math.max(confidence, printedMatches ? printed.bestConfidence : 0),
-      };
-    }
+    // If structured OCR found a Batch/Lot value but could not classify its
+    // shape, preserve the literal reading. This is the non-blocking fallback
+    // employees can correct in the review field.
+    const rawPrintedFallback = cleanLot(fields.batch || "");
+    const rawBarcodeFallback = barcodes.map(clean)
+      .find((value) => value && !isIrrelevantBarcode(value)) || "";
+    const parsedRawBarcode = rawBarcodeFallback
+      ? parseLotCandidate(rawBarcodeFallback, expectedModel, {
+        source: "barcode_fallback", allowFuzzyPrefix: false,
+      })
+      : null;
+    const fallbackBarcodeLot = parsedRawBarcode?.accepted
+      ? parsedRawBarcode.cleanLot
+      : cleanLot(rawBarcodeFallback);
+    const candidateLot = barcodeLot || printedLot || rawPrintedFallback || fallbackBarcodeLot || "";
+    const verified = Boolean(sourcesAgree && !modelMismatch && !ambiguous);
+    const comparisonStatus = verified ? "match"
+      : barcodeLot && printedLot ? "conflict"
+        : candidateLot ? "single_source" : "unread";
+    const isLegacy = printedLead?.rule === "sku_boundary_after_supplier_marker";
+    const isStructured = Boolean(printedLead?.structuredBatch);
+    const prefixFuzzy = Boolean(printedLead?.parseDetails?.confidenceSignals?.prefixFuzzy);
+    const captureMethod = barcodeLot && printedLot ? "barcode_ocr"
+      : barcodeLot ? "barcode"
+        : isLegacy ? "legacy_ocr"
+          : isStructured ? "printed_batch_ocr"
+            : printedLot || rawPrintedFallback ? "printed_text_ocr" : "manual_review";
+    const validationMethod = verified ? "barcode_print_match"
+      : comparisonStatus === "conflict" ? "barcode_print_mismatch_employee_review"
+        : modelMismatch ? "model_mismatch_employee_review"
+          : ambiguous ? "ambiguous_employee_review"
+            : candidateLot ? "single_source_employee_review" : "manual_entry_required";
+    const failureCode = modelMismatch ? "SKU_MISMATCH"
+      : ambiguous ? "AMBIGUOUS_LOT"
+        : comparisonStatus === "conflict" ? "SOURCE_CONFLICT"
+          : candidateLot ? "SINGLE_SOURCE" : "NO_VALID_CANDIDATE";
 
-    if (printed && printedLead) {
-      const isLegacy = printedLead.rule === "sku_boundary_after_supplier_marker";
-      const isStructured = Boolean(printedLead.structuredBatch);
-      const prefixFuzzy = Boolean(printedLead.parseDetails?.confidenceSignals?.prefixFuzzy);
-      return {
-        ...common,
-        status: "confirm",
-        lot: printed.lot,
-        confidenceState: "recognized",
-        rawBarcode: "",
-        rawBatchText: printedLead.source,
-        model: detectedModel || expectedModel,
-        captureMethod: isLegacy ? "legacy_ocr"
-          : isStructured ? "printed_batch_ocr" : "printed_text_ocr",
-        validationMethod: printedLead.matchedPrefix
-          ? (prefixFuzzy ? "ocr_sku_prefix_consensus" : "ocr_sku_prefix")
-          : "ocr_direct_lot",
-        modelMatchMethod: compatibility.method,
-        confidence: printed.bestConfidence,
-      };
-    }
-
-    const parsedButWeak = ocrEvidence.ranked[0] || null;
-    const productBarcodeOnly = barcodeResults.length > 0 &&
-      barcodeResults.every((candidate) => candidate.reason === "irrelevant_product_code");
     return {
       ...common,
-      status: "rescan",
-      reason: productBarcodeOnly ? "lot_barcode_not_identified"
-        : parsedButWeak ? "low_ocr_confidence" : "label_fields_not_verified",
-      failureCode: skuPrefixParseFailed ? "SKU_PREFIX_PARSE_FAILED"
-        : parsedButWeak ? "CONFIDENCE_TOO_LOW" : "NO_VALID_CANDIDATE",
-      confidenceState: "needs_verification",
-      candidateLot: parsedButWeak?.lot || "",
+      // A completed camera attempt always advances to employee review. Nothing
+      // in the recognition layer may force a rescan or reject a lot.
+      status: "confirm",
+      reason: verified ? "sources_match" : "employee_verification_required",
+      failureCode: verified ? "" : failureCode,
+      lot: candidateLot,
+      candidateLot,
+      barcodeLot,
+      printedLot,
+      alternatives: [...new Set([
+        ...acceptedBarcodes.map((item) => cleanLot(item.lot)),
+        ...ocrEvidence.ranked.map((item) => cleanLot(item.lot)),
+      ].filter(Boolean))],
+      sourceAgreement: sourcesAgree,
+      comparisonStatus,
+      needsEmployeeVerification: !verified,
+      confidenceState: verified ? "verified" : "needs_verification",
+      rawBarcode: barcode?.rawBarcode || rawBarcodeFallback,
+      rawBatchText: printedLead?.source || fields.batch,
+      model: detectedModel || expectedModel || barcode?.model || "",
+      captureMethod,
+      validationMethod,
+      modelMatchMethod: compatibility.method,
+      barcodeFormat,
+      confidence: Math.max(confidence, Number(printed?.bestConfidence) || 0),
+      skuMismatch: modelMismatch,
+      ambiguous,
+      prefixFuzzy,
     };
   }
 

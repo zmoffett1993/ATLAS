@@ -22,7 +22,6 @@
     PROCESSING: "processing",
     VERIFYING: "verifying",
     REVIEW: "review",
-    REJECTED: "rejected",
     CONFIRMED: "confirmed",
   });
   let session = null;
@@ -333,16 +332,11 @@
     return `<div class="atlas-coc-page"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button><header class="atlas-coc-page-head"><span>SUPERVISOR SETUP</span><h1>Office COC Receiver</h1><p>Open <strong>/coc-receiver/</strong> on the office computer, then approve its six-digit pairing code here.</p></header><form id="atlas-coc-pairing-form" class="atlas-coc-form-card"><label><strong>Pairing Code</strong><input name="pairingCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><p class="atlas-coc-form-error" aria-live="polite"></p><button class="atlas-coc-primary" type="submit">Approve Office COC Station</button></form></div>`;
   }
 
-  function modelOptionsMarkup() {
-    return Catalog.list().map((item) =>
-      `<option value="${escapeHtml(item.modelNumber)}">${formatQuantity(item.caseQuantity)} per case</option>`
-    ).join("");
-  }
-
   function modelFieldMarkup({ removable = false, compact = false } = {}) {
     return `<div class="atlas-coc-model-row">
       <label><strong>Model Number</strong>${compact ? "" : "<small>Colors do not change CASE QTY</small>"}
-        <input name="modelNumber" list="atlas-coc-model-options" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Example: CGUB1-30MLSC-BKBK" required /></label>
+        <input name="modelNumber" class="atlas-coc-model-search" maxlength="120" autocomplete="off" autocapitalize="characters" placeholder="Start typing the SKU" role="combobox" aria-expanded="false" required /></label>
+      <div class="atlas-coc-model-suggestions" role="listbox"></div>
       <p class="atlas-coc-model-result" aria-live="polite">Enter the complete model number on the shipment.</p>
       ${removable ? `<button type="button" class="atlas-coc-remove-model" data-coc-action="remove-model-row">Remove Model</button>` : ""}
     </div>`;
@@ -437,7 +431,7 @@
         ${sessionHeaderMarkup()}
         <label><strong>Total Boxes on Pallet ${pallet.number}</strong>
           <input name="expectedBoxes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" required autofocus placeholder="Enter box count" aria-describedby="atlas-coc-box-count-error" /></label>
-        ${palletModels.length ? activeModelMarkup(pallet) : `<fieldset class="atlas-coc-model-fields atlas-coc-first-model"><legend>First Model on Pallet ${pallet.number}</legend>${modelFieldMarkup({ compact: true })}</fieldset><datalist id="atlas-coc-model-options">${modelOptionsMarkup()}</datalist>`}
+        ${palletModels.length ? activeModelMarkup(pallet) : `<fieldset class="atlas-coc-model-fields atlas-coc-first-model"><legend>First Model on Pallet ${pallet.number}</legend>${modelFieldMarkup({ compact: true })}</fieldset>`}
         ${recorded ? `<p class="atlas-coc-preserved-count"><strong>${plural(recorded, "box")} already recorded</strong><span>Your saved lots are preserved. Confirm the total box count to continue.</span></p>` : ""}
         <p id="atlas-coc-box-count-error" class="atlas-coc-form-error" aria-live="polite"></p>
         <button type="submit" class="atlas-coc-primary" data-coc-box-confirm disabled>Start Pallet ${pallet.number}</button>
@@ -737,55 +731,24 @@
   function confirmLotModal() {
     const result = capture.result || {};
     const verified = result.confidenceState === "verified";
-    const verifiedCopy = result.validationMethod === "barcode_print_match"
-      ? "Verified from printed label + barcode"
-      : result.captureMethod === "legacy_ocr"
-        ? "Recognized from legacy Model + Batch"
-        : result.captureMethod === "printed_batch_ocr"
-          ? "Recognized from printed Batch"
-          : result.captureMethod === "printed_text_ocr"
-            ? "Recognized from printed label"
-        : "Recognized from barcode";
-    return modalShell(`<span class="atlas-coc-eyebrow is-success">${verified ? "✓ LOT RECOGNIZED" : "LOT RECOGNIZED"}</span><h2>${escapeHtml(Core.displayLot(capture.text))}</h2>
-      <img class="atlas-coc-photo" src="${capture.photo}" alt="Carton label photo for employee verification" />
-      <div class="atlas-coc-capture-proof">${result.model ? `<p><span>MODEL</span><strong>${escapeHtml(result.model)}</strong></p>` : ""}${result.rawBatchText ? `<p><span>PRINTED BATCH</span><strong>${escapeHtml(result.rawBatchText)}</strong></p>` : ""}<p><span>CONFIDENCE</span><strong>${verified ? "Verified from independent sources" : "Recognized from one strong source"}</strong></p><p><span>VALIDATION</span><strong>${escapeHtml(verifiedCopy)}</strong></p></div>
-      <label class="atlas-coc-verify-check"><input id="atlas-coc-verify-check" type="checkbox" /> <span>I compared <strong>${escapeHtml(capture.text)}</strong> to the printed lot and every character matches.</span></label>
+    const barcodeLot = result.barcodeLot || "";
+    const printedLot = result.printedLot || "";
+    const comparison = barcodeLot && printedLot && !verified
+      ? `<div class="atlas-coc-source-compare"><p><span>BARCODE</span><strong>${escapeHtml(barcodeLot)}</strong></p><p><span>PRINTED TEXT</span><strong>${escapeHtml(printedLot)}</strong></p></div>`
+      : "";
+    const statusCopy = verified
+      ? "Barcode and printed text match"
+      : capture.text
+        ? "Verify every character before confirming"
+        : "ATLAS could not isolate a lot—enter it below";
+    return modalShell(`<span id="atlas-coc-review-status" class="atlas-coc-read-status ${verified ? "is-match" : "is-review"}"><i aria-hidden="true">${verified ? "✓" : "×"}</i>${escapeHtml(statusCopy)}</span>
+      <h2>${verified ? "Lot matched" : "Verify lot"}</h2>
+      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Exact blue-frame carton label crop" />` : ""}
+      ${comparison}
+      <label class="atlas-coc-lot-review"><strong>Lot Number</strong><input id="atlas-coc-lot-review-input" name="reviewLot" value="${escapeHtml(capture.text)}" maxlength="120" autocapitalize="characters" autocomplete="off" placeholder="Enter lot number" autofocus /></label>
+      <p class="atlas-coc-review-help">Batch number and lot number are the same. When the read includes the SKU, ATLAS keeps only the code after the final SKU color.</p>
       <p class="atlas-coc-first-case">Confirming this new lot records <strong>Box 1</strong>.</p>
-      <div class="atlas-coc-modal-actions atlas-coc-confirm-actions"><button type="button" data-coc-action="rescan-lot">Take New Photo</button><button type="button" data-coc-action="manual-lot">Enter / Edit Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" disabled>Confirm Lot + Box 1</button></div>`, { label: "Confirm recognized lot", dismiss: false });
-  }
-
-  function scanMismatchModal() {
-    const result = capture.result || {};
-    return modalShell(`<span class="atlas-coc-eyebrow is-danger">LOT DOES NOT MATCH</span><h2>Rescan the label</h2>
-      <p>The barcode and printed batch number did not agree. ATLAS did not save a lot.</p>
-      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Carton label photo" />` : ""}
-      <div class="atlas-coc-compare is-scan-mismatch"><div><span>BARCODE LOT</span><strong>${escapeHtml(result.lot || "—")}</strong></div><div><span>PRINTED LOT</span><strong>${escapeHtml(result.printedLot || "—")}</strong></div></div>
-      <button type="button" class="atlas-coc-primary atlas-coc-modal-wide" data-coc-action="rescan-lot">Take New Photo</button>`, { label: "Barcode and printed lot mismatch", dismiss: false });
-  }
-
-  function scanFailedModal() {
-    const mismatch = capture.result?.reason === "model_sku_mismatch";
-    const reasonCopy = {
-      low_ocr_confidence: "The Model or Batch characters were not clear enough to verify.",
-      lot_barcode_not_identified: "A product or carton barcode was visible, but a valid lot barcode was not confidently identified.",
-      legacy_boundary_not_found: "The product/color boundary could not be verified inside the printed Batch number.",
-      legacy_rule_not_found: "The label did not match a configured legacy extraction rule.",
-      ambiguous_printed_lot: "More than one possible printed lot was visible.",
-      ambiguous_barcode_lot: "More than one possible lot barcode was visible.",
-      model_sku_mismatch: "This label may belong to a different product.",
-      photo_capture_failed: "The selected photo could not be opened.",
-      label_fields_not_verified: "ATLAS couldn't confidently read the complete label photo.",
-    }[capture.result?.reason] || "ATLAS couldn't confidently read the complete label photo.";
-    const mismatchDetails = mismatch
-      ? `<div class="atlas-coc-capture-proof"><p><span>EXPECTED SKU</span><strong>${escapeHtml(capture.result?.expectedModel || capture.sku || "—")}</strong></p><p><span>DETECTED MODEL</span><strong>${escapeHtml(capture.result?.model || "Unclear")}</strong></p></div>`
-      : "";
-    const candidate = capture.result?.candidateLot
-      ? `<div class="atlas-coc-candidate-review"><span>POSSIBLE VALUE · VERIFY EVERY CHARACTER</span><strong>${escapeHtml(capture.result.candidateLot)}</strong></div>`
-      : "";
-    return modalShell(`<span class="atlas-coc-eyebrow is-danger">${mismatch ? "SKU DOES NOT MATCH" : "LOT NEEDS VERIFICATION"}</span><h2>${mismatch ? "Check the carton" : "Could Not Read Lot"}</h2>
-      <p>${escapeHtml(reasonCopy)} No value was saved.</p>
-      ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Carton label photo requiring employee review" />` : ""}${mismatchDetails}${candidate}
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="manual-lot">Enter Lot Manually</button><button type="button" class="atlas-coc-primary" data-coc-action="rescan-lot">Take New Photo</button></div>`, { label: "Lot not verified", dismiss: false });
+      <div class="atlas-coc-modal-actions atlas-coc-confirm-actions"><button type="button" data-coc-action="rescan-lot">Take New Photo</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" ${Core.canonicalLot(capture.text) ? "" : "disabled"}>Confirm Lot + Box 1</button></div>`, { label: "Review recognized lot", dismiss: false });
   }
 
   function manualLotModal() {
@@ -829,9 +792,11 @@
     const target = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions") || document.getElementById("atlas-coc-model-suggestions");
     if (!target) return;
     const query = Catalog.normalize(input.value);
-    const existing = new Set(Core.palletModels(session, activePallet()).map((model) => Catalog.normalize(model.modelNumber)));
-    const matches = Catalog.list().filter((record) => !existing.has(Catalog.normalize(record.modelNumber)) && (!query || Catalog.normalize(record.modelNumber).includes(query))).slice(0, 12);
-    target.innerHTML = matches.map((record) => `<button type="button" role="option" data-coc-action="select-model-suggestion" data-model="${escapeHtml(record.modelNumber)}"><strong>${escapeHtml(record.modelNumber)}</strong><small>${formatQuantity(record.caseQuantity)} units/case</small></button>`).join("");
+    const existing = Core.palletModels(session, activePallet()).map((model) => model.modelNumber);
+    const matches = typeof Catalog.suggest === "function"
+      ? Catalog.suggest(query, { exclude: existing, limit: 12 })
+      : Catalog.list().filter((record) => !existing.some((value) => Catalog.normalize(value) === Catalog.normalize(record.modelNumber)) && query && Catalog.normalize(record.modelNumber).includes(query)).slice(0, 12);
+    target.innerHTML = matches.map((record) => `<button type="button" role="option" data-coc-action="select-model-suggestion" data-model="${escapeHtml(record.modelNumber)}"><strong>${escapeHtml(record.modelNumber)}</strong><small>${record.caseQuantity ? `${formatQuantity(record.caseQuantity)} units/case` : "Case quantity not stored"}</small></button>`).join("");
     input.setAttribute("aria-expanded", String(Boolean(matches.length)));
   }
 
@@ -865,8 +830,9 @@
     if (modal?.type === "edit-expected") return editExpectedModal();
     if (modal?.type === "confirm-expected-change") return confirmExpectedChangeModal(modal);
     if (modal?.type === "verified") return verifiedModal();
-    if (modal?.type === "scan-mismatch") return scanMismatchModal();
-    if (modal?.type === "scan-failed") return scanFailedModal();
+    // Old rejection states from interrupted pre-update sessions are converted
+    // into the same editable review screen instead of reviving a blocker.
+    if (modal?.type === "scan-mismatch" || modal?.type === "scan-failed") return confirmLotModal();
     if (modal?.type === "similar") return similarLotModal(modal.similar);
     if (modal?.type === "reopen") return reopenPalletModal(modal.palletId);
     return "";
@@ -953,18 +919,41 @@
     } catch { if (status) status.textContent = "Camera access is unavailable. Enter the lot manually."; }
   }
 
-  function scanLiveRoi() {
+  const waitForCaptureFrame = () => new Promise((resolve) => window.setTimeout(resolve, 90));
+
+  async function scanLiveRoi() {
     const video = document.getElementById("atlas-coc-live-video");
     const guide = document.getElementById("atlas-coc-roi-guide");
-    const canvas = document.getElementById("atlas-coc-roi-canvas");
-    const roi = Scanner.captureRoi?.(video, guide, canvas);
-    if (!roi) { showToast("Camera is not ready yet.", "warning"); return; }
-    roi.toBlob((blob) => {
-      if (!blob) { showToast("The label crop could not be captured.", "warning"); return; }
+    const status = document.getElementById("atlas-coc-camera-status");
+    const scanButton = document.querySelector('[data-coc-action="scan-live-roi"]');
+    if (scanButton) scanButton.disabled = true;
+    if (status) status.textContent = "Capturing the clearest label frame…";
+    const frames = [];
+    for (let index = 0; index < 3; index += 1) {
+      const canvas = document.createElement("canvas");
+      const roi = Scanner.captureRoi?.(video, guide, canvas);
+      if (roi) frames.push(roi);
+      if (index < 2) await waitForCaptureFrame();
+    }
+    if (!frames.length) {
+      if (scanButton) scanButton.disabled = false;
+      showToast("Camera is not ready yet.", "warning");
+      return;
+    }
+    frames.sort((left, right) =>
+      (Scanner.qualityScore?.(right) || 0) - (Scanner.qualityScore?.(left) || 0),
+    );
+    const clearest = frames[0];
+    clearest.toBlob((blob) => {
+      if (!blob) {
+        if (scanButton) scanButton.disabled = false;
+        showToast("The label crop could not be captured.", "warning");
+        return;
+      }
       cameraStream?.getTracks?.().forEach((track) => track.stop());
       cameraStream = null;
-      processCapturedPhoto(blob);
-    }, "image/jpeg", 0.94);
+      processCapturedPhoto(blob, { barcodeFrames: frames });
+    }, "image/jpeg", 0.96);
   }
 
   function openCameraReady() {
@@ -986,7 +975,7 @@
     return accumulatedDetections;
   }
 
-  async function processCapturedPhoto(file) {
+  async function processCapturedPhoto(file, { barcodeFrames = [] } = {}) {
     if (!file) return;
     const failures = capture.failures;
     const token = ++recognitionToken;
@@ -1008,19 +997,35 @@
         barcode: null,
         ocr: null,
       };
-      const barcodeWork = Scanner.decodeFrame(canvas, {
-        enhanced: true,
-        isCancelled: () => token !== recognitionToken || !isInsideCocWorkflow(),
-        onTrace: (trace) => { if (recognitionTrace) recognitionTrace.barcode = trace; },
-      });
+      const decodeSources = barcodeFrames.length ? barcodeFrames : [canvas];
+      const barcodeWork = Promise.all(decodeSources.map((source, index) =>
+        Scanner.decodeFrame(source, {
+          // The clearest frame receives the full enhancement set. The other
+          // burst frames add native/original evidence without tripling delay.
+          enhanced: index === 0,
+          isCancelled: () => token !== recognitionToken || !isInsideCocWorkflow(),
+          onTrace: (trace) => {
+            if (!recognitionTrace) return;
+            recognitionTrace.barcodeFrames = recognitionTrace.barcodeFrames || [];
+            recognitionTrace.barcodeFrames[index] = trace;
+            if (index === 0) recognitionTrace.barcode = trace;
+          },
+        }),
+      )).then((groups) => groups.flat());
       await runOcr(token, barcodeWork, canvas);
     } catch (error) {
       if (token !== recognitionToken) return;
-      capture.status = error instanceof Error ? error.message : "The photo could not be opened.";
-      capture.failures += 1;
-      capture.result = { status: "rescan", reason: "photo_capture_failed", failureCode: "PHOTO_INPUT_FAILED" };
-      scannerState = SCANNER_STATES.REJECTED;
-      modal = { type: "scan-failed" };
+      capture.status = error instanceof Error ? error.message : "Enter the lot manually.";
+      capture.result = {
+        status: "confirm", lot: "", candidateLot: "",
+        reason: "employee_verification_required", failureCode: "PHOTO_INPUT_FAILED",
+        confidenceState: "needs_verification", comparisonStatus: "unread",
+        needsEmployeeVerification: true, captureMethod: "manual_review",
+        validationMethod: "photo_exception_employee_review",
+      };
+      capture.text = "";
+      scannerState = SCANNER_STATES.REVIEW;
+      modal = "confirm-lot";
       renderAll();
     }
   }
@@ -1299,26 +1304,26 @@
       if (recognitionTrace) recognitionTrace.complete = completeTrace;
       Scanner?.logRecognitionTrace?.(completeTrace);
       capture.progress = 100;
-      if (capture.result.status === "confirm") {
-        capture.text = capture.result.lot;
-        capture.status = "Lot ready for employee confirmation.";
-        modal = "confirm-lot";
-        scannerState = SCANNER_STATES.REVIEW;
-      } else {
-        capture.failures += 1;
-        capture.status = "No lot was saved.";
-        modal = { type: capture.result.status === "mismatch" ? "scan-mismatch" : "scan-failed" };
-        scannerState = SCANNER_STATES.REJECTED;
-      }
+      capture.text = capture.result.lot || capture.result.candidateLot || "";
+      capture.status = capture.result.confidenceState === "verified"
+        ? "Barcode and printed text match."
+        : "Employee verification required.";
+      modal = "confirm-lot";
+      scannerState = SCANNER_STATES.REVIEW;
     } catch (error) {
       if (expectedToken !== recognitionToken || !isInsideCocWorkflow()) return;
-      capture.status = error instanceof Error ? error.message : "The lot could not be read.";
-      capture.failures += 1;
+      capture.status = error instanceof Error ? error.message : "Enter the lot manually.";
       capture.result = {
-        status: "rescan",
-        reason: "scanner_error",
+        status: "confirm",
+        reason: "employee_verification_required",
         failureCode: ocrError ? "OCR_EXCEPTION" : "DECODER_EXCEPTION",
         confidenceState: "needs_verification",
+        lot: "",
+        candidateLot: "",
+        comparisonStatus: "unread",
+        needsEmployeeVerification: true,
+        captureMethod: "manual_review",
+        validationMethod: "scanner_exception_employee_review",
       };
       Scanner?.logRecognitionTrace?.({
         title: "ATLAS LOT RECOGNITION TRACE",
@@ -1333,9 +1338,9 @@
           ? Math.round(performance.now() - recognitionTrace.startedAt)
           : null,
       });
-      modal = { type: "scan-failed" };
-      scannerState = SCANNER_STATES.REJECTED;
-      showToast(capture.status, "warning");
+      capture.text = "";
+      modal = "confirm-lot";
+      scannerState = SCANNER_STATES.REVIEW;
     } finally {
       if (expectedToken === recognitionToken && isInsideCocWorkflow()) renderAll();
     }
@@ -1418,11 +1423,10 @@
       return;
     }
     modal = previousModal;
-    scannerState = previousModal === "confirm-lot"
+    scannerState = previousModal === "confirm-lot" ||
+      previousModal?.type === "scan-failed" || previousModal?.type === "scan-mismatch"
       ? SCANNER_STATES.REVIEW
-      : previousModal?.type === "scan-failed" || previousModal?.type === "scan-mismatch"
-        ? SCANNER_STATES.REJECTED
-        : SCANNER_STATES.IDLE;
+      : SCANNER_STATES.IDLE;
     renderAll();
   }
 
@@ -1506,7 +1510,15 @@
     }
     if (action === "select-model-suggestion") {
       const form = button.closest("form"); const input = form?.elements?.modelNumber;
-      if (input) { input.value = button.dataset.model || ""; updateModelInputFeedback(input); updateModelSuggestions(input); input.focus(); }
+      if (input) {
+        input.value = button.dataset.model || "";
+        updateModelInputFeedback(input);
+        updatePalletSetupButton(input.closest("form"));
+        const suggestions = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions");
+        if (suggestions) suggestions.innerHTML = "";
+        input.setAttribute("aria-expanded", "false");
+        input.focus();
+      }
       return;
     }
     if (action === "review-mismatch") { modal = null; renderAll(); return; }
@@ -1521,6 +1533,13 @@
     if (action === "scan-live-roi") { scanLiveRoi(); return; }
     if (action === "manual-lot") { cancelScanSession(); modal = "manual-lot"; renderAll(); return; }
     if (action === "confirm-lot") {
+      const reviewInput = document.getElementById("atlas-coc-lot-review-input");
+      if (reviewInput) capture.text = String(reviewInput.value || "").trim().toUpperCase();
+      if (!Core.canonicalLot(capture.text)) {
+        showToast("Enter the lot number before confirming.", "warning");
+        reviewInput?.focus();
+        return;
+      }
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
         barcodeFormat: capture.result?.barcodeFormat,
@@ -1535,7 +1554,8 @@
         expectedModel: activeModelContext(),
         modelMatchMethod: capture.result?.modelMatchMethod,
         confidence: capture.result?.confidence,
-        verification: "ocr",
+        verification: capture.result?.confidenceState === "verified"
+          ? "barcode_ocr_match" : "employee_confirmed",
       });
       return;
     }
@@ -1673,10 +1693,6 @@
   });
 
   document.addEventListener("change", (event) => {
-    if (event.target.id === "atlas-coc-verify-check") {
-      const confirm = document.querySelector('[data-coc-action="confirm-lot"]');
-      if (confirm) confirm.disabled = !event.target.checked;
-    }
     if (event.target.id === "atlas-coc-active-model") {
       try {
         session = Core.selectModel(session, event.target.value);
@@ -1698,6 +1714,31 @@
 
   document.addEventListener("input", (event) => {
     const input = event.target;
+    if (input?.id === "atlas-coc-lot-review-input") {
+      input.value = input.value.toUpperCase();
+      const next = input.value.trim();
+      if (next !== capture.text) {
+        capture.text = next;
+        capture.result = {
+          ...(capture.result || {}),
+          lot: next,
+          candidateLot: next,
+          confidenceState: "needs_verification",
+          needsEmployeeVerification: true,
+          comparisonStatus: "employee_edited",
+          validationMethod: "employee_edited_camera_result",
+        };
+        const status = document.getElementById("atlas-coc-review-status");
+        if (status) {
+          status.classList.remove("is-match");
+          status.classList.add("is-review");
+          status.innerHTML = '<i aria-hidden="true">×</i>Employee-edited value — verify characters';
+        }
+      }
+      const confirm = document.querySelector('[data-coc-action="confirm-lot"]');
+      if (confirm) confirm.disabled = !Core.canonicalLot(next);
+      return;
+    }
     if (input?.matches?.("input[name='modelNumber']")) {
       input.value = input.value.toUpperCase();
       updateModelInputFeedback(input);
@@ -1856,7 +1897,7 @@
     const modalKey = typeof modal === "string" ? modal : modal?.type;
     const protectedModals = [
       "discard", "reading", "confirm-lot", "duplicate", "mismatch",
-      "edit-expected", "confirm-expected-change", "verified", "scan-mismatch", "scan-failed",
+      "edit-expected", "confirm-expected-change", "verified",
       "similar", "reopen",
     ];
     if (event.key === "Escape" && modal && !protectedModals.includes(modalKey)) {
@@ -1872,6 +1913,14 @@
   });
   window.addEventListener("online", () => scheduleCloudSync());
   window.addEventListener("online", () => Catalog.loadRemote());
+  window.addEventListener("atlas:coc-case-quantities-ready", () => {
+    const input = document.activeElement;
+    if (input?.matches?.("input[name='modelNumber']")) {
+      updateModelInputFeedback(input);
+      updateModelSuggestions(input);
+      updatePalletSetupButton(input.closest("form"));
+    }
+  });
   window.addEventListener("atlas:coc-case-quantities-ready", () => {
     if (!session || workflowView === "setup") renderAll();
   });

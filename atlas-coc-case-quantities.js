@@ -2,6 +2,7 @@
   "use strict";
 
   const SOURCE = "Photographed company case-quantity tables · 2026-08-27";
+  const SKU_CACHE_KEY = "atlas-coc-sku-suggestions-v1";
   const EMBEDDED_ROWS = [
     ["CGPCS-40G", 600],
     ["CGPCS-50GL", 500, "NEW NOV 2025"],
@@ -135,9 +136,62 @@
       origin: "embedded",
     })];
   }));
+  const skuSuggestions = new Map();
+
+  function addSkuSuggestion(value, origin = "embedded") {
+    const modelNumber = normalize(value);
+    if (!modelNumber) return;
+    const prior = skuSuggestions.get(modelNumber);
+    if (!prior || origin === "database") {
+      skuSuggestions.set(modelNumber, Object.freeze({ modelNumber, origin }));
+    }
+  }
+
+  EMBEDDED_ROWS.forEach(([modelNumber]) => addSkuSuggestion(modelNumber));
+
+  try {
+    const cached = JSON.parse(global.localStorage?.getItem(SKU_CACHE_KEY) || "[]");
+    if (Array.isArray(cached)) cached.slice(0, 2000).forEach((value) => addSkuSuggestion(value, "cache"));
+  } catch {}
 
   function list() {
     return [...catalog.values()].sort((a, b) => a.modelNumber.localeCompare(b.modelNumber));
+  }
+
+  function suggestionList() {
+    return [...skuSuggestions.values()].map((item) => {
+      const resolved = resolve(item.modelNumber);
+      return Object.freeze({
+        modelNumber: item.modelNumber,
+        catalogModel: resolved?.catalogModel || "",
+        caseQuantity: resolved?.caseQuantity || null,
+        origin: item.origin,
+      });
+    }).sort((left, right) => left.modelNumber.localeCompare(right.modelNumber));
+  }
+
+  function suggest(value, { exclude = [], limit = 12 } = {}) {
+    const query = normalize(value);
+    if (query.length < 2) return [];
+    const excluded = new Set((exclude || []).map(normalize).filter(Boolean));
+    return suggestionList()
+      .filter((item) => !excluded.has(normalize(item.modelNumber)))
+      .map((item) => {
+        const normalized = normalize(item.modelNumber);
+        const startsAt = normalized.indexOf(query);
+        return { ...item, startsAt };
+      })
+      .filter((item) => item.startsAt >= 0)
+      .sort((left, right) =>
+        Number(left.startsAt !== 0) - Number(right.startsAt !== 0) ||
+        left.startsAt - right.startsAt ||
+        Number(!["database", "cache"].includes(left.origin)) -
+          Number(!["database", "cache"].includes(right.origin)) ||
+        left.modelNumber.length - right.modelNumber.length ||
+        left.modelNumber.localeCompare(right.modelNumber),
+      )
+      .slice(0, Math.max(1, Math.min(30, Number(limit) || 12)))
+      .map(({ startsAt, ...item }) => Object.freeze(item));
   }
 
   function resolve(value) {
@@ -173,9 +227,10 @@
   async function loadRemote() {
     const config = global.atlasSupabaseConfig;
     if (!config?.url || !config?.key || !global.navigator?.onLine) return list();
-    try {
+    const headers = { apikey: config.key, Authorization: `Bearer ${config.key}` };
+    const loadQuantities = async () => {
       const response = await fetch(`${config.url}/rest/v1/coc_model_case_quantities?select=model_number,case_quantity,source_revision,effective_date&active=eq.true&order=model_number.asc`, {
-        headers: { apikey: config.key, Authorization: `Bearer ${config.key}` },
+        headers,
         cache: "no-store",
       });
       if (!response.ok) throw new Error(`catalog unavailable (${response.status})`);
@@ -191,11 +246,28 @@
           source: "Supabase coc_model_case_quantities",
           origin: "database",
         }));
+        addSkuSuggestion(modelNumber, "quantity");
       });
-      global.dispatchEvent?.(new CustomEvent("atlas:coc-case-quantities-ready"));
-    } catch (error) {
-      console.info("ATLAS is using the protected offline COC case-quantity catalog.", error.message);
-    }
+    };
+    const loadSkus = async () => {
+      const response = await fetch(`${config.url}/rest/v1/skus?select=sku&order=sku.asc&limit=2000`, {
+        headers,
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`SKU suggestions unavailable (${response.status})`);
+      const rows = await response.json();
+      (Array.isArray(rows) ? rows : []).forEach((row) => addSkuSuggestion(row?.sku, "database"));
+      try {
+        global.localStorage?.setItem(SKU_CACHE_KEY, JSON.stringify(
+          [...skuSuggestions.values()].map((item) => item.modelNumber).slice(0, 2000),
+        ));
+      } catch {}
+    };
+    const results = await Promise.allSettled([loadQuantities(), loadSkus()]);
+    results.filter((result) => result.status === "rejected").forEach((result) =>
+      console.info("ATLAS is using protected offline COC catalog data.", result.reason?.message || result.reason),
+    );
+    global.dispatchEvent?.(new CustomEvent("atlas:coc-case-quantities-ready"));
     return list();
   }
 
@@ -203,6 +275,8 @@
     SOURCE,
     normalize,
     list,
+    suggestionList,
+    suggest,
     resolve,
     recordForSession,
     loadRemote,
