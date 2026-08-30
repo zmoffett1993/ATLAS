@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v220-receiver-polish-and-stable-preview";
+const VERSION = "atlas-pwa-v221-framed-coc-preview-and-subtle-hover";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=148",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=32",
+  "./atlas-coc.css?v=33",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=7",
@@ -18,10 +18,10 @@ const APP_SHELL = [
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
-  "./atlas-coc-excel.js?v=13",
+  "./atlas-coc-excel.js?v=14",
   "./atlas-coc.js?v=32",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=12",
+  "./coc-receiver/receiver.css?v=13",
   "./coc-receiver/receiver.js?v=12",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",

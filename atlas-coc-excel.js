@@ -457,6 +457,7 @@
   }
 
   const previewColumnPixels = (width) => Math.max(1, Math.floor(Number(width || 10) * 7 + 5));
+  const WORKBOOK_PREVIEW_PADDING = 4;
   let workbookPreviewObserver = null;
 
   function sizeOfficialWorkbookPreview(frame) {
@@ -465,9 +466,10 @@
     const sheetWidth = Number(frame?.dataset?.sheetWidth || 0);
     const sheetHeight = Number(frame?.dataset?.sheetHeight || 0);
     if (!canvas || !sheetWidth || !sheetHeight) return;
-    if (preview) preview.style.maxWidth = `${sheetWidth + 2}px`;
-    frame.style.maxWidth = `${sheetWidth + 2}px`;
-    const availableWidth = Math.max(1, frame.clientWidth - 2);
+    const framedSheetWidth = sheetWidth + (WORKBOOK_PREVIEW_PADDING * 2) + 2;
+    if (preview) preview.style.maxWidth = `${framedSheetWidth}px`;
+    frame.style.maxWidth = `${framedSheetWidth}px`;
+    const availableWidth = Math.max(1, frame.clientWidth - (WORKBOOK_PREVIEW_PADDING * 2));
     const scale = Math.min(1, availableWidth / sheetWidth);
     canvas.style.width = `${sheetWidth}px`;
     canvas.style.height = "auto";
@@ -476,7 +478,7 @@
     const renderedHeight = Math.max(sheetHeight, canvas.scrollHeight, table?.offsetHeight || 0);
     canvas.style.height = `${renderedHeight}px`;
     canvas.style.transform = `scale(${scale})`;
-    frame.style.height = `${Math.ceil(renderedHeight * scale) + 4}px`;
+    frame.style.height = `${Math.ceil(renderedHeight * scale) + (WORKBOOK_PREVIEW_PADDING * 2) + 2}px`;
     frame.dataset.renderedSheetHeight = String(renderedHeight);
     frame.style.setProperty("--atlas-workbook-scale", String(scale));
   }
