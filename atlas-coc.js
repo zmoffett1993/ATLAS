@@ -223,8 +223,8 @@
       capture = freshCapture();
       modal = null;
     }
-    const button = [...document.querySelectorAll(".bottom-nav button")]
-      .find((item) => item.textContent?.toLowerCase().includes("workflows"));
+    const button = [...document.querySelectorAll(".bottom-nav button, [data-nav]")]
+      .find((item) => String(item.dataset?.nav || item.textContent || "").trim().toLowerCase().includes("workflows"));
     button?.click();
     workflowView = resume && session ? "session" : "landing";
     if (resume && session?.status === "report") refreshStationPresence();
@@ -267,7 +267,7 @@
     const pallet = activePallet();
     const progress = Core.palletProgress(pallet);
     const countCopy = progress.expected
-      ? `${plural(progress.expected, "box")} confirmed`
+      ? `${progress.recorded.toLocaleString()} of ${plural(progress.expected, "box")} recorded`
       : "Box count not verified";
     return `<button type="button" class="atlas-coc-active-bar" data-coc-action="resume">
       <span class="atlas-coc-active-bar__signal" aria-hidden="true"></span>
@@ -840,6 +840,7 @@
 
   function renderAll() {
     document.documentElement.classList.toggle("atlas-coc-work-mode", isWorkflowSection());
+    document.documentElement.classList.toggle("atlas-coc-has-active", Boolean(session));
     const bar = document.getElementById("atlas-coc-active-bar-slot");
     if (bar) {
       try {

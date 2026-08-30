@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v199-persistent-personal-login";
+const VERSION = "atlas-pwa-v200-desktop-coc-resume-layout";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=148",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=16",
+  "./atlas-coc.css?v=17",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=7",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=1",
   "./atlas-coc-delivery.js?v=2",
   "./atlas-coc-excel.js?v=7",
-  "./atlas-coc.js?v=20",
+  "./atlas-coc.js?v=21",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=1",
   "./coc-receiver/receiver.js?v=2",
@@ -28,7 +28,7 @@ const APP_SHELL = [
   "./atlas-restock.css?v=3",
   "./atlas-restock.js?v=3",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=143",
+  "./atlas-desktop.css?v=144",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=1",

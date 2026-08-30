@@ -396,6 +396,11 @@
     box-shadow: 0 14px 38px rgba(4, 29, 57, 0.12) !important;
   }
 
+  /* Leave a clear, clickable lane between an active COC and SKU search. */
+  html.atlas-desktop.atlas-coc-has-active:not(.atlas-coc-work-mode) #root .home-search-panel {
+    margin-top: 18px !important;
+  }
+
   html.atlas-desktop #root .search-input {
     height: 58px !important;
     padding-right: 54px !important;
