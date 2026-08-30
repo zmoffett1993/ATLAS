@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v227-matched-coc-status-cards";
+const VERSION = "atlas-pwa-v228-full-coc-pallet-editing";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,17 +9,17 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=151",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=35",
+  "./atlas-coc.css?v=36",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=8",
   "./atlas-coc-case-quantities.js?v=2",
-  "./atlas-coc-core.js?v=13",
+  "./atlas-coc-core.js?v=14",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=16",
-  "./atlas-coc.js?v=34",
+  "./atlas-coc.js?v=35",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=14",
   "./coc-receiver/receiver.js?v=13",

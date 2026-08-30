@@ -80,6 +80,7 @@
       verificationAttemptedAt: null,
       verifiedAt: null,
       expectedBoxesInferred: false,
+      reopenedForEdit: false,
     };
   }
 
@@ -289,6 +290,7 @@
         verifiedAt: cleanText(source?.verifiedAt, 40) ||
           (isLocked && expectedBoxes === recordedBoxes ? cleanText(source?.finishedAt, 40) || null : null),
         expectedBoxesInferred: Boolean(source?.expectedBoxesInferred || inferredExpected),
+        reopenedForEdit: Boolean(source?.reopenedForEdit),
       };
     });
     const inferredModels = pallets.flatMap((pallet) => [
@@ -488,6 +490,81 @@
     session.activeModel = selected.model || session.activeModel;
     session.sku = session.activeModel || session.sku;
     return withActivity(session, "lot_selected", { palletNumber: pallet.number, lotId });
+  }
+
+  function updateLot(source, lotId, updates = {}) {
+    const session = sanitize(clone(source));
+    const pallet = activePallet(session);
+    const lot = pallet?.lots.find((item) => item.id === lotId);
+    if (!pallet || session.status !== "active") throw new Error("NO_ACTIVE_PALLET");
+    if (!lot) throw new Error("LOT_NOT_FOUND");
+
+    const nextLotText = cleanLot(updates.lot);
+    const nextCanonical = canonicalLot(nextLotText);
+    const nextModel = cleanModel(updates.model);
+    const nextCases = Number(updates.cases);
+    if (!nextCanonical) throw new Error("LOT_REQUIRED");
+    if (!Number.isInteger(nextCases) || nextCases < 0) throw new Error("INVALID_BOX_COUNT");
+    const model = pallet.models.find(
+      (item) => canonicalModel(item.modelNumber) === canonicalModel(nextModel),
+    );
+    if (!model?.caseQuantity) throw new Error("MODEL_NOT_FOUND");
+    const duplicate = pallet.lots.find((item) => item.id !== lot.id &&
+      item.canonical === nextCanonical &&
+      canonicalModel(item.model) === canonicalModel(model.modelNumber));
+    if (duplicate) {
+      const error = new Error("DUPLICATE_LOT");
+      error.code = "DUPLICATE_LOT";
+      throw error;
+    }
+    const nextTotal = palletTotal(pallet) - integer(lot.cases) + nextCases;
+    if (nextTotal > positiveInteger(pallet.expectedBoxes)) {
+      const error = new Error("The corrected box quantity exceeds the confirmed pallet total.");
+      error.code = "APPROVED_BOX_COUNT_EXCEEDED";
+      throw error;
+    }
+
+    const before = { lot: lot.lot, model: lot.model, cases: integer(lot.cases) };
+    const at = timestamp();
+    pallet.history = pallet.history.filter((entry) => entry.lotId !== lot.id);
+    if (nextCases === 0) {
+      pallet.lots = pallet.lots.filter((item) => item.id !== lot.id);
+      const replacement = pallet.lots[0] || null;
+      pallet.activeLotId = replacement?.id || null;
+      pallet.activeModel = replacement?.model || pallet.models[0]?.modelNumber || "";
+      session.activeModel = pallet.activeModel;
+      session.sku = pallet.activeModel;
+    } else {
+      lot.lot = nextLotText;
+      lot.canonical = nextCanonical;
+      lot.model = model.modelNumber;
+      lot.sku = model.modelNumber;
+      lot.expectedModel = model.modelNumber;
+      lot.caseQuantity = model.caseQuantity;
+      lot.cases = nextCases;
+      lot.verifiedAt = at;
+      lot.verification = "manual";
+      lot.captureMethod = "manual_edit";
+      lot.validationMethod = "employee_correction";
+      lot.confirmedBy = cleanText(session.employee, 60);
+      pallet.history.push(...Array.from({ length: nextCases }, () => ({
+        kind: "case", lotId: lot.id, at,
+      })));
+      pallet.activeLotId = lot.id;
+      pallet.activeModel = model.modelNumber;
+      session.activeModel = model.modelNumber;
+      session.sku = model.modelNumber;
+    }
+    pallet.verificationState = "in_progress";
+    pallet.verificationAttemptedAt = null;
+    pallet.verifiedAt = null;
+    return withActivity(session, nextCases === 0 ? "lot_removed" : "lot_corrected", {
+      palletNumber: pallet.number,
+      before,
+      after: nextCases === 0 ? null : {
+        lot: nextLotText, model: model.modelNumber, cases: nextCases,
+      },
+    });
   }
 
   function addModel(source, record) {
@@ -700,6 +777,7 @@
     pallet.status = "locked";
     pallet.finishedAt = at;
     pallet.verificationState = "completed";
+    pallet.reopenedForEdit = false;
     pallet.activeLotId = null;
     const next = createPallet(session.pallets.length + 1);
     session.pallets.push(next);
@@ -733,6 +811,7 @@
     target.verificationState = "in_progress";
     target.verificationAttemptedAt = null;
     target.verifiedAt = null;
+    target.reopenedForEdit = true;
     target.activeLotId = target.lots[0]?.id || null;
     target.activeModel = target.lots[0]?.model || target.models?.[0]?.modelNumber || "";
     session.activeModel = target.activeModel;
@@ -742,6 +821,7 @@
       if (pallet.id !== target.id) {
         pallet.status = "locked";
         pallet.activeLotId = null;
+        pallet.reopenedForEdit = false;
       }
     });
     return withActivity(session, "pallet_reopened", {
@@ -767,6 +847,7 @@
       pallet.status = "locked";
       pallet.finishedAt = pallet.finishedAt || at;
       pallet.verificationState = "completed";
+      pallet.reopenedForEdit = false;
       pallet.activeLotId = null;
       withActivity(session, "pallet_finished", {
         palletNumber: pallet.number,
@@ -834,6 +915,7 @@
     selectModel,
     removeModel,
     selectLot,
+    updateLot,
     addCase,
     undoCase,
     setExpectedBoxCount,

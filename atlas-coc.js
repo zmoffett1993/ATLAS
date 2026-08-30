@@ -670,6 +670,7 @@
     <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
     <div class="atlas-coc-count-confirmation">
       <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box</button>
+      <button type="button" data-coc-action="edit-lot" data-lot-id="${escapeHtml(lot.id)}">Edit Lot Details</button>
     </div>`;
   }
 
@@ -706,6 +707,7 @@
     const atLimit = total >= pallet.expectedBoxes;
     return `<div class="atlas-coc-page atlas-coc-counting">
       <button type="button" class="atlas-coc-back atlas-coc-count-back" data-coc-action="coc-back">‹ Back</button>
+      ${pallet.reopenedForEdit ? `<section class="atlas-coc-editing-pallet"><span>EDITING PALLET ${pallet.number}</span><button type="button" data-coc-action="edit-expected">Correct Confirmed Box Count</button></section>` : ""}
       ${countingModelMarkup(pallet)}
       ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed count. Undo a box or correct the count before finishing.</p>` : ""}
       ${countingLotsMarkup(pallet, atLimit)}
@@ -944,14 +946,14 @@
     const blocked = activeHasWork && !activeReady;
     const total = completed.reduce((sum, item) => sum + Core.palletTotal(item), 0);
     return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>${reportMode ? "Review completed COC" : "Complete this COC?"}</h2>
-      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number}</button>` : ""}</section>`).join("")}</div>
+      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>`).join("")}</div>
       <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(total, "box")} · ${plural(completed.length, "pallet")}</b></p>
       ${blocked
         ? `<p class="atlas-coc-warning">Pallet ${pallet.number} is not verified. Its confirmed and recorded box counts must match before completing the COC.</p>`
         : pallet && !activeHasWork
           ? `<p>The empty Pallet ${pallet.number} draft will not be included. Only the ${plural(completed.length, "verified pallet")} shown above will appear in the final report.</p>`
           : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will be ready for office completion.</p>`}
-      <div class="atlas-coc-modal-actions atlas-coc-final-actions"><button type="button" data-coc-action="view-draft-official" ${blocked || !completed.length ? "disabled" : ""}>View Official COC</button>${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Return to Send</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button>`}</div>`, { label: "Complete COC review" });
+      <div class="atlas-coc-modal-actions atlas-coc-final-actions"><button type="button" data-coc-action="view-draft-official" ${blocked || !completed.length ? "disabled" : ""}>View Official COC</button>${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Complete COC</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button>`}</div>`, { label: "Complete COC review" });
   }
 
   function mismatchModal() {
@@ -1010,11 +1012,27 @@
     const pallet = session?.pallets.find((item) => item.id === palletId);
     if (!pallet) return "";
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">REOPEN PALLET</span><h2>Reopen Pallet ${pallet.number}?</h2>
-      <p>You are reopening a completed pallet. All quantities must be verified again before it can be completed.</p>
+      <p>You are reopening a completed pallet. You can correct its confirmed box count, SKUs, lot codes, and box quantities. Every quantity must be verified again before the COC can be completed.</p>
       <div class="atlas-coc-compare is-verified"><div><span>CONFIRMED</span><strong>${pallet.expectedBoxes}</strong></div><div><span>RECORDED</span><strong>${Core.palletTotal(pallet)}</strong></div></div>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Locked</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-reopen" data-pallet-id="${escapeHtml(pallet.id)}">Reopen Pallet</button></div>`, {
       label: `Reopen pallet ${pallet.number}`, dismiss: false,
     });
+  }
+
+  function editLotModal(lotId) {
+    const pallet = activePallet();
+    const lot = pallet?.lots.find((item) => item.id === lotId);
+    if (!pallet || !lot) return "";
+    const models = Core.palletModels(session, pallet);
+    return modalShell(`<span class="atlas-coc-eyebrow">EDIT PALLET ${pallet.number}</span><h2>Edit lot details</h2>
+      <p>Correct the SKU, lot code, or number of boxes. Enter 0 boxes to remove this lot from the pallet.</p>
+      <form id="atlas-coc-edit-lot-form" class="atlas-coc-manual-form" data-lot-id="${escapeHtml(lot.id)}">
+        <label><strong>SKU / Model Number</strong><select name="model" required>${models.map((model) => `<option value="${escapeHtml(model.modelNumber)}" ${modelKey(model.modelNumber) === modelKey(lot.model) ? "selected" : ""}>${escapeHtml(model.modelNumber)}</option>`).join("")}</select></label>
+        <label><strong>Lot Code</strong><input name="lotNumber" value="${escapeHtml(Core.displayLot(lot.lot))}" maxlength="120" autocapitalize="characters" autocomplete="off" required /></label>
+        <label><strong>Boxes for This Lot</strong><input name="boxes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="${lot.cases}" required /></label>
+        <p class="atlas-coc-form-error" aria-live="polite"></p>
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Save Lot Changes</button></div>
+      </form>`, { label: `Edit lot on pallet ${pallet.number}` });
   }
 
   function discardModal() {
@@ -1194,6 +1212,7 @@
     if (modal?.type === "scan-mismatch" || modal?.type === "scan-failed") return confirmLotModal();
     if (modal?.type === "similar") return similarLotModal(modal.similar);
     if (modal?.type === "reopen") return reopenPalletModal(modal.palletId);
+    if (modal?.type === "edit-lot") return editLotModal(modal.lotId);
     return "";
   }
 
@@ -1994,6 +2013,11 @@
       catch { showToast("There is no box to undo.", "warning"); }
       return;
     }
+    if (action === "edit-lot") {
+      modal = { type: "edit-lot", lotId: button.dataset.lotId };
+      renderAll();
+      return;
+    }
     if (action === "review-pallet") { modal = "review-pallet"; renderAll(); return; }
     if (action === "review-reopen") {
       modal = { type: "reopen", palletId: button.dataset.palletId };
@@ -2262,6 +2286,42 @@
       if (next < Core.palletTotal(activePallet())) { error.textContent = "The approved box count cannot be lower than the boxes already recorded."; return; }
       modal = { type: "confirm-expected-change", previous, next };
       renderAll();
+      return;
+    }
+    if (event.target.id === "atlas-coc-edit-lot-form") {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      const lotId = event.target.dataset.lotId;
+      const lotNumber = String(data.get("lotNumber") || "").trim().toUpperCase();
+      const boxesRaw = String(data.get("boxes") || "").trim();
+      const boxes = /^\d+$/.test(boxesRaw) ? Number(boxesRaw) : NaN;
+      const error = event.target.querySelector(".atlas-coc-form-error");
+      if (!Core.canonicalLot(lotNumber)) {
+        error.textContent = "Enter a valid lot code.";
+        return;
+      }
+      if (!Number.isInteger(boxes) || boxes < 0) {
+        error.textContent = "Enter a whole number of boxes, or 0 to remove the lot.";
+        return;
+      }
+      try {
+        session = Core.updateLot(session, lotId, {
+          lot: lotNumber,
+          model: data.get("model"),
+          cases: boxes,
+        });
+        modal = null;
+        persist();
+        showToast(boxes === 0
+          ? "Lot removed from this pallet."
+          : "Lot details updated · verify the pallet again");
+      } catch (failure) {
+        error.textContent = failure?.code === "DUPLICATE_LOT"
+          ? "That lot already exists under the selected SKU."
+          : failure?.code === "APPROVED_BOX_COUNT_EXCEEDED"
+            ? failure.message
+            : "The lot changes could not be saved.";
+      }
       return;
     }
     if (event.target.id === "atlas-coc-manual-form") {

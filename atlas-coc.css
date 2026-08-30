@@ -1098,7 +1098,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   padding: 0 13px;
   color: var(--coc-blue-dark);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 850;
   text-align: left;
   border: 0;
@@ -1108,6 +1108,12 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-final-actions > button:first-child { color: var(--coc-blue-dark); border-color: #9fc6f2; background: #f8fbff; }
 .atlas-coc-counting .atlas-coc-finish-actions { margin-top: 14px; }
 .atlas-coc-counting .atlas-coc-finish:disabled { color: #7793bd; opacity: .62; background: #fbfdff; }
+.atlas-coc-editing-pallet { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 4px 0 18px; padding: 12px 14px; color: var(--coc-blue-dark); border: 1px solid #b8d6f4; border-radius: 14px; background: #f5faff; }
+.atlas-coc-editing-pallet span { font-size: 11px; font-weight: 950; letter-spacing: .14em; }
+.atlas-coc-editing-pallet button { min-height: 40px; padding: 0 13px; color: var(--coc-blue-dark); font-weight: 850; border: 1px solid #9fc6f2; border-radius: 12px; background: #fff; }
+.atlas-coc-count-confirmation { display: flex; flex-wrap: wrap; gap: 10px; }
+.atlas-coc-count-confirmation button { flex: 1 1 160px; }
+.atlas-coc-manual-form select { width: 100%; min-height: 50px; padding: 0 13px; color: var(--coc-ink); font: inherit; font-weight: 750; border: 1px solid #bdcde0; border-radius: 12px; background: #fff; }
 
 .atlas-coc-report-head { padding: 23px; color: #fff; border-radius: 23px; background: linear-gradient(135deg, #07305f, #0876e9); }
 .atlas-coc-report-head > span { font-size: 11px; font-weight: 950; letter-spacing: .16em; color: #bce1ff; }
