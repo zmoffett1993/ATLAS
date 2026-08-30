@@ -1052,26 +1052,46 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-counting > .atlas-coc-add-case span { font-size: 32px; }
 .atlas-coc-counting > .atlas-coc-add-case:disabled { opacity: .42; box-shadow: none; }
 .atlas-coc-count-confirmation {
-  min-height: 43px;
-  display: grid;
-  grid-template-columns: 1fr;
+  min-height: 54px;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
-  gap: 10px;
-  padding: 6px 4px 0;
+  padding: 8px 0 0;
 }
 .atlas-coc-count-confirmation button {
-  min-height: 38px;
-  padding: 0;
+  min-width: 160px;
+  min-height: 46px;
+  padding: 0 16px;
   color: var(--coc-blue-dark);
   font: inherit;
-  font-size: 12px;
-  font-weight: 850;
-  text-align: left;
-  border: 0;
-  background: transparent;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+  border: 1.5px solid #9fc6f2;
+  border-radius: 14px;
+  background: #fff;
 }
-.atlas-coc-count-confirmation button:disabled { color: #9aa8b6; }
-.atlas-coc-report-back { margin-bottom: 2px; color: #41627f; font-size: 13px; }
+.atlas-coc-count-confirmation button:disabled { color: #9aa8b6; border-color: #d5e0eb; background: #f8fafc; }
+@media (hover:hover) {
+  .atlas-coc-count-confirmation button:hover:not(:disabled) { background: #f1f7ff; border-color: #6fa8e9; }
+}
+.atlas-coc-report-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin: 0 0 8px;
+  padding: 0 17px;
+  color: var(--coc-blue-dark);
+  font-size: 16px;
+  font-weight: 900;
+  border: 1.5px solid #9fc6f2;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(7, 69, 145, .08);
+}
+@media (hover:hover) {
+  .atlas-coc-report-back:hover { background: #f1f7ff; border-color: #6fa8e9; }
+}
 .atlas-coc-review-edit {
   width: 100%;
   min-height: 42px;

@@ -239,6 +239,7 @@
     return safeText(value, 100)
       .toUpperCase()
       .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+      .replace(/_+/g, " ")
       .replace(/\s+/g, " ")
       .replace(/[. ]+$/g, "")
       .trim() || fallback;
