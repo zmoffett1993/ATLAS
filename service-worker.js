@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v244-device-coc-storage-clear";
+const VERSION = "atlas-pwa-v245-thick-wall-sku-profiles";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=149",
-  "./atlas-dashboard.js?v=152",
+  "./atlas-dashboard.js?v=153",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
   "./atlas-coc.css?v=43",
@@ -34,8 +34,8 @@ const APP_SHELL = [
   "./atlas-mobile-menu.css?v=2",
   "./atlas-desktop.js?v=131",
   "./manifest.webmanifest?v=107",
-  "./product-images.json?v=20260816-dosing-cup-framed-v104",
-  "./pallet-guides.json?v=20260817-new-skus-v6",
+  "./product-images.json?v=20260831-thick-wall-profile-v105",
+  "./pallet-guides.json?v=20260831-thick-wall-aliases-v7",
   "./product-images/cgasb1-60ml-cnl-owh.png",
   "./atlas-icon-v2-180.png?v=101",
   "./atlas-icon-v2-192.png?v=101",

@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-16-new-sku-images-v1.0.3",
+  "version": "2026-08-31-thick-wall-profile-v1.0.5",
   "bucket": "product-images",
   "approved_count": 335,
   "manual_review_count": 68,
@@ -3174,33 +3174,45 @@
         "Child Resistant"
       ]
     },
-    "CGSC1-30-MLM-TW-CNL-OBK": {
+    "CGSC1-30MLMTW-CNL-OBK": {
       "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
       "official_sku": "CGSC1-30MLMTW-CNL-OBK",
       "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-cnl-obk-4ab3a2f8.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-cnl-obk.html",
+      "source_page": "https://chubbygorilla.com/cgsc1-30mlmtw-cnl-obk.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-cnl-obk_2877_large.png",
-      "match_type": "Auto-match — punctuation normalized",
+      "match_type": "Official page verified — exact SKU",
       "width": 720,
       "height": 720,
       "bytes": 7152,
-      "full_description": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "picker_name": "30Ml CR Mini Thick-Wall Spiral Container With Liner & Tamper Evident",
+      "full_description": "30ML (30CC) MINI SPIRAL THICK-WALL CR CONTAINER WITH INTEGRATED LINER & TAMPER EVIDENT BREAK-OFF BAND (CLEAR NATURAL CONTAINER WITH OPAQUE BLACK CLOSURE)",
+      "picker_name": "30ML CR Mini Thick-Wall Spiral Container",
       "picker_bullets": [
-        "Clear Container",
-        "Black Closure",
-        "Liner",
-        "Tamper Evident",
+        "Clear Natural Container",
+        "Opaque Black Closure",
+        "Integrated Liner",
+        "Tamper-Evident Break-Off Band",
         "Child Resistant"
+      ],
+      "specifications": [
+        "Capacity: 30ML (30CC)",
+        "Series: Spiral",
+        "Color Code: CNL-OBK",
+        "Units Per Case: 200",
+        "Case Dimensions: 17 × 14 × 10 in"
+      ],
+      "gallery_image_urls": [
+        "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-cnl-obk_2880_large.png",
+        "https://chubbygorilla.com/media/wysiwyg/CGSC1-30MLMTW-dimensions.jpg",
+        "https://chubbygorilla.com/media/wysiwyg/CGSC1-30MLMTW-label.jpg"
       ]
     },
-    "CGSC1-30-MLM-TW-CNL-OWH": {
+    "CGSC1-30MLMTW-CNL-OWH": {
       "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
       "official_sku": "CGSC1-30MLMTW-CNL-OWH",
       "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-cnl-owh-47031e08.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-cnl-owh.html",
+      "source_page": "https://chubbygorilla.com/cgsc1-30mlmtw-cnl-owh.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-cnl-owh_2878_large.png",
-      "match_type": "Auto-match — punctuation normalized",
+      "match_type": "Official catalog verified — exact SKU",
       "width": 720,
       "height": 720,
       "bytes": 7504,
@@ -3214,13 +3226,13 @@
         "Child Resistant"
       ]
     },
-    "CGSC1-30-MLM-TW-OBK-OBK": {
+    "CGSC1-30MLMTW-OBK-OBK": {
       "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
       "official_sku": "CGSC1-30MLMTW-OBK-OBK",
       "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-obk-obk-eaf4c5e0.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-obk-obk.html",
+      "source_page": "https://chubbygorilla.com/cgsc1-30mlmtw-obk-obk.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-obk-obk_2876_large.png",
-      "match_type": "Auto-match — punctuation normalized",
+      "match_type": "Official catalog verified — exact SKU",
       "width": 720,
       "height": 720,
       "bytes": 6446,
@@ -3234,13 +3246,13 @@
         "Child Resistant"
       ]
     },
-    "CGSC1-30-MLM-TW-OWH-OWH": {
+    "CGSC1-30MLMTW-OWH-OWH": {
       "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
       "official_sku": "CGSC1-30MLMTW-OWH-OWH",
       "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-owh-owh-690052b3.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-owh-owh.html",
+      "source_page": "https://chubbygorilla.com/cgsc1-30mlmtw-owh-owh.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-owh-owh_2879_large.png",
-      "match_type": "Auto-match — punctuation normalized",
+      "match_type": "Official catalog verified — exact SKU",
       "width": 720,
       "height": 720,
       "bytes": 6548,
@@ -5487,13 +5499,13 @@
         "Child Resistant"
       ]
     },
-    "CGSC1-2OZ-TW-CNL-OWH": {
+    "CGSC1-2OZTW-CNL-OWH": {
       "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
       "official_sku": "CGSC1-2OZTW-CNL-OWH",
       "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-cnl-owh-dc1d4e40.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-2oztw-cnl-owh.html",
+      "source_page": "https://chubbygorilla.com/cgsc1-2oztw-cnl-owh.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-cnl-owh_2891_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
+      "match_type": "Official catalog verified — exact SKU",
       "width": 720,
       "height": 720,
       "bytes": 8444,
@@ -5527,13 +5539,13 @@
         "Child Resistant"
       ]
     },
-    "CGSC1-2OZ-TW-OBK-OBK": {
+    "CGSC1-2OZTW-OBK-OBK": {
       "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
       "official_sku": "CGSC1-2OZTW-OBK-OBK",
       "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-obk-obk-b62848d0.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-2oztw-obk-obk.html",
+      "source_page": "https://chubbygorilla.com/cgsc1-2oztw-obk-obk.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-obk-obk_2889_large.png",
-      "match_type": "Auto-match — known ATLAS format correction",
+      "match_type": "Official catalog verified — exact SKU",
       "width": 720,
       "height": 720,
       "bytes": 6696,
@@ -5827,13 +5839,13 @@
         "Child Resistant"
       ]
     },
-    "CGSC1-2OZ-TW-OWH-OWH": {
+    "CGSC1-2OZTW-OWH-OWH": {
       "title": "2OZ CR THICK-WALL SPIRAL WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
       "official_sku": "CGSC1-2OZTW-OWH-OWH",
       "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-20z-tw-owh-owh-2973fbbf.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-2otw-owh-owh.html",
+      "source_page": "https://chubbygorilla.com/cgsc1-2oztw-owh-owh.html",
       "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-2oztw-owh-owh.2892_large_1.png",
-      "match_type": "Auto-match — known ATLAS format correction",
+      "match_type": "Official catalog verified — exact SKU",
       "width": 720,
       "height": 720,
       "bytes": 6768,
@@ -6012,50 +6024,6 @@
       "atlas_sku": "CGUB1-30MLSC-WT-SOLID",
       "mapped_from": "CGUB1-30-MLSC-WT-SOLID"
     },
-    "CGSC1-30MLM-TW-CNL-OWH": {
-      "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-30MLMTW-CNL-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-cnl-owh-47031e08.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-cnl-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-cnl-owh_2878_large.png",
-      "match_type": "Approved corrected-SKU alias — exact alphanumeric identity",
-      "width": 720,
-      "height": 720,
-      "bytes": 7504,
-      "full_description": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH WHITE CLOSURE)",
-      "picker_name": "30Ml CR Mini Thick-Wall Spiral Container With Liner & Tamper Evident",
-      "picker_bullets": [
-        "Clear Container",
-        "White Closure",
-        "Liner",
-        "Tamper Evident",
-        "Child Resistant"
-      ],
-      "atlas_sku": "CGSC1-30MLM-TW-CNL-OWH",
-      "mapped_from": "CGSC1-30-MLM-TW-CNL-OWH"
-    },
-    "CGSC1-30MLM-TW-OBK-OBK": {
-      "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-30MLMTW-OBK-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-obk-obk-eaf4c5e0.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-obk-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-obk-obk_2876_large.png",
-      "match_type": "Approved corrected-SKU alias — exact alphanumeric identity",
-      "width": 720,
-      "height": 720,
-      "bytes": 6446,
-      "full_description": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (BLACK CONTAINER WITH BLACK CLOSURE)",
-      "picker_name": "30Ml CR Mini Thick-Wall Spiral Container With Liner & Tamper Evident",
-      "picker_bullets": [
-        "Black Container",
-        "Black Closure",
-        "Liner",
-        "Tamper Evident",
-        "Child Resistant"
-      ],
-      "atlas_sku": "CGSC1-30MLM-TW-OBK-OBK",
-      "mapped_from": "CGSC1-30-MLM-TW-OBK-OBK"
-    },
     "CGUB1-75MLSC-BK": {
       "title": "75ML CR STUBBY UNICORN BOTTLE WITH TAMPER EVIDENT (CLEAR BOTTLE WITH BLACK CLOSURE)",
       "official_sku": "CGUB1-75MLSC-BK",
@@ -6119,28 +6087,6 @@
       "atlas_sku": "CGUB1-30MLSC-WTC",
       "mapped_from": "CGUB1-30-MLSC-WTC"
     },
-    "CGSC1-30MLM-TW-OWH-OWH": {
-      "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "official_sku": "CGSC1-30MLMTW-OWH-OWH",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-owh-owh-690052b3.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-owh-owh.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-owh-owh_2879_large.png",
-      "match_type": "Approved corrected-SKU alias — exact alphanumeric identity",
-      "width": 720,
-      "height": 720,
-      "bytes": 6548,
-      "full_description": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (WHITE CONTAINER WITH WHITE CLOSURE)",
-      "picker_name": "30Ml CR Mini Thick-Wall Spiral Container With Liner & Tamper Evident",
-      "picker_bullets": [
-        "White Container",
-        "White Closure",
-        "Liner",
-        "Tamper Evident",
-        "Child Resistant"
-      ],
-      "atlas_sku": "CGSC1-30MLM-TW-OWH-OWH",
-      "mapped_from": "CGSC1-30-MLM-TW-OWH-OWH"
-    },
     "CGSB1-30MLSC-OWH-OWH": {
       "title": "30ML CR STUBBY SPIRAL BOTTLE WITH TAMPER EVIDENT (WHITE BOTTLE WITH WHITE CLOSURE)",
       "official_sku": "CGSB1-30MLSC-OWH-OWH",
@@ -6182,28 +6128,6 @@
       ],
       "atlas_sku": "CGUB1-15MLR-NATL",
       "mapped_from": "CGUB1-15-MLR-NATL"
-    },
-    "CGSC1-30MLM-TW-CNL-OBK": {
-      "title": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "official_sku": "CGSC1-30MLMTW-CNL-OBK",
-      "image_url": "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30-mlm-tw-cnl-obk-4ab3a2f8.webp",
-      "source_page": "https://chubbygorilla.com/default/cgsc1-30mlmtw-cnl-obk.html",
-      "source_image": "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-cnl-obk_2877_large.png",
-      "match_type": "Approved corrected-SKU alias — exact alphanumeric identity",
-      "width": 720,
-      "height": 720,
-      "bytes": 7152,
-      "full_description": "30ML CR MINI THICK-WALL SPIRAL CONTAINER WITH LINER & TAMPER EVIDENT (CLEAR CONTAINER WITH BLACK CLOSURE)",
-      "picker_name": "30Ml CR Mini Thick-Wall Spiral Container With Liner & Tamper Evident",
-      "picker_bullets": [
-        "Clear Container",
-        "Black Closure",
-        "Liner",
-        "Tamper Evident",
-        "Child Resistant"
-      ],
-      "atlas_sku": "CGSC1-30MLM-TW-CNL-OBK",
-      "mapped_from": "CGSC1-30-MLM-TW-CNL-OBK"
     },
     "CGUB1-10MLR-BKBK": {
       "title": "10ML CR REDUCER UNICORN BOTTLE WITH TAMPER EVIDENT (TRANSLUCENT BLACK BOTTLE WITH TRANSLUCENT BLACK CLOSURE)",

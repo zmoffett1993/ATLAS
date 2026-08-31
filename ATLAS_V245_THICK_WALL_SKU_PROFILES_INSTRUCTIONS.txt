@@ -1,0 +1,118 @@
+ATLAS V245 — THICK-WALL SKU PROFILES AND HYPHEN AUDIT
+
+BASE VERSION
+This cumulative update builds on V244 and includes every prior COC workflow, Receiver, dashboard, spreadsheet, navigation, scanner, metrics, editing, and device-storage improvement.
+
+REQUESTED SKU COMPLETED
+CGSC1-30MLMTW-CNL-OBK now resolves under its exact official SKU and displays:
+- approved product image
+- official product name and full description
+- clear natural container
+- opaque black closure
+- integrated liner
+- tamper-evident break-off band
+- child-resistant construction
+- 30ML (30CC) capacity
+- Spiral series
+- CNL-OBK color code
+- 200 units per case
+- 17 × 14 × 10 inch case dimensions
+- official secondary product image, dimensions diagram, and label diagram in View Product Details
+
+THICK-WALL SKU AUDIT
+ATLAS previously stored seven Thick-Wall product profiles with an extra separator before TW. All seven existing profiles now use the manufacturer’s exact SKU format:
+
+30ML MINI THICK-WALL
+1. CGSC1-30MLMTW-CNL-OBK
+2. CGSC1-30MLMTW-CNL-OWH
+3. CGSC1-30MLMTW-OBK-OBK
+4. CGSC1-30MLMTW-OWH-OWH
+
+2OZ THICK-WALL
+5. CGSC1-2OZTW-CNL-OWH
+6. CGSC1-2OZTW-OBK-OBK
+7. CGSC1-2OZTW-OWH-OWH
+
+The pallet-guide audit covers all eight official Thick-Wall SKUs, including CGSC1-2OZTW-CNL-OBK. The 30ML family remains 72 cases per pallet, 9 cases per layer, and 8 layers. The 2OZ family remains 48 cases per pallet, 8 cases per layer, and 6 layers.
+
+BACKWARD COMPATIBILITY
+The product lookup now compares punctuation-normalized SKU identity after its normal exact match. Older phones or inventory rows that still contain the former extra hyphen can therefore load the corrected official profile instead of showing an empty image/description card.
+
+PROTECTED DATA
+This update does not change:
+- inventory quantities or locations
+- COC records or completed spreadsheets
+- customer, invoice, IF, pallet, lot, or box data
+- Receiver pairing
+- dashboard access
+- Supabase database schema or Edge Functions
+
+FILES TO UPLOAD
+This is a cumulative package. Upload and replace these FOURTEEN application files, preserving the coc-receiver folder:
+
+ROOT OF GITHUB REPOSITORY
+1. index.html
+2. service-worker.js
+3. atlas-dashboard.js
+4. product-images.json
+5. pallet-guides.json
+6. atlas-coc.css
+7. atlas-coc-parser.js
+8. atlas-coc-case-quantities.js
+9. atlas-coc-core.js
+10. atlas-coc-storage.js
+11. atlas-coc.js
+
+COC-RECEIVER FOLDER
+12. coc-receiver/index.html
+13. coc-receiver/receiver.css
+14. coc-receiver/receiver.js
+
+Do not move the three Receiver files into the root. Replace them inside the existing coc-receiver folder.
+
+No SQL migration is required.
+No Supabase Edge Function update is required.
+No office computer re-pairing is required.
+
+VERIFY AFTER GITHUB PAGES PUBLISHES
+1. Wait for the GitHub Pages deployment to finish.
+2. Fully close and reopen ATLAS, or refresh twice so the V245 service worker activates.
+3. Search for CGSC1-30MLMTW-CNL-OBK.
+4. Confirm the product image and 30ML CR Mini Thick-Wall Spiral Container profile appear.
+5. Open View Product Details.
+6. Confirm the feature list, 200 units per case, 17 × 14 × 10 inch case dimensions, and reference-image gallery appear.
+7. Open the COC workflow and select CGSC1-30MLMTW-CNL-OBK.
+8. Confirm ATLAS automatically uses 200 units per case.
+9. Open its pallet guide and confirm 72 total cases, 9 cases per layer, and 8 layers.
+10. Spot-check another corrected SKU such as CGSC1-2OZTW-OBK-OBK and confirm its image and pallet guide resolve.
+
+RELEASE IDENTIFIERS
+- Service worker: atlas-pwa-v245-thick-wall-sku-profiles
+- atlas-dashboard.js: v153
+- Product profile cache: 20260831-thick-wall-profile-v105
+- Pallet-guide cache: 20260831-thick-wall-aliases-v7
+- atlas-coc.css: v43
+- atlas-coc-parser.js: v11
+- atlas-coc-case-quantities.js: v3
+- atlas-coc-core.js: v18
+- atlas-coc-storage.js: v3
+- atlas-coc.js: v49
+- coc-receiver/receiver.css: v15
+- coc-receiver/receiver.js: v14
+
+VERIFICATION COMPLETED
+- Thick-Wall SKU/profile audit: passed 6 checks
+- Application regression suite: passed 22 suites
+- COC UI render/navigation audit: passed 58 states
+- Full COC workflow audit: passed 43 checks
+- Parser audit: passed 35 checks
+- SKU catalog audit: passed 13 checks
+- COC Receiver render/navigation audit: passed 39 checks
+- Receiver backend audit: passed 17 checks
+- Dashboard render audit: passed 33 checks
+- Dashboard backend audit: passed 34 checks
+- Delivery audit: passed 30 checks
+- Filename audit: passed 6 checks
+- Workbook preview audit: passed 24 checks
+- Pallet guide audit: passed 8 checks
+

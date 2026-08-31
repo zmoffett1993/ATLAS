@@ -5,7 +5,7 @@
   const PUBLIC_KEY = "sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa";
   const SESSION_KEY = "atlas-dashboard-session-v1";
   const COC_PAGE_SIZE = 8;
-  const PRODUCT_MAP_URL = "./product-images.json?v=20260816-dosing-cup-framed-v104";
+  const PRODUCT_MAP_URL = "./product-images.json?v=20260831-thick-wall-profile-v105";
   const ACTION_COLORS = Object.freeze({
     move: "#0f5ccb",
     location: "#7251c7",
@@ -374,7 +374,19 @@
   const productImageForSku = (sku) => {
     const key = String(sku || "").trim();
     if (!key || key === "Unknown SKU") return null;
-    const product = state.productImages?.[key] || state.productImages?.[key.toUpperCase()];
+    const normalizedKey = key.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const product =
+      state.productImages?.[key] ||
+      state.productImages?.[key.toUpperCase()] ||
+      Object.entries(state.productImages || {}).find(([productKey, candidate]) =>
+        [productKey, candidate?.official_sku, candidate?.atlas_sku]
+          .filter(Boolean)
+          .some(
+            (value) =>
+              String(value).toUpperCase().replace(/[^A-Z0-9]/g, "") ===
+              normalizedKey,
+          ),
+      )?.[1];
     const imageUrl = product?.image_url || product?.image || "";
     return imageUrl ? { src: imageUrl, label: product?.picker_name || product?.title || key } : null;
   };

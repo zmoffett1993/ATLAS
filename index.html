@@ -17124,13 +17124,25 @@ Error generating stack: ` +
             let t = !0;
             return (
               i(``),
-              fetch(`./product-images.json?v=20260816-dosing-cup-framed-v104`, {
+              fetch(`./product-images.json?v=20260831-thick-wall-profile-v105`, {
                 cache: `no-cache`,
               })
                 .then((e) => (e.ok ? e.json() : {}))
                 .then((n) => {
                   let r = n?.products || n || {},
-                    a = r?.[e] || r?.[String(e).toUpperCase()] || null;
+                    s = String(e || ``).toUpperCase().replace(/[^A-Z0-9]/g, ``),
+                    a =
+                      r?.[e] ||
+                      r?.[String(e).toUpperCase()] ||
+                      Object.entries(r).find(([e, t]) =>
+                        [e, t?.official_sku, t?.atlas_sku]
+                          .filter(Boolean)
+                          .some(
+                            (e) =>
+                              String(e).toUpperCase().replace(/[^A-Z0-9]/g, ``) === s,
+                          ),
+                      )?.[1] ||
+                      null;
                   t && i(a?.image_url || a?.image || ``);
                 })
                 .catch(() => t && i(``)),
@@ -27051,7 +27063,7 @@ Error generating stack: ` +
     </style>
     <script id="atlas-product-image-result-behavior">
       (() => {
-        const PRODUCT_MAP_URL = "./product-images.json?v=20260816-dosing-cup-framed-v104";
+        const PRODUCT_MAP_URL = "./product-images.json?v=20260831-thick-wall-profile-v105";
         let enhancementQueued = false;
         const productMapPromise = fetch(PRODUCT_MAP_URL, { cache: "no-cache" })
           .then((response) => {
@@ -27063,6 +27075,27 @@ Error generating stack: ` +
 
         const setText = (node, text) => {
           if (node && node.textContent !== text) node.textContent = text;
+        };
+
+        const normalizeProductSku = (value) =>
+          String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+        const findProductBySku = (products, sku) => {
+          const key = String(sku || "").trim();
+          if (!key) return null;
+          const direct = products[key] || products[key.toUpperCase()];
+          if (direct) return direct;
+          const normalizedKey = normalizeProductSku(key);
+          return (
+            Object.entries(products).find(([productKey, product]) =>
+              [productKey, product?.official_sku, product?.atlas_sku]
+                .filter(Boolean)
+                .some(
+                  (candidate) =>
+                    normalizeProductSku(candidate) === normalizedKey,
+                ),
+            )?.[1] || null
+          );
         };
 
         const ensureShowcase = (resultBody, sku) => {
@@ -27118,6 +27151,9 @@ Error generating stack: ` +
           }
           delete showcase.dataset.fullDescription;
           delete showcase.dataset.pickerName;
+          delete showcase.dataset.pickerBullets;
+          delete showcase.dataset.productSpecifications;
+          delete showcase.dataset.galleryImageUrls;
           delete showcase.dataset.explodedImageUrl;
           const matchNote = showcase.querySelector(".atlas-product-match-note");
           setText(matchNote, "Matching approved catalog image…");
@@ -27126,7 +27162,7 @@ Error generating stack: ` +
 
           productMapPromise.then((products) => {
             if (showcase.dataset.sku !== sku) return;
-            const product = products[sku] || products[sku.toUpperCase()];
+            const product = findProductBySku(products, sku);
             const placeholderText = showcase.querySelector(".atlas-product-placeholder strong");
             if (!product?.image_url) {
               showcase.classList.remove("image-loading");
@@ -27144,9 +27180,19 @@ Error generating stack: ` +
             const pickerBullets = Array.isArray(product.picker_bullets)
               ? product.picker_bullets.filter(Boolean).slice(0, 5)
               : [];
+            const productSpecifications = Array.isArray(product.specifications)
+              ? product.specifications.filter(Boolean)
+              : [];
+            const galleryImageUrls = Array.isArray(product.gallery_image_urls)
+              ? product.gallery_image_urls.filter(Boolean)
+              : [];
             showcase.dataset.fullDescription = fullDescription;
             showcase.dataset.pickerName = pickerName;
             showcase.dataset.pickerBullets = JSON.stringify(pickerBullets);
+            showcase.dataset.productSpecifications = JSON.stringify(
+              productSpecifications,
+            );
+            showcase.dataset.galleryImageUrls = JSON.stringify(galleryImageUrls);
             const explodedImageUrl =
               product.exploded_image_url ||
               product.exploded_url ||
@@ -28210,6 +28256,26 @@ Error generating stack: ` +
               (item) => item.textContent.trim(),
             ).filter(Boolean);
           }
+          let productSpecifications = [];
+          let galleryImageUrls = [];
+          try {
+            productSpecifications = JSON.parse(
+              showcase.dataset.productSpecifications || "[]",
+            );
+          } catch {
+            productSpecifications = [];
+          }
+          try {
+            galleryImageUrls = JSON.parse(
+              showcase.dataset.galleryImageUrls || "[]",
+            );
+          } catch {
+            galleryImageUrls = [];
+          }
+          const productDetails = [
+            ...pickerBullets,
+            ...productSpecifications,
+          ];
           const sku =
             resultCard?.querySelector(".sku-copy strong")?.textContent?.trim() ||
             showcase.dataset.sku ||
@@ -28306,6 +28372,17 @@ Error generating stack: ` +
                 alt: `${displayTitle} exploded product view`,
               });
             }
+            galleryImageUrls.forEach((galleryImageUrl, galleryIndex) => {
+              if (
+                galleryImageUrl &&
+                !galleryImages.some((entry) => entry.src === galleryImageUrl)
+              ) {
+                galleryImages.push({
+                  src: galleryImageUrl,
+                  alt: `${displayTitle} reference image ${galleryIndex + 2}`,
+                });
+              }
+            });
 
             const gallery = document.createElement("div");
             gallery.className = "atlas-product-gallery";
@@ -28391,7 +28468,7 @@ Error generating stack: ` +
           titleConfiguration.textContent = titleParts.configuration.toUpperCase();
           titleConfiguration.hidden = !titleParts.configuration;
           const detailBullets = backdrop.querySelector(".atlas-product-detail-bullets");
-          pickerBullets.forEach((detail) => {
+          productDetails.forEach((detail) => {
             const item = document.createElement("li");
             const parsedDetail = parseProductDetail(detail);
             const label = document.createElement("span");
@@ -28403,9 +28480,9 @@ Error generating stack: ` +
             item.append(label, detailValue);
             detailBullets.appendChild(item);
           });
-          detailBullets.hidden = pickerBullets.length === 0;
+          detailBullets.hidden = productDetails.length === 0;
           backdrop.querySelector(".atlas-product-detail-specification").hidden =
-            pickerBullets.length === 0;
+            productDetails.length === 0;
           backdrop.querySelector(".atlas-product-detail-sku").textContent = sku;
 
           backdrop
@@ -34017,7 +34094,7 @@ Error generating stack: ` +
     </style>
     <script id="atlas-pallet-build-guide-behavior-v1">
       (() => {
-        const GUIDE_DATA_URL = "./pallet-guides.json?v=20260817-new-skus-v6";
+        const GUIDE_DATA_URL = "./pallet-guides.json?v=20260831-thick-wall-aliases-v7";
         const GUIDE_OVERRIDE_KEY = "atlas-pallet-guide-overrides-v1";
         const MAX_BOXES_PER_LAYER = 12;
         const SVG_NS = "http://www.w3.org/2000/svg";
@@ -36325,7 +36402,7 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <link rel="stylesheet" href="./atlas-mobile-menu.css?v=2" />
     <script src="./atlas-auth.js?v=3" defer></script>
-    <script src="./atlas-dashboard.js?v=152" defer></script>
+    <script src="./atlas-dashboard.js?v=153" defer></script>
     <script src="./atlas-guided-workflows.js?v=4" defer></script>
     <script src="./atlas-restock.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
