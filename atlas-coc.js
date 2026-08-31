@@ -48,6 +48,7 @@
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
   let resumeRenderToken = 0;
   let cameraStream = null;
+  let cameraStartToken = 0;
   let activeTimingStartedAt = null;
   let scanMetricPending = false;
   const ACTIVE_TIMING_HEARTBEAT_MS = 30000;
@@ -224,11 +225,9 @@
       try {
         await cloudRpc("atlas_save_coc_snapshot", { p_session: session });
         document.documentElement.classList.remove("atlas-coc-sync-pending");
-        renderAll();
       } catch (error) {
         document.documentElement.classList.add("atlas-coc-sync-pending");
         console.info("COC remains safely stored on this device.", error.message);
-        renderAll();
       }
     }, 700);
   }
@@ -1182,7 +1181,7 @@
     return modalShell(`<span class="atlas-coc-eyebrow">NEW LOT · ${escapeHtml(activeModelContext())}</span><h2>Align the label inside the blue frame</h2>
       <div class="atlas-coc-live-camera"><video id="atlas-coc-live-video" autoplay muted playsinline></video><div id="atlas-coc-roi-guide" aria-hidden="true"></div><p id="atlas-coc-camera-status">Starting camera…</p></div>
       <canvas id="atlas-coc-roi-canvas" hidden></canvas>
-      <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button type="button" class="atlas-coc-primary" data-coc-action="scan-live-roi">Scan Lot</button><button type="button" class="atlas-coc-manual-lot-button" data-coc-action="manual-lot">Enter Lot Manually</button></div>`, {
+      <div class="atlas-coc-modal-actions atlas-coc-scanner-actions"><button type="button" class="atlas-coc-primary" data-coc-action="scan-live-roi" disabled aria-disabled="true">Scan Lot</button><button type="button" class="atlas-coc-manual-lot-button" data-coc-action="manual-lot">Enter Lot Manually</button></div>`, {
       label: "Photograph new lot", className: "atlas-coc-scanner-modal is-capture-first",
     });
   }
@@ -1401,7 +1400,12 @@
       return;
     }
     try {
-      modalRoot.innerHTML = modalMarkup();
+      const existingLiveVideo = document.getElementById("atlas-coc-live-video");
+      const preserveLiveCameraModal = modal === "capture" && existingLiveVideo &&
+        [SCANNER_STATES.STARTING, SCANNER_STATES.READY].includes(scannerState);
+      // Background snapshot syncs and other harmless status updates must not
+      // replace the live video element while iOS is streaming into it.
+      if (!preserveLiveCameraModal) modalRoot.innerHTML = modalMarkup();
       document.documentElement.classList.toggle("atlas-coc-modal-open", Boolean(modal));
     } catch (error) {
       console.error("ATLAS could not display the COC dialog.", error);
@@ -1414,28 +1418,138 @@
 
   function cancelScanSession() {
     recognitionToken += 1;
+    cameraStartToken += 1;
     const worker = activeOcrWorker;
     activeOcrWorker = null;
     worker?.terminate?.().catch(() => {});
     scannerState = SCANNER_STATES.IDLE;
     accumulatedDetections = [];
+    const video = document.getElementById("atlas-coc-live-video");
+    try { video?.pause?.(); } catch {}
+    if (video) video.srcObject = null;
     cameraStream?.getTracks?.().forEach((track) => track.stop());
     cameraStream = null;
   }
 
-  async function startLiveCamera() {
+  const stopCameraStream = (stream) => {
+    stream?.getTracks?.().forEach((track) => {
+      try { track.stop(); } catch {}
+    });
+  };
+
+  const hasLiveCameraFrame = (video) => Boolean(
+    video && Number(video.videoWidth) > 0 && Number(video.videoHeight) > 0 &&
+    Number(video.readyState) >= 2,
+  );
+
+  function waitForLiveCameraFrame(video, token, timeoutMs = 4500) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let timer = null;
+      const events = ["loadedmetadata", "loadeddata", "canplay", "playing", "resize"];
+      const finish = (ready) => {
+        if (settled) return;
+        settled = true;
+        if (timer) window.clearTimeout(timer);
+        events.forEach((eventName) => video?.removeEventListener?.(eventName, check));
+        resolve(Boolean(ready));
+      };
+      const check = () => {
+        if (token !== cameraStartToken || modal !== "capture") finish(false);
+        else if (hasLiveCameraFrame(video)) finish(true);
+      };
+      events.forEach((eventName) => video?.addEventListener?.(eventName, check));
+      timer = window.setTimeout(() => finish(false), timeoutMs);
+      check();
+    });
+  }
+
+  const cameraConstraints = (fallback = false) => ({
+    video: fallback
+      ? { facingMode: { ideal: "environment" } }
+      : { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+    audio: false,
+  });
+
+  function setCameraControlsReady(ready) {
+    const scanButton = document.querySelector('[data-coc-action="scan-live-roi"]');
+    if (!scanButton) return;
+    scanButton.disabled = !ready;
+    scanButton.setAttribute?.("aria-disabled", String(!ready));
+  }
+
+  async function startLiveCamera({ fallback = false } = {}) {
     const video = document.getElementById("atlas-coc-live-video");
     const status = document.getElementById("atlas-coc-camera-status");
-    if (!video || cameraStream) return;
-    if (!navigator.mediaDevices?.getUserMedia) { if (status) status.textContent = "Live camera is unavailable. Enter the lot manually."; return; }
+    if (!video || cameraStream) return false;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      if (status) status.textContent = "Live camera is unavailable. Enter the lot manually.";
+      setCameraControlsReady(false);
+      scannerState = SCANNER_STATES.IDLE;
+      return false;
+    }
+    const token = ++cameraStartToken;
+    let stream = null;
+    scannerState = SCANNER_STATES.STARTING;
+    setCameraControlsReady(false);
+    if (status) status.textContent = fallback ? "Restarting camera…" : "Starting camera…";
     try {
-      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-      video.srcObject = cameraStream;
-      await video.play();
-      await Scanner.configureTrack?.(cameraStream.getVideoTracks()[0]);
+      stream = await navigator.mediaDevices.getUserMedia(cameraConstraints(fallback));
+      if (token !== cameraStartToken || modal !== "capture") {
+        stopCameraStream(stream);
+        return false;
+      }
+      cameraStream = stream;
+      video.muted = true;
+      video.playsInline = true;
+      video.srcObject = stream;
+
+      // Mobile Safari can leave video.play() pending even though iOS shows the
+      // camera privacy indicator. Actual frame events are the reliable signal.
+      try {
+        const playAttempt = video.play?.();
+        playAttempt?.catch?.(() => {});
+      } catch {}
+
+      const ready = await waitForLiveCameraFrame(video, token);
+      if (!ready) {
+        if (cameraStream === stream) cameraStream = null;
+        if (video.srcObject === stream) video.srcObject = null;
+        stopCameraStream(stream);
+        if (token !== cameraStartToken || modal !== "capture") return false;
+        if (!fallback) return startLiveCamera({ fallback: true });
+        scannerState = SCANNER_STATES.IDLE;
+        setCameraControlsReady(false);
+        if (status) status.textContent = "Camera preview did not start. Close this screen and try again, or enter the lot manually.";
+        return false;
+      }
+
+      const track = stream.getVideoTracks?.()[0];
+      track?.addEventListener?.("ended", () => {
+        if (token !== cameraStartToken || modal !== "capture" || document.visibilityState === "hidden") return;
+        if (cameraStream === stream) cameraStream = null;
+        setCameraControlsReady(false);
+        scannerState = SCANNER_STATES.STARTING;
+        if (status) status.textContent = "Camera paused — restarting…";
+        window.requestAnimationFrame?.(() => startLiveCamera({ fallback: true }));
+      }, { once: true });
+      Scanner.configureTrack?.(track)?.catch?.(() => {});
       if (status) status.textContent = "Camera ready — align the label, then tap Scan Lot.";
       scannerState = SCANNER_STATES.READY;
-    } catch { if (status) status.textContent = "Camera access is unavailable. Enter the lot manually."; }
+      setCameraControlsReady(true);
+      return true;
+    } catch (error) {
+      if (cameraStream === stream) cameraStream = null;
+      if (video?.srcObject === stream) video.srcObject = null;
+      stopCameraStream(stream);
+      if (token !== cameraStartToken || modal !== "capture") return false;
+      const retryable = ["AbortError", "NotReadableError", "OverconstrainedError"].includes(error?.name);
+      if (!fallback && retryable) return startLiveCamera({ fallback: true });
+      scannerState = SCANNER_STATES.IDLE;
+      setCameraControlsReady(false);
+      if (status) status.textContent = "Camera access is unavailable. Enter the lot manually.";
+      return false;
+    }
   }
 
   const waitForCaptureFrame = () => new Promise((resolve) => window.setTimeout(resolve, 90));
@@ -1445,6 +1559,14 @@
     const guide = document.getElementById("atlas-coc-roi-guide");
     const status = document.getElementById("atlas-coc-camera-status");
     const scanButton = document.querySelector('[data-coc-action="scan-live-roi"]');
+    if (scannerState !== SCANNER_STATES.READY || !hasLiveCameraFrame(video)) {
+      finishScanMetricAttempt("canceled");
+      setCameraControlsReady(false);
+      if (status) status.textContent = "Camera is still starting…";
+      showToast("Wait for Camera ready before scanning.", "warning");
+      if (!cameraStream) window.requestAnimationFrame?.(() => startLiveCamera({ fallback: true }));
+      return;
+    }
     if (scanButton) scanButton.disabled = true;
     if (status) status.textContent = "Capturing the clearest label frame…";
     const frames = [];
@@ -1482,10 +1604,26 @@
     cancelScanSession();
     capture = freshCapture(failures);
     capture.sku = activeModelContext();
-    scannerState = SCANNER_STATES.READY;
+    scannerState = SCANNER_STATES.STARTING;
     modal = "capture";
     renderAll();
     window.requestAnimationFrame(startLiveCamera);
+  }
+
+  function dismissSoftKeyboard(input) {
+    try { input?.blur?.(); } catch {}
+    const active = document.activeElement;
+    if (active && typeof active.blur === "function") {
+      try { active.blur(); } catch {}
+    }
+    // Safari can apply the suggestion button's focus on the following paint.
+    // A second blur prevents the keyboard from reopening after selection.
+    window.requestAnimationFrame?.(() => {
+      const next = document.activeElement;
+      if (next?.matches?.("input[name='modelNumber']")) {
+        try { next.blur(); } catch {}
+      }
+    });
   }
 
   function rememberDetections(detections = []) {
@@ -2144,7 +2282,7 @@
         input.setAttribute("aria-expanded", "false");
         const controls = manualQuantityControls(input);
         if (controls.wrap && !controls.wrap.hidden) controls.input?.focus?.();
-        else input.focus();
+        else dismissSoftKeyboard(input);
       }
       return;
     }
@@ -2701,8 +2839,26 @@
     commitActiveTiming({ resume: true });
   }, ACTIVE_TIMING_HEARTBEAT_MS);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") commitActiveTiming();
-    else syncActiveTiming();
+    if (document.visibilityState === "hidden") {
+      commitActiveTiming();
+      if (modal === "capture") {
+        cameraStartToken += 1;
+        const video = document.getElementById("atlas-coc-live-video");
+        try { video?.pause?.(); } catch {}
+        if (video) video.srcObject = null;
+        stopCameraStream(cameraStream);
+        cameraStream = null;
+        scannerState = SCANNER_STATES.STARTING;
+        setCameraControlsReady(false);
+      }
+    } else {
+      syncActiveTiming();
+      if (modal === "capture" && !cameraStream) {
+        const status = document.getElementById("atlas-coc-camera-status");
+        if (status) status.textContent = "Restarting camera…";
+        window.requestAnimationFrame?.(() => startLiveCamera({ fallback: true }));
+      }
+    }
   });
   window.addEventListener("pagehide", () => {
     finishScanMetricAttempt("canceled");

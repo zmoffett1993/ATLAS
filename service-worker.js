@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v235-sticky-pallet-counter";
+const VERSION = "atlas-pwa-v236-keyboard-camera-stability";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=16",
-  "./atlas-coc.js?v=41",
+  "./atlas-coc.js?v=42",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=14",
   "./coc-receiver/receiver.js?v=13",
