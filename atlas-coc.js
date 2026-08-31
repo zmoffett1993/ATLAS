@@ -1228,7 +1228,7 @@
       <h2>${verified ? "Lot matched" : "Verify lot"}</h2>
       ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Exact blue-frame carton label crop" />` : ""}
       ${comparison}
-      <label class="atlas-coc-lot-review"><strong>Lot Number</strong><input id="atlas-coc-lot-review-input" name="reviewLot" value="${escapeHtml(capture.text)}" maxlength="120" autocapitalize="characters" autocomplete="off" placeholder="Enter lot number" autofocus /></label>
+      <label class="atlas-coc-lot-review"><strong>Lot Number</strong><input id="atlas-coc-lot-review-input" name="reviewLot" value="${escapeHtml(capture.text)}" maxlength="120" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" inputmode="text" placeholder="Tap anywhere to edit the lot" autofocus /></label>
       ${skuTailNotice}
       <p class="atlas-coc-first-case">Confirming this new lot records <strong>Box 1</strong>.</p>
       <div class="atlas-coc-modal-actions atlas-coc-confirm-actions"><button type="button" data-coc-action="rescan-lot">Take New Photo</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" ${Core.canonicalLot(capture.text) ? "" : "disabled"}>Confirm Lot + Box 1</button></div>`, { label: "Review recognized lot", dismiss: false });
@@ -2570,8 +2570,12 @@
       return;
     }
     if (input?.id === "atlas-coc-lot-review-input") {
-      input.value = input.value.toUpperCase();
-      const next = input.value.trim();
+      // Do not assign back to input.value while the employee is editing.
+      // Mobile Safari moves the caret to the end whenever JavaScript rewrites
+      // the value, which made middle-of-lot corrections nearly impossible.
+      // CSS displays uppercase and the saved value is normalized here instead,
+      // leaving native tap-to-place and drag-to-select behavior untouched.
+      const next = input.value.trim().toUpperCase();
       if (next !== capture.text) {
         capture.text = next;
         capture.result = {
