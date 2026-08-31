@@ -1,0 +1,50 @@
+ATLAS V246 — SUPABASE GALLERY MAPPING
+
+BASE VERSION
+This small patch installs after ATLAS V245 Thick-Wall SKU Profiles.
+
+WHAT CHANGED
+The three CGSC1-30MLMTW-CNL-OBK gallery images now load from the permanent public product-images bucket instead of Chubby Gorilla website URLs:
+
+1. cgsc1-30mlmtw-cnl-obk-secondary.png
+2. cgsc1-30mlmtw-dimensions.jpg
+3. cgsc1-30mlmtw-label.jpg
+
+The main product image was already hosted in Supabase and remains unchanged.
+
+FILES TO UPLOAD
+Upload and replace these FOUR files in the ROOT of the GitHub repository:
+
+1. index.html
+2. service-worker.js
+3. atlas-dashboard.js
+4. product-images.json
+
+No coc-receiver files are included in this patch.
+No SQL migration is required.
+No Supabase Edge Function update is required.
+No Receiver re-pairing is required.
+Do not delete or rename the three files uploaded to the product-images bucket.
+
+VERIFY AFTER GITHUB PAGES PUBLISHES
+1. Wait for the GitHub Pages deployment to finish.
+2. Fully close and reopen ATLAS, or refresh twice so the V246 service worker activates.
+3. Search for CGSC1-30MLMTW-CNL-OBK.
+4. Open View Product Details.
+5. Swipe or tap through the product-image gallery.
+6. Confirm the secondary product view, dimensions diagram, and label diagram all display.
+7. Confirm the main product image and SKU profile still display normally.
+
+RELEASE IDENTIFIERS
+- Service worker: atlas-pwa-v246-thick-wall-supabase-gallery
+- atlas-dashboard.js: v153
+- Product profile cache: 20260831-thick-wall-supabase-gallery-v106
+- Product map version: 2026-08-31-thick-wall-supabase-gallery-v1.0.6
+
+VERIFICATION COMPLETED
+- All three public Supabase image URLs returned HTTP 200.
+- PNG/JPEG content types and expected file sizes were verified.
+- Product mapping JSON parsed successfully.
+- Product detail behavior compiled successfully.
+- Thick-Wall profile and cache audit passed all 6 checks.
+

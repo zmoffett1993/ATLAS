@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v245-thick-wall-sku-profiles";
+const VERSION = "atlas-pwa-v246-thick-wall-supabase-gallery";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -34,7 +34,7 @@ const APP_SHELL = [
   "./atlas-mobile-menu.css?v=2",
   "./atlas-desktop.js?v=131",
   "./manifest.webmanifest?v=107",
-  "./product-images.json?v=20260831-thick-wall-profile-v105",
+  "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106",
   "./pallet-guides.json?v=20260831-thick-wall-aliases-v7",
   "./product-images/cgasb1-60ml-cnl-owh.png",
   "./atlas-icon-v2-180.png?v=101",

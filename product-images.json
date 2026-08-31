@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-31-thick-wall-profile-v1.0.5",
+  "version": "2026-08-31-thick-wall-supabase-gallery-v1.0.6",
   "bucket": "product-images",
   "approved_count": 335,
   "manual_review_count": 68,
@@ -3201,9 +3201,9 @@
         "Case Dimensions: 17 × 14 × 10 in"
       ],
       "gallery_image_urls": [
-        "https://chubbygorilla.com/media/catalog/product/cache/c60a6c1e4e04ed9f5dc6ba30fc3167f5/c/g/cgsc1-30mlmtw-cnl-obk_2880_large.png",
-        "https://chubbygorilla.com/media/wysiwyg/CGSC1-30MLMTW-dimensions.jpg",
-        "https://chubbygorilla.com/media/wysiwyg/CGSC1-30MLMTW-label.jpg"
+        "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30mlmtw-cnl-obk-secondary.png",
+        "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30mlmtw-dimensions.jpg",
+        "https://dwrrbpiprcmajfyronlf.supabase.co/storage/v1/object/public/product-images/cgsc1-30mlmtw-label.jpg"
       ]
     },
     "CGSC1-30MLMTW-CNL-OWH": {

@@ -5,7 +5,7 @@
   const PUBLIC_KEY = "sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa";
   const SESSION_KEY = "atlas-dashboard-session-v1";
   const COC_PAGE_SIZE = 8;
-  const PRODUCT_MAP_URL = "./product-images.json?v=20260831-thick-wall-profile-v105";
+  const PRODUCT_MAP_URL = "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106";
   const ACTION_COLORS = Object.freeze({
     move: "#0f5ccb",
     location: "#7251c7",
