@@ -30,6 +30,8 @@
   let modal = null;
   let toastTimer = null;
   let cloudTimer = null;
+  let modelLookupTimer = null;
+  let modelLookupToken = 0;
   let scannerState = SCANNER_STATES.IDLE;
   let recognitionToken = 0;
   let activeOcrWorker = null;
@@ -1309,11 +1311,35 @@
     if (!target) return;
     const query = Catalog.normalize(input.value);
     const existing = Core.palletModels(session, activePallet()).map((model) => model.modelNumber);
+    const existingKeys = new Set(existing.map((value) => Catalog.normalize(value)));
     const matches = typeof Catalog.suggest === "function"
-      ? Catalog.suggest(query, { exclude: existing, limit: 12 })
-      : Catalog.list().filter((record) => !existing.some((value) => Catalog.normalize(value) === Catalog.normalize(record.modelNumber)) && query && Catalog.normalize(record.modelNumber).includes(query)).slice(0, 12);
-    target.innerHTML = matches.map((record) => `<button type="button" role="option" data-coc-action="select-model-suggestion" data-model="${escapeHtml(record.modelNumber)}"><strong>${escapeHtml(record.modelNumber)}</strong><small>${record.caseQuantity ? `${formatQuantity(record.caseQuantity)} units/case` : "Case quantity not stored"}</small></button>`).join("");
+      ? Catalog.suggest(query, { limit: 12 })
+      : Catalog.list().filter((record) => query && Catalog.normalize(record.modelNumber).includes(query)).slice(0, 12);
+    target.innerHTML = matches.map((record) => {
+      const alreadyOnPallet = existingKeys.has(Catalog.normalize(record.modelNumber));
+      const detail = alreadyOnPallet
+        ? "Already on this pallet · tap to select"
+        : record.caseQuantity
+          ? `${formatQuantity(record.caseQuantity)} units/case`
+          : "Case quantity not stored";
+      return `<button type="button" role="option" data-coc-action="select-model-suggestion" data-model="${escapeHtml(record.modelNumber)}" data-existing="${alreadyOnPallet}"><strong>${escapeHtml(record.modelNumber)}</strong><small>${detail}</small></button>`;
+    }).join("");
     input.setAttribute("aria-expanded", String(Boolean(matches.length)));
+  }
+
+  function scheduleExactSkuRefresh(input) {
+    if (modelLookupTimer) clearTimeout(modelLookupTimer);
+    const query = Catalog.normalize(input?.value);
+    const token = ++modelLookupToken;
+    if (!query || query.length < 6 || exactSkuSuggestion(query) || typeof Catalog.refreshExactSku !== "function") return;
+    modelLookupTimer = setTimeout(async () => {
+      modelLookupTimer = null;
+      const found = await Catalog.refreshExactSku(query);
+      if (!found || token !== modelLookupToken || Catalog.normalize(input?.value) !== query) return;
+      updateModelInputFeedback(input);
+      updateModelSuggestions(input);
+      updatePalletSetupButton(input.closest("form"));
+    }, 350);
   }
 
   function duplicateModal(lot) {
@@ -2281,6 +2307,17 @@
       return;
     }
     if (action === "select-model-suggestion") {
+      if (button.dataset.existing === "true") {
+        try {
+          session = Core.selectModel(session, button.dataset.model);
+          modal = null;
+          persist();
+          showToast(`Active model · ${session.activeModel}`);
+        } catch {
+          showToast("That model could not be selected.", "warning");
+        }
+        return;
+      }
       const form = button.closest("form"); const input = form?.elements?.modelNumber;
       if (input) {
         input.value = button.dataset.model || "";
@@ -2558,6 +2595,7 @@
       input.value = input.value.toUpperCase();
       updateModelInputFeedback(input);
       updateModelSuggestions(input);
+      scheduleExactSkuRefresh(input);
       updatePalletSetupButton(input.closest("form"));
       return;
     }
@@ -2832,6 +2870,9 @@
   });
   window.addEventListener("online", () => scheduleCloudSync());
   window.addEventListener("online", () => Catalog.loadRemote());
+  window.addEventListener("atlas-auth-changed", (event) => {
+    if (event.detail?.session) Catalog.loadRemote();
+  });
   window.addEventListener("atlas:coc-case-quantities-ready", () => {
     const input = document.activeElement;
     if (input?.matches?.("input[name='modelNumber']")) {

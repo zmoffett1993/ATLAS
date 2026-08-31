@@ -224,10 +224,48 @@
     });
   }
 
+  function requestHeaders(config) {
+    const session = global.AtlasAuth?.getSession?.() || global.AtlasCocDelivery?.getAuthSession?.();
+    return {
+      apikey: config.key,
+      Authorization: `Bearer ${session?.access_token || config.key}`,
+    };
+  }
+
+  function cacheSkuSuggestions() {
+    try {
+      global.localStorage?.setItem(SKU_CACHE_KEY, JSON.stringify(
+        [...skuSuggestions.values()].map((item) => item.modelNumber).slice(0, 4000),
+      ));
+    } catch {}
+  }
+
+  async function refreshExactSku(value) {
+    const modelNumber = normalize(value);
+    const config = global.atlasSupabaseConfig;
+    if (!modelNumber || modelNumber.length < 4 || !config?.url || !config?.key || !global.navigator?.onLine) return null;
+    try {
+      const response = await fetch(`${config.url}/rest/v1/skus?select=sku&sku=eq.${encodeURIComponent(modelNumber)}&limit=1`, {
+        headers: requestHeaders(config),
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`exact SKU unavailable (${response.status})`);
+      const rows = await response.json();
+      const exact = Array.isArray(rows) ? rows[0]?.sku : null;
+      if (!exact) return null;
+      addSkuSuggestion(exact, "database");
+      cacheSkuSuggestions();
+      return suggestionList().find((item) => normalize(item.modelNumber) === modelNumber) || null;
+    } catch (error) {
+      console.info("ATLAS could not refresh the exact COC SKU.", error?.message || error);
+      return null;
+    }
+  }
+
   async function loadRemote() {
     const config = global.atlasSupabaseConfig;
     if (!config?.url || !config?.key || !global.navigator?.onLine) return list();
-    const headers = { apikey: config.key, Authorization: `Bearer ${config.key}` };
+    const headers = requestHeaders(config);
     const loadQuantities = async () => {
       const response = await fetch(`${config.url}/rest/v1/coc_model_case_quantities?select=model_number,case_quantity,source_revision,effective_date&active=eq.true&order=model_number.asc`, {
         headers,
@@ -257,11 +295,7 @@
       if (!response.ok) throw new Error(`SKU suggestions unavailable (${response.status})`);
       const rows = await response.json();
       (Array.isArray(rows) ? rows : []).forEach((row) => addSkuSuggestion(row?.sku, "database"));
-      try {
-        global.localStorage?.setItem(SKU_CACHE_KEY, JSON.stringify(
-          [...skuSuggestions.values()].map((item) => item.modelNumber).slice(0, 2000),
-        ));
-      } catch {}
+      cacheSkuSuggestions();
     };
     const results = await Promise.allSettled([loadQuantities(), loadSkus()]);
     results.filter((result) => result.status === "rejected").forEach((result) =>
@@ -279,6 +313,7 @@
     suggest,
     resolve,
     recordForSession,
+    refreshExactSku,
     loadRemote,
   });
 })(window);
