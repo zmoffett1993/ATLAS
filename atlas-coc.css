@@ -702,10 +702,15 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-read-status.is-review { color:#972633; background:#fff0f2; border:1px solid #e8adb5; }
 .atlas-coc-read-status.is-review i { background:#bd2532; }
 .atlas-coc-source-compare { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; }
-.atlas-coc-source-compare p { min-width:0; margin:0; padding:11px; border:1px solid #e6b5bb; border-radius:12px; background:#fff7f8; }
+.atlas-coc-source-compare button { min-width:0; margin:0; padding:11px; position:relative; color:inherit; border:1px solid #e6b5bb; border-radius:12px; background:#fff7f8; font:inherit; text-align:left; cursor:pointer; }
+.atlas-coc-source-compare button:hover,.atlas-coc-source-compare button:focus-visible { border-color:#4f91dc; background:#f3f8ff; outline:0; }
+.atlas-coc-source-compare button.is-selected { border:2px solid #0f6fe5; background:#edf6ff; box-shadow:0 0 0 3px rgba(15,111,229,.1); }
 .atlas-coc-source-compare span,.atlas-coc-source-compare strong { display:block; }
 .atlas-coc-source-compare span { margin-bottom:4px; color:#8a5b62; font-size:9px; font-weight:900; letter-spacing:.1em; }
 .atlas-coc-source-compare strong { overflow-wrap:anywhere; color:var(--coc-ink); font-size:14px; }
+.atlas-coc-source-compare small { display:block; margin-top:7px; color:#58718f; font-size:8px; font-weight:900; letter-spacing:.08em; }
+.atlas-coc-source-compare button.is-selected span,.atlas-coc-source-compare button.is-selected small { color:#0758b8; }
+.atlas-coc-source-choice-help { margin:0 0 12px; color:var(--coc-muted); font-size:11px; line-height:1.45; }
 .atlas-coc-lot-review { display:block; margin:14px 0 8px; }
 .atlas-coc-lot-review>strong { display:block; margin-bottom:6px; color:var(--coc-ink); }
 .atlas-coc-lot-review input { width:100%; min-height:58px; padding:10px 13px; color:var(--coc-ink); font-size:22px; font-weight:900; text-align:center; letter-spacing:.02em; border:2px solid #aac4e0; border-radius:14px; background:#fff; }

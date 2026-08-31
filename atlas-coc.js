@@ -1190,8 +1190,10 @@
     const verified = result.confidenceState === "verified";
     const barcodeLot = result.barcodeLot || "";
     const printedLot = result.printedLot || "";
-    const comparison = barcodeLot && printedLot && !verified
-      ? `<div class="atlas-coc-source-compare"><p><span>BARCODE</span><strong>${escapeHtml(barcodeLot)}</strong></p><p><span>PRINTED TEXT</span><strong>${escapeHtml(printedLot)}</strong></p></div>`
+    const sourceConflict = result.comparisonStatus === "conflict" && barcodeLot && printedLot;
+    const selectedSource = result.selectedSource || (sourceConflict ? "barcode" : "");
+    const comparison = sourceConflict
+      ? `<div class="atlas-coc-source-compare" role="group" aria-label="Choose the correct lot reading"><button type="button" data-coc-action="choose-lot-source" data-coc-source="barcode" class="${selectedSource === "barcode" ? "is-selected" : ""}" aria-pressed="${selectedSource === "barcode"}"><span>BARCODE</span><strong>${escapeHtml(barcodeLot)}</strong><small>${selectedSource === "barcode" ? "SELECTED" : "TAP TO USE"}</small></button><button type="button" data-coc-action="choose-lot-source" data-coc-source="printed_text" class="${selectedSource === "printed_text" ? "is-selected" : ""}" aria-pressed="${selectedSource === "printed_text"}"><span>PRINTED TEXT</span><strong>${escapeHtml(printedLot)}</strong><small>${selectedSource === "printed_text" ? "SELECTED" : "TAP TO USE"}</small></button></div><p class="atlas-coc-source-choice-help">Barcode is selected by default. Tap either reading to place it in the Lot Number field, or edit the field if neither is correct.</p>`
       : "";
     const statusCopy = verified
       ? "Barcode and printed text match"
@@ -1962,6 +1964,29 @@
     showToast(wasCompleted ? "Completed COC discarded · ready to start over" : "Unfinished COC discarded", "info");
   }
 
+  function chooseCaptureSource(source) {
+    const result = capture.result || {};
+    const normalizedSource = source === "printed_text" ? "printed_text" : "barcode";
+    const value = normalizedSource === "printed_text" ? result.printedLot : result.barcodeLot;
+    const next = Parser.cleanLot(value || "");
+    if (!Core.canonicalLot(next)) return;
+    capture.text = next;
+    capture.result = {
+      ...result,
+      lot: next,
+      candidateLot: next,
+      selectedSource: normalizedSource,
+      confidenceState: "needs_verification",
+      needsEmployeeVerification: true,
+      comparisonStatus: "conflict",
+      validationMethod: normalizedSource === "printed_text"
+        ? "barcode_print_mismatch_employee_selected_printed_text"
+        : "barcode_print_mismatch_employee_selected_barcode",
+    };
+    renderAll();
+    window.requestAnimationFrame?.(() => document.getElementById("atlas-coc-lot-review-input")?.focus());
+  }
+
   async function handleAction(button) {
     const action = button.dataset.cocAction;
     if (!action) return;
@@ -2124,6 +2149,7 @@
     if (action === "rescan-lot") { finishScanMetricAttempt("failure"); openCameraReady(); return; }
     if (action === "scan-live-roi") { beginScanMetricAttempt(); scanLiveRoi(); return; }
     if (action === "manual-lot") { finishScanMetricAttempt("failure"); cancelScanSession(); modal = "manual-lot"; renderAll(); return; }
+    if (action === "choose-lot-source") { chooseCaptureSource(button.dataset.cocSource); return; }
     if (action === "confirm-lot") {
       const reviewInput = document.getElementById("atlas-coc-lot-review-input");
       if (reviewInput) capture.text = String(reviewInput.value || "").trim().toUpperCase();
@@ -2357,6 +2383,7 @@
           confidenceState: "needs_verification",
           needsEmployeeVerification: true,
           comparisonStatus: "employee_edited",
+          selectedSource: "employee_edit",
           validationMethod: "employee_edited_camera_result",
         };
         const status = document.getElementById("atlas-coc-review-status");

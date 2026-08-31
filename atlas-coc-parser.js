@@ -643,8 +643,11 @@
         : isLegacy ? "legacy_ocr"
           : isStructured ? "printed_batch_ocr"
             : printedLot || rawPrintedFallback ? "printed_text_ocr" : "manual_review";
+    const preferredSource = comparisonStatus === "conflict" ? "barcode"
+      : barcodeLot ? "barcode"
+        : printedLot || rawPrintedFallback ? "printed_text" : "";
     const validationMethod = verified ? "barcode_print_match"
-      : comparisonStatus === "conflict" ? "barcode_print_mismatch_employee_review"
+      : comparisonStatus === "conflict" ? "barcode_print_mismatch_barcode_default_review"
         : modelMismatch ? "model_mismatch_employee_review"
           : ambiguous ? "ambiguous_employee_review"
             : candidateLot ? "single_source_employee_review" : "manual_entry_required";
@@ -664,6 +667,8 @@
       candidateLot,
       barcodeLot,
       printedLot,
+      preferredSource,
+      selectedSource: preferredSource,
       alternatives: [...new Set([
         ...acceptedBarcodes.map((item) => cleanLot(item.lot)),
         ...ocrEvidence.ranked.map((item) => cleanLot(item.lot)),
