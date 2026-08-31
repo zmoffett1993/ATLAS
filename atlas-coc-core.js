@@ -1001,6 +1001,44 @@
     });
   }
 
+  function returnToVerifiedPallet(source) {
+    const session = sanitize(clone(source));
+    if (session.status !== "report") throw new Error("COMPLETED_COC_REQUIRED");
+    const target = [...session.pallets].reverse().find((pallet) =>
+      pallet.status === "locked" && palletTotal(pallet) > 0,
+    );
+    if (!target) throw new Error("COMPLETED_PALLET_NOT_FOUND");
+    const progress = palletProgress(target);
+    if (!progress.expected || progress.recorded !== progress.expected)
+      throw new Error("BOX_COUNT_MISMATCH");
+
+    session.status = "active";
+    session.completedAt = null;
+    session.activePalletId = target.id;
+    target.status = "active";
+    target.finishedAt = null;
+    target.verificationState = "verified";
+    target.verificationAttemptedAt = target.verificationAttemptedAt || target.verifiedAt || timestamp();
+    target.verifiedAt = target.verifiedAt || target.verificationAttemptedAt;
+    target.reopenedForEdit = false;
+    const selectedLot = [...target.lots].reverse().find((lot) => lot.cases > 0) || target.lots[0];
+    target.activeLotId = selectedLot?.id || null;
+    target.activeModel = selectedLot?.model || target.models?.[0]?.modelNumber || "";
+    session.activeModel = target.activeModel;
+    session.sku = target.activeModel;
+    session.pallets.forEach((pallet) => {
+      if (pallet.id === target.id) return;
+      pallet.status = "locked";
+      pallet.activeLotId = null;
+      pallet.reopenedForEdit = false;
+    });
+    return withActivity(session, "session_returned_to_verified_pallet", {
+      palletNumber: target.number,
+      expectedBoxes: progress.expected,
+      recordedBoxes: progress.recorded,
+    });
+  }
+
   function completeSession(source) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
@@ -1096,6 +1134,7 @@
     verifyPallet,
     finishPallet,
     reopenPallet,
+    returnToVerifiedPallet,
     completeSession,
     validateTotals,
   });

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v242-receiver-navigation-buttons";
+const VERSION = "atlas-pwa-v243-coc-back-navigation-loop-fix";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -14,12 +14,12 @@ const APP_SHELL = [
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
   "./atlas-coc-case-quantities.js?v=3",
-  "./atlas-coc-core.js?v=17",
+  "./atlas-coc-core.js?v=18",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=2",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=16",
-  "./atlas-coc.js?v=47",
+  "./atlas-coc.js?v=48",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=15",
   "./coc-receiver/receiver.js?v=14",

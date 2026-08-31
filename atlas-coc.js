@@ -985,10 +985,11 @@
 
   function modalShell(content, {
     label = "COC dialog", dismiss = true, className = "", showBack = true, showDiscard = true,
+    backAction = "coc-back", backLabel = "‹ Back",
   } = {}) {
     return `<div class="atlas-coc-modal-backdrop ${className}" role="presentation">
       <section class="atlas-coc-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(label)}">
-        ${showBack ? `<button type="button" class="atlas-coc-modal-back" data-coc-action="coc-back">‹ Back</button>` : ""}
+        ${showBack ? `<button type="button" class="atlas-coc-modal-back" data-coc-action="${escapeHtml(backAction)}">${escapeHtml(backLabel)}</button>` : ""}
         ${dismiss ? `<button type="button" class="atlas-coc-modal-x" data-coc-action="close-modal" aria-label="Close">×</button>` : ""}
         ${content}
         ${showDiscard ? discardFooterMarkup() : ""}
@@ -1026,7 +1027,11 @@
         : pallet && !activeHasWork
           ? `<p>The empty Pallet ${pallet.number} draft will not be included. Only the ${plural(completed.length, "verified pallet")} shown above will appear in the final report.</p>`
           : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will be ready for office completion.</p>`}
-      <div class="atlas-coc-modal-actions atlas-coc-final-actions"><button type="button" data-coc-action="view-draft-official" ${blocked || !completed.length ? "disabled" : ""}>View Official COC</button>${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Complete COC</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button>`}</div>`, { label: "Complete COC review" });
+      <div class="atlas-coc-modal-actions atlas-coc-final-actions"><button type="button" data-coc-action="view-draft-official" ${blocked || !completed.length ? "disabled" : ""}>View Official COC</button>${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Complete COC</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button>`}</div>`, {
+      label: "Complete COC review",
+      backAction: reportMode ? "back-to-verified-pallet" : "coc-back",
+      backLabel: reportMode ? "‹ Back to Pallet" : "‹ Back",
+    });
   }
 
   function mismatchModal() {
@@ -2109,6 +2114,23 @@
     renderAll();
   }
 
+  function backToVerifiedPallet() {
+    finishScanMetricAttempt("canceled");
+    cancelScanSession();
+    capture = freshCapture();
+    try {
+      session = Core.returnToVerifiedPallet(session);
+      workflowView = "session";
+      sendState = { phase: "ready" };
+      modal = { type: "verified" };
+      persist();
+      scrollWorkflowToTop();
+    } catch (error) {
+      console.error("ATLAS could not return to the verified pallet checkpoint.", error);
+      showToast("The completed COC is still safe. Choose Edit Pallet to make changes.", "warning");
+    }
+  }
+
   function restoreAfterDiscardReview() {
     const previousModal = discardReturnModal;
     const previousScannerState = discardReturnScannerState;
@@ -2183,6 +2205,7 @@
       workflowView = "landing"; renderAll(); return;
     }
     if (action === "coc-back") { backWithinCoc(); return; }
+    if (action === "back-to-verified-pallet") { backToVerifiedPallet(); return; }
     if (action === "start-setup") { workflowView = "setup"; renderAll(); return; }
     if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; workflowView = "history-detail"; renderAll(); return; }
