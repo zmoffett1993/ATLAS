@@ -93,6 +93,45 @@
     return null;
   }
 
+  function activeSkuFragmentMatch(rawValue, modelValue, { allowOcrEquivalent = false } = {}) {
+    const normalizedCandidate = canonical(rawValue);
+    const parts = clean(modelValue).toUpperCase().split("-").map(canonical).filter(Boolean);
+    if (!normalizedCandidate || parts.length < 3) return null;
+
+    // The SKU already selected for this pallet is authoritative context. A
+    // tight camera crop can lose the start of that SKU, so compare the start
+    // of the scan with every substantial ordered suffix of the selected SKU's
+    // warehouse signature. The longest valid match wins. Matches are anchored
+    // at the beginning (or behind a very short supplier marker), which prevents
+    // a SKU-like sequence in the middle of a genuine lot from being deleted.
+    const warehouseSignature = parts.slice(1).join("");
+    const minimumLength = 4;
+    for (let length = warehouseSignature.length - 1; length >= minimumLength; length -= 1) {
+      const skuFragment = warehouseSignature.slice(-length);
+      const maximumStart = length >= 5 ? 4 : 0;
+      for (let start = 0; start <= Math.min(maximumStart, normalizedCandidate.length - length); start += 1) {
+        const observedFragment = normalizedCandidate.slice(start, start + length);
+        const exact = observedFragment === skuFragment;
+        const equivalent = allowOcrEquivalent &&
+          ocrEquivalent(observedFragment) === ocrEquivalent(skuFragment);
+        if (!exact && !equivalent) continue;
+        const boundary = canonicalRangeEnd(rawValue, start, length);
+        const lot = cleanLot(clean(rawValue).slice(boundary).replace(/^[^A-Z0-9]+/i, ""));
+        if (!validLotShape(lot)) continue;
+        return {
+          skuFragment,
+          observedFragment,
+          lot,
+          start,
+          exact,
+          missingLeadingCharacters: warehouseSignature.length - length,
+          coverage: length / warehouseSignature.length,
+        };
+      }
+    }
+    return null;
+  }
+
   function parseLotCandidate(rawValue, expectedSku = "", {
     source = "unknown", allowFuzzyPrefix = false,
   } = {}) {
@@ -151,6 +190,31 @@
           prefixFuzzy: match.fuzzy,
           directLot: false,
           prefixDistance: match.distance,
+        },
+      };
+    }
+
+    const activeFragment = activeSkuFragmentMatch(rawCandidate, expectedSku, {
+      allowOcrEquivalent: allowFuzzyPrefix,
+    });
+    if (activeFragment) {
+      return {
+        ...base,
+        accepted: true,
+        matchedSkuBoundary: activeFragment.observedFragment,
+        cleanLot: activeFragment.lot,
+        parseMethod: "active_sku_fragment",
+        prefixStart: activeFragment.start,
+        confidenceSignals: {
+          prefixExact: false,
+          prefixFuzzy: true,
+          activeSkuFragment: true,
+          // Backward-compatible alias retained for existing audit records.
+          partialSkuTail: true,
+          directLot: false,
+          prefixDistance: activeFragment.missingLeadingCharacters,
+          fragmentCoverage: activeFragment.coverage,
+          fragmentOcrEquivalent: !activeFragment.exact,
         },
       };
     }
@@ -631,13 +695,25 @@
       ? parsedRawBarcode.cleanLot
       : cleanLot(rawBarcodeFallback);
     const candidateLot = barcodeLot || printedLot || rawPrintedFallback || fallbackBarcodeLot || "";
-    const verified = Boolean(sourcesAgree && !modelMismatch && !ambiguous);
+    const barcodeFragmentEvidence = barcode?.parseDetails?.confidenceSignals?.activeSkuFragment
+      ? barcode : null;
+    const printedFragmentEvidence = printedLead?.parseDetails?.confidenceSignals?.activeSkuFragment
+      ? printedLead : null;
+    const activeFragmentEvidence = barcodeFragmentEvidence || printedFragmentEvidence;
+    const activeSkuFragment = Boolean(activeFragmentEvidence);
+    // A partial-SKU removal is intentionally never auto-approved. The filtered
+    // lot is populated for the employee, while the photo and removed fragment
+    // remain visible for the required character-by-character review.
+    const verified = Boolean(sourcesAgree && !modelMismatch && !ambiguous && !activeSkuFragment);
     const comparisonStatus = verified ? "match"
       : barcodeLot && printedLot ? "conflict"
         : candidateLot ? "single_source" : "unread";
     const isLegacy = printedLead?.rule === "sku_boundary_after_supplier_marker";
     const isStructured = Boolean(printedLead?.structuredBatch);
     const prefixFuzzy = Boolean(printedLead?.parseDetails?.confidenceSignals?.prefixFuzzy);
+    const partialSkuTail = activeSkuFragment;
+    const removedSkuFragment = activeSkuFragment ? clean(activeFragmentEvidence?.matchedPrefix) : "";
+    const removedSkuTail = removedSkuFragment;
     const captureMethod = barcodeLot && printedLot ? "barcode_ocr"
       : barcodeLot ? "barcode"
         : isLegacy ? "legacy_ocr"
@@ -650,6 +726,7 @@
       : comparisonStatus === "conflict" ? "barcode_print_mismatch_barcode_default_review"
         : modelMismatch ? "model_mismatch_employee_review"
           : ambiguous ? "ambiguous_employee_review"
+            : activeSkuFragment ? "active_sku_fragment_removed_employee_review"
             : candidateLot ? "single_source_employee_review" : "manual_entry_required";
     const failureCode = modelMismatch ? "SKU_MISMATCH"
       : ambiguous ? "AMBIGUOUS_LOT"
@@ -688,6 +765,10 @@
       skuMismatch: modelMismatch,
       ambiguous,
       prefixFuzzy,
+      activeSkuFragment,
+      removedSkuFragment,
+      partialSkuTail,
+      removedSkuTail,
     };
   }
 

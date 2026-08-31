@@ -1212,6 +1212,10 @@
     const printedLot = result.printedLot || "";
     const sourceConflict = result.comparisonStatus === "conflict" && barcodeLot && printedLot;
     const selectedSource = result.selectedSource || (sourceConflict ? "barcode" : "");
+    const removedSkuFragment = result.removedSkuFragment || result.removedSkuTail || "";
+    const skuTailNotice = (result.activeSkuFragment || result.partialSkuTail) && removedSkuFragment
+      ? `<p class="atlas-coc-review-help"><strong>Active SKU fragment removed:</strong> ${escapeHtml(removedSkuFragment)}. ATLAS matched it specifically to ${escapeHtml(result.expectedModel || activeModelContext())} and kept the characters after it as the lot. Verify the photo before confirming.</p>`
+      : `<p class="atlas-coc-review-help">Batch number and lot number are the same. When the read includes the SKU, ATLAS keeps only the code after the final SKU color.</p>`;
     const comparison = sourceConflict
       ? `<div class="atlas-coc-source-compare" role="group" aria-label="Choose the correct lot reading"><button type="button" data-coc-action="choose-lot-source" data-coc-source="barcode" class="${selectedSource === "barcode" ? "is-selected" : ""}" aria-pressed="${selectedSource === "barcode"}"><span>BARCODE</span><strong>${escapeHtml(barcodeLot)}</strong><small>${selectedSource === "barcode" ? "SELECTED" : "TAP TO USE"}</small></button><button type="button" data-coc-action="choose-lot-source" data-coc-source="printed_text" class="${selectedSource === "printed_text" ? "is-selected" : ""}" aria-pressed="${selectedSource === "printed_text"}"><span>PRINTED TEXT</span><strong>${escapeHtml(printedLot)}</strong><small>${selectedSource === "printed_text" ? "SELECTED" : "TAP TO USE"}</small></button></div><p class="atlas-coc-source-choice-help">Barcode is selected by default. Tap either reading to place it in the Lot Number field, or edit the field if neither is correct.</p>`
       : "";
@@ -1225,7 +1229,7 @@
       ${capture.photo ? `<img class="atlas-coc-photo" src="${capture.photo}" alt="Exact blue-frame carton label crop" />` : ""}
       ${comparison}
       <label class="atlas-coc-lot-review"><strong>Lot Number</strong><input id="atlas-coc-lot-review-input" name="reviewLot" value="${escapeHtml(capture.text)}" maxlength="120" autocapitalize="characters" autocomplete="off" placeholder="Enter lot number" autofocus /></label>
-      <p class="atlas-coc-review-help">Batch number and lot number are the same. When the read includes the SKU, ATLAS keeps only the code after the final SKU color.</p>
+      ${skuTailNotice}
       <p class="atlas-coc-first-case">Confirming this new lot records <strong>Box 1</strong>.</p>
       <div class="atlas-coc-modal-actions atlas-coc-confirm-actions"><button type="button" data-coc-action="rescan-lot">Take New Photo</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot" ${Core.canonicalLot(capture.text) ? "" : "disabled"}>Confirm Lot + Box 1</button></div>`, { label: "Review recognized lot", dismiss: false });
   }
