@@ -125,6 +125,17 @@
     });
   }
 
+  async function clearCompletedForUser(userId) {
+    const owner = text(userId, 140);
+    if (!owner) throw new Error("COMPLETED_COC_OWNER_REQUIRED");
+    return withStore(COMPLETED, "readwrite", async (store) => {
+      const records = await requestResult(store.getAll());
+      const owned = records.filter((record) => record?.userId === owner);
+      await Promise.all(owned.map((record) => requestResult(store.delete(record.cocId))));
+      return owned.length;
+    });
+  }
+
   async function updateDeliveryStatus(cocId, userId, status = {}) {
     return withStore(COMPLETED, "readwrite", async (store) => {
       const record = await requestResult(store.get(text(cocId, 140)));
@@ -202,6 +213,7 @@
     upsertCompleted,
     listCompleted,
     getCompleted,
+    clearCompletedForUser,
     updateDeliveryStatus,
     putPending,
     getPending,

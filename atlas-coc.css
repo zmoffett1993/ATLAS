@@ -470,6 +470,40 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-lot-row > b { font-size: 26px; }
 .atlas-coc-lot-row > b small { font-size: 9px; letter-spacing: .06em; }
 .atlas-coc-empty-list { padding: 28px 20px; color: var(--coc-muted); text-align: center; }
+.atlas-coc-clear-history {
+  width: 100%;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 11px;
+  margin: 18px 0 4px;
+  padding: 11px 14px;
+  color: #963c46;
+  font: inherit;
+  text-align: left;
+  border: 1px solid #e7c5c9;
+  border-radius: 15px;
+  background: #fffafa;
+}
+.atlas-coc-clear-history > span {
+  grid-row: 1 / 3;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: #963c46;
+  font-size: 20px;
+  font-weight: 900;
+  border-radius: 11px;
+  background: #f7e8ea;
+}
+.atlas-coc-clear-history strong { align-self: end; font-size: 13px; font-weight: 900; }
+.atlas-coc-clear-history small { align-self: start; color: #7f6570; font-size: 11px; font-weight: 700; }
+.atlas-coc-clear-history:hover { border-color: #d99ca3; background: #fff5f6; }
+.atlas-coc-clear-history:active { transform: translateY(1px); }
+.atlas-coc-clear-history:focus-visible { outline: 3px solid rgba(192, 48, 63, .2); outline-offset: 2px; }
 
 .atlas-coc-finish-actions { display: grid; gap: 10px; margin: 18px 0 0; }
 .atlas-coc-finish { width: 100%; color: var(--coc-ink); border: 1.5px solid #95b6dc; background: #fff; box-shadow: none; }

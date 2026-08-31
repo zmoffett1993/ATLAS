@@ -46,6 +46,7 @@
   let workbookPreview = { status: "idle", html: "", error: "", cocId: "" };
   let draftWorkbookPreview = { status: "idle", html: "", error: "", cocId: "" };
   let resendInProgress = false;
+  let clearCompletedInProgress = false;
   let stationPresence = { online: false, reachable: false };
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
   let resumeRenderToken = 0;
@@ -394,6 +395,7 @@
     });
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COCs</h1><p>Read-only reports saved for the signed-in employee on this device.</p></header>
+      ${completedRecords.length ? `<button type="button" class="atlas-coc-clear-history" data-coc-action="review-clear-completed"><span aria-hidden="true">⌫</span><strong>Clear Stored COCs</strong><small>Remove ${plural(completedRecords.length, "report")} from this device</small></button>` : ""}
       ${groups.size ? [...groups].map(([label, records]) => `<section><h2>${escapeHtml(label)}</h2>${records.map((record) => `<button type="button" class="atlas-coc-history-row" data-coc-action="open-completed" data-coc-id="${escapeHtml(record.cocId)}"><span><strong>${escapeHtml(record.invoiceNumber)}</strong><b>${escapeHtml(record.customerName)}</b><small>${escapeHtml(record.ifNumber)} · ${plural(record.palletCount, "pallet")} · ${plural(record.totalConfirmedBoxes, "box")}</small><small>Completed ${new Date(record.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><i aria-hidden="true">›</i></button>`).join("")}</section>`).join("") : `<div class="atlas-coc-empty-list">No completed COCs are stored for this user on this device.</div>`}
     </div>`;
   }
@@ -815,6 +817,26 @@
     if (workflowView === "history") renderAll();
   }
 
+  async function clearCompletedOnDevice() {
+    const userId = currentUserId();
+    if (!userId || clearCompletedInProgress) return;
+    clearCompletedInProgress = true;
+    renderAll();
+    try {
+      await Storage.clearCompletedForUser(userId);
+      completedRecords = [];
+      selectedCompleted = null;
+      workbookPreview = { status: "idle", html: "", error: "", cocId: "" };
+      modal = null;
+    } catch (error) {
+      console.error("ATLAS could not clear completed COCs from this device.", error);
+      showToast("Stored COCs could not be cleared. Nothing was removed.", "warning");
+    } finally {
+      clearCompletedInProgress = false;
+      renderAll();
+    }
+  }
+
   async function refreshStationPresence() {
     try {
       const result = await Delivery.stationStatus();
@@ -1184,6 +1206,17 @@
     });
   }
 
+  function clearCompletedModal() {
+    const count = completedRecords.length;
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">DEVICE STORAGE</span><h2>Clear ${plural(count, "stored COC")}?</h2>
+      <p>This permanently removes the read-only reports and saved spreadsheets for the signed-in employee from this device. They will no longer be available here for viewing or resending.</p>
+      <p class="atlas-coc-warning"><strong>Office records stay safe.</strong> Nothing is deleted from the COC Receiver, oversight dashboard, archive, or cloud history. Your active COC is not affected.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal" ${clearCompletedInProgress ? "disabled" : ""}>Keep Stored COCs</button><button type="button" class="atlas-coc-danger" data-coc-action="confirm-clear-completed" ${clearCompletedInProgress ? "disabled" : ""}>${clearCompletedInProgress ? "Clearing…" : "Clear From This Device"}</button></div>`, {
+      label: "Clear completed COCs stored on this device", dismiss: !clearCompletedInProgress,
+      showBack: false, showDiscard: false,
+    });
+  }
+
   function replaceReceiverModal() {
     return modalShell(`<span class="atlas-coc-eyebrow is-danger">RECEIVER ALREADY PAIRED</span><h2>Replace the current office computer?</h2>
       <p>ATLAS already has an active Office COC Receiver. Replacing it will immediately disconnect that computer and pair the computer showing the new code.</p>
@@ -1378,6 +1411,7 @@
     if (modal === "all-lots") return allLotsModal();
     if (modal === "storage-error") return storageErrorModal();
     if (modal === "resend-completed") return resendCompletedModal();
+    if (modal === "clear-completed") return clearCompletedModal();
     if (modal?.type === "replace-receiver") return replaceReceiverModal();
     if (modal?.type === "duplicate") return duplicateModal(modal.lot);
     if (modal?.type === "mismatch") return mismatchModal();
@@ -2208,6 +2242,8 @@
     if (action === "back-to-verified-pallet") { backToVerifiedPallet(); return; }
     if (action === "start-setup") { workflowView = "setup"; renderAll(); return; }
     if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; await refreshCompletedHistory(); renderAll(); return; }
+    if (action === "review-clear-completed") { if (completedRecords.length) { modal = "clear-completed"; renderAll(); } return; }
+    if (action === "confirm-clear-completed") { await clearCompletedOnDevice(); return; }
     if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; workflowView = "history-detail"; renderAll(); return; }
     if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
     if (action === "view-completed-official") { await openCompletedWorkbookPreview(); return; }

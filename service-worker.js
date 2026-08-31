@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v243-coc-back-navigation-loop-fix";
+const VERSION = "atlas-pwa-v244-device-coc-storage-clear";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,17 +9,17 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=152",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=42",
+  "./atlas-coc.css?v=43",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
   "./atlas-coc-case-quantities.js?v=3",
   "./atlas-coc-core.js?v=18",
   "./atlas-jszip.min.js?v=1",
-  "./atlas-coc-storage.js?v=2",
+  "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=16",
-  "./atlas-coc.js?v=48",
+  "./atlas-coc.js?v=49",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=15",
   "./coc-receiver/receiver.js?v=14",
