@@ -48,6 +48,9 @@
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
   let resumeRenderToken = 0;
   let cameraStream = null;
+  let activeTimingStartedAt = null;
+  let scanMetricPending = false;
+  const ACTIVE_TIMING_HEARTBEAT_MS = 30000;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
     status: "", progress: 0, failures,
@@ -148,6 +151,46 @@
     }
     renderAll();
     return true;
+  }
+
+  const shouldTrackActiveCocTime = () => Boolean(
+    session?.status === "active" && route === "workflows" &&
+    ["session", "draft-official-preview"].includes(workflowView) &&
+    document.visibilityState !== "hidden",
+  );
+
+  function saveSessionMetricsLocally() {
+    if (!session) return;
+    try {
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify(Core.sanitize(session)));
+    } catch (error) {
+      console.error("ATLAS could not preserve COC performance metrics.", error);
+    }
+  }
+
+  function commitActiveTiming({ resume = false } = {}) {
+    if (session?.status === "active" && activeTimingStartedAt) {
+      session = Core.addActiveDuration(session, Date.now() - activeTimingStartedAt);
+      saveSessionMetricsLocally();
+    }
+    activeTimingStartedAt = resume && shouldTrackActiveCocTime() ? Date.now() : null;
+  }
+
+  function syncActiveTiming() {
+    const shouldRun = shouldTrackActiveCocTime();
+    if (shouldRun && !activeTimingStartedAt) activeTimingStartedAt = Date.now();
+    else if (!shouldRun && activeTimingStartedAt) commitActiveTiming();
+  }
+
+  function beginScanMetricAttempt() {
+    if (session?.status === "active") scanMetricPending = true;
+  }
+
+  function finishScanMetricAttempt(outcome) {
+    if (!scanMetricPending || session?.status !== "active") return;
+    session = Core.recordScanOutcome(session, outcome);
+    scanMetricPending = false;
+    saveSessionMetricsLocally();
   }
 
   function apiConfig() {
@@ -1300,6 +1343,7 @@
   }
 
   function renderAll() {
+    syncActiveTiming();
     document.documentElement.classList.toggle("atlas-coc-work-mode", isWorkflowSection());
     document.documentElement.classList.toggle("atlas-coc-has-active", Boolean(session));
     const bar = document.getElementById("atlas-coc-active-bar-slot");
@@ -1399,6 +1443,7 @@
       if (index < 2) await waitForCaptureFrame();
     }
     if (!frames.length) {
+      finishScanMetricAttempt("failure");
       if (scanButton) scanButton.disabled = false;
       showToast("Camera is not ready yet.", "warning");
       return;
@@ -1409,6 +1454,7 @@
     const clearest = frames[0];
     clearest.toBlob((blob) => {
       if (!blob) {
+        finishScanMetricAttempt("failure");
         if (scanButton) scanButton.disabled = false;
         showToast("The label crop could not be captured.", "warning");
         return;
@@ -1862,6 +1908,7 @@
   }
 
   function backWithinCoc() {
+    finishScanMetricAttempt("canceled");
     cancelScanSession();
     capture = freshCapture();
     if (modal) {
@@ -1897,6 +1944,8 @@
     const wasCompleted = session?.status === "report";
     const id = session?.id;
     const deviceId = session?.deviceId;
+    finishScanMetricAttempt("canceled");
+    commitActiveTiming();
     cancelScanSession();
     capture = freshCapture();
     discardReturnModal = null;
@@ -1917,6 +1966,7 @@
     const action = button.dataset.cocAction;
     if (!action) return;
     if (action === "show-landing") {
+      finishScanMetricAttempt("canceled");
       cancelScanSession(); capture = freshCapture(); modal = null;
       workflowView = "landing"; renderAll(); return;
     }
@@ -1956,7 +2006,7 @@
       discardActiveCoc();
       return;
     }
-    if (action === "close-modal") { cancelScanSession(); modal = null; renderAll(); return; }
+    if (action === "close-modal") { finishScanMetricAttempt("canceled"); cancelScanSession(); modal = null; renderAll(); return; }
     if (action === "add-model-row") {
       button.insertAdjacentHTML("beforebegin", modelFieldMarkup({ removable: true }));
       button.previousElementSibling?.querySelector("input")?.focus();
@@ -2071,9 +2121,9 @@
       if (pallet && Core.palletTotal(pallet) >= pallet.expectedBoxes) { showToast(Core.boxLimitMessage(pallet), "warning"); return; }
       capture = freshCapture(); openCameraReady(); return;
     }
-    if (action === "rescan-lot") { openCameraReady(); return; }
-    if (action === "scan-live-roi") { scanLiveRoi(); return; }
-    if (action === "manual-lot") { cancelScanSession(); modal = "manual-lot"; renderAll(); return; }
+    if (action === "rescan-lot") { finishScanMetricAttempt("failure"); openCameraReady(); return; }
+    if (action === "scan-live-roi") { beginScanMetricAttempt(); scanLiveRoi(); return; }
+    if (action === "manual-lot") { finishScanMetricAttempt("failure"); cancelScanSession(); modal = "manual-lot"; renderAll(); return; }
     if (action === "confirm-lot") {
       const reviewInput = document.getElementById("atlas-coc-lot-review-input");
       if (reviewInput) capture.text = String(reviewInput.value || "").trim().toUpperCase();
@@ -2082,6 +2132,7 @@
         reviewInput?.focus();
         return;
       }
+      finishScanMetricAttempt("success");
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
         barcodeFormat: capture.result?.barcodeFormat,
@@ -2102,6 +2153,7 @@
       return;
     }
     if (action === "confirm-similar") {
+      finishScanMetricAttempt("success");
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
         barcodeFormat: capture.result?.barcodeFormat,
@@ -2234,7 +2286,7 @@
     }
     if (action === "review-complete") { modal = "review-complete"; renderAll(); return; }
     if (action === "complete-coc") {
-      try { session = Core.completeSession(session); modal = null; workflowView = "session"; persist(); scrollWorkflowToTop(); refreshStationPresence(); showToast("COC complete · ready to send"); }
+      try { commitActiveTiming(); session = Core.completeSession(session); modal = null; workflowView = "session"; persist(); scrollWorkflowToTop(); refreshStationPresence(); showToast("COC complete · ready to send"); }
       catch { showToast("Finish the active pallet first.", "warning"); }
       return;
     }
@@ -2584,7 +2636,7 @@
       "similar", "reopen",
     ];
     if (event.key === "Escape" && modal && !protectedModals.includes(modalKey)) {
-      cancelScanSession(); modal = null; renderAll();
+      finishScanMetricAttempt("canceled"); cancelScanSession(); modal = null; renderAll();
     }
   });
 
@@ -2607,12 +2659,30 @@
   window.addEventListener("atlas:coc-case-quantities-ready", () => {
     if (!session || workflowView === "setup") renderAll();
   });
-  window.addEventListener("beforeunload", cancelScanSession);
+  window.setInterval?.(() => {
+    if (!shouldTrackActiveCocTime()) return;
+    commitActiveTiming({ resume: true });
+  }, ACTIVE_TIMING_HEARTBEAT_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") commitActiveTiming();
+    else syncActiveTiming();
+  });
+  window.addEventListener("pagehide", () => {
+    finishScanMetricAttempt("canceled");
+    commitActiveTiming();
+    cancelScanSession();
+  });
+  window.addEventListener("beforeunload", () => {
+    finishScanMetricAttempt("canceled");
+    commitActiveTiming();
+    cancelScanSession();
+  });
 
   window.atlasCoc = Object.freeze({
     sync(nextRoute) {
       const destination = nextRoute || route;
       if (isInsideCocWorkflow() && destination !== "workflows") {
+        finishScanMetricAttempt("canceled");
         cancelScanSession();
         capture = freshCapture();
         modal = null;
@@ -2622,6 +2692,7 @@
     },
     openWorkflows() {
       if (isInsideCocWorkflow()) {
+        finishScanMetricAttempt("canceled");
         cancelScanSession();
         capture = freshCapture();
         modal = null;

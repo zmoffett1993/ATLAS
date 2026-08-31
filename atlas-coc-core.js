@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 6;
+  const SCHEMA_VERSION = 7;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
   const MAX_CUSTOMER_LENGTH = 160;
@@ -32,6 +32,26 @@
     const number = Number(value);
     return Number.isSafeInteger(number) && number > 0 ? number : null;
   };
+  const metricInteger = (value, maximum = 1000000000) => {
+    const number = Number(value);
+    return Number.isSafeInteger(number) && number >= 0
+      ? Math.min(number, maximum)
+      : 0;
+  };
+
+  function normalizeAnalytics(source = {}) {
+    const successes = metricInteger(source?.scanSuccesses, 1000000);
+    const failures = metricInteger(source?.scanFailures, 1000000);
+    const suppliedAttempts = metricInteger(source?.scanAttempts, 1000000);
+    const attempts = Math.max(suppliedAttempts, successes + failures);
+    return {
+      activeDurationMs: metricInteger(source?.activeDurationMs, 2592000000),
+      scanAttempts: attempts,
+      scanSuccesses: Math.min(successes, attempts),
+      scanFailures: Math.min(failures, attempts),
+      scanCanceled: metricInteger(source?.scanCanceled, 1000000),
+    };
+  }
 
   function normalizeModelRecord(source, fallbackAddedAt = timestamp()) {
     const modelNumber = cleanModel(typeof source === "string" ? source : source?.modelNumber);
@@ -122,6 +142,7 @@
       completedAt: null,
       activePalletId: pallet.id,
       pallets: [pallet],
+      analytics: normalizeAnalytics(),
       activity: [{ type: "session_started", at: createdAt, models: 0 }],
     };
   }
@@ -347,6 +368,7 @@
       completedAt: cleanText(raw.completedAt, 40) || null,
       activePalletId,
       pallets,
+      analytics: normalizeAnalytics(raw.analytics),
       activity: (Array.isArray(raw.activity) ? raw.activity : []).slice(-2000),
     };
   }
@@ -407,6 +429,40 @@
     session.updatedAt = timestamp();
     session.activity = [...(session.activity || []), { type, at: session.updatedAt, ...detail }]
       .slice(-2000);
+    return session;
+  }
+
+  function addActiveDuration(source, milliseconds) {
+    const session = sanitize(clone(source));
+    if (session.status !== "active") return session;
+    // The UI commits visible time every 30 seconds. Capping one segment at two
+    // minutes prevents a suspended/backgrounded browser from inflating a COC.
+    const delta = metricInteger(Math.round(Number(milliseconds) || 0), 120000);
+    if (!delta) return session;
+    session.analytics.activeDurationMs = metricInteger(
+      session.analytics.activeDurationMs + delta,
+      2592000000,
+    );
+    session.updatedAt = timestamp();
+    return session;
+  }
+
+  function recordScanOutcome(source, outcome) {
+    const session = sanitize(clone(source));
+    if (session.status !== "active") return session;
+    const result = String(outcome || "").toLowerCase();
+    if (result === "canceled") {
+      session.analytics.scanCanceled += 1;
+    } else if (result === "success") {
+      session.analytics.scanAttempts += 1;
+      session.analytics.scanSuccesses += 1;
+    } else if (result === "failure") {
+      session.analytics.scanAttempts += 1;
+      session.analytics.scanFailures += 1;
+    } else {
+      throw new Error("SCAN_OUTCOME_INVALID");
+    }
+    session.updatedAt = timestamp();
     return session;
   }
 
@@ -1032,6 +1088,8 @@
     updateLot,
     updateModelCaseQuantity,
     updateModel,
+    addActiveDuration,
+    recordScanOutcome,
     addCase,
     undoCase,
     setExpectedBoxCount,

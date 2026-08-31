@@ -52,6 +52,17 @@
     cocTotal: 0,
     cocRecords: [],
     cocMetrics: { total: 0, awaiting: 0, receivedToday: 0, completedToday: 0 },
+    cocPerformanceRange: "30",
+    cocPerformance: {
+      completionSamples: 0,
+      averageActiveDurationMs: 0,
+      medianActiveDurationMs: 0,
+      scanAttempts: 0,
+      scanSuccesses: 0,
+      scanCanceled: 0,
+      distinctLots: 0,
+      manualLots: 0,
+    },
     cocLoading: false,
     cocLoaded: false,
     cocError: "",
@@ -388,6 +399,21 @@
       boxes: pallets.reduce((sum, pallet) => sum + (pallet.lots || []).reduce((count, lot) => count + Number(lot.cases || 0), 0), 0),
     };
   };
+  const cocRecordPerformance = (record) => {
+    const snapshot = cocSnapshot(record);
+    const analytics = snapshot.analytics || {};
+    const lots = (snapshot.pallets || []).flatMap((pallet) => pallet.lots || []);
+    const manualMethods = new Set(["manual", "manual_review", "manual_edit", "manual_entry"]);
+    const scanAttempts = Number(analytics.scanAttempts || 0);
+    const scanSuccesses = Number(analytics.scanSuccesses || 0);
+    return {
+      activeDurationMs: Number(analytics.activeDurationMs || 0),
+      scanAttempts,
+      scanSuccesses,
+      distinctLots: lots.length,
+      manualLots: lots.filter((lot) => manualMethods.has(String(lot.captureMethod || "").toLowerCase())).length,
+    };
+  };
   const cocPlural = (count, word) => `${Number(count || 0).toLocaleString()} ${word}${Number(count) === 1 ? "" : word === "box" ? "es" : "s"}`;
   const cocStatus = (record) => record?.receiver_archived_at ? "Archived" : ({ SENT: "Sent", RECEIVED: "Received", OFFICE_COMPLETED: "Completed" })[record?.status] || "Warehouse complete";
   const cocRecordDate = (record) => record?.office_completed_at || record?.received_at || record?.sent_at || record?.created_at;
@@ -398,10 +424,27 @@
       awaiting: '<path d="M9 5h6M9 9h6M9 13h4"/><path d="M9 3h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/>',
       received: '<path d="M4 14h4l2 3h4l2-3h4"/><path d="M6 4h12l2 10v6H4v-6z"/>',
       completed: '<path d="m6 12 4 4 8-9"/><circle cx="12" cy="12" r="9"/>',
+      time: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      scan: '<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M7 12h10"/>',
+      manual: '<path d="M7 3h8l3 3v15H7z"/><path d="M15 3v4h4M10 12h5M10 16h5"/>',
     };
     return `<i class="atlas-dashboard-coc-metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${paths[kind] || paths.all}</svg></i>`;
   };
   const cocMetricCard = (kind, label, value, note = "") => `<article class="is-${kind}">${cocMetricIcon(kind)}<div><span>${label}</span><strong>${Number(value || 0).toLocaleString()}</strong>${note ? `<small>${note}</small>` : ""}</div></article>`;
+  const formatCocDuration = (milliseconds) => {
+    const totalSeconds = Math.max(0, Math.round(Number(milliseconds || 0) / 1000));
+    if (!totalSeconds) return "—";
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours) return `${hours}h ${minutes}m`;
+    if (minutes) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  };
+  const cocPercentage = (numerator, denominator) => denominator
+    ? `${((Number(numerator || 0) / Number(denominator)) * 100).toFixed(1)}%`
+    : "—";
+  const cocPerformanceCard = (kind, label, value, note) => `<article class="is-${kind}">${cocMetricIcon(kind)}<div><span>${label}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div></article>`;
 
   const renderPreservingScroll = () => {
     const top = window.scrollY || document.documentElement.scrollTop || 0;
@@ -424,7 +467,10 @@
           search: state.cocSearch,
           sort: state.cocSort,
         }),
-        cocApi("metrics", { dayStart: new Date(new Date().setHours(0, 0, 0, 0)).toISOString() }),
+        cocApi("metrics", {
+          dayStart: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
+          performanceRange: state.cocPerformanceRange,
+        }),
       ]);
       if (requestId !== cocRequestSequence) return;
       state.cocRecords = Array.isArray(list.deliveries) ? list.deliveries : [];
@@ -434,6 +480,17 @@
         awaiting: Number(metrics.awaiting || 0),
         receivedToday: Number(metrics.receivedToday || 0),
         completedToday: Number(metrics.completedToday || 0),
+      };
+      const performance = metrics.performance || {};
+      state.cocPerformance = {
+        completionSamples: Number(performance.completionSamples || 0),
+        averageActiveDurationMs: Number(performance.averageActiveDurationMs || 0),
+        medianActiveDurationMs: Number(performance.medianActiveDurationMs || 0),
+        scanAttempts: Number(performance.scanAttempts || 0),
+        scanSuccesses: Number(performance.scanSuccesses || 0),
+        scanCanceled: Number(performance.scanCanceled || 0),
+        distinctLots: Number(performance.distinctLots || 0),
+        manualLots: Number(performance.manualLots || 0),
       };
       state.cocLoaded = true;
       state.lastSync = new Date();
@@ -1072,11 +1129,11 @@
 
   const renderCocDetail = (record) => {
     if (state.cocPreview.status !== "idle") return renderCocPreview(record);
-    const snap = cocSnapshot(record), totals = cocTotals(record);
+    const snap = cocSnapshot(record), totals = cocTotals(record), performance = cocRecordPerformance(record);
     return `<section class="atlas-dashboard-coc-detail">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-detail-back>‹ All COCs</button>
       <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">${escapeHtml(cocStatus(record).toUpperCase())}</p><h2>${escapeHtml(snap.customerName || "—")}</h2><span>${escapeHtml(snap.invoiceNumber || "—")}</span></header>
-      <dl class="atlas-dashboard-coc-fields"><div><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div><dt>Sent By</dt><dd>${escapeHtml(record.submitted_by_display_name || snap.employeeDisplayName || snap.employee || "—")}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</dd></div><div><dt>Pallets</dt><dd>${totals.pallets}</dd></div><div><dt>Boxes</dt><dd>${totals.boxes}</dd></div></dl>
+      <dl class="atlas-dashboard-coc-fields"><div><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div><dt>Sent By</dt><dd>${escapeHtml(record.submitted_by_display_name || snap.employeeDisplayName || snap.employee || "—")}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</dd></div><div><dt>Pallets</dt><dd>${totals.pallets}</dd></div><div><dt>Boxes</dt><dd>${totals.boxes}</dd></div><div><dt>Active COC Time</dt><dd>${escapeHtml(formatCocDuration(performance.activeDurationMs))}</dd></div><div><dt>Scan Success</dt><dd>${escapeHtml(cocPercentage(performance.scanSuccesses, performance.scanAttempts))}</dd></div><div><dt>Manual Lots</dt><dd>${performance.manualLots} / ${performance.distinctLots}</dd></div></dl>
       <div class="atlas-dashboard-coc-pallets">${renderCocPallets(record)}</div>
       <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-official="${escapeHtml(record.id)}">View Official COC</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${cocCanDelete(record) ? `<button class="atlas-dashboard-button atlas-dashboard-button--danger" data-coc-delete="${escapeHtml(record.id)}">Delete COC</button>` : ""}</div>
     </section>`;
@@ -1094,10 +1151,21 @@
   const renderCocOversight = () => {
     if (state.cocSelected) return `${renderCocDetail(state.cocSelected)}${renderCocDeleteModal()}`;
     const pages = Math.max(1, Math.ceil(state.cocTotal / COC_PAGE_SIZE));
+    const performance = state.cocPerformance;
+    const rangeLabel = state.cocPerformanceRange === "all" ? "All time" : `Last ${state.cocPerformanceRange} days`;
     return `<section class="atlas-dashboard-coc-center">
       ${state.cocNotice ? `<div class="atlas-dashboard-coc-notice">${escapeHtml(state.cocNotice)}</div>` : ""}
       ${state.cocError ? `<div class="atlas-dashboard-coc-error">${escapeHtml(state.cocError)}</div>` : ""}
       <div class="atlas-dashboard-coc-metrics">${cocMetricCard("all", "ALL COCs", state.cocMetrics.total)}${cocMetricCard("awaiting", "AWAITING", state.cocMetrics.awaiting, "Requires office review")}${cocMetricCard("received", "RECEIVED TODAY", state.cocMetrics.receivedToday)}${cocMetricCard("completed", "COMPLETED TODAY", state.cocMetrics.completedToday)}</div>
+      <article class="atlas-dashboard-coc-performance">
+        <header><div><p class="atlas-dashboard-eyebrow">WAREHOUSE PERFORMANCE</p><h2>COC Workflow Metrics</h2><span>Active workflow time and lot-capture quality</span></div><label><span>Reporting period</span><select data-coc-performance-range aria-label="COC performance reporting period"><option value="7" ${state.cocPerformanceRange === "7" ? "selected" : ""}>Last 7 days</option><option value="30" ${state.cocPerformanceRange === "30" ? "selected" : ""}>Last 30 days</option><option value="all" ${state.cocPerformanceRange === "all" ? "selected" : ""}>All time</option></select></label></header>
+        <div class="atlas-dashboard-coc-performance-grid">
+          ${cocPerformanceCard("time", "AVG COC TIME", formatCocDuration(performance.averageActiveDurationMs), performance.completionSamples ? `Median ${formatCocDuration(performance.medianActiveDurationMs)} · ${cocPlural(performance.completionSamples, "COC")}` : "Timing begins with this update")}
+          ${cocPerformanceCard("scan", "SCAN SUCCESS", cocPercentage(performance.scanSuccesses, performance.scanAttempts), performance.scanAttempts ? `${performance.scanSuccesses.toLocaleString()} of ${performance.scanAttempts.toLocaleString()} confirmed attempts` : "No completed scan attempts yet")}
+          ${cocPerformanceCard("manual", "MANUAL ENTRY", cocPercentage(performance.manualLots, performance.distinctLots), performance.distinctLots ? `${performance.manualLots.toLocaleString()} of ${performance.distinctLots.toLocaleString()} distinct lots` : "No completed lot records yet")}
+        </div>
+        <footer><span>${escapeHtml(rangeLabel)}</span><small>Canceled scans are tracked separately and excluded from scan success.</small></footer>
+      </article>
       <article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">LIVE COMPLIANCE OVERSIGHT</p><h2>COC Receiver Activity</h2><span>Review every office COC without pairing this dashboard as a Receiver.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
         <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["active","Incoming"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
         <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, or IF number" aria-label="Search COCs"><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button></div>
@@ -1360,6 +1428,11 @@
     else if (event.target.matches("[data-custom-start]")) state.customStart = event.target.value;
     else if (event.target.matches("[data-custom-end]")) state.customEnd = event.target.value;
     else if (event.target.matches("[data-filter]")) state.filter = event.target.value;
+    else if (event.target.matches("[data-coc-performance-range]")) {
+      state.cocPerformanceRange = event.target.value;
+      loadCocData();
+      return;
+    }
     else if (event.target.matches("[data-coc-sort]")) {
       state.cocSort = event.target.value;
       state.cocPage = 1;
