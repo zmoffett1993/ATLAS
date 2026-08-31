@@ -758,8 +758,18 @@
     const finished = completedPallets();
     const difference = total - pallet.expectedBoxes;
     const atLimit = total >= pallet.expectedBoxes;
+    const remaining = Math.max(0, pallet.expectedBoxes - total);
+    const progressCopy = difference > 0
+      ? `${plural(difference, "box")} over confirmed count`
+      : remaining
+        ? `${plural(remaining, "box")} remaining`
+        : "Count reached — ready to verify";
     return `<div class="atlas-coc-page atlas-coc-counting">
       <button type="button" class="atlas-coc-back atlas-coc-count-back" data-coc-action="coc-back">‹ Back</button>
+      <header class="atlas-coc-count-head" aria-label="Pallet ${pallet.number} box progress">
+        <div class="atlas-coc-pallet-number"><span>PALLET</span><strong>${pallet.number}</strong></div>
+        <div class="atlas-coc-pallet-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes} BOXES</strong><small>${escapeHtml(progressCopy)}</small></div>
+      </header>
       ${pallet.reopenedForEdit ? `<section class="atlas-coc-editing-pallet"><span>EDITING PALLET ${pallet.number}</span><button type="button" data-coc-action="edit-expected">Correct Confirmed Box Count</button></section>` : ""}
       ${countingModelMarkup(pallet)}
       ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed count. Undo a box or correct the count before finishing.</p>` : ""}
