@@ -507,7 +507,7 @@
   }
 
   function receiverSetupMarkup() {
-    return `<div class="atlas-coc-page"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button><header class="atlas-coc-page-head"><span>SUPERVISOR SETUP</span><h1>Office COC Receiver</h1><p>Open <strong>/coc-receiver/</strong> on the office computer, then approve its six-digit pairing code here.</p></header><form id="atlas-coc-pairing-form" class="atlas-coc-form-card"><label><strong>Pairing Code</strong><input name="pairingCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><p class="atlas-coc-form-error" aria-live="polite"></p><button class="atlas-coc-primary" type="submit">Approve Office COC Station</button></form></div>`;
+    return `<div class="atlas-coc-page"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button><header class="atlas-coc-page-head"><span>${escapeHtml(Delivery.requestedWarehouseCode())} SUPERVISOR SETUP</span><h1>${escapeHtml(Delivery.activeStationName())}</h1><p>Open <strong>/coc-receiver/</strong> on the ${escapeHtml(Delivery.requestedWarehouseCode())} office computer, then approve its six-digit pairing code here.</p></header><form id="atlas-coc-pairing-form" class="atlas-coc-form-card"><label><strong>Pairing Code</strong><input name="pairingCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><p class="atlas-coc-form-error" aria-live="polite"></p><button class="atlas-coc-primary" type="submit">Approve ${escapeHtml(Delivery.requestedWarehouseCode())} Receiver</button></form></div>`;
   }
 
   function manualCaseQuantityMarkup() {
@@ -789,19 +789,21 @@
 
   function reportMarkup() {
     const total = Core.sessionTotal(session);
+    const stationName = Delivery.stationNameForWarehouse(session.warehouseCode || Delivery.requestedWarehouseCode());
     return `<div class="atlas-coc-page atlas-coc-report">
       <button type="button" class="atlas-coc-back atlas-coc-report-back" data-coc-action="review-complete">‹ Back to Review</button>
       <header class="atlas-coc-transfer-head"><span>COC COMPLETE ✓</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
-      <section class="atlas-coc-destination"><span>Destination</span><h2>🖥 Office COC Station</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the Office COC Inbox.</p>`}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></section>
+      <section class="atlas-coc-destination"><span>Destination · ${escapeHtml(session.warehouseCode || Delivery.requestedWarehouseCode())}</span><h2>🖥 ${escapeHtml(stationName)}</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the correct warehouse COC Inbox.</p>`}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></section>
     </div>`;
   }
 
   function sendStatusMarkup() {
     const phase = sendState.phase;
+    const stationName = sendState.stationName || Delivery.stationNameForWarehouse(session?.warehouseCode || sendState.warehouseCode || Delivery.requestedWarehouseCode());
     if (phase === "preparing" || phase === "sending") return `<div class="atlas-coc-page atlas-coc-send-state"><div class="atlas-coc-spinner" aria-hidden="true"></div><h1>${phase === "preparing" ? "PREPARING REPORT" : "SENDING TO OFFICE"}</h1><p>Keep ATLAS open while the completed COC is securely transferred.</p></div>`;
-    if (phase === "received" || phase === "office_completed") return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? "Office COC Station completed the report." : "Office COC Station received the report."}</p><section><strong>${escapeHtml(session?.invoiceNumber || sendState.invoiceNumber)}</strong><b>${escapeHtml(session?.customerName || sendState.customerName)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
+    if (phase === "received" || phase === "office_completed") return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? `${escapeHtml(stationName)} completed the report.` : `${escapeHtml(stationName)} received the report.`}</p><section><strong>${escapeHtml(session?.invoiceNumber || sendState.invoiceNumber)}</strong><b>${escapeHtml(session?.customerName || sendState.customerName)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
     if (phase === "failed") return `<div class="atlas-coc-page atlas-coc-send-state"><h1>SEND NOT COMPLETED</h1><p>${escapeHtml(sendState.error || "The office transfer could not be confirmed. Your completed COC is still open and nothing was lost.")}</p><div class="atlas-coc-send-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office">TRY AGAIN</button><button type="button" data-coc-action="return-to-report">Back to Report</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></div>`;
-    return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>SENT ✓</h1><p>The completed COC was sent to:</p><h2>Office COC Station</h2><p>Waiting for receipt…</p></div>`;
+    return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>SENT ✓</h1><p>The completed COC was sent to:</p><h2>${escapeHtml(stationName)}</h2><p>Waiting for receipt…</p></div>`;
   }
 
   async function refreshCompletedHistory() {
@@ -831,7 +833,7 @@
 
   async function refreshStationPresence() {
     try {
-      const result = await Delivery.stationStatus();
+      const result = await Delivery.stationStatus(session?.warehouseCode || "");
       stationPresence = { online: Boolean(result?.online), reachable: true, ...result };
     } catch {
       stationPresence = { online: false, reachable: navigator.onLine };
@@ -868,7 +870,7 @@
       renderAll();
       showToast(replaceExisting
         ? "Real office computer paired · previous receiver disconnected"
-        : "Office COC Station approved");
+        : `${Delivery.activeStationName()} approved`);
       return true;
     } catch (error) {
       if (!replaceExisting && isReceiverReplacementConflict(error)) {
@@ -910,12 +912,12 @@
       workflowView = "send-status"; renderAll(); return;
     }
     exportInProgress = true;
-    sendState = { phase: "preparing", cocId: session.id, invoiceNumber: session.invoiceNumber, customerName: session.customerName, palletCount: session.pallets.length, totalBoxes: Core.sessionTotal(session) };
+    sendState = { phase: "preparing", cocId: session.id, invoiceNumber: session.invoiceNumber, customerName: session.customerName, palletCount: session.pallets.length, totalBoxes: Core.sessionTotal(session), warehouseCode: session.warehouseCode || Delivery.requestedWarehouseCode(), stationName: Delivery.stationNameForWarehouse(session.warehouseCode || Delivery.requestedWarehouseCode()) };
     workflowView = "send-status"; renderAll();
     try {
       const generated = await Excel.generateCompanyCoc(session, { saveGeneratedWorkbook: async () => {} });
       const workbookBlob = new Blob([generated.bytes], { type: Delivery.MIME_XLSX });
-      const idempotencyKey = `coc:${session.id}:office:${Delivery.STATION_KEY}`;
+      const idempotencyKey = `coc:${session.id}:office:${Delivery.stationKeyForWarehouse(session.warehouseCode || Delivery.requestedWarehouseCode())}`;
       await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "WAREHOUSE_COMPLETE" });
       await Storage.putPending({ cocId: session.id, userId, idempotencyKey, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob });
       sendState = { ...sendState, phase: "sending" }; renderAll();
@@ -950,7 +952,7 @@
     renderAll();
     try {
       const workbookBytes = new Uint8Array(await record.workbookBlob.arrayBuffer());
-      const idempotencyKey = `coc:${record.cocId}:office:${Delivery.STATION_KEY}`;
+      const idempotencyKey = `coc:${record.cocId}:office:${record.reportSnapshot?.warehouseCode === "TX" ? "OFFICE_COC_TX" : "OFFICE_COC_01"}`;
       const receipt = await Delivery.submitCoc({
         cocId: record.cocId,
         idempotencyKey,
@@ -969,7 +971,7 @@
       });
       selectedCompleted = await Storage.getCompleted(record.cocId, userId);
       modal = null;
-      showToast("COC resent to Office COC Station");
+      showToast(`COC resent to ${Delivery.stationNameForWarehouse(record.reportSnapshot?.warehouseCode || Delivery.requestedWarehouseCode())}`);
     } catch (error) {
       console.error("ATLAS COC resend failed.", error);
       const message = error?.message === "COC_ALREADY_COMPLETED_AT_OFFICE"
@@ -2787,6 +2789,8 @@
         deviceId: getDeviceId(),
         employee: getEmployee(),
         employeeDisplayName: getEmployeeDisplayName(),
+        warehouseCode: Delivery.requestedWarehouseCode(),
+        warehouseName: `${Delivery.requestedWarehouseCode()} Warehouse`,
       });
       workflowView = "session";
       persist();
@@ -3090,8 +3094,8 @@
   readSession();
   Catalog.loadRemote();
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => { renderAll(); restoreFromCloud(); approvePairingFromLink(); }, { once: true });
+    document.addEventListener("DOMContentLoaded", () => { Delivery.warehouseContext().catch(() => {}); renderAll(); restoreFromCloud(); approvePairingFromLink(); }, { once: true });
   } else {
-    renderAll(); restoreFromCloud(); approvePairingFromLink();
+    Delivery.warehouseContext().catch(() => {}); renderAll(); restoreFromCloud(); approvePairingFromLink();
   }
 })();

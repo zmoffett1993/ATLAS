@@ -1,14 +1,56 @@
 (function (global) {
   "use strict";
 
-  const STATION_KEY = "OFFICE_COC_01";
-  const STATION_NAME = "Office COC Station";
+  const DEFAULT_WAREHOUSE_CODE = "CA";
+  const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v1";
   const PROJECT_REF = "dwrrbpiprcmajfyronlf";
   const AUTH_STORAGE_KEY = `sb-${PROJECT_REF}-auth-token`;
-  const RECEIVER_SETTING_KEY = "office-coc-receiver-credentials";
+  const RECEIVER_SETTING_PREFIX = "office-coc-receiver-credentials";
   const MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
   const clean = (value, maximum = 240) => String(value ?? "").trim().slice(0, maximum);
+  let cachedWarehouseContext = null;
+
+  function requestedWarehouseCode() {
+    const user = currentUser();
+    const roles = userRoles(user);
+    const metadata = user?.app_metadata || {};
+    const home = clean(metadata.home_warehouse_code || metadata.warehouse_code || DEFAULT_WAREHOUSE_CODE, 8).toUpperCase();
+    if (!["admin", "administrator"].some((role) => roles.has(role))) return home;
+    return clean(global.localStorage?.getItem(WAREHOUSE_SELECTION_KEY) || home, 8).toUpperCase();
+  }
+
+  async function warehouseContext({ force = false, warehouseCode = "" } = {}) {
+    const requested = clean(warehouseCode || requestedWarehouseCode(), 8).toUpperCase();
+    if (!force && cachedWarehouseContext?.selectedWarehouse?.code === requested) return cachedWarehouseContext;
+    const result = await edgeRequest("coc-receiver", { action: "warehouse-context", warehouseCode: requested });
+    cachedWarehouseContext = result;
+    return result;
+  }
+
+  function activeStationKey() {
+    const requested = requestedWarehouseCode();
+    return cachedWarehouseContext?.selectedWarehouse?.code === requested
+      ? cachedWarehouseContext.station?.key
+      : stationKeyForWarehouse(requested);
+  }
+
+  function activeStationName() {
+    const requested = requestedWarehouseCode();
+    return cachedWarehouseContext?.selectedWarehouse?.code === requested
+      ? cachedWarehouseContext.station?.displayName
+      : stationNameForWarehouse(requested);
+  }
+
+  function stationKeyForWarehouse(code) {
+    return clean(code, 8).toUpperCase() === "TX" ? "OFFICE_COC_TX" : "OFFICE_COC_01";
+  }
+
+  function stationNameForWarehouse(code) {
+    return clean(code, 8).toUpperCase() === "TX" ? "Texas Office COC Receiver" : "California Office COC Receiver";
+  }
+
+  const receiverSettingKey = (stationKey = activeStationKey()) => `${RECEIVER_SETTING_PREFIX}:${clean(stationKey, 80)}`;
 
   function config() {
     const value = global.atlasSupabaseConfig;
@@ -117,16 +159,19 @@
     return base64ToBytes(result.workbookBase64);
   }
 
-  async function stationStatus() {
-    return edgeRequest("coc-receiver", { action: "station-status", stationKey: STATION_KEY });
+  async function stationStatus(warehouseCode = "") {
+    const context = await warehouseContext({ warehouseCode });
+    return edgeRequest("coc-receiver", { action: "station-status", warehouseCode: context.selectedWarehouse.code });
   }
 
   async function submitCoc({ cocId, idempotencyKey, snapshot, workbookBytes, workbookFileName, forceResend = false }) {
+    const submissionWarehouse = clean(snapshot?.warehouseCode || DEFAULT_WAREHOUSE_CODE, 8).toUpperCase();
+    const context = await warehouseContext({ warehouseCode: submissionWarehouse });
     const result = await edgeRequest("submit-coc-to-office", {
       cocId,
       idempotencyKey,
-      stationKey: STATION_KEY,
-      reportSnapshot: snapshot,
+      warehouseCode: context.selectedWarehouse.code,
+      reportSnapshot: { ...snapshot, warehouseCode: context.selectedWarehouse.code, warehouseName: context.selectedWarehouse.display_name },
       workbookFileName,
       workbookBase64: bytesToBase64(workbookBytes),
       workbookMimeType: MIME_XLSX,
@@ -139,24 +184,27 @@
   async function deliveryStatuses(deliveryIds) {
     const ids = [...new Set((deliveryIds || []).map((value) => clean(value, 140)).filter(Boolean))].slice(0, 100);
     if (!ids.length) return [];
-    const result = await edgeRequest("coc-receiver", { action: "delivery-statuses", deliveryIds: ids });
+    const result = await edgeRequest("coc-receiver", { action: "delivery-statuses", deliveryIds: ids, warehouseCode: requestedWarehouseCode() });
     return Array.isArray(result?.deliveries) ? result.deliveries : [];
   }
 
   async function createPairing() {
+    const context = await warehouseContext();
     const devicePublicId = global.crypto?.randomUUID?.() || `receiver-${Date.now().toString(36)}`;
     const secretBytes = new Uint8Array(32);
     global.crypto.getRandomValues(secretBytes);
     const deviceSecret = [...secretBytes].map((value) => value.toString(16).padStart(2, "0")).join("");
     const result = await edgeRequest("coc-receiver", {
       action: "create-pairing",
-      stationKey: STATION_KEY,
+      warehouseCode: context.selectedWarehouse.code,
       devicePublicId,
       deviceSecret,
       deviceDescription: `${navigator.platform || "Computer"} · ${navigator.userAgent.includes("Edg/") ? "Microsoft Edge" : "Browser"}`,
     });
     global.sessionStorage?.setItem("atlas-coc-pairing-pending", JSON.stringify({
       pairingSessionId: result.pairingSessionId,
+      stationKey: result.stationKey || context.station.key,
+      warehouseCode: context.selectedWarehouse.code,
       devicePublicId,
       deviceSecret,
     }));
@@ -173,14 +221,15 @@
     });
     if (result?.status === "PAIRED") {
       const credentials = {
-        stationKey: STATION_KEY,
+        stationKey: pending.stationKey || result.stationKey || activeStationKey(),
+        warehouseCode: pending.warehouseCode || requestedWarehouseCode(),
         stationId: result.stationId,
         deviceId: result.deviceId,
         devicePublicId: pending.devicePublicId,
         deviceSecret: pending.deviceSecret,
         pairedAt: result.pairedAt,
       };
-      await global.AtlasCocStorage?.setSetting(RECEIVER_SETTING_KEY, credentials);
+      await global.AtlasCocStorage?.setSetting(receiverSettingKey(credentials.stationKey), credentials);
       global.sessionStorage?.removeItem("atlas-coc-pairing-pending");
       return { ...result, credentials };
     }
@@ -189,9 +238,10 @@
 
   async function approvePairing({ pairingCode = "", qrToken = "", replaceExisting = false } = {}) {
     if (!isSupervisor()) throw new Error("SUPERVISOR_REQUIRED");
+    const context = await warehouseContext();
     return edgeRequest("coc-receiver", {
       action: "approve-pairing",
-      stationKey: STATION_KEY,
+      warehouseCode: context.selectedWarehouse.code,
       pairingCode: clean(pairingCode, 20).replace(/\D/g, ""),
       qrToken: clean(qrToken, 500),
       replaceExisting: Boolean(replaceExisting),
@@ -199,7 +249,17 @@
   }
 
   async function receiverCredentials() {
-    const stored = await global.AtlasCocStorage?.getSetting(RECEIVER_SETTING_KEY);
+    const context = await warehouseContext();
+    const key = receiverSettingKey(context.station.key);
+    let stored = await global.AtlasCocStorage?.getSetting(key);
+    if (!stored?.value && context.selectedWarehouse.code === "CA") {
+      const legacy = await global.AtlasCocStorage?.getSetting(RECEIVER_SETTING_PREFIX);
+      if (legacy?.value) {
+        const migrated = { ...legacy.value, stationKey: context.station.key, warehouseCode: "CA" };
+        await global.AtlasCocStorage?.setSetting(key, migrated);
+        stored = { value: migrated };
+      }
+    }
     return stored?.value || null;
   }
 
@@ -209,12 +269,12 @@
     try {
       const result = await edgeRequest("coc-receiver", {
         action: "verify-receiver",
-        stationKey: STATION_KEY,
+        stationKey: credentials.stationKey,
       }, { receiverCredentials: credentials });
       return { ...result, paired: true, credentials };
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
-        await global.AtlasCocStorage?.deleteSetting(RECEIVER_SETTING_KEY);
+        await global.AtlasCocStorage?.deleteSetting(receiverSettingKey(credentials.stationKey));
         return { paired: false, revoked: true };
       }
       throw error;
@@ -222,13 +282,13 @@
   }
 
   async function heartbeat(credentials) {
-    return edgeRequest("coc-receiver", { action: "heartbeat", stationKey: STATION_KEY }, { receiverCredentials: credentials });
+    return edgeRequest("coc-receiver", { action: "heartbeat", stationKey: credentials.stationKey }, { receiverCredentials: credentials });
   }
 
   async function receiverInbox(credentials, options = {}) {
     const result = await edgeRequest("coc-receiver", {
       action: "receiver-inbox",
-      stationKey: STATION_KEY,
+      stationKey: credentials.stationKey,
       section: clean(options.section || "", 20),
       page: Number(options.page || 1),
       pageSize: Number(options.pageSize || 8),
@@ -242,7 +302,7 @@
   async function archiveOfficeCompleted(deliveryIds, credentials, { all = false } = {}) {
     return edgeRequest("coc-receiver", {
       action: "archive-completed",
-      stationKey: STATION_KEY,
+      stationKey: credentials.stationKey,
       deliveryIds: Array.isArray(deliveryIds) ? deliveryIds.slice(0, 100) : [],
       archiveAll: Boolean(all),
     }, { receiverCredentials: credentials });
@@ -251,7 +311,7 @@
   async function restoreOfficeArchived(deliveryIds, credentials) {
     return edgeRequest("coc-receiver", {
       action: "restore-archived",
-      stationKey: STATION_KEY,
+      stationKey: credentials.stationKey,
       deliveryIds: Array.isArray(deliveryIds) ? deliveryIds.slice(0, 100) : [],
     }, { receiverCredentials: credentials });
   }
@@ -334,14 +394,20 @@
   }
 
   global.AtlasCocDelivery = Object.freeze({
-    STATION_KEY,
-    STATION_NAME,
+    DEFAULT_WAREHOUSE_CODE,
+    WAREHOUSE_SELECTION_KEY,
     MIME_XLSX,
     getAuthSession,
     currentUser,
     userRoles,
     isSupervisor,
     isOfficeUser,
+    warehouseContext,
+    requestedWarehouseCode,
+    activeStationKey,
+    activeStationName,
+    stationKeyForWarehouse,
+    stationNameForWarehouse,
     loadOfficialTemplate,
     stationStatus,
     submitCoc,

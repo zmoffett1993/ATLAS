@@ -378,6 +378,38 @@ html.atlas-dashboard-open #root {
   flex: 0 0 auto;
 }
 
+.atlas-dashboard-warehouse-switch {
+  min-width: 210px;
+  display: grid;
+  gap: 4px;
+}
+
+.atlas-dashboard-warehouse-switch span {
+  color: #58708d;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.atlas-dashboard-warehouse-switch select,
+.atlas-dashboard-warehouse-badge {
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 13px;
+  color: #0f55a5;
+  border: 1px solid #a9c9ee;
+  border-radius: 11px;
+  background: #f4f9ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.atlas-dashboard-warehouse-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
 .atlas-dashboard-notification-center { display: flex; }
 .atlas-dashboard-notification-bell {
   position: relative;
@@ -1164,10 +1196,21 @@ html.atlas-dashboard-open #root {
   min-height: 76px;
   padding: 12px 20px;
   display: grid;
-  grid-template-columns: 38px minmax(170px, 1.2fr) minmax(105px, 0.55fr) minmax(92px, 0.5fr) minmax(98px, 0.55fr) auto;
+  grid-template-columns: 38px minmax(170px, 1.2fr) minmax(105px, 0.55fr) 52px minmax(92px, 0.5fr) minmax(98px, 0.55fr) auto;
   align-items: center;
   gap: 13px;
   border-bottom: 1px solid #edf2f6;
+}
+
+.atlas-account-warehouse {
+  padding: 6px 9px;
+  color: #0c5eb5;
+  border: 1px solid #b8d2ef;
+  border-radius: 999px;
+  background: #f0f7ff;
+  font-size: 9px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .atlas-account-row:last-child {
@@ -1659,19 +1702,30 @@ html.atlas-dashboard-open #root {
     grid-row: 1;
   }
 
+  .atlas-account-warehouse {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+  }
+
   .atlas-account-status {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 3;
   }
 
   .atlas-account-last {
     grid-column: 3;
-    grid-row: 2;
+    grid-row: 3;
     text-align: right;
   }
 
   .atlas-account-row > .atlas-dashboard-button {
     grid-column: 2 / 4;
+    width: 100%;
+  }
+
+  .atlas-dashboard-warehouse-switch,
+  .atlas-dashboard-warehouse-badge {
     width: 100%;
   }
 

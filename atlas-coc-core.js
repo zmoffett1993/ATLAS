@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 7;
+  const SCHEMA_VERSION = 8;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
   const MAX_CUSTOMER_LENGTH = 160;
@@ -106,7 +106,7 @@
 
   function createSession({
     customerName = "", ifNumber = "", invoiceNumber = "", orderNumber = "",
-    deviceId = "", employee = "", employeeDisplayName = "", sku = "", models = [], modelNumbers = [],
+    deviceId = "", employee = "", employeeDisplayName = "", warehouseCode = "", warehouseName = "", sku = "", models = [], modelNumbers = [],
   } = {}) {
     const createdAt = timestamp();
     const pallet = createPallet(1);
@@ -136,6 +136,8 @@
       sku: activeModel,
       employee: cleanText(employee, 60),
       employeeDisplayName: cleanText(employeeDisplayName || employee, 100),
+      warehouseCode: cleanText(warehouseCode || "CA", 8).toUpperCase(),
+      warehouseName: cleanText(warehouseName || (String(warehouseCode).toUpperCase() === "TX" ? "Texas Warehouse" : "California Warehouse"), 100),
       status: "active",
       createdAt,
       updatedAt: createdAt,
@@ -362,6 +364,8 @@
       sku: activeModel || cleanModel(raw.sku),
       employee: cleanText(raw.employee, 60),
       employeeDisplayName: cleanText(raw.employeeDisplayName || raw.employee, 100),
+      warehouseCode: cleanText(raw.warehouseCode || "CA", 8).toUpperCase(),
+      warehouseName: cleanText(raw.warehouseName || (String(raw.warehouseCode).toUpperCase() === "TX" ? "Texas Warehouse" : "California Warehouse"), 100),
       status,
       createdAt,
       updatedAt: cleanText(raw.updatedAt, 40) || timestamp(),

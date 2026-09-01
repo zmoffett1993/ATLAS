@@ -4,6 +4,7 @@
   const API_URL = "https://dwrrbpiprcmajfyronlf.supabase.co";
   const PUBLIC_KEY = "sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa";
   const SESSION_KEY = "atlas-dashboard-session-v1";
+  const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v1";
   const COC_PAGE_SIZE = 8;
   const PRODUCT_MAP_URL = "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106";
   const ACTION_COLORS = Object.freeze({
@@ -39,6 +40,8 @@
     normalized: [],
     view: "operations",
     currentProfile: null,
+    warehouses: [],
+    selectedWarehouse: null,
     adminUsers: [],
     adminUsersLoaded: false,
     adminLoading: false,
@@ -160,7 +163,7 @@
   const pacificDateKey = (date) => {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
     const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Los_Angeles",
+      timeZone: state.selectedWarehouse?.time_zone || "America/Los_Angeles",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -172,7 +175,7 @@
   const formatPacificTime = (date) => {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "Unknown time";
     return date.toLocaleTimeString([], {
-      timeZone: "America/Los_Angeles",
+      timeZone: state.selectedWarehouse?.time_zone || "America/Los_Angeles",
       hour: "numeric",
       minute: "2-digit",
     });
@@ -345,8 +348,12 @@
     return payload;
   };
 
-  const readTable = async (name, token) =>
-    api(`/rest/v1/${name}?select=*&limit=5000`, { token });
+  const readTable = async (name, token, { warehouse = false } = {}) => {
+    const warehouseFilter = warehouse && state.selectedWarehouse?.id
+      ? `&warehouse_id=eq.${encodeURIComponent(state.selectedWarehouse.id)}`
+      : "";
+    return api(`/rest/v1/${name}?select=*&limit=5000${warehouseFilter}`, { token });
+  };
 
   const loadProductImages = () => {
     if (state.productImages) return Promise.resolve(state.productImages);
@@ -400,7 +407,7 @@
   const cocApi = (action, payload = {}) =>
     api("/functions/v1/coc-dashboard", {
       method: "POST",
-      body: { action, stationKey: "OFFICE_COC_01", ...payload },
+      body: { action, warehouseCode: state.selectedWarehouse?.code || "CA", ...payload },
     });
 
   const cocSnapshot = (record) => record?.report_snapshot || {};
@@ -680,9 +687,12 @@
     render();
     const token = state.session?.access_token;
     try {
+      const warehouseContext = await window.AtlasCocDelivery?.warehouseContext?.({ force: true });
+      state.warehouses = warehouseContext?.accessibleWarehouses || [];
+      state.selectedWarehouse = warehouseContext?.selectedWarehouse || state.warehouses[0] || { code: "CA", display_name: "California Warehouse" };
       const [skusResult, locationsResult] = await Promise.allSettled([
         readTable("skus", token),
-        readTable("locations", token),
+        readTable("locations", token, { warehouse: true }),
       ]);
       if (skusResult.status !== "fulfilled") throw skusResult.reason;
       if (locationsResult.status !== "fulfilled") throw locationsResult.reason;
@@ -690,11 +700,11 @@
       state.locations = locationsResult.value || [];
 
       const protectedResults = await Promise.allSettled([
-        readTable("inventory_activity", token),
-        readTable("location_history", token),
+        readTable("inventory_activity", token, { warehouse: true }),
+        readTable("location_history", token, { warehouse: true }),
         token ? readTable("profiles", token) : Promise.resolve([]),
-        token ? readTable("atlas_undo_snapshots", token) : Promise.resolve([]),
-        token ? readTable("sku_delete_requests", token) : Promise.resolve([]),
+        token ? readTable("atlas_undo_snapshots", token, { warehouse: true }) : Promise.resolve([]),
+        token ? readTable("sku_delete_requests", token, { warehouse: true }) : Promise.resolve([]),
       ]);
       state.activities = protectedResults[0].status === "fulfilled" ? protectedResults[0].value : [];
       state.history = protectedResults[1].status === "fulfilled" ? protectedResults[1].value : [];
@@ -707,6 +717,7 @@
           user_id: state.session.user.id,
           display_name: state.session.user.user_metadata?.display_name || state.session.user.app_metadata?.login_name || "ATLAS user",
           role: state.session.user.app_metadata?.atlas_role || state.session.user.app_metadata?.role || "picker",
+          warehouse_id: state.selectedWarehouse?.id,
         } : null);
       if (state.currentProfile && !["supervisor", "admin"].includes(state.currentProfile.role)) {
         state.accessRequired = true;
@@ -928,7 +939,7 @@
       : `<div class="atlas-dashboard-notification-empty"><strong>No warehouse actions yet today</strong><p>New activity will appear here as ATLAS records it.</p></div>`;
     return `<div class="atlas-dashboard-notification-scrim" data-notifications-close></div>
       <section class="atlas-dashboard-notification-panel" role="dialog" aria-label="Today's warehouse activity">
-        <header><div><p class="atlas-dashboard-eyebrow">NOTIFICATIONS</p><h2>Today's Warehouse Activity</h2><span>${rows.length} recorded ${rows.length === 1 ? "action" : "actions"} · Pacific time</span></div><button type="button" class="atlas-dashboard-notification-close" data-notifications-close aria-label="Close notifications">×</button></header>
+        <header><div><p class="atlas-dashboard-eyebrow">NOTIFICATIONS</p><h2>Today's Warehouse Activity</h2><span>${rows.length} recorded ${rows.length === 1 ? "action" : "actions"} · ${escapeHtml(state.selectedWarehouse?.code || "CA")} local time</span></div><button type="button" class="atlas-dashboard-notification-close" data-notifications-close aria-label="Close notifications">×</button></header>
         ${pendingReview ? `<div class="atlas-dashboard-notification-attention"><span aria-hidden="true">!</span><strong>Deletion review pending</strong><small>Open Warehouse Status to review the request.</small></div>` : ""}
         <div class="atlas-dashboard-notification-list">${content}</div>
       </section>`;
@@ -1033,6 +1044,7 @@
         </div>`;
     }
     const isCreate = mode === "create";
+    const selectedWarehouseCode = isCreate ? (state.selectedWarehouse?.code || "CA") : (user.warehouse_code || "CA");
     return `
       <div class="atlas-account-modal-backdrop" data-account-modal-backdrop>
         <section class="atlas-account-modal" role="dialog" aria-modal="true" aria-labelledby="atlasAccountModalTitle">
@@ -1048,6 +1060,9 @@
               <label><span>ATLAS role</span><select name="role" required>
                 ${["picker", "office_receiver", "supervisor", "admin"].map((role) => `<option value="${role}" ${!isCreate && user.role === role ? "selected" : ""}>${roleLabel(role)}</option>`).join("")}
               </select></label>
+              <label><span>Home warehouse</span><select name="warehouse_code" required>
+                ${[...new Map((state.warehouses.length ? state.warehouses : [{ code: "CA", display_name: "California Warehouse" }, { code: "TX", display_name: "Texas Warehouse" }]).map((warehouse) => [warehouse.code, warehouse])).values()].map((warehouse) => `<option value="${escapeHtml(warehouse.code)}" ${selectedWarehouseCode === warehouse.code ? "selected" : ""}>${escapeHtml(warehouse.code)} · ${escapeHtml(warehouse.display_name)}</option>`).join("")}
+              </select><small>Employees and supervisors are locked to this warehouse. Administrators can view both.</small></label>
               ${isCreate ? `<label><span>Password</span>${passwordField({ autocomplete: "new-password", minlength: 10 })}<small>At least 10 characters</small></label>` : ""}
             </div>
             <p class="atlas-account-form-message" data-account-message></p>
@@ -1079,6 +1094,7 @@
         <span class="atlas-dashboard-avatar">${escapeHtml(initials(user.display_name || user.login_name))}</span>
         <span class="atlas-account-identity"><strong>${escapeHtml(user.display_name || "Unnamed account")}${user.is_current ? " <small>(You)</small>" : ""}</strong><span>${escapeHtml(roleLabel(user.role))} account</span></span>
         <span class="atlas-account-role is-${escapeHtml(user.role)}">${escapeHtml(roleLabel(user.role))}</span>
+        <span class="atlas-account-warehouse">${escapeHtml(user.warehouse_code || "CA")}</span>
         <span class="atlas-account-status"><i class="${user.active ? "is-active" : ""}"></i>${user.active ? "Active" : "Inactive (legacy)"}</span>
         <span class="atlas-account-last"><small>Last sign-in</small><strong>${escapeHtml(accountDate(user.last_sign_in_at))}</strong></span>
         <button type="button" class="atlas-dashboard-button" data-account-edit data-user-id="${escapeHtml(user.id)}">Manage</button>
@@ -1212,6 +1228,7 @@
       <header class="atlas-dashboard-header">
         <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${title}</h1><p class="atlas-dashboard-subtitle ${accessView || cocView ? "" : "atlas-dashboard-mobile-only"}">${subtitle}</p></div>
         <div class="atlas-dashboard-header-actions">
+          ${state.warehouses.length > 1 && isAdmin ? `<label class="atlas-dashboard-warehouse-switch"><span>Warehouse</span><select data-warehouse-selector aria-label="Select warehouse">${state.warehouses.map((warehouse) => `<option value="${escapeHtml(warehouse.code)}" ${state.selectedWarehouse?.code === warehouse.code ? "selected" : ""}>${escapeHtml(warehouse.code)} · ${escapeHtml(warehouse.display_name)}</option>`).join("")}</select></label>` : `<span class="atlas-dashboard-warehouse-badge">${escapeHtml(state.selectedWarehouse?.code || "CA")} · ${escapeHtml(state.selectedWarehouse?.display_name || "California Warehouse")}</span>`}
           ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : cocView ? `<button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh COCs</button>` : `${canViewNotifications ? renderNotificationBell(notifications) : ""}<div class="atlas-dashboard-date-control"><select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
             <option value="today" ${state.range === "today" ? "selected" : ""}>Today</option>
             <option value="week" ${state.range === "week" ? "selected" : ""}>This Week</option>
@@ -1436,6 +1453,22 @@
   };
 
   const handleChange = (event) => {
+    if (event.target.matches("[data-warehouse-selector]")) {
+      const code = String(event.target.value || "").toUpperCase();
+      localStorage.setItem(WAREHOUSE_SELECTION_KEY, code);
+      state.selectedWarehouse = state.warehouses.find((warehouse) => warehouse.code === code) || state.selectedWarehouse;
+      state.skus = [];
+      state.locations = [];
+      state.activities = [];
+      state.history = [];
+      state.normalized = [];
+      state.cocRecords = [];
+      state.cocLoaded = false;
+      state.cocSelected = null;
+      state.cocPage = 1;
+      Promise.resolve(window.AtlasCocDelivery?.warehouseContext?.({ force: true, warehouseCode: code })).finally(() => loadData());
+      return;
+    }
     if (event.target.matches("[data-range]")) state.range = event.target.value;
     else if (event.target.matches("[data-custom-start]")) state.customStart = event.target.value;
     else if (event.target.matches("[data-custom-end]")) state.customEnd = event.target.value;
@@ -1490,7 +1523,9 @@
     state.activities = [];
     state.history = [];
     state.normalized = [];
-    state.currentProfile = null;
+      state.currentProfile = null;
+    state.warehouses = [];
+    state.selectedWarehouse = null;
     state.view = "operations";
     state.adminUsers = [];
     state.adminUsersLoaded = false;
@@ -1594,6 +1629,7 @@
         display_name: form.elements.display_name.value,
         login_name: form.elements.login_name.value,
         role: form.elements.role.value,
+        warehouse_code: form.elements.warehouse_code.value,
         password: form.elements.password.value,
       }, form);
     } else if (form.matches("[data-account-update]")) {
@@ -1603,6 +1639,7 @@
         display_name: form.elements.display_name.value,
         login_name: form.elements.login_name.value,
         role: form.elements.role.value,
+        warehouse_code: form.elements.warehouse_code.value,
       }, form);
     } else if (form.matches("[data-account-password]")) {
       event.preventDefault();
