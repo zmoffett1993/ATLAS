@@ -2037,3 +2037,20 @@ html.atlas-coc-count-console .atlas-coc-counting {
 .atlas-coc-work-count {
   text-align: center;
 }
+
+/* V252: completion is the centered, count-gated pallet action. */
+.atlas-coc-work-utilities .atlas-coc-verify-finish:not(:disabled) {
+  color: #fff;
+  border-color: #079961;
+  background: linear-gradient(135deg, #18bd7a, #078d59);
+  box-shadow:
+    0 0 0 3px rgba(20, 190, 118, .16),
+    0 8px 20px rgba(3, 126, 77, .28);
+  text-shadow: 0 1px 1px rgba(0, 71, 42, .22);
+}
+.atlas-coc-work-utilities .atlas-coc-verify-finish:not(:disabled):active {
+  background: linear-gradient(135deg, #10a96c, #067b4e);
+  box-shadow:
+    0 0 0 3px rgba(20, 190, 118, .12),
+    0 4px 12px rgba(3, 126, 77, .24);
+}

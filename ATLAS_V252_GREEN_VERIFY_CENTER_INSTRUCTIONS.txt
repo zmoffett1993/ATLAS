@@ -1,0 +1,73 @@
+ATLAS V252 — CENTERED GREEN VERIFY & FINISH
+
+THIS IS A CUMULATIVE UPDATE
+
+V252 includes the V250 non-scrolling console and the V251 approved center-focus
+layout. It can be installed directly even if those earlier updates have not yet
+been uploaded.
+
+WHAT CHANGED
+
+1. The three utility actions now appear in this exact order:
+
+   Remove Box  |  Verify & Finish  |  Edit Lot
+
+   Verify & Finish is the centered completion action, with the reversible
+   Remove Box and Edit Lot actions on either side.
+
+2. Verify & Finish remains muted and disabled until the pallet's recorded box
+   total exactly matches its confirmed box count.
+
+3. At an exact positive match—for example 24 / 24 boxes—the centered Verify &
+   Finish button illuminates green with a clear success glow.
+
+4. If a box is removed and the count becomes lower than the confirmed total,
+   the button immediately returns to its disabled appearance.
+
+5. If the count exceeds the confirmed total, Verify & Finish also remains
+   disabled. The existing mismatch protections are unchanged.
+
+6. All previously approved layout behavior remains:
+   - Back is the first ATLAS control at the top.
+   - Current SKU information is centered.
+   - Active Lot and its number are centered while the lot-detail line remains
+     left-aligned.
+   - Counting information is centered above Add Box.
+   - The main pallet work console opens centered and does not page-scroll.
+
+FILES TO UPLOAD
+
+Upload these four files to the ROOT of the ATLAS repository, replacing the
+existing files with the same names:
+
+  service-worker.js
+  index.html
+  atlas-coc.js
+  atlas-coc.css
+
+DEPLOYMENT STEPS
+
+1. Upload the four files above to the repository root.
+2. Commit the changes and wait for the normal ATLAS deployment to finish.
+3. Close every open ATLAS tab or installed ATLAS window on the device.
+4. Reopen ATLAS while connected to the internet.
+5. If the prior layout remains visible, refresh once more so the V252 service
+   worker can activate.
+
+QUICK VERIFICATION
+
+1. Begin or resume a COC and open an active pallet.
+2. Before reaching the confirmed total, confirm the utility row reads:
+   Remove Box | Verify & Finish | Edit Lot.
+3. Confirm Verify & Finish is centered and disabled.
+4. Add the final required box.
+5. Confirm the pallet header reports the exact total and Verify & Finish turns
+   bright green.
+6. Remove one box and confirm Verify & Finish immediately returns to disabled.
+7. Restore the final box, select the green Verify & Finish button, and confirm
+   the normal pallet review screen opens.
+
+NO DATABASE WORK REQUIRED
+
+This update does not require SQL, Supabase changes, receiver re-pairing, or
+changes to stored COC data.

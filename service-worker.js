@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v251-center-focus-console";
+const VERSION = "atlas-pwa-v252-green-verify-center";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=153",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=47",
+  "./atlas-coc.css?v=48",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=17",
-  "./atlas-coc.js?v=52",
+  "./atlas-coc.js?v=53",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=15",
   "./coc-receiver/receiver.js?v=15",
