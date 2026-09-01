@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v254-auth-modal-selection-guard";
+const VERSION = "atlas-pwa-v255-edge-maximized-work-console";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=156",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=4",
-  "./atlas-coc.css?v=49",
+  "./atlas-coc.css?v=50",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
