@@ -7,7 +7,9 @@
   const INTERNAL_DOMAIN = "users.atlas.invalid";
   const REFRESH_MARGIN_MS = 60_000;
   const REFRESH_RETRY_MS = 30_000;
+  const BACKDROP_CLICK_TOLERANCE_PX = 8;
   let modal = null;
+  let modalBackdropPress = null;
   let refreshPromise = null;
   let refreshTimer = null;
 
@@ -147,6 +149,7 @@
     || "ATLAS user";
 
   function closeModal() {
+    modalBackdropPress = null;
     modal?.remove();
     modal = null;
   }
@@ -177,6 +180,20 @@
         </form>
       </section>`;
     document.body.appendChild(modal);
+    modal.addEventListener("pointerdown", (event) => {
+      if (event.isPrimary === false || (event.pointerType === "mouse" && event.button !== 0)) {
+        modalBackdropPress = null;
+        return;
+      }
+      modalBackdropPress = {
+        startedOnBackdrop: event.target === modal,
+        x: event.clientX,
+        y: event.clientY,
+      };
+    });
+    modal.addEventListener("pointercancel", () => {
+      modalBackdropPress = null;
+    });
     modal.querySelector("input")?.focus();
   }
 
@@ -185,7 +202,12 @@
   })[character]);
 
   document.addEventListener("click", async (event) => {
-    if (event.target === modal || event.target.closest?.("[data-auth-close]")) closeModal();
+    const backdropClick = event.target === modal
+      && modalBackdropPress?.startedOnBackdrop
+      && Math.abs(event.clientX - modalBackdropPress.x) <= BACKDROP_CLICK_TOLERANCE_PX
+      && Math.abs(event.clientY - modalBackdropPress.y) <= BACKDROP_CLICK_TOLERANCE_PX;
+    modalBackdropPress = null;
+    if (backdropClick || event.target.closest?.("[data-auth-close]")) closeModal();
     if (event.target.closest?.("[data-action='account']")) { event.preventDefault(); openModal(); }
     if (event.target.closest?.("[data-auth-sign-out]")) { await signOut(); openModal(); }
   });
