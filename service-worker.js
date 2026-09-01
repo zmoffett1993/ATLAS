@@ -1,12 +1,12 @@
-const VERSION = "atlas-pwa-v253-multi-warehouse-coc";
+const VERSION = "atlas-pwa-v253-multi-warehouse-coc-access-polish-1";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=150",
-  "./atlas-dashboard.js?v=154",
+  "./atlas-dashboard.css?v=151",
+  "./atlas-dashboard.js?v=155",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
   "./atlas-coc.css?v=48",

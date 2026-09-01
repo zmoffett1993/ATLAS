@@ -47,6 +47,11 @@
     adminLoading: false,
     adminError: "",
     adminNotice: "",
+    accountWarehouseFilter: "all",
+    accountRoleFilter: "all",
+    accountStatusFilter: "active",
+    accountSearch: "",
+    accountSort: "name",
     accountModal: null,
     cocSection: "all",
     cocSearch: "",
@@ -599,6 +604,7 @@
     dashboard.addEventListener("click", handleClick);
     dashboard.addEventListener("input", handleInput);
     dashboard.addEventListener("change", handleChange);
+    dashboard.addEventListener("keydown", handleKeydown);
     dashboard.addEventListener("submit", handleSubmit);
     state.mounted = true;
   };
@@ -1023,6 +1029,44 @@
   const roleLabel = (role) =>
     ({ admin: "Administrator", supervisor: "Supervisor", office_receiver: "Office Receiver", picker: "Picker" })[role] || "Picker";
 
+  const renderPremiumSelect = ({ name = "", value, options, ariaLabel, dataAttribute = "", className = "" }) => {
+    const selected = options.find((option) => option.value === value) || options[0];
+    const selectId = `atlas-select-${Math.random().toString(36).slice(2, 9)}`;
+    const checkIcon = `<svg class="atlas-premium-select-check" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10.5 3.1 3.1L15.5 6.4"></path></svg>`;
+    const chevron = `<svg class="atlas-premium-select-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"></path></svg>`;
+    return `<div class="atlas-premium-select ${escapeHtml(className)}" data-atlas-select>
+      <select class="atlas-premium-select-native" ${name ? `name="${escapeHtml(name)}"` : ""} ${dataAttribute} tabindex="-1" aria-hidden="true">
+        ${options.map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === selected.value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+      </select>
+      <button type="button" class="atlas-premium-select-trigger" data-atlas-select-trigger aria-haspopup="listbox" aria-expanded="false" aria-controls="${selectId}" aria-label="${escapeHtml(ariaLabel)}">
+        <span class="atlas-premium-select-trigger-copy">${selected.badge ? `<b data-atlas-select-badge>${escapeHtml(selected.badge)}</b>` : ""}<span data-atlas-select-value>${escapeHtml(selected.label)}</span></span>${chevron}
+      </button>
+      <div class="atlas-premium-select-menu" id="${selectId}" data-atlas-select-menu role="listbox" aria-label="${escapeHtml(ariaLabel)}" hidden>
+        ${options.map((option) => `<button type="button" class="atlas-premium-select-option" data-atlas-select-option data-value="${escapeHtml(option.value)}" data-label="${escapeHtml(option.label)}" data-badge="${escapeHtml(option.badge || "")}" role="option" aria-selected="${option.value === selected.value}">
+          ${option.badge ? `<span class="atlas-premium-select-option-badge is-${escapeHtml(String(option.value).replaceAll("_", "-"))}">${escapeHtml(option.badge)}</span>` : ""}
+          <span class="atlas-premium-select-option-copy"><strong>${escapeHtml(option.label)}</strong>${option.meta ? `<small>${escapeHtml(option.meta)}</small>` : ""}</span>${checkIcon}
+        </button>`).join("")}
+      </div>
+    </div>`;
+  };
+
+  const warehouseSelectOptions = () => [...new Map((state.warehouses.length
+    ? state.warehouses
+    : [{ code: "CA", display_name: "California Warehouse" }, { code: "TX", display_name: "Texas Warehouse" }])
+    .map((warehouse) => [warehouse.code, warehouse])).values()].map((warehouse) => ({
+      value: warehouse.code,
+      label: `${warehouse.code} · ${warehouse.display_name}`,
+      badge: warehouse.code,
+      meta: warehouse.code === "CA" ? "California operations" : warehouse.code === "TX" ? "Texas operations" : "Warehouse operations",
+    }));
+
+  const roleSelectOptions = () => [
+    { value: "picker", label: "Picker", badge: "P", meta: "Warehouse inventory access" },
+    { value: "office_receiver", label: "Office Receiver", badge: "OR", meta: "Dedicated COC receiving station" },
+    { value: "supervisor", label: "Supervisor", badge: "S", meta: "Warehouse oversight and approvals" },
+    { value: "admin", label: "Administrator", badge: "A", meta: "CA + TX control center access" },
+  ];
+
   const renderAccountModal = () => {
     if (!state.accountModal) return "";
     const mode = state.accountModal.mode;
@@ -1057,12 +1101,8 @@
             <div class="atlas-account-form-grid">
               <label><span>Display name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required><small>The name shown on ATLAS records and activity.</small></label>
               <label><span>Sign-in name</span><input type="text" name="login_name" value="${escapeHtml(isCreate ? "" : user.login_name)}" autocomplete="off" placeholder="Example: Zach" required><small>The simple name this employee enters with their password.</small></label>
-              <label><span>ATLAS role</span><select name="role" required>
-                ${["picker", "office_receiver", "supervisor", "admin"].map((role) => `<option value="${role}" ${!isCreate && user.role === role ? "selected" : ""}>${roleLabel(role)}</option>`).join("")}
-              </select></label>
-              <label><span>Home warehouse</span><select name="warehouse_code" required>
-                ${[...new Map((state.warehouses.length ? state.warehouses : [{ code: "CA", display_name: "California Warehouse" }, { code: "TX", display_name: "Texas Warehouse" }]).map((warehouse) => [warehouse.code, warehouse])).values()].map((warehouse) => `<option value="${escapeHtml(warehouse.code)}" ${selectedWarehouseCode === warehouse.code ? "selected" : ""}>${escapeHtml(warehouse.code)} · ${escapeHtml(warehouse.display_name)}</option>`).join("")}
-              </select><small>Employees and supervisors are locked to this warehouse. Administrators can view both.</small></label>
+              <div class="atlas-account-field atlas-account-field--role"><span>ATLAS role</span>${renderPremiumSelect({ name: "role", value: isCreate ? "picker" : user.role, options: roleSelectOptions(), ariaLabel: "Select ATLAS role", className: "atlas-premium-select--role" })}<small>Choose the employee’s ATLAS permissions.</small></div>
+              <div class="atlas-account-field atlas-account-field--warehouse"><span>Home warehouse</span>${renderPremiumSelect({ name: "warehouse_code", value: selectedWarehouseCode, options: warehouseSelectOptions(), ariaLabel: "Select home warehouse", className: "atlas-premium-select--warehouse" })}<small>Employees and supervisors are locked to this warehouse. Administrators can view both.</small></div>
               ${isCreate ? `<label><span>Password</span>${passwordField({ autocomplete: "new-password", minlength: 10 })}<small>At least 10 characters</small></label>` : ""}
             </div>
             <p class="atlas-account-form-message" data-account-message></p>
@@ -1089,12 +1129,26 @@
     const active = state.adminUsers.filter((user) => user.active).length;
     const supervisors = state.adminUsers.filter((user) => user.active && user.role === "supervisor").length;
     const admins = state.adminUsers.filter((user) => user.active && user.role === "admin").length;
-    const rows = state.adminUsers.map((user) => `
+    const search = state.accountSearch.trim().toLowerCase();
+    const filteredUsers = state.adminUsers.filter((user) => {
+      if (state.accountWarehouseFilter !== "all" && (user.warehouse_code || "CA") !== state.accountWarehouseFilter) return false;
+      if (state.accountRoleFilter !== "all" && user.role !== state.accountRoleFilter) return false;
+      if (state.accountStatusFilter === "active" && !user.active) return false;
+      if (state.accountStatusFilter === "inactive" && user.active) return false;
+      if (search && !`${user.display_name || ""} ${user.login_name || ""}`.toLowerCase().includes(search)) return false;
+      return true;
+    }).sort((left, right) => {
+      if (state.accountSort === "role") return roleLabel(left.role).localeCompare(roleLabel(right.role)) || String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name));
+      if (state.accountSort === "warehouse") return String(left.warehouse_code || "CA").localeCompare(String(right.warehouse_code || "CA")) || String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name));
+      if (state.accountSort === "recent") return (parseDate(right.last_sign_in_at)?.getTime() || 0) - (parseDate(left.last_sign_in_at)?.getTime() || 0);
+      return String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name));
+    });
+    const rows = filteredUsers.map((user) => `
       <article class="atlas-account-row ${user.active ? "" : "is-disabled"}">
         <span class="atlas-dashboard-avatar">${escapeHtml(initials(user.display_name || user.login_name))}</span>
         <span class="atlas-account-identity"><strong>${escapeHtml(user.display_name || "Unnamed account")}${user.is_current ? " <small>(You)</small>" : ""}</strong><span>${escapeHtml(roleLabel(user.role))} account</span></span>
         <span class="atlas-account-role is-${escapeHtml(user.role)}">${escapeHtml(roleLabel(user.role))}</span>
-        <span class="atlas-account-warehouse">${escapeHtml(user.warehouse_code || "CA")}</span>
+        <span class="atlas-account-warehouse" title="Home warehouse: ${escapeHtml(user.warehouse_code || "CA")}">${escapeHtml(user.role === "admin" && Array.isArray(user.warehouse_access) && user.warehouse_access.length > 1 ? user.warehouse_access.join(" + ") : user.warehouse_code || "CA")}</span>
         <span class="atlas-account-status"><i class="${user.active ? "is-active" : ""}"></i>${user.active ? "Active" : "Inactive (legacy)"}</span>
         <span class="atlas-account-last"><small>Last sign-in</small><strong>${escapeHtml(accountDate(user.last_sign_in_at))}</strong></span>
         <button type="button" class="atlas-dashboard-button" data-account-edit data-user-id="${escapeHtml(user.id)}">Manage</button>
@@ -1110,8 +1164,20 @@
         </div>
         <article class="atlas-dashboard-panel atlas-account-panel">
           <header class="atlas-dashboard-panel-head"><div><h2>ATLAS Accounts</h2><p>Roles, sign-in status, and employee identity</p></div><span class="atlas-account-secure">ADMIN ONLY</span></header>
+          <div class="atlas-account-filters">
+            <nav class="atlas-account-warehouse-tabs" aria-label="Filter accounts by home warehouse">
+              ${[{ code: "all", display_name: "All Accounts" }, ...state.warehouses].map((warehouse) => `<button type="button" data-account-warehouse-filter="${escapeHtml(warehouse.code)}" class="${state.accountWarehouseFilter === warehouse.code ? "is-active" : ""}">${escapeHtml(warehouse.code === "all" ? warehouse.display_name : warehouse.code)}</button>`).join("")}
+            </nav>
+            <div class="atlas-account-filter-controls">
+              <label class="atlas-account-search"><span class="sr-only">Search employees</span><input type="search" data-account-search value="${escapeHtml(state.accountSearch)}" placeholder="Search employee" aria-label="Search employees"></label>
+              ${renderPremiumSelect({ value: state.accountRoleFilter, options: [{ value: "all", label: "All roles", badge: "ALL", meta: "Every ATLAS role" }, ...roleSelectOptions()], ariaLabel: "Filter accounts by role", dataAttribute: "data-account-role-filter", className: "atlas-premium-select--filter" })}
+              ${renderPremiumSelect({ value: state.accountStatusFilter, options: [{ value: "all", label: "All statuses", badge: "ALL" }, { value: "active", label: "Active", badge: "ON" }, { value: "inactive", label: "Inactive", badge: "OFF" }], ariaLabel: "Filter accounts by status", dataAttribute: "data-account-status-filter", className: "atlas-premium-select--filter" })}
+              ${renderPremiumSelect({ value: state.accountSort, options: [{ value: "name", label: "Name A–Z", badge: "AZ" }, { value: "role", label: "Role", badge: "R" }, { value: "warehouse", label: "Warehouse", badge: "WH" }, { value: "recent", label: "Last sign-in", badge: "↻" }], ariaLabel: "Sort accounts", dataAttribute: "data-account-sort", className: "atlas-premium-select--filter atlas-premium-select--sort" })}
+            </div>
+            <p class="atlas-account-filter-result">Showing ${filteredUsers.length.toLocaleString()} of ${state.adminUsers.length.toLocaleString()} accounts</p>
+          </div>
           <div class="atlas-account-list">
-            ${state.adminLoading && !state.adminUsersLoaded ? renderLoading() : rows || `<div class="atlas-dashboard-empty"><strong>No accounts found</strong><p>Add the first managed ATLAS account.</p></div>`}
+            ${state.adminLoading && !state.adminUsersLoaded ? renderLoading() : rows || `<div class="atlas-dashboard-empty"><strong>No accounts match these filters</strong><p>Adjust the warehouse, role, status, or employee search.</p></div>`}
           </div>
         </article>
       </section>
@@ -1228,7 +1294,7 @@
       <header class="atlas-dashboard-header">
         <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${title}</h1><p class="atlas-dashboard-subtitle ${accessView || cocView ? "" : "atlas-dashboard-mobile-only"}">${subtitle}</p></div>
         <div class="atlas-dashboard-header-actions">
-          ${state.warehouses.length > 1 && isAdmin ? `<label class="atlas-dashboard-warehouse-switch"><span>Warehouse</span><select data-warehouse-selector aria-label="Select warehouse">${state.warehouses.map((warehouse) => `<option value="${escapeHtml(warehouse.code)}" ${state.selectedWarehouse?.code === warehouse.code ? "selected" : ""}>${escapeHtml(warehouse.code)} · ${escapeHtml(warehouse.display_name)}</option>`).join("")}</select></label>` : `<span class="atlas-dashboard-warehouse-badge">${escapeHtml(state.selectedWarehouse?.code || "CA")} · ${escapeHtml(state.selectedWarehouse?.display_name || "California Warehouse")}</span>`}
+          ${state.warehouses.length > 1 && isAdmin ? `<div class="atlas-dashboard-warehouse-switch"><span>Warehouse</span>${renderPremiumSelect({ value: state.selectedWarehouse?.code || "CA", options: warehouseSelectOptions(), ariaLabel: "Select warehouse", dataAttribute: "data-warehouse-selector", className: "atlas-premium-select--header" })}</div>` : `<span class="atlas-dashboard-warehouse-badge">${escapeHtml(state.selectedWarehouse?.code || "CA")} · ${escapeHtml(state.selectedWarehouse?.display_name || "California Warehouse")}</span>`}
           ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : cocView ? `<button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh COCs</button>` : `${canViewNotifications ? renderNotificationBell(notifications) : ""}<div class="atlas-dashboard-date-control"><select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
             <option value="today" ${state.range === "today" ? "selected" : ""}>Today</option>
             <option value="week" ${state.range === "week" ? "selected" : ""}>This Week</option>
@@ -1318,8 +1384,40 @@
       render();
       return;
     }
+    const selectRoot = event.target.closest?.("[data-atlas-select]");
+    if (!selectRoot) closePremiumSelects();
     const button = event.target.closest("button");
     if (!button) return;
+    if (button.matches("[data-atlas-select-trigger]")) {
+      event.preventDefault();
+      const root = button.closest("[data-atlas-select]");
+      const menu = root?.querySelector("[data-atlas-select-menu]");
+      if (!root || !menu) return;
+      const willOpen = menu.hidden;
+      closePremiumSelects(root);
+      menu.hidden = !willOpen;
+      button.setAttribute("aria-expanded", String(willOpen));
+      root.classList.toggle("is-open", willOpen);
+      if (willOpen) window.requestAnimationFrame(() => menu.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true }));
+      return;
+    }
+    if (button.matches("[data-atlas-select-option]")) {
+      event.preventDefault();
+      const root = button.closest("[data-atlas-select]");
+      const native = root?.querySelector("select");
+      const trigger = root?.querySelector("[data-atlas-select-trigger]");
+      const valueLabel = trigger?.querySelector("[data-atlas-select-value]");
+      const badge = trigger?.querySelector("[data-atlas-select-badge]");
+      if (!root || !native || !trigger || !valueLabel) return;
+      native.value = button.dataset.value || "";
+      valueLabel.textContent = button.dataset.label || button.textContent.trim();
+      if (badge) badge.textContent = button.dataset.badge || "";
+      root.querySelectorAll("[data-atlas-select-option]").forEach((option) => option.setAttribute("aria-selected", String(option === button)));
+      closePremiumSelects();
+      trigger.focus({ preventScroll: true });
+      native.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
     if (button.matches("[data-password-toggle]")) {
       const input = button.closest(".atlas-password-field")?.querySelector("input");
       if (!input) return;
@@ -1418,6 +1516,9 @@
       runAdminAction("delete", { user_id: button.dataset.userId });
     } else if (button.matches("[data-account-refresh]")) {
       loadAdminUsers();
+    } else if (button.matches("[data-account-warehouse-filter]")) {
+      state.accountWarehouseFilter = button.dataset.accountWarehouseFilter || "all";
+      render();
     } else if (button.matches("[data-activity-id]")) {
       state.drawer = { kind: "activity", id: button.dataset.activityId };
       render();
@@ -1442,6 +1543,14 @@
       state.cocPage = 1;
       window.clearTimeout(cocSearchTimer);
       cocSearchTimer = window.setTimeout(() => loadCocData(), 280);
+      return;
+    }
+    if (event.target.matches("[data-account-search]")) {
+      state.accountSearch = event.target.value;
+      render();
+      const input = document.querySelector("[data-account-search]");
+      input?.focus({ preventScroll: true });
+      input?.setSelectionRange(state.accountSearch.length, state.accountSearch.length);
       return;
     }
     if (!event.target.matches("[data-search]")) return;
@@ -1473,6 +1582,9 @@
     else if (event.target.matches("[data-custom-start]")) state.customStart = event.target.value;
     else if (event.target.matches("[data-custom-end]")) state.customEnd = event.target.value;
     else if (event.target.matches("[data-filter]")) state.filter = event.target.value;
+    else if (event.target.matches("[data-account-role-filter]")) state.accountRoleFilter = event.target.value;
+    else if (event.target.matches("[data-account-status-filter]")) state.accountStatusFilter = event.target.value;
+    else if (event.target.matches("[data-account-sort]")) state.accountSort = event.target.value;
     else if (event.target.matches("[data-coc-performance-range]")) {
       state.cocPerformanceRange = event.target.value;
       loadCocData();
@@ -1486,6 +1598,50 @@
     }
     else return;
     render();
+  };
+
+  const closePremiumSelects = (except = null) => {
+    document.querySelectorAll("#atlasOperationsDashboard [data-atlas-select]").forEach((root) => {
+      if (root === except) return;
+      const menu = root.querySelector("[data-atlas-select-menu]");
+      const trigger = root.querySelector("[data-atlas-select-trigger]");
+      if (menu) menu.hidden = true;
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+      root.classList.remove("is-open");
+    });
+  };
+
+  const handleKeydown = (event) => {
+    const root = event.target.closest?.("[data-atlas-select]");
+    if (!root) {
+      if (event.key === "Escape") closePremiumSelects();
+      return;
+    }
+    const trigger = root.querySelector("[data-atlas-select-trigger]");
+    const menu = root.querySelector("[data-atlas-select-menu]");
+    const options = [...root.querySelectorAll("[data-atlas-select-option]")];
+    if (event.target === trigger && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+      event.preventDefault();
+      closePremiumSelects(root);
+      menu.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+      root.classList.add("is-open");
+      const selectedIndex = Math.max(0, options.findIndex((option) => option.getAttribute("aria-selected") === "true"));
+      options[event.key === "ArrowUp" ? Math.max(0, selectedIndex - 1) : selectedIndex]?.focus({ preventScroll: true });
+      return;
+    }
+    const optionIndex = options.indexOf(event.target);
+    if (optionIndex >= 0 && ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? options.length - 1 : event.key === "ArrowDown" ? Math.min(options.length - 1, optionIndex + 1) : Math.max(0, optionIndex - 1);
+      options[nextIndex]?.focus({ preventScroll: true });
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closePremiumSelects();
+      trigger?.focus({ preventScroll: true });
+    }
   };
 
   const signIn = async (form) => {
