@@ -455,7 +455,9 @@
     const body = draftWorkbookPreview.status === "ready" && draftWorkbookPreview.cocId === session?.id
       ? draftWorkbookPreview.html
       : draftWorkbookPreview.status === "error"
-        ? `<div class="atlas-coc-preview-status is-error"><strong>Preview unavailable</strong><p>${escapeHtml(draftWorkbookPreview.error)}</p><button type="button" data-coc-action="view-draft-official">Try Again</button></div>`
+        ? draftWorkbookPreview.code === "ATLAS_AUTH_REQUIRED"
+          ? `<div class="atlas-coc-preview-status"><strong>Sign-in required</strong><p>${escapeHtml(draftWorkbookPreview.error)}</p><button type="button" data-coc-action="sign-in-for-official-coc">Sign In</button></div>`
+          : `<div class="atlas-coc-preview-status is-error"><strong>Preview unavailable</strong><p>${escapeHtml(draftWorkbookPreview.error)}</p><button type="button" data-coc-action="view-draft-official">Try Again</button></div>`
         : `<div class="atlas-coc-preview-status"><span class="atlas-coc-spinner" aria-hidden="true"></span><strong>Building the Official COC preview…</strong><p>ATLAS is populating the actual XLSX workbook without sending it.</p></div>`;
     return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-draft-official">‹ Final Review</button><header class="atlas-coc-page-head"><span>ACTUAL WORKBOOK · NOT SENT</span><h1>Official COC</h1><p>This read-only preview is rendered from the same XLSX file ATLAS will send to the office.</p></header>${body}</div>`;
   }
@@ -478,12 +480,16 @@
       if (session?.id !== cocId || workflowView !== "draft-official-preview") return;
       draftWorkbookPreview = { status: "ready", html, error: "", cocId };
     } catch (error) {
+      const requiresAuth = error?.message === "ATLAS_AUTH_REQUIRED";
       draftWorkbookPreview = {
         status: "error",
         html: "",
-        error: error?.message === "COC_TEMPLATE_SIGNATURE_MISMATCH"
-          ? "The official workbook failed its integrity check. Nothing was changed or sent."
-          : "The Official COC preview could not be built. Check the connection and try again.",
+        error: requiresAuth
+          ? "Sign in to generate the Official COC. Your completed work is safely preserved."
+          : error?.message === "COC_TEMPLATE_SIGNATURE_MISMATCH"
+            ? "The official workbook failed its integrity check. Nothing was changed or sent."
+            : "The Official COC preview could not be built. Check the connection and try again.",
+        code: requiresAuth ? "ATLAS_AUTH_REQUIRED" : "",
         cocId,
       };
     }
@@ -2301,6 +2307,7 @@
     if (action === "view-completed-official") { await openCompletedWorkbookPreview(); return; }
     if (action === "close-completed-official") { workflowView = "history-detail"; renderAll(); return; }
     if (action === "view-draft-official") { await openDraftWorkbookPreview(); return; }
+    if (action === "sign-in-for-official-coc") { window.AtlasAuth?.open?.(); return; }
     if (action === "close-draft-official") { workflowView = "session"; modal = "review-complete"; renderAll(); return; }
     if (action === "review-resend-completed") { modal = "resend-completed"; renderAll(); return; }
     if (action === "confirm-resend-completed") { await resendCompletedCoc(); return; }
@@ -3011,7 +3018,14 @@
   window.addEventListener("online", () => scheduleCloudSync());
   window.addEventListener("online", () => Catalog.loadRemote());
   window.addEventListener("atlas-auth-changed", (event) => {
-    if (event.detail?.session) Catalog.loadRemote();
+    if (!event.detail?.session) return;
+    Catalog.loadRemote();
+    if (
+      workflowView === "draft-official-preview" &&
+      draftWorkbookPreview.code === "ATLAS_AUTH_REQUIRED"
+    ) {
+      openDraftWorkbookPreview();
+    }
   });
   window.addEventListener("atlas:coc-case-quantities-ready", () => {
     const input = document.activeElement;
