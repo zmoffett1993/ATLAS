@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v246-thick-wall-supabase-gallery";
+const VERSION = "atlas-pwa-v247-pallet-review-sku-lot-pairs";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=153",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=43",
+  "./atlas-coc.css?v=44",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=4",
   "./atlas-coc-excel.js?v=16",
-  "./atlas-coc.js?v=49",
+  "./atlas-coc.js?v=50",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=15",
   "./coc-receiver/receiver.js?v=14",

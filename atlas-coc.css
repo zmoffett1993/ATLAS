@@ -608,10 +608,17 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-modal-total { display: grid; place-items: center; margin: 18px 0; padding: 16px; border-radius: 17px; background: var(--coc-soft); }
 .atlas-coc-modal-total strong { font-size: 48px; line-height: 1; }
 .atlas-coc-modal-total span { color: var(--coc-muted); font-size: 11px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
-.atlas-coc-review-list { max-height: 240px; overflow: auto; border-block: 1px solid var(--coc-line); }
-.atlas-coc-review-list > div { display: flex; justify-content: space-between; gap: 14px; padding: 12px 2px; border-bottom: 1px solid #e9eff5; }
-.atlas-coc-review-list > div:last-child { border-bottom: 0; }
-.atlas-coc-review-list span { overflow-wrap: anywhere; }
+.atlas-coc-review-instruction { margin: 2px 0 10px !important; color: var(--coc-ink) !important; font-size: 13px; font-weight: 750; }
+.atlas-coc-review-list { max-height: 280px; overflow: auto; border-block: 1px solid var(--coc-line); }
+.atlas-coc-review-list > .atlas-coc-review-record { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 13px 2px; border-bottom: 1px solid #e9eff5; }
+.atlas-coc-review-list > .atlas-coc-review-record:last-child { border-bottom: 0; }
+.atlas-coc-review-identifiers { min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: baseline; column-gap: 8px; row-gap: 4px; }
+.atlas-coc-review-identifiers small { color: var(--coc-muted); font-size: 9px; font-weight: 950; letter-spacing: .12em; }
+.atlas-coc-review-identifiers strong,
+.atlas-coc-review-identifiers b { min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
+.atlas-coc-review-identifiers strong { color: var(--coc-ink); font-size: 15px; }
+.atlas-coc-review-identifiers b { color: var(--coc-blue-dark); font-size: 16px; }
+.atlas-coc-review-boxes { min-width: 74px; color: var(--coc-ink); text-align: right; white-space: nowrap; }
 .atlas-coc-final-review { max-height: 310px; overflow: auto; border: 1px solid var(--coc-line); border-radius: 14px; }
 .atlas-coc-final-review section + section { border-top: 8px solid var(--coc-soft); }
 .atlas-coc-final-review header,

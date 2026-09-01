@@ -1023,7 +1023,8 @@
     const progress = Core.palletProgress(pallet);
     return modalShell(`<span class="atlas-coc-eyebrow">REVIEW PALLET ${pallet.number}</span><h2>Verify Pallet ${pallet.number} Box Count</h2>
       <div class="atlas-coc-compare"><div><span>CONFIRMED</span><small>BOX COUNT</small><strong>${progress.expected}</strong></div><div><span>RECORDED</span><small>BOX COUNT</small><strong>${progress.recorded}</strong></div></div>
-      <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${plural(lot.cases, "box")}</strong></div>`).join("") || `<p>No lots recorded.</p>`}</div>
+      <p class="atlas-coc-review-instruction">Verify each SKU, lot number, and box quantity before finishing.</p>
+      <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div class="atlas-coc-review-record"><span class="atlas-coc-review-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span><strong class="atlas-coc-review-boxes">${plural(lot.cases, "box")}</strong></div>`).join("") || `<p>No lots recorded.</p>`}</div>
       <p>The pallet can only be completed when the confirmed and recorded box counts match.</p>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="verify-pallet">Verify &amp; Finish</button></div>`, { label: `Review pallet ${pallet.number}` });
   }
