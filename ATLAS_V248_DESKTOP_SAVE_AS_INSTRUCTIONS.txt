@@ -1,0 +1,64 @@
+ATLAS V248 — OFFICIAL COC DESKTOP SAVE AS + FILENAME ORDER
+
+BASE VERSION
+Install this small update over ATLAS V247.
+
+WHAT CHANGED
+On a supported Windows office browser, selecting DOWNLOAD OFFICIAL COC now opens the native Save As window before ATLAS retrieves the workbook.
+
+- The Save As window starts at Desktop.
+- The completed customer / IF / invoice filename is already populated.
+- The file type is restricted to an Excel .xlsx workbook.
+- The employee only needs to confirm the location and select Save.
+- Cancelling the Save As window does not download or modify anything.
+
+The final filename order is now:
+
+CUSTOMER NAME IF-##### INV-#####.xlsx
+
+Example:
+NORKOL PACKAGING IF-73644 INV-56987.xlsx
+
+The same filename generator is used by the Receiver, oversight dashboard, stored COCs, previews, resends, and newly generated official workbooks.
+
+FALLBACK
+If the browser does not support the native Save As interface, ATLAS uses the existing standard browser download behavior. No COC is lost and the workbook filename remains unchanged.
+
+FILES TO UPLOAD
+Upload and replace these FIVE files while preserving the included folder structure:
+
+1. service-worker.js                    → repository root
+2. index.html                            → repository root
+3. atlas-coc-excel.js                    → repository root
+4. coc-receiver/index.html              → coc-receiver folder
+5. coc-receiver/receiver.js             → coc-receiver folder
+
+No SQL migration is required.
+No Supabase update is required.
+No COC Receiver re-pairing is required.
+
+VERIFY AFTER GITHUB PAGES PUBLISHES
+1. Wait for the GitHub Pages deployment to complete successfully.
+2. Close and reopen the COC Receiver, or refresh twice so V248 activates.
+3. Open any received or completed COC.
+4. Select DOWNLOAD OFFICIAL COC.
+5. Confirm the Windows Save As window opens at Desktop.
+6. Confirm the complete customer / IF / invoice filename is already entered.
+   Example: NORKOL PACKAGING IF-73644 INV-56987.xlsx
+7. Select Save and confirm the .xlsx workbook appears on Desktop.
+
+RELEASE IDENTIFIERS
+- Service worker: atlas-pwa-v248-desktop-save-as-filename-order
+- coc-receiver/receiver.js: v15
+- atlas-coc-excel.js: v17
+
+VERIFICATION COMPLETED
+- Receiver JavaScript syntax check passed.
+- Native Save As sequencing audit passed.
+- Desktop starting-location audit passed.
+- Prefilled official filename audit passed.
+- Excel workbook type audit passed.
+- Cancel-without-download behavior audit passed.
+- Unsupported-browser download fallback audit passed.
+- Customer / IF / invoice filename order audit passed.
+- V248 cache identifiers are synchronized.

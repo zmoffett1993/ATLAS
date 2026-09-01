@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v247-pallet-review-sku-lot-pairs";
+const VERSION = "atlas-pwa-v248-desktop-save-as-filename-order";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -18,11 +18,11 @@ const APP_SHELL = [
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=4",
-  "./atlas-coc-excel.js?v=16",
+  "./atlas-coc-excel.js?v=17",
   "./atlas-coc.js?v=50",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=15",
-  "./coc-receiver/receiver.js?v=14",
+  "./coc-receiver/receiver.js?v=15",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

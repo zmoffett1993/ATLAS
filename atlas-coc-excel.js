@@ -255,7 +255,7 @@
     const customer = fileNamePart(customerName, "CUSTOMER");
     const invoice = labelledFileReference(invoiceNumber, "INV");
     const information = labelledFileReference(ifNumber, "IF");
-    return `${customer} ${invoice} ${information}.xlsx`;
+    return `${customer} ${information} ${invoice}.xlsx`;
   }
 
   function escapeXml(value) {
