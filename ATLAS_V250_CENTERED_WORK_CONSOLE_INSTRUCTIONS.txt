@@ -1,0 +1,56 @@
+ATLAS V250 — CENTERED, NON-SCROLLING PALLET WORK CONSOLE
+
+WHAT THIS UPDATE CHANGES
+
+1. The active pallet work console now opens at the correct screen position.
+   ATLAS clears the previous page's stored scroll position when the console is
+   first entered or resumed.
+
+2. The active pallet work console is centered inside the usable device screen.
+   The main work screen no longer requires page scrolling during normal SKU,
+   lot, and box-count work.
+
+3. The viewport lock applies only to the active pallet work console. Other
+   ATLAS and COC pages retain their normal scrolling behavior.
+
+4. Long SKU and lot switcher lists remain independently scrollable inside
+   their temporary bottom sheets.
+
+5. Position reset occurs only on entry or resume. Adding or removing a box,
+   switching a SKU, switching a lot, or editing a lot will not pull the user
+   away from the controls they are using.
+
+FILES TO UPLOAD
+
+Upload these four files to the ROOT of the ATLAS repository, replacing the
+existing files with the same names:
+
+  service-worker.js
+  index.html
+  atlas-coc.js
+  atlas-coc.css
+
+DEPLOYMENT STEPS
+
+1. Upload the four files above to the repository root.
+2. Commit the changes and wait for the normal ATLAS deployment to finish.
+3. On each device, close every open ATLAS tab or installed ATLAS window.
+4. Reopen ATLAS while connected to the internet.
+5. If the prior design is still visible, refresh once more so the V250 service
+   worker can activate.
+
+QUICK VERIFICATION
+
+1. Begin or resume a COC and enter an active pallet that already has a confirmed
+   box count and SKU.
+2. Confirm that the blue pallet header, Back button, Current SKU, Active Lot,
+   counting controls, and Discard COC action are centered on the screen.
+3. Confirm that the page itself does not scroll.
+4. Add a lot and add a box. Confirm that the console does not jump or reposition.
+5. Open the SKU and lot switchers. Confirm that long lists can scroll inside
+   the sheet while the work console remains fixed behind it.
+
+NO DATABASE WORK REQUIRED
+
+This update does not require SQL, Supabase changes, receiver re-pairing, or
+changes to stored COC data.

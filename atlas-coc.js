@@ -54,6 +54,7 @@
   let cameraStartToken = 0;
   let activeTimingStartedAt = null;
   let scanMetricPending = false;
+  let countConsoleWasOpen = false;
   const ACTIVE_TIMING_HEARTBEAT_MS = 30000;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
@@ -1476,11 +1477,13 @@
     document.documentElement.classList.toggle("atlas-coc-work-mode", isWorkflowSection());
     document.documentElement.classList.toggle("atlas-coc-has-active", Boolean(session));
     const consolePallet = activePallet();
-    document.documentElement.classList.toggle(
-      "atlas-coc-count-console",
-      Boolean(route === "workflows" && workflowView === "session" && session?.status === "active" &&
-        consolePallet?.expectedBoxes && Core.palletModels(session, consolePallet).length),
+    const countConsoleOpen = Boolean(
+      route === "workflows" && workflowView === "session" && session?.status === "active" &&
+      consolePallet?.expectedBoxes && Core.palletModels(session, consolePallet).length
     );
+    const enteredCountConsole = countConsoleOpen && !countConsoleWasOpen;
+    countConsoleWasOpen = countConsoleOpen;
+    document.documentElement.classList.toggle("atlas-coc-count-console", countConsoleOpen);
     const bar = document.getElementById("atlas-coc-active-bar-slot");
     if (bar) {
       try {
@@ -1497,6 +1500,7 @@
     if (workflows) {
       try {
         workflows.innerHTML = workflowMarkup();
+        if (enteredCountConsole) scrollWorkflowToTop();
         window.requestAnimationFrame?.(() => Excel.fitOfficialWorkbookPreviews?.(workflows));
       } catch (error) {
         renderError = error;
