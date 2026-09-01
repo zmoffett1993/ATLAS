@@ -85,6 +85,7 @@
   };
   const cocWorkbookCache = new Map();
   let cocSearchTimer = null;
+  let dashboardRequestSequence = 0;
   let cocRequestSequence = 0;
 
   const escapeHtml = (value) =>
@@ -337,6 +338,7 @@
   const api = async (path, { token = state.session?.access_token, method = "GET", body } = {}) => {
     const response = await fetch(`${API_URL}${path}`, {
       method,
+      cache: "no-store",
       headers: {
         apikey: PUBLIC_KEY,
         Authorization: `Bearer ${token || PUBLIC_KEY}`,
@@ -353,9 +355,9 @@
     return payload;
   };
 
-  const readTable = async (name, token, { warehouse = false } = {}) => {
-    const warehouseFilter = warehouse && state.selectedWarehouse?.id
-      ? `&warehouse_id=eq.${encodeURIComponent(state.selectedWarehouse.id)}`
+  const readTable = async (name, token, { warehouse = false, warehouseId = state.selectedWarehouse?.id } = {}) => {
+    const warehouseFilter = warehouse && warehouseId
+      ? `&warehouse_id=eq.${encodeURIComponent(warehouseId)}`
       : "";
     return api(`/rest/v1/${name}?select=*&limit=5000${warehouseFilter}`, { token });
   };
@@ -409,10 +411,10 @@
       body: { action, ...payload },
     });
 
-  const cocApi = (action, payload = {}) =>
+  const cocApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") =>
     api("/functions/v1/coc-dashboard", {
       method: "POST",
-      body: { action, warehouseCode: state.selectedWarehouse?.code || "CA", ...payload },
+      body: { action, warehouseCode, ...payload },
     });
 
   const cocSnapshot = (record) => record?.report_snapshot || {};
@@ -476,8 +478,9 @@
     window.requestAnimationFrame?.(() => window.scrollTo({ top, left: 0, behavior: "auto" }));
   };
 
-  const loadCocData = async ({ background = false } = {}) => {
+  const loadCocData = async ({ background = false, warehouseCode = state.selectedWarehouse?.code || "CA" } = {}) => {
     if (!state.session?.access_token || !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
+    const requestedWarehouseCode = String(warehouseCode || "CA").toUpperCase();
     const requestId = ++cocRequestSequence;
     state.cocLoading = true;
     state.cocError = "";
@@ -490,13 +493,13 @@
           pageSize: COC_PAGE_SIZE,
           search: state.cocSearch,
           sort: state.cocSort,
-        }),
+        }, requestedWarehouseCode),
         cocApi("metrics", {
           dayStart: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
           performanceRange: state.cocPerformanceRange,
-        }),
+        }, requestedWarehouseCode),
       ]);
-      if (requestId !== cocRequestSequence) return;
+      if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocRecords = Array.isArray(list.deliveries) ? list.deliveries : [];
       state.cocTotal = Number(list.total || 0);
       state.cocMetrics = {
@@ -523,10 +526,10 @@
         if (refreshed) state.cocSelected = refreshed;
       }
     } catch (error) {
-      if (requestId !== cocRequestSequence) return;
+      if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocError = error instanceof Error ? error.message : "COC records could not be loaded.";
     } finally {
-      if (requestId !== cocRequestSequence) return;
+      if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocLoading = false;
       const previewLocked = state.cocSelected && state.cocPreview.status === "ready";
       if (!background || !previewLocked) background ? renderPreservingScroll() : render();
@@ -685,38 +688,54 @@
     });
   };
 
-  const loadData = async () => {
-    if (state.loading) return;
+  const loadData = async ({ force = false, warehouseCode = state.selectedWarehouse?.code || "", warehouseContext: suppliedWarehouseContext = null } = {}) => {
+    if (state.loading && !force) return;
+    const requestId = ++dashboardRequestSequence;
+    const requestedWarehouseCode = String(warehouseCode || "").toUpperCase();
     state.loading = true;
     state.error = "";
     state.accessRequired = false;
     render();
     const token = state.session?.access_token;
     try {
-      const warehouseContext = await window.AtlasCocDelivery?.warehouseContext?.({ force: true });
+      const warehouseContext = suppliedWarehouseContext || await window.AtlasCocDelivery?.warehouseContext?.({
+        force: true,
+        ...(requestedWarehouseCode ? { warehouseCode: requestedWarehouseCode } : {}),
+      });
+      if (requestId !== dashboardRequestSequence) return;
       state.warehouses = warehouseContext?.accessibleWarehouses || [];
-      state.selectedWarehouse = warehouseContext?.selectedWarehouse || state.warehouses[0] || { code: "CA", display_name: "California Warehouse" };
-      const [skusResult, locationsResult] = await Promise.allSettled([
+      state.selectedWarehouse = state.warehouses.find((warehouse) => warehouse.code === requestedWarehouseCode)
+        || warehouseContext?.selectedWarehouse
+        || state.warehouses[0]
+        || { code: "CA", display_name: "California Warehouse" };
+      const warehouseId = state.selectedWarehouse?.id;
+      const [
+        skusResult,
+        locationsResult,
+        activitiesResult,
+        historyResult,
+        profilesResult,
+        undoSnapshotsResult,
+        deleteRequestsResult,
+      ] = await Promise.allSettled([
         readTable("skus", token),
-        readTable("locations", token, { warehouse: true }),
+        readTable("locations", token, { warehouse: true, warehouseId }),
+        readTable("inventory_activity", token, { warehouse: true, warehouseId }),
+        readTable("location_history", token, { warehouse: true, warehouseId }),
+        token ? readTable("profiles", token) : Promise.resolve([]),
+        token ? readTable("atlas_undo_snapshots", token, { warehouse: true, warehouseId }) : Promise.resolve([]),
+        token ? readTable("sku_delete_requests", token, { warehouse: true, warehouseId }) : Promise.resolve([]),
       ]);
+      if (requestId !== dashboardRequestSequence) return;
       if (skusResult.status !== "fulfilled") throw skusResult.reason;
       if (locationsResult.status !== "fulfilled") throw locationsResult.reason;
       state.skus = skusResult.value || [];
       state.locations = locationsResult.value || [];
-
-      const protectedResults = await Promise.allSettled([
-        readTable("inventory_activity", token, { warehouse: true }),
-        readTable("location_history", token, { warehouse: true }),
-        token ? readTable("profiles", token) : Promise.resolve([]),
-        token ? readTable("atlas_undo_snapshots", token, { warehouse: true }) : Promise.resolve([]),
-        token ? readTable("sku_delete_requests", token, { warehouse: true }) : Promise.resolve([]),
-      ]);
-      state.activities = protectedResults[0].status === "fulfilled" ? protectedResults[0].value : [];
-      state.history = protectedResults[1].status === "fulfilled" ? protectedResults[1].value : [];
-      state.profiles = protectedResults[2].status === "fulfilled" ? protectedResults[2].value : [];
-      state.undoSnapshots = protectedResults[3].status === "fulfilled" ? protectedResults[3].value : [];
-      state.deleteRequests = protectedResults[4].status === "fulfilled" ? protectedResults[4].value : [];
+      state.activities = activitiesResult.status === "fulfilled" ? activitiesResult.value : [];
+      state.history = historyResult.status === "fulfilled" ? historyResult.value : [];
+      state.profiles = profilesResult.status === "fulfilled" ? profilesResult.value : [];
+      state.undoSnapshots = undoSnapshotsResult.status === "fulfilled" ? undoSnapshotsResult.value : [];
+      state.deleteRequests = deleteRequestsResult.status === "fulfilled" ? deleteRequestsResult.value : [];
       state.currentProfile =
         state.profiles.find((profile) => profile.user_id === state.session?.user?.id)
         || (state.session?.user?.id ? {
@@ -732,8 +751,7 @@
         state.view = "operations";
       }
 
-      const protectedErrors = protectedResults
-        .slice(0, 2)
+      const protectedErrors = [activitiesResult, historyResult]
         .filter((result) => result.status === "rejected")
         .map((result) => result.reason);
       if (!state.activities.length && !state.history.length && protectedErrors.length) {
@@ -766,6 +784,7 @@
       state.normalized.forEach((row) => { row.snapshotId = snapshotBySource.get(row.id)?.id || null; });
       state.lastSync = new Date();
     } catch (error) {
+      if (requestId !== dashboardRequestSequence) return;
       const errorText = String(error?.message || error || "");
       const sessionRole = state.currentProfile?.role
         || state.session?.user?.app_metadata?.atlas_role
@@ -786,6 +805,7 @@
         state.error = "";
       } else state.error = error instanceof Error ? error.message : "The dashboard data could not be loaded.";
     } finally {
+      if (requestId !== dashboardRequestSequence) return;
       state.loading = false;
       render();
     }
@@ -1333,7 +1353,7 @@
         </div>
       </header>
       ${canViewNotifications ? `<nav class="atlas-dashboard-tabs" aria-label="Dashboard sections"><button type="button" data-dashboard-view="operations" class="${!accessView && !cocView ? "is-active" : ""}">Operations</button><button type="button" data-dashboard-view="cocs" class="${cocView ? "is-active" : ""}">COC Oversight</button>${isAdmin ? `<button type="button" data-dashboard-view="access" class="${accessView ? "is-active" : ""}">Access Management</button>` : ""}</nav>` : ""}
-      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : cocView ? `Live COC data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}` : `Live data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}`}</span></div>`;
+      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : cocView ? state.cocLoading && !state.cocLoaded ? `Loading ${escapeHtml(state.selectedWarehouse?.code || "CA")} COC data…` : `Live COC data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}` : `Live data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}`}</span></div>`;
     if (accessView) return `${header}${renderAccessManagement()}`;
     if (cocView) return `${header}${renderCocOversight()}`;
     return `${header}
@@ -1359,7 +1379,7 @@
     if (!state.mounted || !state.open) return;
     const content = document.querySelector("[data-dashboard-content]");
     if (!content) return;
-    if (state.loading && !state.skus.length) content.innerHTML = renderLoading();
+    if (state.loading && !state.skus.length && state.view !== "cocs") content.innerHTML = renderLoading();
     else if (state.accessRequired) content.innerHTML = renderAccess();
     else if (state.error) {
       content.innerHTML = `<div class="atlas-dashboard-error"><strong>Dashboard data could not load</strong><p>${escapeHtml(state.error)}</p><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-retry>Try Again</button></div>`;
@@ -1594,16 +1614,38 @@
       const code = String(event.target.value || "").toUpperCase();
       localStorage.setItem(WAREHOUSE_SELECTION_KEY, code);
       state.selectedWarehouse = state.warehouses.find((warehouse) => warehouse.code === code) || state.selectedWarehouse;
+      cocRequestSequence += 1;
       state.skus = [];
       state.locations = [];
       state.activities = [];
       state.history = [];
       state.normalized = [];
       state.cocRecords = [];
+      state.cocTotal = 0;
+      state.cocMetrics = { total: 0, awaiting: 0, receivedToday: 0, completedToday: 0 };
+      state.cocPerformance = {
+        completionSamples: 0,
+        averageActiveDurationMs: 0,
+        medianActiveDurationMs: 0,
+        scanAttempts: 0,
+        scanSuccesses: 0,
+        scanCanceled: 0,
+        distinctLots: 0,
+        manualLots: 0,
+      };
+      state.cocLoading = state.view === "cocs";
       state.cocLoaded = false;
+      state.cocError = "";
+      state.cocNotice = "";
       state.cocSelected = null;
+      state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+      state.cocDelete = null;
       state.cocPage = 1;
-      Promise.resolve(window.AtlasCocDelivery?.warehouseContext?.({ force: true, warehouseCode: code })).finally(() => loadData());
+      state.lastSync = null;
+      cocWorkbookCache.clear();
+      render();
+      if (state.view === "cocs") void loadCocData({ warehouseCode: code });
+      void loadData({ force: true, warehouseCode: code });
       return;
     }
     if (event.target.matches("[data-range]")) state.range = event.target.value;
