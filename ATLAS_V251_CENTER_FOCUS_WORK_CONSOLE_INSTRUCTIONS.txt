@@ -1,0 +1,85 @@
+ATLAS V251 — APPROVED CENTER-FOCUS PALLET WORK CONSOLE
+
+THIS IS A CUMULATIVE UPDATE
+
+V251 includes the V250 centered, non-scrolling work-console behavior plus the
+approved visual hierarchy from the second design mockup. It can be installed
+directly even if V250 has not yet been uploaded.
+
+APPROVED SCREEN ORDER
+
+From the top of the active pallet work screen:
+
+1. Back button
+2. Blue pallet box-progress header
+3. Current SKU card
+4. Active Lot card
+5. Box-counting card
+6. Discard COC
+
+ALIGNMENT CHANGES
+
+1. The Back button is now the first ATLAS control at the top of the screen.
+
+2. The Current SKU card centers:
+   - CURRENT SKU
+   - SKU/model number
+   - box total and Tap to switch text
+
+3. The Active Lot card centers:
+   - ACTIVE LOT
+   - active lot number
+
+   The “Lot 1 of 1 · 9 boxes · Tap to switch” detail remains left-aligned for
+   fast reading, exactly as approved.
+
+4. The counting card centers:
+   - ADDING BOX TO
+   - current SKU/model number
+   - active lot number
+   - current box quantity
+   - calculated unit quantity
+
+5. All existing actions remain available: Add SKU, Edit / Remove, Add Lot,
+   Add Box, Remove Box, Edit Lot, Verify & Finish, Back, and Discard COC.
+
+6. The work console still opens centered, clears the previous screen's scroll
+   position, and requires no page scrolling during normal counting. Long SKU
+   and lot lists remain scrollable inside their temporary selection sheets.
+
+FILES TO UPLOAD
+
+Upload these four files to the ROOT of the ATLAS repository, replacing the
+existing files with the same names:
+
+  service-worker.js
+  index.html
+  atlas-coc.js
+  atlas-coc.css
+
+DEPLOYMENT STEPS
+
+1. Upload the four files above to the repository root.
+2. Commit the changes and wait for the normal ATLAS deployment to finish.
+3. Close every open ATLAS browser tab or installed ATLAS window on the device.
+4. Reopen ATLAS while connected to the internet.
+5. If the previous layout remains visible, refresh once more so the V251
+   service worker can activate.
+
+QUICK VERIFICATION
+
+1. Begin or resume a COC and open an active pallet with a SKU and lot.
+2. Confirm Back appears above the blue pallet-progress header.
+3. Confirm Current SKU, the SKU, and its box/switch detail are centered.
+4. Confirm Active Lot and its number are centered while its lot-detail line is
+   left-aligned.
+5. Confirm the counting destination, lot, box total, and units are centered
+   directly above Add Box.
+6. Confirm Add Box, Remove Box, Edit Lot, Verify & Finish, Add SKU, Edit /
+   Remove, Add Lot, and Discard COC all still work.
+7. Confirm the main work page does not scroll or jump after adding a box.
+
+NO DATABASE WORK REQUIRED
+
+This update does not require SQL, Supabase changes, receiver re-pairing, or
+changes to stored COC data.
