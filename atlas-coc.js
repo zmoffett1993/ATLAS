@@ -718,7 +718,7 @@
     const activeModel = activeModelContext();
     if (!lot) return `<section class="atlas-coc-work-counter is-empty" aria-label="Box counting controls">
       <span class="atlas-coc-work-label">READY TO COUNT</span>
-      <strong class="atlas-coc-work-empty-title">Add a lot for ${escapeHtml(activeModel)}</strong>
+      <strong class="atlas-coc-work-empty-title"><span>Add a lot for</span><span class="atlas-coc-work-empty-sku">${escapeHtml(activeModel)}</span></strong>
       <p>The next confirmed lot starts at Box 1.</p>
       <button type="button" class="atlas-coc-add-case" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>SCAN FIRST LOT</button>
       <div class="atlas-coc-work-utilities"><button type="button" disabled>− Remove Box</button><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Finish</button><button type="button" disabled>Edit Lot</button></div>
