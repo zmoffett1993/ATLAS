@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v263-white-warehouse-selector";
+const VERSION = "atlas-pwa-v264-lot-quantity-and-password-toggle";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,19 +7,19 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=153",
   "./atlas-dashboard.js?v=157",
-  "./atlas-auth.css?v=2",
-  "./atlas-auth.js?v=4",
-  "./atlas-coc.css?v=55",
+  "./atlas-auth.css?v=3",
+  "./atlas-auth.js?v=5",
+  "./atlas-coc.css?v=56",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
   "./atlas-coc-case-quantities.js?v=3",
-  "./atlas-coc-core.js?v=19",
+  "./atlas-coc-core.js?v=20",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=5",
-  "./atlas-coc-excel.js?v=17",
-  "./atlas-coc.js?v=59",
+  "./atlas-coc-excel.js?v=18",
+  "./atlas-coc.js?v=60",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=16",
   "./coc-receiver/receiver.js?v=16",

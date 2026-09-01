@@ -282,6 +282,23 @@
     .reduce((total, lot) => total + Number(lot.cases || 0), 0);
   const lotsForModel = (pallet, modelNumber) => (pallet?.lots || [])
     .filter((lot) => modelKey(lot.model) === modelKey(modelNumber));
+  const lotQuantityDetails = (pallet, lot) => {
+    const model = Core.palletModels(session, pallet).find(
+      (item) => modelKey(item.modelNumber) === modelKey(lot?.model),
+    );
+    const perBox = positiveWhole(lot?.caseQuantity) || positiveWhole(model?.caseQuantity) || 0;
+    const standard = positiveWhole(model?.caseQuantity) || perBox;
+    return {
+      perBox,
+      standard,
+      total: Number(lot?.cases || 0) * perBox,
+      override: Boolean(lot?.caseQuantityOverride || (perBox && standard && perBox !== standard)),
+    };
+  };
+  const lotQuantityReviewMarkup = (pallet, lot, className) => {
+    const quantity = lotQuantityDetails(pallet, lot);
+    return `<span class="${className} ${quantity.override ? "is-lot-override" : ""}"><strong>${plural(lot.cases, "box")}</strong><small>${formatQuantity(quantity.perBox)} units/box · ${formatQuantity(quantity.total)} units</small>${quantity.override ? "<em>LOT OVERRIDE</em>" : ""}</span>`;
+  };
 
   function scrollWorkflowToTop() {
     const reset = () => {
@@ -724,11 +741,12 @@
       <div class="atlas-coc-work-utilities"><button type="button" disabled>− Remove Box</button><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Finish</button></div>
     </section>`;
     const selectedLotHasHistory = pallet.history.some((entry) => entry.lotId === lot.id);
+    const quantity = lotQuantityDetails(pallet, lot);
     return `<section class="atlas-coc-work-counter" aria-label="Box counting controls">
       <span class="atlas-coc-work-label">ADDING BOX TO</span>
       <strong class="atlas-coc-work-counter-sku">${escapeHtml(activeModel)}</strong>
       <b class="atlas-coc-work-counter-lot">LOT ${escapeHtml(Core.displayLot(lot.lot))}</b>
-      <div class="atlas-coc-work-count"><strong>${plural(lot.cases, "box").toUpperCase()}</strong><small>${formatQuantity(Core.lotUnitQuantity(lot))} units</small></div>
+      <div class="atlas-coc-work-count"><strong>${plural(lot.cases, "box").toUpperCase()}</strong><small class="${quantity.override ? "is-lot-override" : ""}">${formatQuantity(quantity.total)} units · ${formatQuantity(quantity.perBox)}/box${quantity.override ? " · LOT OVERRIDE" : ""}</small></div>
       <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
       <div class="atlas-coc-work-utilities">
         <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box</button>
@@ -1026,7 +1044,7 @@
     return modalShell(`<span class="atlas-coc-eyebrow">REVIEW PALLET ${pallet.number}</span><h2>Verify Pallet ${pallet.number} Box Count</h2>
       <div class="atlas-coc-compare"><div><span>CONFIRMED</span><small>BOX COUNT</small><strong>${progress.expected}</strong></div><div><span>RECORDED</span><small>BOX COUNT</small><strong>${progress.recorded}</strong></div></div>
       <p class="atlas-coc-review-instruction">Verify each SKU, lot number, and box quantity before finishing.</p>
-      <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div class="atlas-coc-review-record"><span class="atlas-coc-review-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span><strong class="atlas-coc-review-boxes">${plural(lot.cases, "box")}</strong></div>`).join("") || `<p>No lots recorded.</p>`}</div>
+      <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div class="atlas-coc-review-record"><span class="atlas-coc-review-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span>${lotQuantityReviewMarkup(pallet, lot, "atlas-coc-review-boxes")}</div>`).join("") || `<p>No lots recorded.</p>`}</div>
       <p>The pallet can only be completed when the confirmed and recorded box counts match.</p>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="verify-pallet">Verify &amp; Finish</button></div>`, { label: `Review pallet ${pallet.number}` });
   }
@@ -1045,7 +1063,7 @@
     const blocked = activeHasWork && !activeReady;
     const total = completed.reduce((sum, item) => sum + Core.palletTotal(item), 0);
     return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>${reportMode ? "Review completed COC" : "Complete this COC?"}</h2>
-      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div class="atlas-coc-final-record"><span class="atlas-coc-final-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span><strong class="atlas-coc-final-boxes">${plural(lot.cases, "box")}</strong></div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>`).join("")}</div>
+      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div class="atlas-coc-final-record"><span class="atlas-coc-final-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span>${lotQuantityReviewMarkup(item, lot, "atlas-coc-final-boxes")}</div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>`).join("")}</div>
       <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(total, "box")} · ${plural(completed.length, "pallet")}</b></p>
       ${blocked
         ? `<p class="atlas-coc-warning">Pallet ${pallet.number} is not verified. Its confirmed and recorded box counts must match before completing the COC.</p>`
@@ -1139,16 +1157,34 @@
     const lot = pallet?.lots.find((item) => item.id === lotId);
     if (!pallet || !lot) return "";
     const models = Core.palletModels(session, pallet);
+    const quantity = lotQuantityDetails(pallet, lot);
     return modalShell(`<span class="atlas-coc-eyebrow">EDIT PALLET ${pallet.number}</span><h2>Edit lot details</h2>
-      <p>Correct the SKU, lot code, or number of boxes. Use the removal buttons below when a lot or SKU does not belong on this pallet.</p>
+      <p>Correct the SKU, lot code, box count, or units packed in each box. A quantity override applies only to this lot.</p>
       <form id="atlas-coc-edit-lot-form" class="atlas-coc-manual-form" data-lot-id="${escapeHtml(lot.id)}">
-        <label><strong>SKU / Model Number</strong><select name="model" required>${models.map((model) => `<option value="${escapeHtml(model.modelNumber)}" ${modelKey(model.modelNumber) === modelKey(lot.model) ? "selected" : ""}>${escapeHtml(model.modelNumber)}</option>`).join("")}</select></label>
+        <label><strong>SKU / Model Number</strong><select name="model" required>${models.map((model) => `<option value="${escapeHtml(model.modelNumber)}" data-case-quantity="${model.caseQuantity}" ${modelKey(model.modelNumber) === modelKey(lot.model) ? "selected" : ""}>${escapeHtml(model.modelNumber)}</option>`).join("")}</select></label>
         <label><strong>Lot Code</strong><input name="lotNumber" value="${escapeHtml(Core.displayLot(lot.lot))}" maxlength="120" autocapitalize="characters" autocomplete="off" required /></label>
         <label><strong>Boxes for This Lot</strong><input name="boxes" type="text" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="6" value="${lot.cases}" required /></label>
+        <label class="atlas-coc-lot-quantity-field"><strong>Units per Box for This Lot</strong><input name="caseQuantity" data-coc-lot-case-quantity type="text" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="7" value="${quantity.perBox}" autocomplete="off" required /><small data-coc-lot-quantity-help>Standard for ${escapeHtml(lot.model)}: ${formatQuantity(quantity.standard)} units per box. This changes only Lot ${escapeHtml(Core.displayLot(lot.lot))}.</small></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
         <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Save Lot Changes</button></div>
         <div class="atlas-coc-edit-remove-actions"><button type="button" data-coc-action="manage-coc-models">Manage / Remove SKU</button><button type="button" class="is-danger" data-coc-action="review-remove-lot" data-lot-id="${escapeHtml(lot.id)}">Remove This Lot</button></div>
       </form>`, { label: `Edit lot on pallet ${pallet.number}` });
+  }
+
+  function confirmLotQuantityModal(change) {
+    const pallet = activePallet();
+    const lot = pallet?.lots.find((item) => item.id === change?.lotId);
+    if (!pallet || !lot) return "";
+    const nextTotal = Number(change.updates.cases || 0) * Number(change.updates.caseQuantity || 0);
+    return modalShell(`<span class="atlas-coc-eyebrow is-danger">CONFIRM LOT QUANTITY</span><h2>${escapeHtml(Core.displayLot(change.updates.lot))}</h2>
+      <p>This correction changes all ${plural(change.updates.cases, "box")} assigned to this lot. The SKU's normal case quantity and every other lot remain unchanged.</p>
+      <div class="atlas-coc-lot-quantity-confirm"><div><span>CURRENT</span><strong>${formatQuantity(change.previousCaseQuantity)}</strong><small>units per box</small></div><div><span>NEW</span><strong>${formatQuantity(change.updates.caseQuantity)}</strong><small>units per box</small></div></div>
+      <p class="atlas-coc-lot-quantity-result"><strong>${plural(change.updates.cases, "box")} × ${formatQuantity(change.updates.caseQuantity)}</strong><span>${formatQuantity(nextTotal)} total units for this lot</span></p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="edit-lot" data-lot-id="${escapeHtml(lot.id)}">Go Back</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-lot-quantity">Confirm Lot Quantity</button></div>`, {
+      label: `Confirm quantity for lot ${Core.displayLot(change.updates.lot)}`,
+      dismiss: false,
+      showBack: false,
+    });
   }
 
   function confirmRemoveLotModal(lotId) {
@@ -1477,6 +1513,7 @@
     if (modal?.type === "similar") return similarLotModal(modal.similar);
     if (modal?.type === "reopen") return reopenPalletModal(modal.palletId);
     if (modal?.type === "edit-lot") return editLotModal(modal.lotId);
+    if (modal?.type === "confirm-lot-quantity") return confirmLotQuantityModal(modal);
     if (modal?.type === "confirm-remove-lot") return confirmRemoveLotModal(modal.lotId);
     if (modal?.type === "confirm-remove-model") return confirmRemoveModelModal(modal.model);
     return "";
@@ -2570,6 +2607,23 @@
       renderAll();
       return;
     }
+    if (action === "confirm-lot-quantity") {
+      const change = modal?.type === "confirm-lot-quantity" ? modal : null;
+      if (!change) return;
+      try {
+        session = Core.updateLot(session, change.lotId, change.updates);
+        modal = null;
+        persist();
+        showToast(`Lot quantity corrected · ${formatQuantity(change.updates.caseQuantity)} units per box`);
+      } catch (failure) {
+        modal = { type: "edit-lot", lotId: change.lotId };
+        renderAll();
+        showToast(failure?.code === "APPROVED_BOX_COUNT_EXCEEDED"
+          ? failure.message
+          : "The lot quantity could not be saved.", "warning");
+      }
+      return;
+    }
     if (action === "review-remove-lot") {
       modal = { type: "confirm-remove-lot", lotId: button.dataset.lotId };
       renderAll();
@@ -2691,13 +2745,26 @@
       } catch {
         showToast("That model could not be selected.", "warning");
       }
+      return;
+    }
+    if (event.target.matches?.("#atlas-coc-edit-lot-form select[name='model']")) {
+      const form = event.target.closest("form");
+      const selected = event.target.selectedOptions?.[0];
+      const caseQuantity = positiveWhole(selected?.dataset.caseQuantity);
+      const quantityInput = form?.querySelector("[data-coc-lot-case-quantity]");
+      const help = form?.querySelector("[data-coc-lot-quantity-help]");
+      if (quantityInput && caseQuantity) quantityInput.value = String(caseQuantity);
+      if (help && caseQuantity) {
+        const lotNumber = String(form?.elements?.lotNumber?.value || "this lot").trim();
+        help.textContent = `Standard for ${event.target.value}: ${formatQuantity(caseQuantity)} units per box. This changes only Lot ${lotNumber}.`;
+      }
     }
   });
 
   document.addEventListener("beforeinput", (event) => {
     const input = event.target;
     if (!input?.matches?.(
-      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity]",
+      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity], [data-coc-lot-case-quantity]",
     )) return;
     if (event.data && /\D/.test(event.data)) event.preventDefault();
   });
@@ -2746,7 +2813,7 @@
       updatePalletSetupButton(input.closest("form"));
       return;
     }
-    if (input?.matches?.("[data-coc-manual-quantity], [data-coc-correct-quantity]")) {
+    if (input?.matches?.("[data-coc-manual-quantity], [data-coc-correct-quantity], [data-coc-lot-case-quantity]")) {
       input.value = input.value.replace(/\D/g, "");
       const form = input.closest("form");
       if (input.matches("[data-coc-manual-quantity]")) updatePalletSetupButton(form);
@@ -2940,6 +3007,8 @@
       const lotNumber = String(data.get("lotNumber") || "").trim().toUpperCase();
       const boxesRaw = String(data.get("boxes") || "").trim();
       const boxes = /^\d+$/.test(boxesRaw) ? Number(boxesRaw) : NaN;
+      const caseQuantityRaw = String(data.get("caseQuantity") || "").trim();
+      const caseQuantity = /^\d+$/.test(caseQuantityRaw) ? Number(caseQuantityRaw) : NaN;
       const error = event.target.querySelector(".atlas-coc-form-error");
       if (!Core.canonicalLot(lotNumber)) {
         error.textContent = "Enter a valid lot code.";
@@ -2949,12 +3018,33 @@
         error.textContent = "Enter at least 1 box. Use Remove This Lot when the lot should be deleted.";
         return;
       }
+      if (!Number.isSafeInteger(caseQuantity) || caseQuantity < 1) {
+        error.textContent = "Enter a whole-number quantity greater than zero for this lot.";
+        return;
+      }
+      const updates = {
+        lot: lotNumber,
+        model: String(data.get("model") || ""),
+        cases: boxes,
+        caseQuantity,
+      };
+      const currentLot = activePallet()?.lots.find((item) => item.id === lotId);
+      if (!currentLot) {
+        error.textContent = "That lot is no longer available. Close this screen and try again.";
+        return;
+      }
+      if (positiveWhole(currentLot.caseQuantity) !== caseQuantity) {
+        modal = {
+          type: "confirm-lot-quantity",
+          lotId,
+          previousCaseQuantity: positiveWhole(currentLot.caseQuantity),
+          updates,
+        };
+        renderAll();
+        return;
+      }
       try {
-        session = Core.updateLot(session, lotId, {
-          lot: lotNumber,
-          model: data.get("model"),
-          cases: boxes,
-        });
+        session = Core.updateLot(session, lotId, updates);
         modal = null;
         persist();
         showToast("Lot details updated · verify the pallet again");
@@ -2995,7 +3085,7 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.target?.matches?.(
-      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity]",
+      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity], [data-coc-lot-case-quantity]",
     ) && ["e", "E", "+", "-", ".", ","].includes(event.key)) {
       event.preventDefault();
       return;
@@ -3004,7 +3094,7 @@
     const protectedModals = [
       "discard", "reading", "confirm-lot", "duplicate", "mismatch",
       "edit-expected", "confirm-expected-change", "verified",
-      "similar", "reopen",
+      "similar", "reopen", "confirm-lot-quantity",
     ];
     if (event.key === "Escape" && modal && !protectedModals.includes(modalKey)) {
       finishScanMetricAttempt("canceled"); cancelScanSession(); modal = null; renderAll();

@@ -1181,6 +1181,23 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-edit-remove-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--coc-line); }
 .atlas-coc-edit-remove-actions button { min-height: 38px; padding: 0 11px; color: var(--coc-blue-dark); font: inherit; font-size: 11px; font-weight: 850; border: 1px solid #aac9ea; border-radius: 10px; background: #fff; }
 .atlas-coc-edit-remove-actions button.is-danger { color: #943943; border-color: #e2bcc1; background: #fffafa; }
+.atlas-coc-lot-quantity-field > small { display:block; margin:7px 0 0; color:var(--coc-muted); font-size:11px; font-weight:700; line-height:1.45; }
+.atlas-coc-lot-quantity-field input { border-color:#8ebcf0; background:#f8fbff; }
+.atlas-coc-lot-quantity-confirm { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+.atlas-coc-lot-quantity-confirm > div { padding:14px 10px; text-align:center; border:1px solid #cfdeed; border-radius:14px; background:#f7faff; }
+.atlas-coc-lot-quantity-confirm > div:last-child { border-color:#82b8ef; background:#edf6ff; }
+.atlas-coc-lot-quantity-confirm span,.atlas-coc-lot-quantity-confirm strong,.atlas-coc-lot-quantity-confirm small { display:block; }
+.atlas-coc-lot-quantity-confirm span { color:var(--coc-muted); font-size:9px; font-weight:950; letter-spacing:.13em; }
+.atlas-coc-lot-quantity-confirm strong { margin:4px 0 2px; color:var(--coc-ink); font-size:31px; line-height:1; }
+.atlas-coc-lot-quantity-confirm small { color:var(--coc-muted); font-size:10px; font-weight:750; }
+.atlas-coc-lot-quantity-result { display:grid; gap:3px; margin:0!important; padding:12px 14px; color:var(--coc-ink)!important; text-align:center; border:1px solid #ecd280; border-radius:13px; background:#fff8df; }
+.atlas-coc-lot-quantity-result strong { font-size:14px; }
+.atlas-coc-lot-quantity-result span { color:#765509; font-size:12px; font-weight:800; }
+.atlas-coc-review-boxes,.atlas-coc-final-boxes { display:grid; justify-items:end; gap:3px; }
+.atlas-coc-review-boxes > strong,.atlas-coc-final-boxes > strong { color:var(--coc-ink); }
+.atlas-coc-review-boxes > small,.atlas-coc-final-boxes > small { color:var(--coc-muted); font-size:9px; font-weight:750; }
+.atlas-coc-review-boxes > em,.atlas-coc-final-boxes > em { padding:3px 6px; color:#8a4d08; border:1px solid #e5bf77; border-radius:99px; background:#fff7e7; font-size:7px; font-style:normal; font-weight:950; letter-spacing:.08em; }
+.atlas-coc-work-count small.is-lot-override { color:#8a4d08; font-weight:850; }
 
 .atlas-coc-report-head { padding: 23px; color: #fff; border-radius: 23px; background: linear-gradient(135deg, #07305f, #0876e9); }
 .atlas-coc-report-head > span { font-size: 11px; font-weight: 950; letter-spacing: .16em; color: #bce1ff; }

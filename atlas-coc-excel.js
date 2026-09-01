@@ -79,11 +79,10 @@
       const modelBlocks = [...modelNames.entries()].map(([key, modelNumber]) => {
         const modelLots = lots.filter((lot) => canonicalModel(lot.model) === key);
         const caseQuantities = new Set(modelLots.map((lot) => lot.caseQuantity));
-        if (caseQuantities.size !== 1)
-          throw new Error(`INCONSISTENT_CASE_QUANTITY_${modelNumber}`);
         return {
           modelNumber,
-          caseQuantity: modelLots[0]?.caseQuantity,
+          caseQuantity: caseQuantities.size === 1 ? modelLots[0]?.caseQuantity : null,
+          mixedCaseQuantities: caseQuantities.size > 1,
           totalBoxes: modelLots.reduce((sum, lot) => sum + lot.boxes, 0),
           totalQuantity: modelLots.reduce((sum, lot) => sum + lot.quantity, 0),
           lots: modelLots,
@@ -117,10 +116,10 @@
         const lots = pallet.lots.filter((lot) => canonicalModel(lot.model) === key);
         if (!lots.length) return null;
         const caseQuantities = new Set(lots.map((lot) => lot.caseQuantity));
-        if (caseQuantities.size !== 1) throw new Error(`INCONSISTENT_CASE_QUANTITY_${modelNumber}`);
         return {
           palletNumber: pallet.palletNumber,
-          caseQuantity: lots[0].caseQuantity,
+          caseQuantity: caseQuantities.size === 1 ? lots[0].caseQuantity : null,
+          mixedCaseQuantities: caseQuantities.size > 1,
           totalBoxes: lots.reduce((sum, lot) => sum + lot.boxes, 0),
           totalQuantity: lots.reduce((sum, lot) => sum + lot.quantity, 0),
           lots,
@@ -128,7 +127,11 @@
       }).filter(Boolean);
       return {
         modelNumber,
-        caseQuantity: blocks[0]?.caseQuantity,
+        caseQuantity: blocks.every((block) => block.caseQuantity === blocks[0]?.caseQuantity)
+          ? blocks[0]?.caseQuantity
+          : null,
+        mixedCaseQuantities: blocks.some((block) => block.mixedCaseQuantities) ||
+          !blocks.every((block) => block.caseQuantity === blocks[0]?.caseQuantity),
         blocks,
         totalBoxes: blocks.reduce((sum, block) => sum + block.totalBoxes, 0),
         totalQuantity: blocks.reduce((sum, block) => sum + block.totalQuantity, 0),

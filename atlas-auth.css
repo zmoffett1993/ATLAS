@@ -9,6 +9,14 @@
 .atlas-auth-modal label{display:grid;gap:7px;color:#233b59;font-size:14px;font-weight:800}
 .atlas-auth-modal input{width:100%;box-sizing:border-box;min-height:54px;padding:0 15px;border:1.5px solid #bfd0e2;border-radius:14px;background:#f9fbfe;color:#071f43;font:inherit;font-size:17px}
 .atlas-auth-modal input:focus{outline:3px solid rgba(17,112,235,.17);border-color:#1170eb}
+.atlas-auth-password-field{position:relative;display:block;min-width:0}
+.atlas-auth-password-field>input{padding-right:54px}
+.atlas-auth-password-toggle{position:absolute;top:50%;right:7px;width:40px;height:40px;padding:0;display:grid;place-items:center;color:#60748e;border:0;border-radius:10px;background:transparent;cursor:pointer;transform:translateY(-50%)}
+.atlas-auth-password-toggle:hover{color:#0b5bc3;background:#edf5ff}
+.atlas-auth-password-toggle:focus-visible{outline:2px solid rgba(17,112,235,.34);outline-offset:0}
+.atlas-auth-password-toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.atlas-auth-password-eye-slash{opacity:0}
+.atlas-auth-password-toggle[aria-pressed="true"] .atlas-auth-password-eye-slash{opacity:1}
 .atlas-auth-primary{width:100%;min-height:56px;border:0;border-radius:15px;background:linear-gradient(135deg,#1175ff,#0d50bd);color:#fff;font:inherit;font-size:17px;font-weight:900;cursor:pointer}
 .atlas-auth-primary:disabled{opacity:.65;cursor:wait}
 .atlas-auth-message{min-height:20px;margin:0!important;color:#a02935!important;font-size:14px;font-weight:750}

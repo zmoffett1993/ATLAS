@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 8;
+  const SCHEMA_VERSION = 9;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
   const MAX_CUSTOMER_LENGTH = 160;
@@ -197,6 +197,13 @@
           if (seenLots.has(duplicateKey)) throw new Error("DUPLICATE_LOT");
           seenLots.add(duplicateKey);
           const linkedModel = palletModelRecordFor(model);
+          const suppliedCaseQuantity = positiveInteger(lot?.caseQuantity);
+          const lotCaseQuantity = suppliedCaseQuantity || linkedModel?.caseQuantity || null;
+          const lotCaseQuantityOverride = Boolean(
+            lot?.caseQuantityOverride ||
+            (suppliedCaseQuantity && linkedModel?.caseQuantity &&
+              suppliedCaseQuantity !== linkedModel.caseQuantity),
+          );
           return {
             id: cleanText(lot?.id, 140) || makeId("lot"),
             lot: rawLot,
@@ -216,7 +223,10 @@
             sku: cleanModel(lot?.sku || model || raw?.sku),
             model,
             detectedModel: cleanModel(lot?.detectedModel),
-            caseQuantity: positiveInteger(lot?.caseQuantity) || linkedModel?.caseQuantity || null,
+            caseQuantity: lotCaseQuantity,
+            caseQuantityOverride: lotCaseQuantityOverride,
+            caseQuantityUpdatedAt: cleanText(lot?.caseQuantityUpdatedAt, 40) || null,
+            caseQuantityUpdatedBy: cleanText(lot?.caseQuantityUpdatedBy, 60),
             captureMethod: cleanText(
               lot?.captureMethod || lot?.verification || "manual",
               40,
@@ -506,6 +516,9 @@
       model: selectedModel,
       detectedModel: cleanModel(options.detectedModel),
       caseQuantity: selectedModelRecord.caseQuantity,
+      caseQuantityOverride: false,
+      caseQuantityUpdatedAt: null,
+      caseQuantityUpdatedBy: "",
       captureMethod: cleanText(options.captureMethod || options.verification || "manual", 40),
       validationMethod: cleanText(options.validationMethod, 80),
       labelClass: ["model_batch", "direct_lot"].includes(options.labelClass)
@@ -569,6 +582,11 @@
       (item) => canonicalModel(item.modelNumber) === canonicalModel(nextModel),
     );
     if (!model?.caseQuantity) throw new Error("MODEL_NOT_FOUND");
+    const quantityWasProvided = Object.prototype.hasOwnProperty.call(updates, "caseQuantity");
+    const nextCaseQuantity = quantityWasProvided
+      ? positiveInteger(updates.caseQuantity)
+      : positiveInteger(lot.caseQuantity) || model.caseQuantity;
+    if (!nextCaseQuantity) throw new Error("INVALID_CASE_QUANTITY");
     const duplicate = pallet.lots.find((item) => item.id !== lot.id &&
       item.canonical === nextCanonical &&
       canonicalModel(item.model) === canonicalModel(model.modelNumber));
@@ -584,7 +602,13 @@
       throw error;
     }
 
-    const before = { lot: lot.lot, model: lot.model, cases: integer(lot.cases) };
+    const before = {
+      lot: lot.lot,
+      model: lot.model,
+      cases: integer(lot.cases),
+      caseQuantity: positiveInteger(lot.caseQuantity),
+      caseQuantityOverride: Boolean(lot.caseQuantityOverride),
+    };
     const at = timestamp();
     pallet.history = pallet.history.filter((entry) => entry.lotId !== lot.id);
     if (nextCases === 0) {
@@ -600,12 +624,20 @@
       lot.model = model.modelNumber;
       lot.sku = model.modelNumber;
       lot.expectedModel = model.modelNumber;
-      lot.caseQuantity = model.caseQuantity;
+      const quantityChanged = positiveInteger(lot.caseQuantity) !== nextCaseQuantity;
+      lot.caseQuantity = nextCaseQuantity;
+      lot.caseQuantityOverride = nextCaseQuantity !== model.caseQuantity;
+      if (quantityChanged) {
+        lot.caseQuantityUpdatedAt = at;
+        lot.caseQuantityUpdatedBy = cleanText(session.employee, 60);
+      }
       lot.cases = nextCases;
       lot.verifiedAt = at;
       lot.verification = "manual";
       lot.captureMethod = "manual_edit";
-      lot.validationMethod = "employee_correction";
+      lot.validationMethod = lot.caseQuantityOverride
+        ? "employee_lot_quantity_override"
+        : "employee_correction";
       lot.confirmedBy = cleanText(session.employee, 60);
       pallet.history.push(...Array.from({ length: nextCases }, () => ({
         kind: "case", lotId: lot.id, at,
@@ -622,7 +654,11 @@
       palletNumber: pallet.number,
       before,
       after: nextCases === 0 ? null : {
-        lot: nextLotText, model: model.modelNumber, cases: nextCases,
+        lot: nextLotText,
+        model: model.modelNumber,
+        cases: nextCases,
+        caseQuantity: nextCaseQuantity,
+        caseQuantityOverride: nextCaseQuantity !== model.caseQuantity,
       },
     });
   }
@@ -651,8 +687,16 @@
       model.caseQuantity = next;
       model.sourceRevision = "EMPLOYEE CORRECTED FOR THIS COC";
     });
+    let preservedLotOverrides = 0;
     matchingLots.forEach((lot) => {
+      if (lot.caseQuantityOverride && positiveInteger(lot.caseQuantity) !== next) {
+        preservedLotOverrides += 1;
+        return;
+      }
       lot.caseQuantity = next;
+      lot.caseQuantityOverride = false;
+      lot.caseQuantityUpdatedAt = timestamp();
+      lot.caseQuantityUpdatedBy = cleanText(session.employee, 60);
       lot.validationMethod = "employee_quantity_correction";
       lot.confirmedBy = cleanText(session.employee, 60);
     });
@@ -667,6 +711,7 @@
       previousCaseQuantities: previous,
       caseQuantity: next,
       scope: "current_coc",
+      preservedLotOverrides,
     });
   }
 
@@ -707,6 +752,9 @@
       lot.sku = selected.modelNumber;
       lot.expectedModel = selected.modelNumber;
       lot.caseQuantity = selected.caseQuantity;
+      lot.caseQuantityOverride = false;
+      lot.caseQuantityUpdatedAt = timestamp();
+      lot.caseQuantityUpdatedBy = cleanText(session.employee, 60);
       lot.validationMethod = "employee_sku_correction";
       lot.confirmedBy = cleanText(session.employee, 60);
     });

@@ -174,7 +174,7 @@
         <p>Use your employee name and ATLAS password. You will stay signed in on this device until you sign out.</p>
         <form data-auth-form>
           <label><span>Employee name</span><input name="login_name" autocomplete="username" autocapitalize="words" required></label>
-          <label><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+          <label><span>Password</span><span class="atlas-auth-password-field"><input type="password" name="password" autocomplete="current-password" required><button type="button" class="atlas-auth-password-toggle" data-auth-password-toggle aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.6"></circle><path class="atlas-auth-password-eye-slash" d="m4 4 16 16"></path></svg></button></span></label>
           <p class="atlas-auth-message" data-auth-message role="alert"></p>
           <button type="submit" class="atlas-auth-primary">Sign In</button>
         </form>
@@ -202,6 +202,17 @@
   })[character]);
 
   document.addEventListener("click", async (event) => {
+    const passwordToggle = event.target.closest?.("[data-auth-password-toggle]");
+    if (passwordToggle) {
+      const input = passwordToggle.closest(".atlas-auth-password-field")?.querySelector("input");
+      if (!input) return;
+      const showPassword = input.type === "password";
+      input.type = showPassword ? "text" : "password";
+      passwordToggle.setAttribute("aria-pressed", String(showPassword));
+      passwordToggle.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
+      input.focus({ preventScroll: true });
+      return;
+    }
     const backdropClick = event.target === modal
       && modalBackdropPress?.startedOnBackdrop
       && Math.abs(event.clientX - modalBackdropPress.x) <= BACKDROP_CLICK_TOLERANCE_PX
