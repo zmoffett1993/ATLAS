@@ -2258,3 +2258,57 @@ html.atlas-coc-count-console .atlas-coc-counting {
     font-size: clamp(24px, min(6.5vw, 3.8dvh), 31px);
   }
 }
+
+/* V261: compact counter with two equal, centered completion actions. */
+.atlas-coc-work-utilities {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.atlas-coc-work-utilities button {
+  min-height: 39px;
+  padding: 6px 9px;
+  font-size: 11px;
+  border-radius: 11px;
+}
+
+@media (max-width: 719px) {
+  .atlas-coc-counting .atlas-coc-work-counter {
+    flex-grow: 1.7;
+    padding-top: clamp(9px, 1.2dvh, 13px);
+    padding-bottom: clamp(9px, 1.2dvh, 13px);
+  }
+  .atlas-coc-counting .atlas-coc-work-counter-lot {
+    margin-top: clamp(3px, .45dvh, 5px);
+  }
+  .atlas-coc-counting .atlas-coc-work-count {
+    margin: clamp(4px, .65dvh, 7px) 0;
+  }
+  .atlas-coc-counting .atlas-coc-work-counter .atlas-coc-add-case {
+    min-height: clamp(54px, 6.8dvh, 66px);
+  }
+  .atlas-coc-counting .atlas-coc-work-utilities {
+    margin-top: clamp(6px, .75dvh, 8px);
+  }
+  .atlas-coc-counting .atlas-coc-work-utilities button {
+    min-height: clamp(40px, 5.3dvh, 48px);
+    padding: 6px clamp(8px, 2.5vw, 12px);
+    font-size: clamp(12px, 3.2vw, 14px);
+    line-height: 1.12;
+    border-radius: clamp(11px, 3.2vw, 14px);
+  }
+}
+
+@media (max-width: 719px) and (max-height: 700px) {
+  .atlas-coc-counting .atlas-coc-work-counter {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .atlas-coc-counting .atlas-coc-work-counter .atlas-coc-add-case {
+    min-height: 46px;
+  }
+  .atlas-coc-counting .atlas-coc-work-utilities {
+    margin-top: 3px;
+  }
+  .atlas-coc-counting .atlas-coc-work-utilities button {
+    min-height: 33px;
+  }
+}

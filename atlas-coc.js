@@ -721,7 +721,7 @@
       <strong class="atlas-coc-work-empty-title"><span>Add a lot for</span><span class="atlas-coc-work-empty-sku">${escapeHtml(activeModel)}</span></strong>
       <p>The next confirmed lot starts at Box 1.</p>
       <button type="button" class="atlas-coc-add-case" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>SCAN FIRST LOT</button>
-      <div class="atlas-coc-work-utilities"><button type="button" disabled>− Remove Box</button><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Finish</button><button type="button" disabled>Edit Lot</button></div>
+      <div class="atlas-coc-work-utilities"><button type="button" disabled>− Remove Box</button><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Finish</button></div>
     </section>`;
     const selectedLotHasHistory = pallet.history.some((entry) => entry.lotId === lot.id);
     return `<section class="atlas-coc-work-counter" aria-label="Box counting controls">
@@ -733,7 +733,6 @@
       <div class="atlas-coc-work-utilities">
         <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box</button>
         <button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" ${canFinish ? "" : "disabled"}>Verify &amp; Finish</button>
-        <button type="button" data-coc-action="edit-lot" data-lot-id="${escapeHtml(lot.id)}">Edit Lot</button>
       </div>
     </section>`;
   }
