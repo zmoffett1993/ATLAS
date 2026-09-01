@@ -97,7 +97,42 @@
   async function confirmDialog(){const pending=dialog;if(!pending)return;dialog=null;render();try{let result;if(pending.type.startsWith("restore"))result=await Delivery.restoreOfficeArchived(pending.ids,credentials);else result=await Delivery.archiveOfficeCompleted(pending.ids,credentials,{all:pending.type==="archive-all"});selected=null;selectedIds.clear();await loadInbox();showNotice(`${plural(result.updated||pending.ids.length,"COC")} ${pending.type.startsWith("restore")?"restored":"archived"}.`)}catch(error){showNotice(error?.message||"The archive could not be updated.","error")}}
   async function loadWorkbook(id){if(workbookCache.has(id))return workbookCache.get(id);const workbook=await Delivery.downloadOfficeWorkbook(id,credentials);workbook.fileName=officialFileName(recordById(id),workbook.fileName);workbookCache.set(id,workbook);return workbook}
   async function openOfficialPreview(id){const recordId=id||selected?.id;if(!recordId)return;preview=true;previewState={status:"loading",html:"",error:"",id:recordId};render();try{const workbook=await loadWorkbook(recordId);const html=await window.AtlasCocExcel.renderOfficialWorkbookPreview(workbook.blob);if(!selected||selected.id!==recordId||!preview)return;previewState={status:"ready",html,error:"",id:recordId}}catch(error){previewState={status:"error",html:"",error:error?.message||"The Official COC could not be opened.",id:recordId}}render()}
-  async function download(button){button.disabled=true;try{const workbook=await loadWorkbook(button.dataset.id);window.AtlasCocStorage?.downloadBlob(workbook.blob,workbook.fileName)}catch(error){showNotice(error?.message||"The official COC could not be downloaded.","error")}finally{button.disabled=false}}
+  async function download(button){
+    button.disabled=true;
+    try{
+      const id=button.dataset.id;
+      const suggestedName=officialFileName(recordById(id));
+      let fileHandle=null;
+      if(typeof window.showSaveFilePicker==="function"){
+        try{
+          fileHandle=await window.showSaveFilePicker({
+            suggestedName,
+            startIn:"desktop",
+            types:[{
+              description:"Excel Workbook",
+              accept:{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":[".xlsx"]},
+            }],
+            excludeAcceptAllOption:true,
+          });
+        }catch(error){
+          if(error?.name==="AbortError")return;
+        }
+      }
+      const workbook=await loadWorkbook(id);
+      if(fileHandle){
+        const writable=await fileHandle.createWritable();
+        await writable.write(workbook.blob);
+        await writable.close();
+        showNotice("Official COC saved.");
+      }else{
+        window.AtlasCocStorage?.downloadBlob(workbook.blob,workbook.fileName);
+      }
+    }catch(error){
+      showNotice(error?.message||"The official COC could not be saved.","error");
+    }finally{
+      button.disabled=false;
+    }
+  }
 
   root.addEventListener("click",async(event)=>{
     const button=event.target.closest("[data-action]");if(!button)return;const action=button.dataset.action,id=button.dataset.id;
