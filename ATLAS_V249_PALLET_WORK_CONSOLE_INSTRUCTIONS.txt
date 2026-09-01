@@ -1,0 +1,87 @@
+ATLAS V249 — SINGLE-SCREEN PALLET WORK CONSOLE
+
+BASE VERSION
+Install this small update over ATLAS V248.
+
+WHAT CHANGED
+The active pallet counting page now matches the approved four-state design board.
+
+MAIN WORK SCREEN
+- The full working console is optimized to fit on one standard iPhone screen without routine vertical scrolling.
+- The global Home / Browse Aisles / Inventory / Workflows navigation is hidden only while the active pallet console is open.
+- The compact pallet header continuously shows the pallet number, recorded / confirmed boxes, progress, and remaining boxes.
+- Add Box is the dominant action.
+- Add Lot is the second-most prominent action.
+- Add SKU and Edit / Remove remain visible but secondary.
+- The current SKU and active lot are repeated immediately above Add Box.
+- Remove Box, Edit Lot, and Verify & Finish remain visible together.
+- Verify & Finish stays disabled until recorded and confirmed pallet counts match.
+
+SWITCH SKU
+- Tap the CURRENT SKU selector to open the Switch SKU sheet.
+- Every SKU on the pallet shows its recorded box count and number of lots.
+- Selecting a SKU restores the most recently used lot for that SKU.
+- Switching a SKU does not add, remove, or move any boxes.
+- Add SKU and Edit / Remove SKUs remain available from the sheet.
+
+SWITCH LOT
+- Tap the ACTIVE LOT selector to open the Switch Lot sheet.
+- Every lot for the active SKU shows its recorded box count.
+- Selecting a lot changes only where the next box will be recorded.
+- Add New Lot remains available from the sheet.
+
+EXISTING LOT DETECTED
+- When a scanned or manually confirmed lot already exists for the selected SKU, ATLAS does not create a duplicate row.
+- ATLAS shows the existing SKU, lot, current quantity, and next box number.
+- SWITCH & ADD BOX selects the existing lot and records the scanned box in one protected action.
+- CANCEL leaves all counts unchanged.
+
+PRESERVED FROM V248
+- Official COC downloads still use the native Save As window when supported.
+- Save As still starts at Desktop.
+- Official filenames remain CUSTOMER NAME IF-##### INV-#####.xlsx.
+- The Office COC Receiver and pairing remain unchanged.
+
+FILES TO UPLOAD
+Upload and replace these FOUR files at the repository root:
+
+1. service-worker.js
+2. index.html
+3. atlas-coc.js
+4. atlas-coc.css
+
+No SQL migration is required.
+No Supabase update is required.
+No Office COC Receiver re-pairing is required.
+
+VERIFY AFTER GITHUB PAGES PUBLISHES
+1. Wait for the GitHub Pages deployment to finish successfully.
+2. Close and reopen ATLAS, or refresh twice so V249 activates.
+3. Resume or begin a test COC and start a pallet.
+4. Confirm the global bottom navigation disappears on the active counting console.
+5. Confirm the complete console fits without routine scrolling.
+6. Tap CURRENT SKU and switch between two SKUs.
+7. Confirm returning to a SKU restores its most recently used lot.
+8. Tap ACTIVE LOT and switch between two existing lots.
+9. Confirm the next Add Box goes to the visibly selected SKU and lot.
+10. Scan an existing lot and confirm LOT ALREADY EXISTS appears.
+11. Select SWITCH & ADD BOX and confirm exactly one box is added to the existing lot.
+12. Confirm no duplicate lot row is created.
+13. Reach the confirmed pallet total and confirm Verify & Finish becomes active.
+
+RELEASE IDENTIFIERS
+- Service worker: atlas-pwa-v249-pallet-work-console
+- atlas-coc.css: v45
+- atlas-coc.js: v51
+
+VERIFICATION COMPLETED
+- JavaScript syntax checks passed.
+- Five focused V249 Pallet Work Console audits passed.
+- Customer / IF / invoice filename-order audit passed.
+- Desktop Save As functional audits passed.
+- COC dashboard audit: 33 checks passed.
+- COC delivery audit: 30 checks passed.
+- Full COC workflow audit: 43 checks passed.
+- COC Receiver render audit: 39 checks passed.
+- Official workbook preview audit: 24 checks passed.
+- Total applicable checks passed: 179.
