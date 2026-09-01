@@ -1,15 +1,15 @@
-const VERSION = "atlas-pwa-v253-multi-warehouse-coc-access-polish-1";
+const VERSION = "atlas-pwa-v253-coc-review-access-polish-2";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=151",
-  "./atlas-dashboard.js?v=155",
+  "./atlas-dashboard.css?v=152",
+  "./atlas-dashboard.js?v=156",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=3",
-  "./atlas-coc.css?v=48",
+  "./atlas-coc.css?v=49",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=5",
   "./atlas-coc-excel.js?v=17",
-  "./atlas-coc.js?v=54",
+  "./atlas-coc.js?v=55",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=16",
   "./coc-receiver/receiver.js?v=16",

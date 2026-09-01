@@ -1214,6 +1214,36 @@ html.atlas-dashboard-open #root {
   line-height: 1.55;
 }
 
+.atlas-dashboard-access p strong { color: #183b63; }
+
+.atlas-dashboard-access-identity {
+  display: grid;
+  gap: 4px;
+  margin: -4px 0 20px;
+  padding: 14px 16px;
+  border: 1px solid #cfe0f2;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f8fbff, #edf6ff);
+}
+
+.atlas-dashboard-access-identity span {
+  color: #1467cf;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.atlas-dashboard-access-identity strong { color: #0e2c50; font-size: 16px; }
+
+.atlas-dashboard-access-actions {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 10px;
+}
+
+.atlas-dashboard-access-actions .atlas-dashboard-button { width: 100%; }
+
 .atlas-dashboard-access-form {
   display: grid;
   gap: 13px;
@@ -2166,6 +2196,8 @@ html.atlas-dashboard-open #root {
     margin-top: 4vh;
     padding: 24px 18px;
   }
+
+  .atlas-dashboard-access-actions { grid-template-columns: 1fr; }
 
   .atlas-dashboard-tabs button {
     padding: 0 8px;

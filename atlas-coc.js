@@ -700,10 +700,11 @@
     const lotIndex = lot ? modelLots.findIndex((item) => item.id === lot.id) + 1 : 0;
     return `<section class="atlas-coc-work-selector atlas-coc-work-lot" aria-labelledby="atlas-coc-active-lot">
       <span class="atlas-coc-work-label" id="atlas-coc-active-lot">ACTIVE LOT</span>
-      <div class="atlas-coc-work-lot-row"><button type="button" class="atlas-coc-work-selector-trigger" data-coc-action="open-lot-switcher" ${modelLots.length ? "" : "disabled"} aria-label="Switch active lot">
+      <button type="button" class="atlas-coc-work-selector-trigger" data-coc-action="open-lot-switcher" ${modelLots.length ? "" : "disabled"} aria-label="Switch active lot">
         <span><strong>${lot ? escapeHtml(Core.displayLot(lot.lot)) : "No lot selected"}</strong>
           <small>${lot ? `Lot ${lotIndex} of ${modelLots.length} · ${plural(lot.cases, "box")} · Tap to switch` : "Add the first lot to begin counting"}</small></span><i aria-hidden="true">⌄</i></button>
-        <button type="button" class="atlas-coc-work-add-lot" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>＋ ADD LOT</button></div>
+      <div class="atlas-coc-work-selector-actions"><button type="button" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>＋ Add Lot</button>
+        <button type="button" data-coc-action="edit-lot" data-lot-id="${escapeHtml(lot?.id || "")}" ${lot ? "" : "disabled"}>Edit / Remove</button></div>
     </section>`;
   }
 
@@ -783,7 +784,6 @@
       ${countingLotsMarkup(pallet, atLimit)}
       ${countingStatusMarkup(pallet, lot, atLimit, difference === 0 && total > 0)}
       ${finished.length ? `<div class="atlas-coc-finish-actions atlas-coc-work-complete"><button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC with Verified Pallets</button></div>` : ""}
-      ${discardFooterMarkup()}
     </div>`;
   }
 
@@ -1037,7 +1037,7 @@
     const blocked = activeHasWork && !activeReady;
     const total = completed.reduce((sum, item) => sum + Core.palletTotal(item), 0);
     return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>${reportMode ? "Review completed COC" : "Complete this COC?"}</h2>
-      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div><span>${escapeHtml(Core.displayLot(lot.lot))}</span><strong>${lot.cases}</strong></div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>`).join("")}</div>
+      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div class="atlas-coc-final-record"><span class="atlas-coc-final-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span><strong class="atlas-coc-final-boxes">${plural(lot.cases, "box")}</strong></div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>`).join("")}</div>
       <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(total, "box")} · ${plural(completed.length, "pallet")}</b></p>
       ${blocked
         ? `<p class="atlas-coc-warning">Pallet ${pallet.number} is not verified. Its confirmed and recorded box counts must match before completing the COC.</p>`

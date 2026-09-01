@@ -766,8 +766,25 @@
       state.normalized.forEach((row) => { row.snapshotId = snapshotBySource.get(row.id)?.id || null; });
       state.lastSync = new Date();
     } catch (error) {
-      if ([401, 403].includes(error?.status) && !token) state.accessRequired = true;
-      else state.error = error instanceof Error ? error.message : "The dashboard data could not be loaded.";
+      const errorText = String(error?.message || error || "");
+      const sessionRole = state.currentProfile?.role
+        || state.session?.user?.app_metadata?.atlas_role
+        || state.session?.user?.app_metadata?.role
+        || "";
+      const authRequired = [401, 403].includes(Number(error?.status || 0))
+        || /(?:ATLAS_)?AUTH_REQUIRED|not authenticated|invalid jwt/i.test(errorText);
+      if (authRequired || (token && sessionRole && !["supervisor", "admin"].includes(sessionRole))) {
+        if (token && !state.currentProfile) {
+          state.currentProfile = {
+            user_id: state.session?.user?.id,
+            display_name: state.session?.user?.user_metadata?.display_name || state.session?.user?.app_metadata?.login_name || "ATLAS user",
+            role: sessionRole || "picker",
+            warehouse_id: state.selectedWarehouse?.id,
+          };
+        }
+        state.accessRequired = true;
+        state.error = "";
+      } else state.error = error instanceof Error ? error.message : "The dashboard data could not be loaded.";
     } finally {
       state.loading = false;
       render();
@@ -826,26 +843,36 @@
     );
   };
 
-  const renderAccess = () => state.session && state.currentProfile && !["supervisor", "admin"].includes(state.currentProfile.role) ? `
+  const renderAccess = () => {
+    const sessionRole = state.currentProfile?.role
+      || state.session?.user?.app_metadata?.atlas_role
+      || state.session?.user?.app_metadata?.role
+      || "picker";
+    const signedInName = window.AtlasAuth?.displayName?.(state.session)
+      || state.currentProfile?.display_name
+      || "ATLAS employee";
+    return state.session && !["supervisor", "admin"].includes(sessionRole) ? `
     <div class="atlas-dashboard-access">
       <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-light.svg?v=131" alt="ATLAS Warehouse Management">
-      <p class="atlas-dashboard-eyebrow">PICKER ACCESS</p>
-      <h2>Dashboard access is not included</h2>
-      <p>Your account can use warehouse tools and COC workflows. Operational history and account controls are limited to supervisors and administrators.</p>
-      <button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-sign-out>Sign Out</button>
+      <p class="atlas-dashboard-eyebrow">WAREHOUSE ACCESS</p>
+      <h2>Dashboard access is restricted</h2>
+      <p><strong>${escapeHtml(signedInName)}</strong> is signed in as a ${escapeHtml(roleLabel(sessionRole))}. Your account can use SKU search, inventory tools, and COC workflows. Operational oversight is reserved for supervisors and administrators.</p>
+      <div class="atlas-dashboard-access-identity"><span>${escapeHtml(roleLabel(sessionRole))}</span><strong>${escapeHtml(signedInName)}</strong></div>
+      <div class="atlas-dashboard-access-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-dashboard-close>Return to ATLAS</button><button class="atlas-dashboard-button" type="button" data-sign-out>Switch Account</button></div>
     </div>` : `
     <div class="atlas-dashboard-access">
       <img class="atlas-dashboard-access-logo" src="./atlas-brand-landscape-light.svg?v=131" alt="ATLAS Warehouse Management">
-      <p class="atlas-dashboard-eyebrow">AUTHORIZED ACCESS</p>
-      <h2>Supervisor sign in</h2>
-      <p>Operational history includes employee names and detailed inventory changes. Sign in once with an ATLAS supervisor or administrator account; this device will remain signed in until you sign out.</p>
+      <p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p>
+      <h2>Sign in to the dashboard</h2>
+      <p>Use a supervisor or administrator account to open operational history, COC oversight, and account controls. This device will remain signed in until you sign out.</p>
       <form class="atlas-dashboard-access-form" data-sign-in>
-        <label><span>Name</span><input type="text" name="login_name" autocomplete="username" required></label>
+        <label><span>Employee name</span><input type="text" name="login_name" autocomplete="username" autocapitalize="words" required></label>
         <label><span>Password</span>${passwordField({ autocomplete: "current-password" })}</label>
         <p class="atlas-dashboard-access-message" data-access-message></p>
-        <button class="atlas-dashboard-button atlas-dashboard-button--primary" type="submit">Open Dashboard</button>
+        <button class="atlas-dashboard-button atlas-dashboard-button--primary" type="submit">Sign In &amp; Open Dashboard</button>
       </form>
     </div>`;
+  };
 
   const renderLoading = () => `
     <div class="atlas-dashboard-loading">
@@ -1435,6 +1462,7 @@
       state.drawer = { kind: "activity", id: button.dataset.notificationId };
       render();
     }
+    else if (button.matches("[data-dashboard-close]")) closeDashboard();
     else if (button.matches("[data-mobile-refresh], [data-retry]")) loadData();
     else if (button.matches("[data-export]")) exportCsv();
     else if (button.matches("[data-sign-out]")) signOut();
@@ -1665,7 +1693,7 @@
     } catch (error) {
       message.textContent = error instanceof Error ? error.message : "Sign in failed.";
       submit.disabled = false;
-      submit.textContent = "Open Dashboard";
+      submit.textContent = "Sign In & Open Dashboard";
     }
   };
 
