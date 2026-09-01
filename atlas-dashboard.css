@@ -625,9 +625,10 @@ html.atlas-dashboard-open #root {
 
 .atlas-premium-select--header .atlas-premium-select-trigger {
   min-height: 44px;
-  color: #0f55a5;
-  border-color: #a9c9ee;
-  background: linear-gradient(180deg, #f8fbff, #eef6ff);
+  color: #163253;
+  border-color: #ccd8e6;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(11, 35, 64, 0.05);
   font-size: 11px;
   font-weight: 800;
 }
