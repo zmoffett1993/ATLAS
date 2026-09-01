@@ -776,7 +776,10 @@
         : "Count reached — ready to verify";
     const progressPercent = Math.min(100, Math.max(0, (total / pallet.expectedBoxes) * 100));
     return `<div class="atlas-coc-page atlas-coc-counting">
-      <button type="button" class="atlas-coc-back atlas-coc-count-back" data-coc-action="coc-back">‹ Back</button>
+      <div class="atlas-coc-count-actions" aria-label="COC navigation and session actions">
+        <button type="button" class="atlas-coc-back atlas-coc-count-back" data-coc-action="coc-back">‹ Back</button>
+        <button type="button" class="atlas-coc-count-discard" data-coc-action="review-discard">Discard COC</button>
+      </div>
       <header class="atlas-coc-count-head" aria-label="Pallet ${pallet.number} box progress">
         <div class="atlas-coc-progress-row"><div class="atlas-coc-pallet-number"><span>PALLET</span><strong>${pallet.number}</strong></div>
           <div class="atlas-coc-pallet-total ${difference > 0 ? "is-over" : ""}"><strong>${total} / ${pallet.expectedBoxes} BOXES</strong></div></div>

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v261-compact-two-action-counter";
+const VERSION = "atlas-pwa-v262-balanced-discard-header";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=157",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=4",
-  "./atlas-coc.css?v=54",
+  "./atlas-coc.css?v=55",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=5",
   "./atlas-coc-excel.js?v=17",
-  "./atlas-coc.js?v=58",
+  "./atlas-coc.js?v=59",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=16",
   "./coc-receiver/receiver.js?v=16",
