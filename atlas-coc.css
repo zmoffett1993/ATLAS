@@ -2046,10 +2046,10 @@ html.atlas-coc-count-console .atlas-coc-counting {
 /* V255: edge-maximized mobile Pallet Work Console. */
 @media (max-width: 719px) {
   html.atlas-coc-count-console .atlas-workflows-view {
-    padding-top: max(2px, env(safe-area-inset-top));
-    padding-right: max(4px, env(safe-area-inset-right));
-    padding-bottom: max(2px, env(safe-area-inset-bottom));
-    padding-left: max(4px, env(safe-area-inset-left));
+    padding-top: max(clamp(5px, .75dvh, 8px), env(safe-area-inset-top));
+    padding-right: max(clamp(8px, 2.4vw, 12px), env(safe-area-inset-right));
+    padding-bottom: max(clamp(5px, .75dvh, 8px), env(safe-area-inset-bottom));
+    padding-left: max(clamp(8px, 2.4vw, 12px), env(safe-area-inset-left));
     place-items: stretch center;
   }
 

@@ -17,7 +17,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link id="atlas-app-manifest" rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./atlas-dashboard.css?v=152" />
-    <link rel="stylesheet" href="./atlas-coc.css?v=51" />
+    <link rel="stylesheet" href="./atlas-coc.css?v=52" />
     <script>
       (() => {
         const isAndroid =
@@ -26165,7 +26165,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=218",
+              "./service-worker.js?v=219",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });

@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v257-official-coc-sign-in-recovery";
+const VERSION = "atlas-pwa-v258-adaptive-work-console-gutter";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=156",
   "./atlas-auth.css?v=2",
   "./atlas-auth.js?v=4",
-  "./atlas-coc.css?v=51",
+  "./atlas-coc.css?v=52",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
