@@ -10,6 +10,7 @@
   ];
   const SORT_VALUES=new Set(SORT_OPTIONS.map(([value])=>value));
   let credentials=null,activeDeliveries=[],completedDeliveries=[],selected=null,preview=false;
+  let branchContext=null;
   let previewState={status:"idle",html:"",error:"",id:""};
   const workbookCache=new Map();
   let connection="reconnecting",pairing=null,pollTimer=null,subscription=null,lastSynced=null;
@@ -42,7 +43,9 @@
     shield:'<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/><path d="m9 12 2 2 4-4"/>',
   };return `<svg aria-hidden="true" viewBox="0 0 24 24">${paths[name]||""}</svg>`}
 
-  function header(){return `<header class="receiver-head"><div class="receiver-atlas-lockup" aria-label="ATLAS Warehouse Management"><img src="../atlas-brand-mark-dark.svg?v=97" alt="" aria-hidden="true"><span><b>ATLAS</b><small>WAREHOUSE MANAGEMENT</small></span></div><div class="receiver-brand-title"><h1>COC RECEIVER</h1><p>Office COC Station</p></div><div class="receiver-status ${connection==="connected"?"":"is-offline"}"><strong>● ${connection==="connected"?"CONNECTED · READY":connection==="reconnecting"?"RECONNECTING…":"OFFLINE"}</strong><small>Last synced ${lastSynced?time(lastSynced):"—"}</small></div></header>`}
+  function branchCode(){return branchContext?.selectedWarehouse?.code||branchContext?.warehouse?.code||credentials?.warehouseCode||"CA"}
+  function branchName(){return branchContext?.selectedWarehouse?.display_name||branchContext?.warehouse?.display_name||`${branchCode()} Warehouse`}
+  function header(){return `<header class="receiver-head"><div class="receiver-atlas-lockup" aria-label="ATLAS Warehouse Management"><img src="../atlas-brand-mark-dark.svg?v=97" alt="" aria-hidden="true"><span><b>ATLAS</b><small>WAREHOUSE MANAGEMENT</small></span></div><div class="receiver-brand-title"><h1>${esc(branchCode())} COC RECEIVER</h1><p>${esc(branchName())}</p></div><div class="receiver-status ${connection==="connected"?"":"is-offline"}"><strong>● ${connection==="connected"?"CONNECTED · READY":connection==="reconnecting"?"RECONNECTING…":"OFFLINE"}</strong><small>Last synced ${lastSynced?time(lastSynced):"—"}</small></div></header>`}
   function pairingMarkup(){
     if(!Delivery.getAuthSession())return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>ATLAS sign-in required</h1><p>Use the name and password assigned to this office station.</p><button class="receiver-primary" data-action="sign-in">SIGN IN</button></section>`;
     if(!pairing)return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>Pair this computer</h1><p>This browser needs supervisor approval before it can receive compliance reports.</p><button class="receiver-primary" data-action="start-pairing">Create Pairing Code</button></section>`;
@@ -88,7 +91,7 @@
     }catch(error){connection=navigator.onLine?"reconnecting":"offline";notice={tone:"error",text:error?.message||"The COC Receiver could not refresh."};renderBackgroundUpdate()}
     finally{loading=false}
   }
-  async function startPairing(){try{pairing=await Delivery.createPairing();render();pollPairing()}catch(error){pairing={status:error.message||"Pairing could not start."};render()}}
+  async function startPairing(){try{branchContext=await Delivery.warehouseContext();pairing=await Delivery.createPairing();render();pollPairing()}catch(error){pairing={status:error.message||"Pairing could not start."};render()}}
   async function pollPairing(){if(!pairing?.pairingSessionId)return;for(let attempt=0;attempt<120&&!credentials;attempt+=1){await new Promise((resolve)=>setTimeout(resolve,2500));try{const result=await Delivery.pairingStatus(pairing.pairingSessionId);pairing={...pairing,...result};if(result.status==="PAIRED"){credentials=result.credentials;render();connect();return}render()}catch(error){pairing={...pairing,status:error.message};render();return}}}
   function connect(){clearInterval(pollTimer);subscription?.close?.();subscription=Delivery.subscribeToDeliveries({onChange:loadInbox,onState:(state)=>{connection=state;renderBackgroundUpdate()}});pollTimer=setInterval(()=>{Delivery.heartbeat(credentials).catch(()=>{});loadInbox()},15000);loadInbox()}
   function setScreen(next){screen=next;selected=null;preview=false;previewState={status:"idle",html:"",error:"",id:""};selectedIds.clear();openMenu=null;bulkMenu=false;search="";page=1;render();loadInbox()}
@@ -163,7 +166,7 @@
     if(event.target.matches("[data-select-id]")){event.target.checked?selectedIds.add(event.target.dataset.selectId):selectedIds.delete(event.target.dataset.selectId);render();return}
     if(event.target.matches("[data-select-page]")){if(event.target.checked)completedDeliveries.forEach((item)=>selectedIds.add(item.id));else completedDeliveries.forEach((item)=>selectedIds.delete(item.id));render()}
   });
-  window.addEventListener("atlas-auth-changed",async()=>{credentials=null;const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;render();if(credentials)connect()});
+  window.addEventListener("atlas-auth-changed",async()=>{credentials=null;branchContext=await Delivery.warehouseContext({force:true}).catch(()=>null);const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};render();if(credentials)connect()});
   window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";renderBackgroundUpdate()});
-  (async()=>{const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;render();if(credentials)connect()})();
+  (async()=>{branchContext=await Delivery.warehouseContext().catch(()=>null);const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};render();if(credentials)connect()})();
 })();
