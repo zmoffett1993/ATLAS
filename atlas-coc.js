@@ -55,6 +55,7 @@
   let activeTimingStartedAt = null;
   let scanMetricPending = false;
   let countConsoleWasOpen = false;
+  let palletSetupWasOpen = false;
   const ACTIVE_TIMING_HEARTBEAT_MS = 30000;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
@@ -316,6 +317,34 @@
     window.requestAnimationFrame(() => {
       reset();
       window.requestAnimationFrame(reset);
+    });
+  }
+
+  function positionPalletSetup() {
+    if (!window.matchMedia?.("(max-width: 719px)").matches) return;
+    const place = () => {
+      const card = document.querySelector(".atlas-coc-expected-card");
+      if (!card) return;
+      const workflow = document.querySelector(".atlas-workflows-view");
+      const workflowTopPadding = Number.parseFloat(
+        window.getComputedStyle(workflow || document.documentElement).paddingTop,
+      ) || 12;
+      // The workflow adds 12px above the device safe area. Align this card to
+      // the safe-area edge so its blue COC summary opens exactly in view.
+      const safeAreaTop = Math.max(0, workflowTopPadding - 12);
+      const targetTop = Math.max(12, safeAreaTop + 2);
+      const scrollingElement = document.scrollingElement || document.documentElement;
+      const nextTop = Math.max(0, Number(scrollingElement.scrollTop || window.scrollY || 0) +
+        card.getBoundingClientRect().top - targetTop);
+      window.scrollTo({ top: nextTop, left: 0, behavior: "auto" });
+      scrollingElement.scrollTop = nextTop;
+    };
+    place();
+    // Reassert only while the opening layout settles; normal user scrolling is
+    // untouched after the second paint.
+    window.requestAnimationFrame(() => {
+      place();
+      window.requestAnimationFrame(place);
     });
   }
 
@@ -1530,6 +1559,12 @@
     );
     const enteredCountConsole = countConsoleOpen && !countConsoleWasOpen;
     countConsoleWasOpen = countConsoleOpen;
+    const palletSetupOpen = Boolean(
+      route === "workflows" && workflowView === "session" && session?.status === "active" &&
+      consolePallet && (!consolePallet.expectedBoxes || !Core.palletModels(session, consolePallet).length)
+    );
+    const enteredPalletSetup = palletSetupOpen && !palletSetupWasOpen;
+    palletSetupWasOpen = palletSetupOpen;
     document.documentElement.classList.toggle("atlas-coc-count-console", countConsoleOpen);
     const bar = document.getElementById("atlas-coc-active-bar-slot");
     if (bar) {
@@ -1548,6 +1583,7 @@
       try {
         workflows.innerHTML = workflowMarkup();
         if (enteredCountConsole) scrollWorkflowToTop();
+        if (enteredPalletSetup) positionPalletSetup();
         window.requestAnimationFrame?.(() => Excel.fitOfficialWorkbookPreviews?.(workflows));
       } catch (error) {
         renderError = error;

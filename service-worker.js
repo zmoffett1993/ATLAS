@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v266-coc-receiver-and-auth-refresh";
+const VERSION = "atlas-pwa-v267-pallet-setup-opening-position";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=6",
   "./atlas-coc-excel.js?v=18",
-  "./atlas-coc.js?v=60",
+  "./atlas-coc.js?v=61",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=17",
   "./coc-receiver/receiver.js?v=17",
