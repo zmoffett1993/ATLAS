@@ -91,6 +91,11 @@
     return session;
   }
 
+  async function requireValidSession({ forceRefresh = false } = {}) {
+    const session = await global.AtlasAuth?.getValidSession?.({ forceRefresh });
+    return session || requireSession();
+  }
+
   function currentUser() {
     return getAuthSession()?.user || null;
   }
@@ -113,20 +118,28 @@
   }
 
   async function edgeRequest(functionName, body, { receiverCredentials = null, responseType = "json" } = {}) {
-    const session = requireSession();
+    let session = await requireValidSession();
     const { url, key } = config();
-    const headers = {
-      apikey: key,
-      Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json",
+    const send = (accessToken) => {
+      const headers = {
+        apikey: key,
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      };
+      if (receiverCredentials?.devicePublicId) headers["X-Atlas-Receiver-Id"] = receiverCredentials.devicePublicId;
+      if (receiverCredentials?.deviceSecret) headers["X-Atlas-Receiver-Secret"] = receiverCredentials.deviceSecret;
+      return fetch(`${url}/functions/v1/${functionName}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body || {}),
+      });
     };
-    if (receiverCredentials?.devicePublicId) headers["X-Atlas-Receiver-Id"] = receiverCredentials.devicePublicId;
-    if (receiverCredentials?.deviceSecret) headers["X-Atlas-Receiver-Secret"] = receiverCredentials.deviceSecret;
-    const response = await fetch(`${url}/functions/v1/${functionName}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body || {}),
-    });
+    let response = await send(session.access_token);
+    if (response.status === 401 && global.AtlasAuth?.getValidSession) {
+      const failedToken = session.access_token;
+      session = await requireValidSession({ forceRefresh: true });
+      if (session.access_token !== failedToken) response = await send(session.access_token);
+    }
     if (!response.ok) {
       const failure = await response.json().catch(() => ({}));
       const error = new Error(clean(failure?.error || failure?.message || `COC_REQUEST_FAILED_${response.status}`, 300));

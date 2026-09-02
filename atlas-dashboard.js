@@ -336,17 +336,41 @@
   };
 
   const api = async (path, { token = state.session?.access_token, method = "GET", body } = {}) => {
-    const response = await fetch(`${API_URL}${path}`, {
-      method,
-      cache: "no-store",
-      headers: {
-        apikey: PUBLIC_KEY,
-        Authorization: `Bearer ${token || PUBLIC_KEY}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const payload = await response.json().catch(() => null);
+    let activeToken = token;
+    if (activeToken && window.AtlasAuth?.getValidSession) {
+      const validSession = await window.AtlasAuth.getValidSession();
+      if (validSession?.access_token) {
+        state.session = validSession;
+        activeToken = validSession.access_token;
+      }
+    }
+    const send = async (requestToken) => {
+      const response = await fetch(`${API_URL}${path}`, {
+        method,
+        cache: "no-store",
+        headers: {
+          apikey: PUBLIC_KEY,
+          Authorization: `Bearer ${requestToken || PUBLIC_KEY}`,
+          ...(body ? { "Content-Type": "application/json" } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return { response, payload: await response.json().catch(() => null) };
+    };
+    let { response, payload } = await send(activeToken);
+    const failureText = String(payload?.message || payload?.error_description || payload?.error || "");
+    if (
+      activeToken
+      && (response.status === 401 || /invalid jwt|jwt expired/i.test(failureText))
+      && window.AtlasAuth?.getValidSession
+    ) {
+      const refreshedSession = await window.AtlasAuth.getValidSession({ forceRefresh: true });
+      if (refreshedSession?.access_token && refreshedSession.access_token !== activeToken) {
+        state.session = refreshedSession;
+        activeToken = refreshedSession.access_token;
+        ({ response, payload } = await send(activeToken));
+      }
+    }
     if (!response.ok) {
       const error = new Error(payload?.message || payload?.error_description || payload?.hint || `Request failed (${response.status})`);
       error.status = response.status;

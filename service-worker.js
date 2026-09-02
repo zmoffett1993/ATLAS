@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v265-single-confirm-move";
+const VERSION = "atlas-pwa-v266-coc-receiver-and-auth-refresh";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,9 +6,9 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=153",
-  "./atlas-dashboard.js?v=157",
+  "./atlas-dashboard.js?v=158",
   "./atlas-auth.css?v=3",
-  "./atlas-auth.js?v=5",
+  "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=56",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
@@ -17,12 +17,12 @@ const APP_SHELL = [
   "./atlas-coc-core.js?v=20",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=3",
-  "./atlas-coc-delivery.js?v=5",
+  "./atlas-coc-delivery.js?v=6",
   "./atlas-coc-excel.js?v=18",
   "./atlas-coc.js?v=60",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=16",
-  "./coc-receiver/receiver.js?v=16",
+  "./coc-receiver/receiver.css?v=17",
+  "./coc-receiver/receiver.js?v=17",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

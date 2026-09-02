@@ -120,6 +120,22 @@
     return session;
   };
 
+  const getValidSession = async ({ forceRefresh = false } = {}) => {
+    const session = storedSession();
+    if (!session) return null;
+    const expiresAt = Number(session.expires_at || 0) * 1000;
+    const shouldRefresh = forceRefresh
+      || (expiresAt && expiresAt <= Date.now() + REFRESH_MARGIN_MS);
+    if (shouldRefresh && session.refresh_token) {
+      const refreshed = await refresh(session);
+      if (refreshed?.access_token) return refreshed;
+    }
+    const current = storedSession();
+    if (!current?.access_token) return null;
+    const currentExpiresAt = Number(current.expires_at || 0) * 1000;
+    return currentExpiresAt && currentExpiresAt <= Date.now() ? null : current;
+  };
+
   const signIn = async (loginName, password) => {
     const session = await request("/auth/v1/token?grant_type=password", {
       email: internalEmail(loginName),
@@ -289,6 +305,7 @@
     normalizeLoginName,
     internalEmail,
     getSession,
+    getValidSession,
     refresh,
     signIn,
     signOut,
