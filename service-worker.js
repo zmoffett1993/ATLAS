@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v264-lot-quantity-and-password-toggle";
+const VERSION = "atlas-pwa-v265-single-confirm-move";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 

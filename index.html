@@ -16236,7 +16236,8 @@ Error generating stack: ` +
             return () => window.clearTimeout(n);
           }, [e, o]));
         async function ne(e) {
-          if ((e.preventDefault(), E(null), de(null), !o))
+          if ((e.preventDefault(), ue || w)) return;
+          if ((E(null), de(null), !o))
             return E({ type: `error`, text: `Select a SKU first.` });
           if (_.trim().length < 2)
             return E({
@@ -16518,14 +16519,16 @@ Error generating stack: ` +
                           ],
                         })
                       : null,
-                    (0, T.jsx)(`button`, {
-                      className: `primary-button`,
-                      type: `submit`,
-                      disabled: w,
-                      children: w
-                        ? `Saving…`
-                        : `Confirm Move`,
-                    }),
+                    ue
+                      ? null
+                      : (0, T.jsx)(`button`, {
+                          className: `primary-button`,
+                          type: `submit`,
+                          disabled: w,
+                          children: w
+                            ? `Saving…`
+                            : `Confirm Move`,
+                        }),
                   ],
                 })
               : null,
