@@ -6,6 +6,7 @@
   const SESSION_KEY = "atlas-dashboard-session-v1";
   const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v1";
   const COC_PAGE_SIZE = 8;
+  const COC_FETCH_PAGE_SIZE = 50;
   const PRODUCT_MAP_URL = "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106";
   const ACTION_COLORS = Object.freeze({
     move: "#0f5ccb",
@@ -57,6 +58,9 @@
     cocSection: "all",
     cocSearch: "",
     cocSort: "newest",
+    cocPeriod: "today",
+    cocCustomStart: "",
+    cocCustomEnd: "",
     cocPage: 1,
     cocTotal: 0,
     cocRecords: [],
@@ -112,6 +116,8 @@
   let dashboardRequestSequence = 0;
   let cocRequestSequence = 0;
   let scannerRequestSequence = 0;
+  const cocWorkspaceScrollPositions = new Map();
+  const scannerViewScrollPositions = new Map();
 
   const escapeHtml = (value) =>
     String(value ?? "").replace(
@@ -530,6 +536,129 @@
   const cocPlural = (count, word) => `${Number(count || 0).toLocaleString()} ${word}${Number(count) === 1 ? "" : word === "box" ? "es" : "s"}`;
   const cocStatus = (record) => record?.receiver_archived_at ? "Archived" : ({ SENT: "Sent", RECEIVED: "Received", OFFICE_COMPLETED: "Completed" })[record?.status] || "Warehouse complete";
   const cocRecordDate = (record) => record?.office_completed_at || record?.received_at || record?.sent_at || record?.created_at;
+  const cocWarehouseTimeZone = (warehouseCode = state.selectedWarehouse?.code || "CA") =>
+    state.selectedWarehouse?.code === warehouseCode && state.selectedWarehouse?.time_zone
+      ? state.selectedWarehouse.time_zone
+      : warehouseCode === "TX" ? "America/Chicago" : "America/Los_Angeles";
+  const cocZonedDateParts = (date, timeZone, includeTime = false) => {
+    const options = includeTime
+      ? { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }
+      : { timeZone, year: "numeric", month: "2-digit", day: "2-digit" };
+    const parts = new Intl.DateTimeFormat("en-CA", options).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return {
+      year: Number(values.year),
+      month: Number(values.month),
+      day: Number(values.day),
+      hour: Number(values.hour || 0),
+      minute: Number(values.minute || 0),
+      second: Number(values.second || 0),
+    };
+  };
+  const cocShiftCalendarDate = (parts, days) => {
+    const shifted = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
+    return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1, day: shifted.getUTCDate() };
+  };
+  const cocZonedMidnightUtc = (parts, timeZone) => {
+    const target = Date.UTC(parts.year, parts.month - 1, parts.day, 0, 0, 0);
+    let guess = target;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const actual = cocZonedDateParts(new Date(guess), timeZone, true);
+      const actualAsUtc = Date.UTC(actual.year, actual.month - 1, actual.day, actual.hour, actual.minute, actual.second);
+      const adjustment = target - actualAsUtc;
+      guess += adjustment;
+      if (!adjustment) break;
+    }
+    return guess;
+  };
+  const cocDateInputValue = (parts) => `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+  const cocParseDateInput = (value) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+    return match ? { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) } : null;
+  };
+  const cocTodayInputValue = (warehouseCode = state.selectedWarehouse?.code || "CA") =>
+    cocDateInputValue(cocZonedDateParts(new Date(), cocWarehouseTimeZone(warehouseCode)));
+  const cocPeriodBounds = (warehouseCode = state.selectedWarehouse?.code || "CA") => {
+    const timeZone = cocWarehouseTimeZone(warehouseCode);
+    const today = cocZonedDateParts(new Date(), timeZone);
+    let startParts = null;
+    let endParts = null;
+    if (state.cocPeriod === "today") startParts = today;
+    else if (state.cocPeriod === "week") {
+      const weekday = new Date(Date.UTC(today.year, today.month - 1, today.day)).getUTCDay();
+      startParts = cocShiftCalendarDate(today, -((weekday + 6) % 7));
+    } else if (state.cocPeriod === "7d") startParts = cocShiftCalendarDate(today, -6);
+    else if (state.cocPeriod === "30d") startParts = cocShiftCalendarDate(today, -29);
+    else if (state.cocPeriod === "custom") {
+      startParts = cocParseDateInput(state.cocCustomStart);
+      const selectedEnd = cocParseDateInput(state.cocCustomEnd);
+      endParts = selectedEnd ? cocShiftCalendarDate(selectedEnd, 1) : null;
+    }
+    return {
+      start: startParts ? cocZonedMidnightUtc(startParts, timeZone) : Number.NEGATIVE_INFINITY,
+      end: endParts ? cocZonedMidnightUtc(endParts, timeZone) : Number.POSITIVE_INFINITY,
+    };
+  };
+  const cocPeriodLabel = () => ({
+    today: "Today",
+    week: "This Week",
+    "7d": "Last 7 Days",
+    "30d": "Last 30 Days",
+    all: "All Time",
+    custom: state.cocCustomStart && state.cocCustomEnd
+      ? `${state.cocCustomStart} – ${state.cocCustomEnd}`
+      : "Custom Range",
+  })[state.cocPeriod] || "Today";
+  const sortCocRecords = (records, sort = state.cocSort) => [...records].sort((left, right) => {
+    const leftTime = parseDate(cocRecordDate(left))?.getTime?.() || 0;
+    const rightTime = parseDate(cocRecordDate(right))?.getTime?.() || 0;
+    if (sort === "oldest") return leftTime - rightTime;
+    if (sort === "customer-asc") {
+      const customerOrder = String(cocSnapshot(left).customerName || "").localeCompare(String(cocSnapshot(right).customerName || ""), undefined, { sensitivity: "base" });
+      return customerOrder || rightTime - leftTime;
+    }
+    return rightTime - leftTime;
+  });
+  const loadFilteredCocList = async (warehouseCode) => {
+    const records = [];
+    const seenRecordIds = new Set();
+    let page = 1;
+    let reportedTotal = null;
+    while (true) {
+      const response = await cocApi("list", {
+        section: state.cocSection,
+        page,
+        pageSize: COC_FETCH_PAGE_SIZE,
+        search: state.cocSearch,
+        sort: "newest",
+      }, warehouseCode);
+      const batch = Array.isArray(response.deliveries) ? response.deliveries : [];
+      let newlyAdded = 0;
+      batch.forEach((record) => {
+        const key = record?.id || `${cocRecordDate(record)}-${JSON.stringify(record?.report_snapshot || {})}`;
+        if (seenRecordIds.has(key)) return;
+        seenRecordIds.add(key);
+        records.push(record);
+        newlyAdded += 1;
+      });
+      if (response.total != null && Number.isFinite(Number(response.total))) reportedTotal = Number(response.total);
+      if (!batch.length || !newlyAdded || batch.length < COC_FETCH_PAGE_SIZE || (reportedTotal != null && records.length >= reportedTotal)) break;
+      page += 1;
+    }
+    const bounds = cocPeriodBounds(warehouseCode);
+    const filtered = records.filter((record) => {
+      if (state.cocPeriod === "all") return true;
+      const recordedAt = parseDate(cocRecordDate(record));
+      const timestamp = recordedAt?.getTime?.();
+      return Number.isFinite(timestamp) && timestamp >= bounds.start && timestamp < bounds.end;
+    });
+    const sorted = sortCocRecords(filtered);
+    const total = sorted.length;
+    const maxPage = Math.max(1, Math.ceil(total / COC_PAGE_SIZE));
+    if (state.cocPage > maxPage) state.cocPage = maxPage;
+    const offset = (state.cocPage - 1) * COC_PAGE_SIZE;
+    return { deliveries: sorted.slice(offset, offset + COC_PAGE_SIZE), total };
+  };
   const cocCanDelete = (record) => record?.status === "OFFICE_COMPLETED";
   const cocMetricIcon = (kind) => {
     const paths = {
@@ -559,10 +688,24 @@
     : "—";
   const cocPerformanceCard = (kind, label, value, note) => `<article class="is-${kind}">${cocMetricIcon(kind)}<div><span>${label}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div></article>`;
 
-  const renderPreservingScroll = () => {
-    const top = window.scrollY || document.documentElement.scrollTop || 0;
+  const currentPageScrollTop = () => window.scrollY || document.documentElement.scrollTop || 0;
+
+  const restorePageScroll = (top) => {
+    const target = Math.max(0, Number(top) || 0);
+    const restore = () => window.scrollTo({ top: target, left: 0, behavior: "auto" });
+    if (typeof window.requestAnimationFrame !== "function") {
+      restore();
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      restore();
+      window.requestAnimationFrame(restore);
+    });
+  };
+
+  const renderPreservingScroll = (top = currentPageScrollTop()) => {
     render();
-    window.requestAnimationFrame?.(() => window.scrollTo({ top, left: 0, behavior: "auto" }));
+    restorePageScroll(top);
   };
 
   const loadCocData = async ({ background = false, warehouseCode = state.selectedWarehouse?.code || "CA" } = {}) => {
@@ -571,16 +714,10 @@
     const requestId = ++cocRequestSequence;
     state.cocLoading = true;
     state.cocError = "";
-    if (!background) render();
+    if (!background) renderPreservingScroll();
     try {
       const [list, metrics] = await Promise.all([
-        cocApi("list", {
-          section: state.cocSection,
-          page: state.cocPage,
-          pageSize: COC_PAGE_SIZE,
-          search: state.cocSearch,
-          sort: state.cocSort,
-        }, requestedWarehouseCode),
+        loadFilteredCocList(requestedWarehouseCode),
         cocApi("metrics", {
           dayStart: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
           performanceRange: state.cocPerformanceRange,
@@ -627,7 +764,7 @@
       if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocLoading = false;
       const previewLocked = state.cocSelected && state.cocPreview.status === "ready";
-      if (!background || !previewLocked) background ? renderPreservingScroll() : render();
+      if (!background || !previewLocked) renderPreservingScroll();
     }
   };
 
@@ -637,7 +774,7 @@
     const requestId = ++scannerRequestSequence;
     state.scannerLoading = true;
     state.scannerError = "";
-    if (!background) render();
+    if (!background) renderPreservingScroll();
     try {
       const [metrics, corrections] = await Promise.all([
         scannerApi("metrics", scannerGlobalFilters(), requestedWarehouseCode),
@@ -662,7 +799,7 @@
     } finally {
       if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.scannerLoading = false;
-      background ? renderPreservingScroll() : render();
+      renderPreservingScroll();
     }
   };
 
@@ -805,6 +942,8 @@
     document.documentElement.classList.add("atlas-dashboard-open");
     syncMenuState();
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    cocWorkspaceScrollPositions.clear();
+    scannerViewScrollPositions.clear();
     state.session = getSession();
     void loadProductImages();
     render();
@@ -1433,7 +1572,7 @@
 
   const renderCocRows = () => {
     if (state.cocLoading && !state.cocLoaded) return `<tr><td colspan="7"><div class="atlas-dashboard-coc-empty">Loading COCs…</div></td></tr>`;
-    if (!state.cocRecords.length) return `<tr><td colspan="7"><div class="atlas-dashboard-coc-empty">${state.cocSearch ? "No COCs match this search." : "No COCs are available in this section."}</div></td></tr>`;
+    if (!state.cocRecords.length) return `<tr><td colspan="7"><div class="atlas-dashboard-coc-empty">${state.cocSearch ? "No COCs match this search and reporting period." : `No COCs are available for ${escapeHtml(cocPeriodLabel().toLowerCase())}.`}</div></td></tr>`;
     return state.cocRecords.map((record) => {
       const snap = cocSnapshot(record), totals = cocTotals(record);
       return `<tr><td><span class="atlas-dashboard-coc-status is-${escapeHtml(cocStatus(record).toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(cocStatus(record))}</span></td><td>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</td><td><strong>${escapeHtml(snap.customerName || "—")}</strong></td><td>${escapeHtml(snap.ifNumber || "—")}</td><td>${escapeHtml(snap.invoiceNumber || "—")}</td><td>${cocPlural(totals.pallets, "pallet")} · ${cocPlural(totals.boxes, "box")}</td><td><div class="atlas-dashboard-coc-row-actions"><button data-coc-open="${escapeHtml(record.id)}">View</button><button data-coc-official-row="${escapeHtml(record.id)}">Official COC</button>${cocCanDelete(record) ? `<button class="is-delete" data-coc-delete="${escapeHtml(record.id)}">Delete</button>` : ""}</div></td></tr>`;
@@ -1480,9 +1619,9 @@
     const pages = Math.max(1, Math.ceil(state.cocTotal / COC_PAGE_SIZE));
     return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">DAILY COC OPERATIONS</p><h2>COC Receiver Activity</h2><span>Monitor incoming work and review completed or archived COCs for this warehouse.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
       <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["active","Incoming"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
-      <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, or IF number" aria-label="Search COCs"><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button></div>
+      <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, or IF number" aria-label="Search COCs"><select data-coc-period aria-label="Reporting period"><option value="today" ${state.cocPeriod === "today" ? "selected" : ""}>Today</option><option value="week" ${state.cocPeriod === "week" ? "selected" : ""}>This Week</option><option value="7d" ${state.cocPeriod === "7d" ? "selected" : ""}>Last 7 Days</option><option value="30d" ${state.cocPeriod === "30d" ? "selected" : ""}>Last 30 Days</option><option value="all" ${state.cocPeriod === "all" ? "selected" : ""}>All Time</option><option value="custom" ${state.cocPeriod === "custom" ? "selected" : ""}>Custom Range</option></select><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button>${state.cocPeriod === "custom" ? `<div class="atlas-dashboard-coc-custom-range"><label><span>From</span><input type="date" data-coc-custom-start value="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(state.cocCustomEnd || cocTodayInputValue())}"></label><label><span>Through</span><input type="date" data-coc-custom-end value="${escapeHtml(state.cocCustomEnd)}" min="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(cocTodayInputValue())}"></label></div>` : ""}</div>
       <div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Status</th><th>Recorded</th><th>Customer</th><th>IF Number</th><th>Invoice</th><th>Pallets / Boxes</th><th>Actions</th></tr></thead><tbody>${renderCocRows()}</tbody></table></div>
-      <footer><span>Showing ${state.cocTotal ? ((state.cocPage - 1) * COC_PAGE_SIZE) + 1 : 0}–${Math.min(state.cocPage * COC_PAGE_SIZE, state.cocTotal)} of ${state.cocTotal.toLocaleString()} COCs</span><div><button type="button" data-coc-page="${state.cocPage - 1}" ${state.cocPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.cocPage} / ${pages}</strong><button type="button" data-coc-page="${state.cocPage + 1}" ${state.cocPage >= pages ? "disabled" : ""}>›</button></div></footer>
+      <footer><span>Showing ${state.cocTotal ? ((state.cocPage - 1) * COC_PAGE_SIZE) + 1 : 0}–${Math.min(state.cocPage * COC_PAGE_SIZE, state.cocTotal)} of ${state.cocTotal.toLocaleString()} COCs · ${escapeHtml(cocPeriodLabel())}</span><div><button type="button" data-coc-page="${state.cocPage - 1}" ${state.cocPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.cocPage} / ${pages}</strong><button type="button" data-coc-page="${state.cocPage + 1}" ${state.cocPage >= pages ? "disabled" : ""}>›</button></div></footer>
     </article>`;
   };
 
@@ -1526,7 +1665,7 @@
       <div class="atlas-scanner-metrics">${renderScannerMetric("Exact Lot Scan", scannerPercent(summary.exactRate), `${Number(summary.exactScans || 0).toLocaleString()} exact of ${Number(summary.attempts || 0).toLocaleString()} attempts`)}${renderScannerMetric("Character Accuracy", scannerPercent(summary.characterAccuracy), "Every corrected character included", "green")}${renderScannerMetric("Corrected Scans", Number(summary.correctedScans || 0).toLocaleString(), `${Number(summary.oneTwoCharacterCorrections || 0).toLocaleString()} required only 1–2 edits`, "amber")}${renderScannerMetric("Fallback / Failure", scannerPercent(summary.manualFallbackRate), `${Number(summary.failures || 0).toLocaleString()} failed scan attempts`, "slate")}</div>
       <article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">ACCURACY TREND</p><h2>Scanner Performance</h2><span>Exact confirmation and character-level accuracy over time</span></div></header>${renderScannerTrend()}</article>
       <article class="atlas-scanner-panel atlas-scanner-workflow-context"><header><div><p class="atlas-dashboard-eyebrow">WORKFLOW CONTEXT</p><h2>COC Processing Time</h2><span>Operational timing for ${escapeHtml(rangeLabel.toLowerCase())}</span></div></header><div class="atlas-scanner-context-metrics">${renderScannerMetric("Average COC Time", formatCocDuration(workflow.averageActiveDurationMs), workflow.completionSamples ? `${cocPlural(workflow.completionSamples, "COC")} measured` : "Timing begins after a completed COC", "blue")}${renderScannerMetric("Median COC Time", formatCocDuration(workflow.medianActiveDurationMs), "Typical active processing time", "green")}${renderScannerMetric("Completed Sample", Number(workflow.completionSamples || 0).toLocaleString(), "Completed COCs included in timing", "slate")}</div></article>
-      <div class="atlas-scanner-split"><article class="atlas-scanner-panel"><header><div><h2>Capture Method</h2><span>Performance by the way the lot was captured</span></div></header><div class="atlas-scanner-table">${(data.byCaptureMethod || []).map((item) => `<div><strong>${escapeHtml(item.name)}</strong><span>${item.attempts.toLocaleString()} attempts</span><b>${scannerPercent(item.exactRate)}</b><small>${scannerPercent(item.characterAccuracy)} characters</small></div>`).join("") || `<div>No capture activity yet.</div>`}</div></article>
+      <div class="atlas-scanner-split"><article class="atlas-scanner-panel atlas-scanner-capture-panel"><header><div><h2>Capture Method</h2><span>Performance by the way the lot was captured</span></div></header><div class="atlas-scanner-table">${(data.byCaptureMethod || []).map((item) => `<div><strong>${escapeHtml(item.name)}</strong><span>${item.attempts.toLocaleString()} attempts</span><b>${scannerPercent(item.exactRate)}</b><small>${scannerPercent(item.characterAccuracy)} characters</small></div>`).join("") || `<div>No capture activity yet.</div>`}</div></article>
       <article class="atlas-scanner-panel"><header><div><h2>Recent Corrections</h2><span>${Number(summary.unreviewed || 0)} awaiting supervisor review</span></div><button type="button" data-scanner-view="review">Review Queue</button></header><div class="atlas-scanner-mini-list">${(data.recentCorrections || []).map((item) => `<button type="button" data-scanner-correction="${escapeHtml(item.id)}"><span>${escapeHtml(item.sku || "SKU")}</span><strong>${escapeHtml(item.scanner_original_lot || "—")} → ${escapeHtml(item.confirmed_lot || "—")}</strong><small>${Number(item.edit_distance || 0)} character edit${Number(item.edit_distance) === 1 ? "" : "s"}</small></button>`).join("") || `<p>No corrected scans in this period.</p>`}</div></article></div>
     </div>`;
     const review = `<div class="atlas-scanner-review-layout"><article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">PRIVATE EVIDENCE QUEUE</p><h2>Correction Review</h2><span>Only scans changed by an employee preserve a cropped label image. Employee detail is limited to this review workspace.</span></div></header><div class="atlas-scanner-review-extra"><label>Employee<select data-scanner-filter="employee">${scannerFilterOptions(data.filters?.employees, state.scannerEmployee, "All employees", (item) => [item.id, item.name])}</select></label><label>Review status<select data-scanner-filter="review"><option value="" ${!state.scannerReviewStatus ? "selected" : ""}>All statuses</option><option value="unreviewed" ${state.scannerReviewStatus === "unreviewed" ? "selected" : ""}>Unreviewed</option><option value="reviewed" ${state.scannerReviewStatus === "reviewed" ? "selected" : ""}>Reviewed</option><option value="excluded" ${state.scannerReviewStatus === "excluded" ? "selected" : ""}>Excluded</option></select></label><label>Correction size<select data-scanner-filter="size"><option value="">All sizes</option><option value="1-2" ${state.scannerCorrectionSize === "1-2" ? "selected" : ""}>1–2 characters</option><option value="3+" ${state.scannerCorrectionSize === "3+" ? "selected" : ""}>3+ characters</option></select></label></div><div class="atlas-scanner-correction-list">${renderScannerCorrectionRows()}</div><footer><button type="button" data-scanner-page="${state.scannerPage - 1}" ${state.scannerPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.scannerPage} / ${scannerPages}</strong><button type="button" data-scanner-page="${state.scannerPage + 1}" ${state.scannerPage >= scannerPages ? "disabled" : ""}>›</button></footer></article></div>`;
@@ -1742,10 +1881,12 @@
       }
       startDashboardRefresh();
     } else if (button.matches("[data-coc-workspace]")) {
+      const currentTop = currentPageScrollTop();
+      cocWorkspaceScrollPositions.set(state.cocWorkspace, currentTop);
       state.cocWorkspace = button.dataset.cocWorkspace || "operations";
       state.cocSelected = null;
       state.scannerSelected = null;
-      render();
+      renderPreservingScroll(cocWorkspaceScrollPositions.get(state.cocWorkspace) ?? currentTop);
       if (!state.cocLoaded) loadCocData();
       if (state.cocWorkspace === "scanner" && !state.scannerLoaded) loadScannerData();
     } else if (button.matches("[data-scanner-clear-filters]")) {
@@ -1756,9 +1897,11 @@
       state.scannerPage = 1;
       void Promise.all([loadScannerData(), loadCocData()]);
     } else if (button.matches("[data-scanner-view]")) {
+      const currentTop = currentPageScrollTop();
+      scannerViewScrollPositions.set(state.scannerView, currentTop);
       state.scannerView = button.dataset.scannerView || "performance";
       state.scannerSelected = null;
-      render();
+      renderPreservingScroll(scannerViewScrollPositions.get(state.scannerView) ?? currentTop);
     } else if (button.matches("[data-scanner-correction]")) {
       state.scannerView = "review";
       void loadScannerCorrection(button.dataset.scannerCorrection);
@@ -1964,6 +2107,31 @@
     }
     else if (event.target.matches("[data-coc-sort]")) {
       state.cocSort = event.target.value;
+      state.cocPage = 1;
+      loadCocData();
+      return;
+    }
+    else if (event.target.matches("[data-coc-period]")) {
+      state.cocPeriod = event.target.value;
+      if (state.cocPeriod === "custom") {
+        const today = cocTodayInputValue();
+        state.cocCustomStart ||= today;
+        state.cocCustomEnd ||= today;
+      }
+      state.cocPage = 1;
+      loadCocData();
+      return;
+    }
+    else if (event.target.matches("[data-coc-custom-start]")) {
+      state.cocCustomStart = event.target.value;
+      if (state.cocCustomEnd && state.cocCustomStart > state.cocCustomEnd) state.cocCustomEnd = state.cocCustomStart;
+      state.cocPage = 1;
+      loadCocData();
+      return;
+    }
+    else if (event.target.matches("[data-coc-custom-end]")) {
+      state.cocCustomEnd = event.target.value;
+      if (state.cocCustomStart && state.cocCustomEnd < state.cocCustomStart) state.cocCustomStart = state.cocCustomEnd;
       state.cocPage = 1;
       loadCocData();
       return;
