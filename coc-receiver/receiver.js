@@ -43,13 +43,19 @@
     shield:'<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/><path d="m9 12 2 2 4-4"/>',
   };return `<svg aria-hidden="true" viewBox="0 0 24 24">${paths[name]||""}</svg>`}
 
+  function pairingQrMarkup(){
+    const svg=String(pairing?.qrSvg||"").trim();
+    if(!/^<svg(?:\s|>)/i.test(svg))return '<span class="receiver-qr-fallback">Use the six-digit code above.</span>';
+    return svg.replace(/^<svg\b/i,'<svg class="receiver-qr-symbol" role="img" aria-label="Pairing QR code"');
+  }
+
   function branchCode(){return branchContext?.selectedWarehouse?.code||branchContext?.warehouse?.code||credentials?.warehouseCode||"CA"}
   function branchName(){return branchContext?.selectedWarehouse?.display_name||branchContext?.warehouse?.display_name||`${branchCode()} Warehouse`}
   function header(){return `<header class="receiver-head"><div class="receiver-atlas-lockup" aria-label="ATLAS Warehouse Management"><img src="../atlas-brand-mark-dark.svg?v=97" alt="" aria-hidden="true"><span><b>ATLAS</b><small>WAREHOUSE MANAGEMENT</small></span></div><div class="receiver-brand-title"><h1>${esc(branchCode())} COC RECEIVER</h1><p>${esc(branchName())}</p></div><div class="receiver-status ${connection==="connected"?"":"is-offline"}"><strong>● ${connection==="connected"?"CONNECTED · READY":connection==="reconnecting"?"RECONNECTING…":"OFFLINE"}</strong><small>Last synced ${lastSynced?time(lastSynced):"—"}</small></div></header>`}
   function pairingMarkup(){
     if(!Delivery.getAuthSession())return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>ATLAS sign-in required</h1><p>Use the name and password assigned to this office station.</p><button class="receiver-primary" data-action="sign-in">SIGN IN</button></section>`;
     if(!pairing)return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>Pair this computer</h1><p>This browser needs supervisor approval before it can receive compliance reports.</p><button class="receiver-primary" data-action="start-pairing">Create Pairing Code</button></section>`;
-    return `<section class="receiver-pair"><span class="receiver-eyebrow">PAIRING REQUEST</span><h1>Approve on a warehouse phone</h1><p>Workflows → Office COC Receiver</p><div class="receiver-code">${esc(pairing.pairingCode)}</div><div class="receiver-qr">${pairing.qrSvg||"QR token ready"}</div><p>Expires ${time(pairing.expiresAt)}</p><p>${esc(pairing.status||"Waiting for supervisor approval…")}</p></section>`;
+    return `<section class="receiver-pair"><span class="receiver-eyebrow">PAIRING REQUEST</span><h1>Approve on a warehouse phone</h1><p>Workflows → Office COC Receiver</p><div class="receiver-code">${esc(pairing.pairingCode)}</div><div class="receiver-qr">${pairingQrMarkup()}</div><p>Expires ${time(pairing.expiresAt)}</p><p>${esc(pairing.status||"Waiting for supervisor approval…")}</p></section>`;
   }
   function metricCard(kind,label,value,copy=""){return `<article class="receiver-metric is-${kind}"><i>${icon(kind==="awaiting"?"clipboard":kind==="received"?"inbox":"check")}</i><span><small>${label}</small><strong>${Number(value||0).toLocaleString()}</strong>${copy?`<b>${copy}</b>`:""}</span></article>`}
   function metricsMarkup(){return `<section class="receiver-metrics" aria-label="COC summary">${metricCard("awaiting","AWAITING",metrics.awaiting,"Requires office review")}${metricCard("received","RECEIVED TODAY",metrics.receivedToday)}${metricCard("completed","COMPLETED TODAY",metrics.completedToday)}</section>`}
