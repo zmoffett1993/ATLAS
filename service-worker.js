@@ -1,12 +1,12 @@
-const VERSION = "atlas-pwa-v274-scanner-1-0-0";
+const VERSION = "atlas-pwa-v275-coc-operations-intelligence";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=155",
-  "./atlas-dashboard.js?v=161",
+  "./atlas-dashboard.css?v=156",
+  "./atlas-dashboard.js?v=162",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=58",

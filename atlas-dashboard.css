@@ -2574,6 +2574,57 @@ html.atlas-dashboard-open #root {
   .atlas-scanner-review-form .atlas-dashboard-button { width: 100%; }
 }
 
+/* v275 COC Operations + focused Scanner Intelligence */
+.atlas-coc-operations { display: grid; gap: 18px; }
+.atlas-coc-workspace-tabs { width: min(100%, 560px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.atlas-coc-workspace-tabs button { min-height: 44px; padding: 0 22px; font-size: 13px; }
+.atlas-coc-operations .atlas-dashboard-coc-panel { border-color: #c9d9ea; box-shadow: 0 16px 38px rgba(11,35,64,.075); }
+.atlas-coc-operations .atlas-dashboard-coc-metrics article { position: relative; overflow: hidden; }
+.atlas-coc-operations .atlas-dashboard-coc-metrics article::after { content: ""; position: absolute; inset: auto 0 0; height: 3px; background: #d8e4ef; }
+.atlas-coc-operations .atlas-dashboard-coc-metrics article.is-awaiting::after { background: #1677e8; }
+.atlas-coc-operations .atlas-dashboard-coc-metrics article.is-received::after { background: #1c90bd; }
+.atlas-coc-operations .atlas-dashboard-coc-metrics article.is-completed::after { background: #0ba36d; }
+.atlas-scanner-intelligence { gap: 17px; }
+.atlas-scanner-heading { padding: 24px 26px; align-items: center; border: 1px solid #cbdbea; border-radius: 18px; background: radial-gradient(circle at 92% 5%, rgba(22,116,230,.13), transparent 33%), linear-gradient(135deg,#fff,#f5f9ff); box-shadow: 0 12px 32px rgba(11,35,64,.06); }
+.atlas-scanner-heading h2 { font-size: clamp(28px,3vw,38px); letter-spacing: -.025em; }
+.atlas-scanner-heading > div > span { max-width: 650px; font-size: 13px; }
+.atlas-scanner-private { min-width: 210px; padding: 12px 14px; display: grid; gap: 4px; color: #0a568f; border-color: #9fc4ed; border-radius: 13px; background: rgba(255,255,255,.86); white-space: normal; }
+.atlas-scanner-private b { font-size: 10px; letter-spacing: .09em; }
+.atlas-scanner-private small { color: #59718a; font-size: 11px; font-weight: 750; letter-spacing: 0; }
+.atlas-scanner-tabs { width: fit-content; max-width: 100%; padding: 4px; gap: 4px; border: 1px solid #d3deea; border-radius: 13px; background: #edf2f7; }
+.atlas-scanner-tabs button { min-height: 42px; padding: 0 20px; font-size: 12px; }
+.atlas-scanner-filters { padding: 16px; grid-template-columns: repeat(3,minmax(150px,1fr)) auto; align-items: end; gap: 11px; border-radius: 16px; box-shadow: 0 8px 24px rgba(11,35,64,.04); }
+.atlas-scanner-filters label,
+.atlas-scanner-review-extra label { font-size: 10px; }
+.atlas-scanner-filters select,
+.atlas-scanner-review-extra select { min-height: 43px; font-size: 12px; }
+.atlas-scanner-clear { min-height: 43px; padding: 0 18px; color: #0f5ccb; border: 1px solid #b8cee9; border-radius: 10px; background: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.atlas-scanner-clear:hover:not(:disabled) { border-color: #78a9e3; background: #edf6ff; }
+.atlas-scanner-clear:disabled { color: #8a9bad; background: #f1f4f7; cursor: default; opacity: .7; }
+.atlas-scanner-panel { box-shadow: 0 12px 30px rgba(11,35,64,.065); }
+.atlas-scanner-context-metrics { padding: 16px 20px 20px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.atlas-scanner-context-metrics .atlas-scanner-metric { min-height: 98px; }
+.atlas-scanner-review-extra { grid-template-columns: repeat(3,minmax(150px,220px)); }
+
+@media (max-width: 1000px) {
+  .atlas-scanner-filters { grid-template-columns: repeat(2,minmax(150px,1fr)); }
+  .atlas-scanner-clear { width: 100%; }
+}
+@media (max-width: 720px) {
+  .atlas-coc-workspace-tabs { width: 100%; }
+  .atlas-coc-workspace-tabs button { padding: 0 12px; }
+  .atlas-scanner-heading { padding: 20px; }
+  .atlas-scanner-private { width: 100%; }
+  .atlas-scanner-tabs { width: 100%; }
+  .atlas-scanner-tabs button { flex: 1 0 auto; }
+  .atlas-scanner-context-metrics { grid-template-columns: 1fr; padding: 12px; }
+  .atlas-scanner-review-extra { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .atlas-scanner-filters { grid-template-columns: 1fr; }
+  .atlas-coc-workspace-tabs button { min-height: 42px; font-size: 12px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .atlas-dashboard *,
   .atlas-dashboard *::before,
