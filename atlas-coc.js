@@ -15,6 +15,7 @@
 
   const ACTIVE_KEY = "atlas-coc-active-v1";
   const DEVICE_KEY = "atlas-coc-device-id-v1";
+  const SCANNER_RELEASE_VERSION = "1.0.0";
   const SCANNER_STATES = Object.freeze({
     IDLE: "idle",
     STARTING: "starting",
@@ -224,7 +225,7 @@
       confirmedLot: confirmed ? capture.text : "",
       captureMethod: capture.result?.captureMethod || "camera",
       confidence: capture.result?.confidence ?? capture.fieldConfidence ?? capture.confidence ?? null,
-      scannerVersion: "v271",
+      scannerVersion: SCANNER_RELEASE_VERSION,
       employeeName: getEmployeeDisplayName() || getEmployee(),
       customerName: session?.customerName || "",
       invoiceNumber: session?.invoiceNumber || "",
