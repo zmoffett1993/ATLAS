@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v277-office-receiver-pairing-label";
+const VERSION = "atlas-pwa-v278-account-delete-loop-fix";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=156",
-  "./atlas-dashboard.js?v=162",
+  "./atlas-dashboard.js?v=163",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=58",

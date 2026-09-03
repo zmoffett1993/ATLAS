@@ -47,6 +47,7 @@
     adminLoading: false,
     adminError: "",
     adminNotice: "",
+    accountDeleteError: "",
     accountWarehouseFilter: "all",
     accountRoleFilter: "all",
     accountStatusFilter: "active",
@@ -1272,9 +1273,10 @@
             <span class="atlas-account-modal-icon is-danger" aria-hidden="true">!</span>
             <h2 id="atlasAccountConfirmTitle">Delete this account permanently?</h2>
             <p><strong>${escapeHtml(user.display_name || user.login_name)}</strong> will no longer be able to sign in. This action cannot be undone. Historical warehouse activity will remain intact.</p>
+            ${state.accountDeleteError ? `<div class="atlas-account-notice is-error" role="alert">${escapeHtml(state.accountDeleteError)}</div>` : ""}
             <div class="atlas-account-modal-actions">
-              <button type="button" class="atlas-dashboard-button" data-account-close>Cancel</button>
-              <button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger" data-account-delete data-user-id="${escapeHtml(user.id)}">Delete Account</button>
+              <button type="button" class="atlas-dashboard-button" data-account-close ${state.adminLoading ? "disabled" : ""}>Cancel</button>
+              <button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger" data-account-delete data-user-id="${escapeHtml(user.id)}" ${state.adminLoading ? "disabled" : ""}>${state.adminLoading ? "Deleting…" : "Delete Account"}</button>
             </div>
           </section>
         </div>`;
@@ -1659,6 +1661,7 @@
     }
     if (event.target.matches?.("[data-account-modal-backdrop]")) {
       state.accountModal = null;
+      state.accountDeleteError = "";
       render();
       return;
     }
@@ -1834,14 +1837,14 @@
       render();
     } else if (button.matches("[data-account-close]")) {
       state.accountModal = null;
+      state.accountDeleteError = "";
       render();
     } else if (button.matches("[data-account-confirm-delete]")) {
       state.accountModal = { mode: "confirm-delete", userId: button.dataset.userId };
+      state.accountDeleteError = "";
       render();
     } else if (button.matches("[data-account-delete]")) {
-      button.disabled = true;
-      button.textContent = "Deleting…";
-      runAdminAction("delete", { user_id: button.dataset.userId });
+      void deleteAdminAccount(button.dataset.userId);
     } else if (button.matches("[data-account-refresh]")) {
       loadAdminUsers();
     } else if (button.matches("[data-account-warehouse-filter]")) {
@@ -2072,6 +2075,7 @@
     state.adminUsers = [];
     state.adminUsersLoaded = false;
     state.accountModal = null;
+    state.accountDeleteError = "";
     state.cocRecords = [];
     state.cocLoaded = false;
     state.cocSelected = null;
@@ -2116,6 +2120,33 @@
         submit.textContent = submit.dataset.originalText || "Save";
       }
       state.adminLoading = false;
+      render();
+    }
+  };
+
+  const deleteAdminAccount = async (userId) => {
+    if (state.adminLoading || !userId) return;
+    const target = state.adminUsers.find((user) => user.id === userId);
+    state.adminLoading = true;
+    state.adminError = "";
+    state.accountDeleteError = "";
+    render();
+    try {
+      const result = await adminApi("delete", { user_id: userId, preserve_history: true });
+      state.adminUsers = state.adminUsers.filter((user) => user.id !== userId);
+      state.adminUsersLoaded = true;
+      state.accountModal = null;
+      state.adminLoading = false;
+      state.adminNotice = result.message || `${target?.display_name || "The account"} was deleted.`;
+      render();
+      await loadAdminUsers({ preserveNotice: true });
+      await loadData({ force: true });
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : "The account could not be deleted.";
+      state.adminLoading = false;
+      state.accountDeleteError = /database error deleting user|foreign key|still referenced|violates/i.test(raw)
+        ? "This account is linked to protected ATLAS history. The account-deletion server update must be deployed before it can be removed safely."
+        : raw;
       render();
     }
   };
