@@ -908,7 +908,7 @@
       <strong class="atlas-coc-work-empty-title"><span>Add a lot for</span><span class="atlas-coc-work-empty-sku">${escapeHtml(activeModel)}</span></strong>
       <p>The next confirmed lot starts at Box 1.</p>
       <button type="button" class="atlas-coc-add-case" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>SCAN FIRST LOT</button>
-      <div class="atlas-coc-work-utilities"><button type="button" disabled>− Remove Box</button><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Finish</button></div>
+      <div class="atlas-coc-work-utilities"><button type="button" disabled>− Remove Box</button><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Complete Pallet ${pallet.number}</button></div>
     </section>`;
     const selectedLotHasHistory = pallet.history.some((entry) => entry.lotId === lot.id);
     const quantity = lotQuantityDetails(pallet, lot);
@@ -920,7 +920,7 @@
       <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
       <div class="atlas-coc-work-utilities">
         <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box</button>
-        <button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" ${canFinish ? "" : "disabled"}>Verify &amp; Finish</button>
+        <button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" ${canFinish ? "" : "disabled"}>Verify &amp; Complete Pallet ${pallet.number}</button>
       </div>
     </section>`;
   }
@@ -1394,7 +1394,7 @@
       <p class="atlas-coc-review-instruction">Verify each SKU, lot number, and box quantity before finishing.</p>
       <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div class="atlas-coc-review-record"><span class="atlas-coc-review-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span>${lotQuantityReviewMarkup(pallet, lot, "atlas-coc-review-boxes")}</div>`).join("") || `<p>No lots recorded.</p>`}</div>
       <p>The pallet can only be completed when the confirmed and recorded box counts match.</p>
-      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="verify-pallet">Verify &amp; Finish</button></div>`, { label: `Review pallet ${pallet.number}` });
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="verify-pallet">Verify &amp; Complete Pallet ${pallet.number}</button></div>`, { label: `Review pallet ${pallet.number}` });
   }
 
   function reviewCompleteModal() {
