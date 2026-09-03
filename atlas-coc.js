@@ -54,6 +54,9 @@
   let cameraStartToken = 0;
   let activeTimingStartedAt = null;
   let scanMetricPending = false;
+  let scanAttemptEventId = "";
+  let scannerQueueRunning = false;
+  let scannerQueueTimer = null;
   let countConsoleWasOpen = false;
   let palletSetupWasOpen = false;
   let receiverSetupWasOpen = false;
@@ -197,13 +200,105 @@
   }
 
   function beginScanMetricAttempt() {
-    if (session?.status === "active") scanMetricPending = true;
+    if (session?.status === "active") {
+      scanMetricPending = true;
+      scanAttemptEventId = window.crypto?.randomUUID?.() ||
+        `scan-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    }
   }
 
-  function finishScanMetricAttempt(outcome) {
+  function scannerAttemptPayload(outcome, { confirmed = false } = {}) {
+    const comparison = currentScannerReviewDetails();
+    const scannerOutcome = confirmed && comparison.scannerReviewTracked
+      ? comparison.scannerTextCorrected ? "corrected" : "exact"
+      : outcome === "success" ? "exact" : "failure";
+    const pallet = activePallet();
+    return {
+      clientEventId: scanAttemptEventId || window.crypto?.randomUUID?.(),
+      warehouseCode: session?.warehouseCode || Delivery.requestedWarehouseCode?.() || "CA",
+      cocId: session?.id || "",
+      palletNumber: pallet?.number || null,
+      sku: activeModelContext(),
+      outcome: scannerOutcome,
+      scannerOriginalLot: comparison.scannerOriginalLot || capture.originalReviewLot || "",
+      confirmedLot: confirmed ? capture.text : "",
+      captureMethod: capture.result?.captureMethod || "camera",
+      confidence: capture.result?.confidence ?? capture.fieldConfidence ?? capture.confidence ?? null,
+      scannerVersion: "v271",
+      employeeName: getEmployeeDisplayName() || getEmployee(),
+      customerName: session?.customerName || "",
+      invoiceNumber: session?.invoiceNumber || "",
+      ifNumber: session?.ifNumber || "",
+      imageDataUrl: scannerOutcome === "corrected" ? capture.photo : "",
+      recordedAt: new Date().toISOString(),
+    };
+  }
+
+  function scheduleScannerQueue(delay = 0) {
+    window.clearTimeout(scannerQueueTimer);
+    scannerQueueTimer = window.setTimeout(() => processScannerQueue(), Math.max(0, delay));
+  }
+
+  async function queueScannerAttempt(payload) {
+    const userId = currentUserId();
+    if (!payload?.clientEventId || !userId) return;
+    try {
+      await Storage.putScannerEvent({
+        eventId: payload.clientEventId,
+        userId,
+        warehouseCode: payload.warehouseCode,
+        payload,
+      });
+      scheduleScannerQueue();
+    } catch (error) {
+      console.error("ATLAS could not preserve scanner intelligence metadata.", error);
+    }
+  }
+
+  async function processScannerQueue() {
+    if (scannerQueueRunning || !navigator.onLine) return;
+    const userId = currentUserId();
+    if (!userId) return;
+    scannerQueueRunning = true;
+    let soonestRetry = null;
+    try {
+      const events = await Storage.listScannerEvents(userId);
+      for (const event of events) {
+        const retryAt = new Date(event.nextRetryAt || 0).valueOf();
+        if (retryAt > Date.now()) {
+          soonestRetry = Math.min(soonestRetry ?? retryAt, retryAt);
+          continue;
+        }
+        try {
+          await Delivery.submitScannerAttempt(event.payload);
+          await Storage.deleteScannerEvent(event.eventId);
+        } catch (error) {
+          const attempts = Math.min(12, Number(event.attempts || 0) + 1);
+          const delay = Math.min(3600000, 15000 * (2 ** attempts));
+          const nextRetryAt = new Date(Date.now() + delay).toISOString();
+          await Storage.putScannerEvent({
+            ...event,
+            attempts,
+            nextRetryAt,
+            lastError: error?.message || "SCANNER_UPLOAD_FAILED",
+          });
+          soonestRetry = Math.min(soonestRetry ?? Date.parse(nextRetryAt), Date.parse(nextRetryAt));
+        }
+      }
+    } catch (error) {
+      console.error("ATLAS scanner intelligence retry queue paused.", error);
+    } finally {
+      scannerQueueRunning = false;
+      if (soonestRetry) scheduleScannerQueue(Math.min(60000, Math.max(1000, soonestRetry - Date.now())));
+    }
+  }
+
+  function finishScanMetricAttempt(outcome, options = {}) {
     if (!scanMetricPending || session?.status !== "active") return;
     session = Core.recordScanOutcome(session, outcome);
+    if (outcome !== "canceled") queueScannerAttempt(scannerAttemptPayload(outcome, options));
     scanMetricPending = false;
+    scanAttemptEventId = "";
     saveSessionMetricsLocally();
   }
 
@@ -2789,6 +2884,7 @@
         scannerReview.scannerReviewTracked && !scannerReview.scannerTextCorrected
           ? "success"
           : "failure",
+        { confirmed: true },
       );
       recordScannerReviewMetric(scannerReview);
       acceptLot(capture.text, {
@@ -2817,6 +2913,7 @@
         scannerReview.scannerReviewTracked && !scannerReview.scannerTextCorrected
           ? "success"
           : "failure",
+        { confirmed: true },
       );
       recordScannerReviewMetric(scannerReview);
       acceptLot(capture.text, {
@@ -3392,6 +3489,7 @@
     renderAll();
   });
   window.addEventListener("online", () => scheduleCloudSync());
+  window.addEventListener("online", () => scheduleScannerQueue());
   window.addEventListener("online", () => Catalog.loadRemote());
   window.addEventListener("atlas-auth-changed", (event) => {
     if (!event.detail?.session) return;
@@ -3434,6 +3532,7 @@
       if (workflowView === "receiver-setup") stopReceiverQrScanner();
     } else {
       syncActiveTiming();
+      scheduleScannerQueue();
       if (modal === "capture" && !cameraStream) {
         const status = document.getElementById("atlas-coc-camera-status");
         if (status) status.textContent = "Restarting camera…";
@@ -3491,8 +3590,8 @@
   readSession();
   Catalog.loadRemote();
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => { Delivery.warehouseContext().catch(() => {}); renderAll(); restoreFromCloud(); approvePairingFromLink(); }, { once: true });
+    document.addEventListener("DOMContentLoaded", () => { Delivery.warehouseContext().catch(() => {}); renderAll(); restoreFromCloud(); approvePairingFromLink(); scheduleScannerQueue(); }, { once: true });
   } else {
-    Delivery.warehouseContext().catch(() => {}); renderAll(); restoreFromCloud(); approvePairingFromLink();
+    Delivery.warehouseContext().catch(() => {}); renderAll(); restoreFromCloud(); approvePairingFromLink(); scheduleScannerQueue();
   }
 })();

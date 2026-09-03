@@ -2,10 +2,11 @@
   "use strict";
 
   const DB_NAME = "atlas-coc-device-v2";
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const COMPLETED = "completedCocs";
   const PENDING = "pendingCocSends";
   const SETTINGS = "receiverSettings";
+  const SCANNER_EVENTS = "scannerEvents";
 
   function requestResult(request) {
     return new Promise((resolve, reject) => {
@@ -39,6 +40,11 @@
         }
         if (!database.objectStoreNames.contains(SETTINGS)) {
           database.createObjectStore(SETTINGS, { keyPath: "key" });
+        }
+        if (!database.objectStoreNames.contains(SCANNER_EVENTS)) {
+          const store = database.createObjectStore(SCANNER_EVENTS, { keyPath: "eventId" });
+          store.createIndex("user_updated", ["userId", "updatedAt"], { unique: false });
+          store.createIndex("retry_at", "nextRetryAt", { unique: false });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -195,6 +201,43 @@
     await withStore(SETTINGS, "readwrite", (store) => requestResult(store.delete(text(key, 120))));
   }
 
+  function scannerEventRecord(event) {
+    const normalized = {
+      eventId: text(event?.eventId, 140),
+      userId: text(event?.userId, 140),
+      warehouseCode: text(event?.warehouseCode || "CA", 8).toUpperCase(),
+      payload: structuredClone(event?.payload || {}),
+      attempts: Math.max(0, Number(event?.attempts) || 0),
+      nextRetryAt: text(event?.nextRetryAt || new Date().toISOString(), 40),
+      lastError: text(event?.lastError, 300) || null,
+      createdAt: text(event?.createdAt || new Date().toISOString(), 40),
+      updatedAt: new Date().toISOString(),
+    };
+    if (!normalized.eventId || !normalized.userId) throw new Error("SCANNER_EVENT_INVALID");
+    return normalized;
+  }
+
+  async function putScannerEvent(event) {
+    const normalized = scannerEventRecord(event);
+    await withStore(SCANNER_EVENTS, "readwrite", (store) => requestResult(store.put(normalized)));
+    return normalized;
+  }
+
+  async function listScannerEvents(userId) {
+    const owner = text(userId, 140);
+    if (!owner) return [];
+    return withStore(SCANNER_EVENTS, "readonly", async (store) => {
+      const records = await requestResult(store.getAll());
+      return records
+        .filter((record) => record?.userId === owner)
+        .sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)));
+    });
+  }
+
+  async function deleteScannerEvent(eventId) {
+    await withStore(SCANNER_EVENTS, "readwrite", (store) => requestResult(store.delete(text(eventId, 140))));
+  }
+
   function downloadBlob(blob, fileName) {
     if (!(blob instanceof Blob)) throw new Error("WORKBOOK_BLOB_MISSING");
     const url = URL.createObjectURL(blob);
@@ -221,6 +264,9 @@
     getSetting,
     setSetting,
     deleteSetting,
+    putScannerEvent,
+    listScannerEvents,
+    deleteScannerEvent,
     downloadBlob,
   });
 })(window);

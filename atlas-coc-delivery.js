@@ -345,6 +345,38 @@
     return edgeRequest("coc-receiver", { action: "mark-completed", deliveryId }, { receiverCredentials: credentials });
   }
 
+  function loadDataImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("SCANNER_IMAGE_INVALID"));
+      image.src = dataUrl;
+    });
+  }
+
+  async function prepareScannerImage(dataUrl) {
+    if (!String(dataUrl || "").startsWith("data:image/")) return null;
+    const image = await loadDataImage(dataUrl);
+    const maximum = 1600;
+    const scale = Math.min(1, maximum / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d", { alpha: false }).drawImage(image, 0, 0, width, height);
+    return { dataUrl: canvas.toDataURL("image/jpeg", 0.82), width, height, mimeType: "image/jpeg" };
+  }
+
+  async function submitScannerAttempt(event) {
+    const payload = { ...(event || {}) };
+    if (payload.outcome === "corrected" && payload.imageDataUrl) {
+      payload.image = await prepareScannerImage(payload.imageDataUrl);
+    }
+    delete payload.imageDataUrl;
+    return edgeRequest("scanner-intelligence", { action: "record-attempt", ...payload });
+  }
+
   function subscribeToDeliveries({ filter = "", onChange = () => {}, onState = () => {} } = {}) {
     const session = getAuthSession();
     if (!session) return { close() {} };
@@ -437,6 +469,7 @@
     downloadOfficeWorkbook,
     acknowledgeDelivery,
     markOfficeCompleted,
+    submitScannerAttempt,
     subscribeToDeliveries,
   });
 })(window);

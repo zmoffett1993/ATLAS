@@ -84,6 +84,24 @@
     cocSelected: null,
     cocPreview: { status: "idle", html: "", error: "", id: "" },
     cocDelete: null,
+    cocWorkspace: "overview",
+    scannerView: "performance",
+    scannerRange: "30d",
+    scannerSku: "",
+    scannerEmployee: "",
+    scannerCaptureMethod: "",
+    scannerVersion: "",
+    scannerReviewStatus: "",
+    scannerCorrectionSize: "",
+    scannerPage: 1,
+    scannerTotal: 0,
+    scannerCorrections: [],
+    scannerSelected: null,
+    scannerData: null,
+    scannerLoading: false,
+    scannerLoaded: false,
+    scannerError: "",
+    scannerNotice: "",
     lastSync: null,
     session: null,
     accessRequired: false,
@@ -93,6 +111,7 @@
   let cocSearchTimer = null;
   let dashboardRequestSequence = 0;
   let cocRequestSequence = 0;
+  let scannerRequestSequence = 0;
 
   const escapeHtml = (value) =>
     String(value ?? "").replace(
@@ -378,7 +397,7 @@
       }
     }
     if (!response.ok) {
-      const error = new Error(payload?.message || payload?.error_description || payload?.hint || `Request failed (${response.status})`);
+      const error = new Error(payload?.message || payload?.error_description || payload?.error || payload?.hint || `Request failed (${response.status})`);
       error.status = response.status;
       throw error;
     }
@@ -446,6 +465,22 @@
       method: "POST",
       body: { action, warehouseCode, ...payload },
     });
+
+  const scannerApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") =>
+    api("/functions/v1/scanner-intelligence", {
+      method: "POST",
+      body: { action, warehouseCode, ...payload },
+    });
+
+  const scannerFilters = () => ({
+    range: state.scannerRange,
+    sku: state.scannerSku,
+    employeeId: state.scannerEmployee,
+    captureMethod: state.scannerCaptureMethod,
+    scannerVersion: state.scannerVersion,
+    reviewStatus: state.scannerReviewStatus,
+    correctionSize: state.scannerCorrectionSize,
+  });
 
   const cocSnapshot = (record) => record?.report_snapshot || {};
   const cocTotals = (record) => {
@@ -590,6 +625,56 @@
       state.cocLoading = false;
       const previewLocked = state.cocSelected && state.cocPreview.status === "ready";
       if (!background || !previewLocked) background ? renderPreservingScroll() : render();
+    }
+  };
+
+  const loadScannerData = async ({ background = false, warehouseCode = state.selectedWarehouse?.code || "CA" } = {}) => {
+    if (!state.session?.access_token || !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
+    const requestedWarehouseCode = String(warehouseCode || "CA").toUpperCase();
+    const requestId = ++scannerRequestSequence;
+    state.scannerLoading = true;
+    state.scannerError = "";
+    if (!background) render();
+    try {
+      const [metrics, corrections] = await Promise.all([
+        scannerApi("metrics", scannerFilters(), requestedWarehouseCode),
+        scannerApi("list-corrections", {
+          ...scannerFilters(),
+          page: state.scannerPage,
+          pageSize: 12,
+        }, requestedWarehouseCode),
+      ]);
+      if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      state.scannerData = metrics;
+      state.scannerCorrections = Array.isArray(corrections.items) ? corrections.items : [];
+      state.scannerTotal = Number(corrections.total || 0);
+      state.scannerLoaded = true;
+      if (state.scannerSelected) {
+        const refreshed = state.scannerCorrections.find((item) => item.id === state.scannerSelected.id);
+        if (refreshed) state.scannerSelected = { ...state.scannerSelected, ...refreshed };
+      }
+    } catch (error) {
+      if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      state.scannerError = error instanceof Error ? error.message : "Scanner intelligence could not be loaded.";
+    } finally {
+      if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      state.scannerLoading = false;
+      background ? renderPreservingScroll() : render();
+    }
+  };
+
+  const loadScannerCorrection = async (attemptId) => {
+    state.scannerSelected = state.scannerCorrections.find((item) => item.id === attemptId) || { id: attemptId };
+    state.scannerLoading = true;
+    render();
+    try {
+      const result = await scannerApi("correction-detail", { attemptId });
+      if (state.scannerSelected?.id === attemptId) state.scannerSelected = result.item;
+    } catch (error) {
+      state.scannerError = error instanceof Error ? error.message : "Correction detail could not be loaded.";
+    } finally {
+      state.scannerLoading = false;
+      render();
     }
   };
 
@@ -1350,30 +1435,115 @@
     }).join("");
   };
 
+  const scannerPercent = (value) => Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)}%` : "—";
+  const scannerFilterOptions = (values, selected, emptyLabel, map = (value) => [value, value]) =>
+    `<option value="">${escapeHtml(emptyLabel)}</option>${(values || []).map((value) => {
+      const [key, label] = map(value);
+      return `<option value="${escapeHtml(key)}" ${String(selected) === String(key) ? "selected" : ""}>${escapeHtml(label)}</option>`;
+    }).join("")}`;
+
+  const renderScannerTrend = () => {
+    const rows = state.scannerData?.trends || [];
+    if (rows.length < 2) return `<div class="atlas-scanner-empty-chart">Trend lines appear after two days of scanner activity.</div>`;
+    const points = (key) => rows.map((row, index) => {
+      const x = rows.length === 1 ? 0 : index / (rows.length - 1) * 100;
+      const y = 37 - Math.max(0, Math.min(100, Number(row[key] || 0))) * .34;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    return `<div class="atlas-scanner-chart"><svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Scanner accuracy trend"><path d="M0 37H100"/><path d="M0 20H100"/><polyline class="is-character" points="${points("characterAccuracy")}"/><polyline class="is-exact" points="${points("exactRate")}"/></svg><div><span><i class="is-exact"></i>Exact scan rate</span><span><i class="is-character"></i>Character accuracy</span></div></div>`;
+  };
+
+  const renderScannerMetric = (label, value, note, tone = "blue") => `<article class="atlas-scanner-metric is-${tone}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></article>`;
+
+  const renderScannerFilters = () => {
+    const filters = state.scannerData?.filters || {};
+    return `<div class="atlas-scanner-filters">
+      <label><span>Period</span><select data-scanner-filter="range"><option value="7d" ${state.scannerRange === "7d" ? "selected" : ""}>Last 7 days</option><option value="30d" ${state.scannerRange === "30d" ? "selected" : ""}>Last 30 days</option><option value="90d" ${state.scannerRange === "90d" ? "selected" : ""}>Last 90 days</option></select></label>
+      <label><span>SKU</span><select data-scanner-filter="sku">${scannerFilterOptions(filters.skus, state.scannerSku, "All SKUs")}</select></label>
+      <label><span>Employee</span><select data-scanner-filter="employee">${scannerFilterOptions(filters.employees, state.scannerEmployee, "All employees", (item) => [item.id, item.name])}</select></label>
+      <label><span>Capture</span><select data-scanner-filter="capture">${scannerFilterOptions(filters.captureMethods, state.scannerCaptureMethod, "All methods")}</select></label>
+      <label><span>Version</span><select data-scanner-filter="version">${scannerFilterOptions(filters.versions, state.scannerVersion, "All versions")}</select></label>
+    </div>`;
+  };
+
+  const renderCocRecordsPanel = () => {
+    const pages = Math.max(1, Math.ceil(state.cocTotal / COC_PAGE_SIZE));
+    return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">LIVE COMPLIANCE OVERSIGHT</p><h2>COC Receiver Activity</h2><span>Review every office COC without pairing this dashboard as a Receiver.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
+      <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["active","Incoming"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
+      <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, or IF number" aria-label="Search COCs"><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button></div>
+      <div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Status</th><th>Recorded</th><th>Customer</th><th>Invoice</th><th>IF Number</th><th>Pallets / Boxes</th><th>Actions</th></tr></thead><tbody>${renderCocRows()}</tbody></table></div>
+      <footer><span>Showing ${state.cocTotal ? ((state.cocPage - 1) * COC_PAGE_SIZE) + 1 : 0}–${Math.min(state.cocPage * COC_PAGE_SIZE, state.cocTotal)} of ${state.cocTotal.toLocaleString()} COCs</span><div><button type="button" data-coc-page="${state.cocPage - 1}" ${state.cocPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.cocPage} / ${pages}</strong><button type="button" data-coc-page="${state.cocPage + 1}" ${state.cocPage >= pages ? "disabled" : ""}>›</button></div></footer>
+    </article>`;
+  };
+
+  const renderScannerCorrectionRows = () => {
+    if (state.scannerLoading && !state.scannerLoaded) return `<div class="atlas-scanner-empty-chart">Loading correction evidence…</div>`;
+    if (!state.scannerCorrections.length) return `<div class="atlas-scanner-empty-chart">No corrected scans match these filters.</div>`;
+    return state.scannerCorrections.map((item) => `<button type="button" class="atlas-scanner-correction-row" data-scanner-correction="${escapeHtml(item.id)}">
+      <span class="atlas-scanner-thumb">${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="Corrected lot label">` : "NO IMAGE"}</span>
+      <span><small>${escapeHtml(item.sku || "UNKNOWN SKU")}</small><strong>${escapeHtml(item.scanner_original_lot || "—")} <b>→</b> ${escapeHtml(item.confirmed_lot || "—")}</strong><em>${escapeHtml(item.employee_name || "Employee")} · ${escapeHtml(formatDateTime(parseDate(item.recorded_at)))}</em></span>
+      <mark class="is-${escapeHtml(item.review_status)}">${escapeHtml(String(item.review_status || "unreviewed").replaceAll("_", " "))}</mark><i>›</i>
+    </button>`).join("");
+  };
+
+  const renderScannerCorrectionDetail = () => {
+    const item = state.scannerSelected;
+    if (!item) return "";
+    if (!item.scanner_original_lot && state.scannerLoading) return `<div class="atlas-scanner-empty-chart">Loading secure correction evidence…</div>`;
+    return `<article class="atlas-scanner-detail">
+      <button type="button" class="atlas-dashboard-coc-back" data-scanner-detail-back>‹ Correction Review</button>
+      <div class="atlas-scanner-detail-grid">
+        <figure>${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="Private cropped lot label evidence">` : `<span>Correction image was unavailable for this attempt.</span>`}<figcaption>Private correction evidence · signed access expires automatically</figcaption></figure>
+        <section><p class="atlas-dashboard-eyebrow">${escapeHtml(item.sku || "SCANNER CORRECTION")}</p><h2>${escapeHtml(item.scanner_original_lot || "—")} <b>→</b> ${escapeHtml(item.confirmed_lot || "—")}</h2>
+          <dl><div><dt>Characters edited</dt><dd>${Number(item.edit_distance || 0)}</dd></div><div><dt>Employee</dt><dd>${escapeHtml(item.employee_name || "—")}</dd></div><div><dt>Capture method</dt><dd>${escapeHtml(item.capture_method || "—")}</dd></div><div><dt>Confidence</dt><dd>${item.confidence == null ? "—" : scannerPercent(Number(item.confidence) <= 1 ? Number(item.confidence) * 100 : Number(item.confidence))}</dd></div><div><dt>Scanner version</dt><dd>${escapeHtml(item.scanner_version || "—")}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(parseDate(item.recorded_at)))}</dd></div></dl>
+          ${item.invoice_number ? `<button type="button" class="atlas-dashboard-button" data-scanner-open-coc="${escapeHtml(item.invoice_number)}">Open Associated COC</button>` : ""}
+        </section>
+      </div>
+      <form class="atlas-scanner-review-form" data-scanner-review><input type="hidden" name="attempt_id" value="${escapeHtml(item.id)}"><fieldset><legend>Classify this correction</legend>${[["scanner_misread","Scanner misread"],["damaged_label","Damaged label"],["unusual_format","Unusual format"],["employee_correction_error","Employee correction error"]].map(([value,label]) => `<label><input type="radio" name="classification" value="${value}" ${item.review_classification === value ? "checked" : ""} required><span>${label}</span></label>`).join("")}</fieldset>
+        <label class="atlas-scanner-training"><input type="checkbox" name="retain_training" ${item.retain_for_training ? "checked" : ""}><span><strong>Approve for scanner improvement</strong><small>Retain this reviewed evidence for a future, controlled scanner training dataset.</small></span></label>
+        <p data-scanner-review-error role="alert"></p><div><button type="submit" class="atlas-dashboard-button atlas-dashboard-button--primary">Save Review</button><button type="button" class="atlas-dashboard-button atlas-dashboard-button--danger-ghost" data-scanner-exclude>Exclude Evidence</button></div>
+      </form>
+    </article>`;
+  };
+
+  const renderScannerIntelligence = () => {
+    const data = state.scannerData || {}, summary = data.summary || {};
+    if (state.scannerSelected) return renderScannerCorrectionDetail();
+    const scannerPages = Math.max(1, Math.ceil(state.scannerTotal / 12));
+    const performance = `<div class="atlas-scanner-performance">
+      <div class="atlas-scanner-metrics">${renderScannerMetric("Exact Lot Scan", scannerPercent(summary.exactRate), `${Number(summary.exactScans || 0).toLocaleString()} exact of ${Number(summary.attempts || 0).toLocaleString()} attempts`)}${renderScannerMetric("Character Accuracy", scannerPercent(summary.characterAccuracy), "Every corrected character included", "green")}${renderScannerMetric("Corrected Scans", Number(summary.correctedScans || 0).toLocaleString(), `${Number(summary.oneTwoCharacterCorrections || 0).toLocaleString()} required only 1–2 edits`, "amber")}${renderScannerMetric("Fallback / Failure", scannerPercent(summary.manualFallbackRate), `${Number(summary.failures || 0).toLocaleString()} failed scan attempts`, "slate")}</div>
+      <article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">ACCURACY TREND</p><h2>Scanner Performance</h2><span>Exact confirmation and character-level accuracy over time</span></div></header>${renderScannerTrend()}</article>
+      <div class="atlas-scanner-split"><article class="atlas-scanner-panel"><header><div><h2>Capture Method</h2><span>Performance by the way the lot was captured</span></div></header><div class="atlas-scanner-table">${(data.byCaptureMethod || []).map((item) => `<div><strong>${escapeHtml(item.name)}</strong><span>${item.attempts.toLocaleString()} attempts</span><b>${scannerPercent(item.exactRate)}</b><small>${scannerPercent(item.characterAccuracy)} characters</small></div>`).join("") || `<div>No capture activity yet.</div>`}</div></article>
+      <article class="atlas-scanner-panel"><header><div><h2>Recent Corrections</h2><span>${Number(summary.unreviewed || 0)} awaiting supervisor review</span></div><button type="button" data-scanner-view="review">Review Queue</button></header><div class="atlas-scanner-mini-list">${(data.recentCorrections || []).map((item) => `<button type="button" data-scanner-correction="${escapeHtml(item.id)}"><span>${escapeHtml(item.sku || "SKU")}</span><strong>${escapeHtml(item.scanner_original_lot || "—")} → ${escapeHtml(item.confirmed_lot || "—")}</strong><small>${Number(item.edit_distance || 0)} character edit${Number(item.edit_distance) === 1 ? "" : "s"}</small></button>`).join("") || `<p>No corrected scans in this period.</p>`}</div></article></div>
+    </div>`;
+    const review = `<div class="atlas-scanner-review-layout"><article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">PRIVATE EVIDENCE QUEUE</p><h2>Correction Review</h2><span>Only scans changed by an employee preserve a cropped label image.</span></div></header><div class="atlas-scanner-review-extra"><label>Review status<select data-scanner-filter="review"><option value="" ${!state.scannerReviewStatus ? "selected" : ""}>All statuses</option><option value="unreviewed" ${state.scannerReviewStatus === "unreviewed" ? "selected" : ""}>Unreviewed</option><option value="reviewed" ${state.scannerReviewStatus === "reviewed" ? "selected" : ""}>Reviewed</option><option value="excluded" ${state.scannerReviewStatus === "excluded" ? "selected" : ""}>Excluded</option></select></label><label>Correction size<select data-scanner-filter="size"><option value="">All sizes</option><option value="1-2" ${state.scannerCorrectionSize === "1-2" ? "selected" : ""}>1–2 characters</option><option value="3+" ${state.scannerCorrectionSize === "3+" ? "selected" : ""}>3+ characters</option></select></label></div><div class="atlas-scanner-correction-list">${renderScannerCorrectionRows()}</div><footer><button type="button" data-scanner-page="${state.scannerPage - 1}" ${state.scannerPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.scannerPage} / ${scannerPages}</strong><button type="button" data-scanner-page="${state.scannerPage + 1}" ${state.scannerPage >= scannerPages ? "disabled" : ""}>›</button></footer></article></div>`;
+    const patterns = `<div class="atlas-scanner-split"><article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">RECOGNITION PATTERNS</p><h2>Most Common Character Changes</h2></div></header><div class="atlas-scanner-patterns">${(data.characterChanges || []).map((item, index) => `<div><b>${index + 1}</b><strong>${escapeHtml(item.from)} <i>→</i> ${escapeHtml(item.to)}</strong><span>${item.count.toLocaleString()} times</span></div>`).join("") || `<p>No corrections in this period.</p>`}</div></article><article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">SKU QUALITY</p><h2>Products Needing Attention</h2></div></header><div class="atlas-scanner-table">${(data.bySku || []).filter((item) => item.corrected || item.failures).slice(0, 12).map((item) => `<div><strong>${escapeHtml(item.name)}</strong><span>${item.corrected} corrected · ${item.failures} failed</span><b>${scannerPercent(item.exactRate)}</b><small>${scannerPercent(item.characterAccuracy)} characters</small></div>`).join("") || `<div>No problematic SKUs found.</div>`}</div></article></div>`;
+    const versions = `<article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">CONTROLLED RELEASE ANALYSIS</p><h2>Scanner Version Comparison</h2><span>Compare accuracy before approving a recognition update.</span></div></header><div class="atlas-scanner-version-grid">${(data.byVersion || []).map((item) => `<article><span>${escapeHtml(item.name)}</span><strong>${scannerPercent(item.exactRate)}</strong><small>Exact scan rate</small><dl><div><dt>Character accuracy</dt><dd>${scannerPercent(item.characterAccuracy)}</dd></div><div><dt>Attempts</dt><dd>${item.attempts.toLocaleString()}</dd></div><div><dt>Corrected</dt><dd>${item.corrected.toLocaleString()}</dd></div><div><dt>Failures</dt><dd>${item.failures.toLocaleString()}</dd></div></dl></article>`).join("") || `<div class="atlas-scanner-empty-chart">Scanner version results appear after the first v271 scans synchronize.</div>`}</div></article>`;
+    return `<section class="atlas-scanner-intelligence">${state.scannerNotice ? `<div class="atlas-dashboard-coc-notice">${escapeHtml(state.scannerNotice)}</div>` : ""}${state.scannerError ? `<div class="atlas-dashboard-coc-error">${escapeHtml(state.scannerError)}</div>` : ""}
+      <header class="atlas-scanner-heading"><div><p class="atlas-dashboard-eyebrow">ATLAS QUALITY SYSTEM</p><h2>Scanner Intelligence</h2><span>Measure, review, and improve lot recognition without slowing warehouse work.</span></div><span class="atlas-scanner-private">PRIVATE · WAREHOUSE SCOPED</span></header>
+      <nav class="atlas-scanner-tabs" aria-label="Scanner intelligence sections">${[["performance","Performance"],["review","Correction Review"],["patterns","Problem Patterns"],["versions","Scanner Versions"]].map(([value,label]) => `<button type="button" data-scanner-view="${value}" class="${state.scannerView === value ? "is-active" : ""}">${label}${value === "review" && summary.unreviewed ? `<b>${summary.unreviewed}</b>` : ""}</button>`).join("")}</nav>
+      ${renderScannerFilters()}${state.scannerLoading && !state.scannerLoaded ? `<div class="atlas-scanner-empty-chart">Loading scanner intelligence…</div>` : state.scannerView === "review" ? review : state.scannerView === "patterns" ? patterns : state.scannerView === "versions" ? versions : performance}
+    </section>`;
+  };
+
+  const renderCocOverview = () => {
+    const performance = state.cocPerformance;
+    const summary = state.scannerData?.summary || {};
+    const rangeLabel = state.cocPerformanceRange === "all" ? "All time" : `Last ${state.cocPerformanceRange} days`;
+    return `<div class="atlas-coc-overview">
+      <div class="atlas-dashboard-coc-metrics">${cocMetricCard("all", "ALL COCs", state.cocMetrics.total)}${cocMetricCard("awaiting", "AWAITING", state.cocMetrics.awaiting, "Requires office review")}${cocMetricCard("received", "RECEIVED TODAY", state.cocMetrics.receivedToday)}${cocMetricCard("completed", "COMPLETED TODAY", state.cocMetrics.completedToday)}</div>
+      <article class="atlas-dashboard-coc-performance"><header><div><p class="atlas-dashboard-eyebrow">WAREHOUSE PERFORMANCE</p><h2>COC Workflow Metrics</h2><span>Active workflow time and lot-capture quality</span></div><label><span>Reporting period</span><select data-coc-performance-range aria-label="COC performance reporting period"><option value="7" ${state.cocPerformanceRange === "7" ? "selected" : ""}>Last 7 days</option><option value="30" ${state.cocPerformanceRange === "30" ? "selected" : ""}>Last 30 days</option><option value="all" ${state.cocPerformanceRange === "all" ? "selected" : ""}>All time</option></select></label></header><div class="atlas-dashboard-coc-performance-grid">${cocPerformanceCard("time", "AVG COC TIME", formatCocDuration(performance.averageActiveDurationMs), performance.completionSamples ? `Median ${formatCocDuration(performance.medianActiveDurationMs)} · ${cocPlural(performance.completionSamples, "COC")}` : "Timing begins with this update")}${cocPerformanceCard("scan", "EXACT LOT SCAN", cocPercentage(performance.scanSuccesses, performance.scanAttempts), performance.scanAttempts ? `${performance.scanSuccesses.toLocaleString()} of ${performance.scanAttempts.toLocaleString()} scan attempts` : "Scanner accuracy tracking begins with this update")}${cocPerformanceCard("manual", "MANUAL ENTRY", cocPercentage(performance.manualLots, performance.distinctLots), performance.distinctLots ? `${performance.manualLots.toLocaleString()} of ${performance.distinctLots.toLocaleString()} distinct lots` : "No completed lot records yet")}</div><footer><span>${escapeHtml(rangeLabel)}</span><small>Exact accuracy requires the scanner value to be confirmed unchanged. Canceled scans are excluded.</small></footer></article>
+      <article class="atlas-scanner-overview"><header><div><p class="atlas-dashboard-eyebrow">SCANNER INTELLIGENCE</p><h2>Recognition Quality</h2><span>True scanner performance, including character-level employee corrections.</span></div><button type="button" data-coc-workspace="scanner">Open Intelligence</button></header><div class="atlas-scanner-metrics">${renderScannerMetric("Exact Lot Scan", scannerPercent(summary.exactRate), `${Number(summary.attempts || 0).toLocaleString()} attempts`)}${renderScannerMetric("Character Accuracy", scannerPercent(summary.characterAccuracy), "Edited characters included", "green")}${renderScannerMetric("Corrected Scans", Number(summary.correctedScans || 0).toLocaleString(), `${Number(summary.oneTwoCharacterCorrections || 0).toLocaleString()} were 1–2 edits`, "amber")}${renderScannerMetric("Fallback / Failure", scannerPercent(summary.manualFallbackRate), "Canceled scans excluded", "slate")}</div>${renderScannerTrend()}</article>
+    </div>`;
+  };
+
   const renderCocOversight = () => {
     if (state.cocSelected) return `${renderCocDetail(state.cocSelected)}${renderCocDeleteModal()}`;
-    const pages = Math.max(1, Math.ceil(state.cocTotal / COC_PAGE_SIZE));
-    const performance = state.cocPerformance;
-    const rangeLabel = state.cocPerformanceRange === "all" ? "All time" : `Last ${state.cocPerformanceRange} days`;
     return `<section class="atlas-dashboard-coc-center">
-      ${state.cocNotice ? `<div class="atlas-dashboard-coc-notice">${escapeHtml(state.cocNotice)}</div>` : ""}
-      ${state.cocError ? `<div class="atlas-dashboard-coc-error">${escapeHtml(state.cocError)}</div>` : ""}
-      <div class="atlas-dashboard-coc-metrics">${cocMetricCard("all", "ALL COCs", state.cocMetrics.total)}${cocMetricCard("awaiting", "AWAITING", state.cocMetrics.awaiting, "Requires office review")}${cocMetricCard("received", "RECEIVED TODAY", state.cocMetrics.receivedToday)}${cocMetricCard("completed", "COMPLETED TODAY", state.cocMetrics.completedToday)}</div>
-      <article class="atlas-dashboard-coc-performance">
-        <header><div><p class="atlas-dashboard-eyebrow">WAREHOUSE PERFORMANCE</p><h2>COC Workflow Metrics</h2><span>Active workflow time and lot-capture quality</span></div><label><span>Reporting period</span><select data-coc-performance-range aria-label="COC performance reporting period"><option value="7" ${state.cocPerformanceRange === "7" ? "selected" : ""}>Last 7 days</option><option value="30" ${state.cocPerformanceRange === "30" ? "selected" : ""}>Last 30 days</option><option value="all" ${state.cocPerformanceRange === "all" ? "selected" : ""}>All time</option></select></label></header>
-        <div class="atlas-dashboard-coc-performance-grid">
-          ${cocPerformanceCard("time", "AVG COC TIME", formatCocDuration(performance.averageActiveDurationMs), performance.completionSamples ? `Median ${formatCocDuration(performance.medianActiveDurationMs)} · ${cocPlural(performance.completionSamples, "COC")}` : "Timing begins with this update")}
-          ${cocPerformanceCard("scan", "EXACT LOT SCAN", cocPercentage(performance.scanSuccesses, performance.scanAttempts), performance.scanAttempts ? `${performance.scanSuccesses.toLocaleString()} of ${performance.scanAttempts.toLocaleString()} scan attempts required no text correction or fallback` : "Scanner accuracy tracking begins with this update")}
-          ${cocPerformanceCard("manual", "MANUAL ENTRY", cocPercentage(performance.manualLots, performance.distinctLots), performance.distinctLots ? `${performance.manualLots.toLocaleString()} of ${performance.distinctLots.toLocaleString()} distinct lots` : "No completed lot records yet")}
-        </div>
-        <footer><span>${escapeHtml(rangeLabel)}</span><small>Exact scan accuracy requires the original scanner value to be confirmed unchanged. Canceled scans are excluded.</small></footer>
-      </article>
-      <article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">LIVE COMPLIANCE OVERSIGHT</p><h2>COC Receiver Activity</h2><span>Review every office COC without pairing this dashboard as a Receiver.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
-        <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["active","Incoming"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
-        <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, or IF number" aria-label="Search COCs"><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button></div>
-        <div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Status</th><th>Recorded</th><th>Customer</th><th>Invoice</th><th>IF Number</th><th>Pallets / Boxes</th><th>Actions</th></tr></thead><tbody>${renderCocRows()}</tbody></table></div>
-        <footer><span>Showing ${state.cocTotal ? ((state.cocPage - 1) * COC_PAGE_SIZE) + 1 : 0}–${Math.min(state.cocPage * COC_PAGE_SIZE, state.cocTotal)} of ${state.cocTotal.toLocaleString()} COCs</span><div><button type="button" data-coc-page="${state.cocPage - 1}" ${state.cocPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.cocPage} / ${pages}</strong><button type="button" data-coc-page="${state.cocPage + 1}" ${state.cocPage >= pages ? "disabled" : ""}>›</button></div></footer>
-      </article>${renderCocDeleteModal()}
+      ${state.cocNotice ? `<div class="atlas-dashboard-coc-notice">${escapeHtml(state.cocNotice)}</div>` : ""}${state.cocError ? `<div class="atlas-dashboard-coc-error">${escapeHtml(state.cocError)}</div>` : ""}
+      <nav class="atlas-coc-workspace-tabs" aria-label="COC oversight workspaces">${[["overview","Overview"],["records","COC Records"],["scanner","Scanner Intelligence"]].map(([value,label]) => `<button type="button" data-coc-workspace="${value}" class="${state.cocWorkspace === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
+      ${state.cocWorkspace === "records" ? renderCocRecordsPanel() : state.cocWorkspace === "scanner" ? renderScannerIntelligence() : renderCocOverview()}
+      ${renderCocDeleteModal()}
     </section>`;
   };
 
@@ -1558,8 +1728,45 @@
       state.cocDelete = null;
       render();
       if (state.view === "access" && !state.adminUsersLoaded) loadAdminUsers();
-      if (state.view === "cocs" && !state.cocLoaded) loadCocData();
+      if (state.view === "cocs") {
+        if (!state.cocLoaded) loadCocData();
+        if (!state.scannerLoaded) loadScannerData();
+      }
       startDashboardRefresh();
+    } else if (button.matches("[data-coc-workspace]")) {
+      state.cocWorkspace = button.dataset.cocWorkspace || "overview";
+      state.cocSelected = null;
+      state.scannerSelected = null;
+      render();
+      if (state.cocWorkspace === "records" && !state.cocLoaded) loadCocData();
+      if (["overview", "scanner"].includes(state.cocWorkspace) && !state.scannerLoaded) loadScannerData();
+    } else if (button.matches("[data-scanner-view]")) {
+      state.scannerView = button.dataset.scannerView || "performance";
+      state.scannerSelected = null;
+      render();
+    } else if (button.matches("[data-scanner-correction]")) {
+      state.scannerView = "review";
+      void loadScannerCorrection(button.dataset.scannerCorrection);
+    } else if (button.matches("[data-scanner-detail-back]")) {
+      state.scannerSelected = null;
+      state.scannerNotice = "";
+      render();
+    } else if (button.matches("[data-scanner-page]")) {
+      const page = Number(button.dataset.scannerPage);
+      if (Number.isInteger(page) && page > 0) {
+        state.scannerPage = page;
+        loadScannerData();
+      }
+    } else if (button.matches("[data-scanner-open-coc]")) {
+      state.scannerSelected = null;
+      state.cocWorkspace = "records";
+      state.cocSearch = button.dataset.scannerOpenCoc || "";
+      state.cocPage = 1;
+      loadCocData();
+    } else if (button.matches("[data-scanner-exclude]")) {
+      const form = button.closest("[data-scanner-review]");
+      if (!form?.reportValidity()) return;
+      void saveScannerReview(form, { exclude: true });
     } else if (button.matches("[data-coc-section]")) {
       state.cocSection = button.dataset.cocSection;
       state.cocPage = 1;
@@ -1568,6 +1775,7 @@
       loadCocData();
     } else if (button.matches("[data-coc-refresh]")) {
       loadCocData();
+      loadScannerData();
     } else if (button.matches("[data-coc-page]")) {
       const page = Number(button.dataset.cocPage);
       if (Number.isInteger(page) && page > 0) {
@@ -1676,6 +1884,7 @@
       localStorage.setItem(WAREHOUSE_SELECTION_KEY, code);
       state.selectedWarehouse = state.warehouses.find((warehouse) => warehouse.code === code) || state.selectedWarehouse;
       cocRequestSequence += 1;
+      scannerRequestSequence += 1;
       state.skus = [];
       state.locations = [];
       state.activities = [];
@@ -1693,6 +1902,12 @@
         scanCanceled: 0,
         distinctLots: 0,
         manualLots: 0,
+        scannerReviewedLots: 0,
+        scannerExactLots: 0,
+        scannerCorrectedLots: 0,
+        scannerEditDistanceTotal: 0,
+        scannerComparedCharacters: 0,
+        scannerOneOrTwoCharacterCorrections: 0,
       };
       state.cocLoading = state.view === "cocs";
       state.cocLoaded = false;
@@ -1702,10 +1917,22 @@
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
       state.cocDelete = null;
       state.cocPage = 1;
+      state.scannerData = null;
+      state.scannerCorrections = [];
+      state.scannerTotal = 0;
+      state.scannerPage = 1;
+      state.scannerSelected = null;
+      state.scannerLoaded = false;
+      state.scannerLoading = state.view === "cocs";
+      state.scannerError = "";
+      state.scannerNotice = "";
       state.lastSync = null;
       cocWorkbookCache.clear();
       render();
-      if (state.view === "cocs") void loadCocData({ warehouseCode: code });
+      if (state.view === "cocs") {
+        void loadCocData({ warehouseCode: code });
+        void loadScannerData({ warehouseCode: code });
+      }
       void loadData({ force: true, warehouseCode: code });
       return;
     }
@@ -1725,6 +1952,20 @@
       state.cocSort = event.target.value;
       state.cocPage = 1;
       loadCocData();
+      return;
+    }
+    else if (event.target.matches("[data-scanner-filter]")) {
+      const key = event.target.dataset.scannerFilter;
+      const value = event.target.value;
+      if (key === "range") state.scannerRange = value;
+      if (key === "sku") state.scannerSku = value;
+      if (key === "employee") state.scannerEmployee = value;
+      if (key === "capture") state.scannerCaptureMethod = value;
+      if (key === "version") state.scannerVersion = value;
+      if (key === "review") state.scannerReviewStatus = value;
+      if (key === "size") state.scannerCorrectionSize = value;
+      state.scannerPage = 1;
+      loadScannerData();
       return;
     }
     else return;
@@ -1822,6 +2063,12 @@
     state.cocSelected = null;
     state.cocDelete = null;
     state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+    state.cocWorkspace = "overview";
+    state.scannerData = null;
+    state.scannerCorrections = [];
+    state.scannerSelected = null;
+    state.scannerLoaded = false;
+    state.scannerError = "";
     cocWorkbookCache.clear();
     if (token && !window.AtlasAuth) api("/auth/v1/logout", { token, method: "POST" }).catch(() => {});
     await loadData();
@@ -1871,9 +2118,38 @@
     }
   };
 
+  const saveScannerReview = async (form, { exclude = false } = {}) => {
+    const submit = form.querySelector('button[type="submit"]');
+    const message = form.querySelector("[data-scanner-review-error]");
+    const data = new FormData(form);
+    if (submit) { submit.disabled = true; submit.textContent = "Saving…"; }
+    if (message) message.textContent = "";
+    try {
+      const result = await scannerApi("review-correction", {
+        attemptId: data.get("attempt_id"),
+        classification: data.get("classification"),
+        retainForTraining: data.get("retain_training") === "on",
+        exclude,
+      });
+      state.scannerSelected = result.item || null;
+      state.scannerNotice = exclude
+        ? "Correction evidence was excluded from scanner improvement."
+        : "Correction review and training decision were saved.";
+      await loadScannerData({ background: true });
+      state.scannerSelected = null;
+      render();
+    } catch (error) {
+      if (message) message.textContent = error instanceof Error ? error.message : "The review could not be saved.";
+      if (submit) { submit.disabled = false; submit.textContent = "Save Review"; }
+    }
+  };
+
   const handleSubmit = (event) => {
     const form = event.target;
-    if (form.matches("[data-coc-delete-form]")) {
+    if (form.matches("[data-scanner-review]")) {
+      event.preventDefault();
+      void saveScannerReview(form);
+    } else if (form.matches("[data-coc-delete-form]")) {
       event.preventDefault();
       const record = state.cocDelete;
       const message = form.querySelector("[data-coc-delete-error]");
