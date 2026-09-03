@@ -68,6 +68,7 @@
     photo: "", text: "", confidence: null, fieldConfidence: null,
     status: "", progress: 0, failures,
     result: null, barcodes: [], barcodeDetections: [], ocrText: "", sku: "",
+    originalReviewLot: "", scannerReviewRecorded: false,
   });
   let capture = freshCapture();
 
@@ -203,6 +204,24 @@
     if (!scanMetricPending || session?.status !== "active") return;
     session = Core.recordScanOutcome(session, outcome);
     scanMetricPending = false;
+    saveSessionMetricsLocally();
+  }
+
+  function currentScannerReviewDetails() {
+    return Core.scannerLotComparison(capture.originalReviewLot, capture.text);
+  }
+
+  function recordScannerReviewMetric(details = currentScannerReviewDetails()) {
+    if (capture.scannerReviewRecorded || !details.scannerReviewTracked || session?.status !== "active")
+      return;
+    session = Core.recordScannerReview(session, {
+      originalLot: details.scannerOriginalLot,
+      confirmedLot: capture.text,
+      model: activeModelContext(),
+      captureMethod: capture.result?.captureMethod,
+      employee: getEmployee(),
+    });
+    capture.scannerReviewRecorded = true;
     saveSessionMetricsLocally();
   }
 
@@ -2384,6 +2403,8 @@
       Scanner?.logRecognitionTrace?.(completeTrace);
       capture.progress = 100;
       capture.text = capture.result.lot || capture.result.candidateLot || "";
+      capture.originalReviewLot = capture.text;
+      capture.scannerReviewRecorded = false;
       capture.status = capture.result.confidenceState === "verified"
         ? "Barcode and printed text match."
         : "Employee verification required.";
@@ -2556,6 +2577,8 @@
     const next = Parser.cleanLot(value || "");
     if (!Core.canonicalLot(next)) return;
     capture.text = next;
+    capture.originalReviewLot = next;
+    capture.scannerReviewRecorded = false;
     capture.result = {
       ...result,
       lot: next,
@@ -2761,7 +2784,13 @@
         reviewInput?.focus();
         return;
       }
-      finishScanMetricAttempt("success");
+      const scannerReview = currentScannerReviewDetails();
+      finishScanMetricAttempt(
+        scannerReview.scannerReviewTracked && !scannerReview.scannerTextCorrected
+          ? "success"
+          : "failure",
+      );
+      recordScannerReviewMetric(scannerReview);
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
         barcodeFormat: capture.result?.barcodeFormat,
@@ -2778,11 +2807,18 @@
         confidence: capture.result?.confidence,
         verification: capture.result?.confidenceState === "verified"
           ? "barcode_ocr_match" : "employee_confirmed",
+        ...scannerReview,
       });
       return;
     }
     if (action === "confirm-similar") {
-      finishScanMetricAttempt("success");
+      const scannerReview = currentScannerReviewDetails();
+      finishScanMetricAttempt(
+        scannerReview.scannerReviewTracked && !scannerReview.scannerTextCorrected
+          ? "success"
+          : "failure",
+      );
+      recordScannerReviewMetric(scannerReview);
       acceptLot(capture.text, {
         rawBarcode: capture.result?.rawBarcode,
         barcodeFormat: capture.result?.barcodeFormat,
@@ -2798,6 +2834,7 @@
         modelMatchMethod: capture.result?.modelMatchMethod,
         confidence: capture.result?.confidence,
         verification: capture.result?.captureMethod === "manual" ? "manual" : "ocr",
+        ...scannerReview,
       }, { skipSimilar: true });
       return;
     }

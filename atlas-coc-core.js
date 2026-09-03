@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 9;
+  const SCHEMA_VERSION = 10;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
   const MAX_CUSTOMER_LENGTH = 160;
@@ -44,12 +44,65 @@
     const failures = metricInteger(source?.scanFailures, 1000000);
     const suppliedAttempts = metricInteger(source?.scanAttempts, 1000000);
     const attempts = Math.max(suppliedAttempts, successes + failures);
+    const scannerExactLots = metricInteger(source?.scannerExactLots, 1000000);
+    const scannerCorrectedLots = metricInteger(source?.scannerCorrectedLots, 1000000);
+    const scannerReviewedLots = Math.max(
+      metricInteger(source?.scannerReviewedLots, 1000000),
+      scannerExactLots + scannerCorrectedLots,
+    );
     return {
       activeDurationMs: metricInteger(source?.activeDurationMs, 2592000000),
       scanAttempts: attempts,
       scanSuccesses: Math.min(successes, attempts),
       scanFailures: Math.min(failures, attempts),
       scanCanceled: metricInteger(source?.scanCanceled, 1000000),
+      scannerReviewedLots,
+      scannerExactLots: Math.min(scannerExactLots, scannerReviewedLots),
+      scannerCorrectedLots: Math.min(scannerCorrectedLots, scannerReviewedLots),
+      scannerEditDistanceTotal: metricInteger(source?.scannerEditDistanceTotal, 120000000),
+      scannerComparedCharacters: metricInteger(source?.scannerComparedCharacters, 120000000),
+      scannerOneOrTwoCharacterCorrections: Math.min(
+        metricInteger(source?.scannerOneOrTwoCharacterCorrections, 1000000),
+        scannerCorrectedLots,
+      ),
+    };
+  }
+
+  function editDistance(leftValue, rightValue) {
+    const left = [...cleanLot(leftValue).toUpperCase()];
+    const right = [...cleanLot(rightValue).toUpperCase()];
+    if (!left.length) return right.length;
+    if (!right.length) return left.length;
+    let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+    for (let row = 1; row <= left.length; row += 1) {
+      const current = [row];
+      for (let column = 1; column <= right.length; column += 1) {
+        const substitution = previous[column - 1] +
+          (left[row - 1] === right[column - 1] ? 0 : 1);
+        current[column] = Math.min(
+          previous[column] + 1,
+          current[column - 1] + 1,
+          substitution,
+        );
+      }
+      previous = current;
+    }
+    return previous[right.length];
+  }
+
+  function scannerLotComparison(originalValue, confirmedValue) {
+    const originalLot = cleanLot(originalValue).toUpperCase();
+    const confirmedLot = cleanLot(confirmedValue).toUpperCase();
+    const tracked = Boolean(canonicalLot(originalLot) && canonicalLot(confirmedLot));
+    const scannerEditDistance = tracked ? editDistance(originalLot, confirmedLot) : 0;
+    return {
+      scannerReviewTracked: tracked,
+      scannerOriginalLot: tracked ? originalLot : "",
+      scannerTextCorrected: tracked && scannerEditDistance > 0,
+      scannerEditDistance,
+      scannerComparedCharacters: tracked
+        ? Math.max([...originalLot].length, [...confirmedLot].length)
+        : 0,
     };
   }
 
@@ -204,6 +257,18 @@
             (suppliedCaseQuantity && linkedModel?.caseQuantity &&
               suppliedCaseQuantity !== linkedModel.caseQuantity),
           );
+          const scannerOriginalLot = cleanLot(lot?.scannerOriginalLot).toUpperCase();
+          const scannerReviewTracked = Boolean(
+            canonicalLot(scannerOriginalLot) &&
+            (lot?.scannerReviewTracked ||
+              Object.prototype.hasOwnProperty.call(lot || {}, "scannerTextCorrected")),
+          );
+          const scannerEditDistance = scannerReviewTracked
+            ? metricInteger(
+              lot?.scannerEditDistance ?? editDistance(scannerOriginalLot, rawLot),
+              MAX_LOT_LENGTH,
+            )
+            : 0;
           return {
             id: cleanText(lot?.id, 140) || makeId("lot"),
             lot: rawLot,
@@ -244,6 +309,13 @@
               ? Math.max(0, Math.min(100, Number(lot.captureConfidence ?? lot.ocrConfidence)))
               : null,
             confirmedBy: cleanText(lot?.confirmedBy, 60),
+            scannerReviewTracked,
+            scannerOriginalLot: scannerReviewTracked ? scannerOriginalLot : "",
+            scannerTextCorrected: scannerReviewTracked && scannerEditDistance > 0,
+            scannerEditDistance,
+            scannerComparedCharacters: scannerReviewTracked
+              ? Math.max([...scannerOriginalLot].length, [...rawLot].length)
+              : 0,
           };
         });
       palletModels = normalizeModels([
@@ -480,6 +552,37 @@
     return session;
   }
 
+  function recordScannerReview(source, details = {}) {
+    const session = sanitize(clone(source));
+    if (session.status !== "active") return session;
+    const comparison = scannerLotComparison(details.originalLot, details.confirmedLot);
+    if (!comparison.scannerReviewTracked) return session;
+    const originalLot = comparison.scannerOriginalLot;
+    const confirmedLot = cleanLot(details.confirmedLot).toUpperCase();
+    const distance = comparison.scannerEditDistance;
+    const comparedCharacters = comparison.scannerComparedCharacters;
+    session.analytics.scannerReviewedLots += 1;
+    session.analytics.scannerComparedCharacters += comparedCharacters;
+    if (distance) {
+      session.analytics.scannerCorrectedLots += 1;
+      session.analytics.scannerEditDistanceTotal += distance;
+      if (distance <= 2) session.analytics.scannerOneOrTwoCharacterCorrections += 1;
+    } else {
+      session.analytics.scannerExactLots += 1;
+    }
+    return withActivity(session, "scanner_lot_reviewed", {
+      palletNumber: activePallet(session)?.number || null,
+      model: cleanModel(details.model || session.activeModel || session.sku),
+      originalLot,
+      confirmedLot,
+      textCorrected: distance > 0,
+      editDistance: distance,
+      comparedCharacters,
+      captureMethod: cleanText(details.captureMethod, 40),
+      employee: cleanText(details.employee || session.employee, 60),
+    });
+  }
+
   function addLot(source, lotValue, options = {}) {
     const session = sanitize(clone(source));
     const pallet = activePallet(session);
@@ -533,6 +636,21 @@
         ? Math.max(0, Math.min(100, Number(options.confidence)))
         : null,
       confirmedBy: cleanText(options.confirmedBy || session.employee, 60),
+      scannerReviewTracked: Boolean(
+        options.scannerReviewTracked && canonicalLot(options.scannerOriginalLot),
+      ),
+      scannerOriginalLot: options.scannerReviewTracked
+        ? cleanLot(options.scannerOriginalLot).toUpperCase()
+        : "",
+      scannerTextCorrected: Boolean(
+        options.scannerReviewTracked && options.scannerTextCorrected,
+      ),
+      scannerEditDistance: options.scannerReviewTracked
+        ? metricInteger(options.scannerEditDistance, MAX_LOT_LENGTH)
+        : 0,
+      scannerComparedCharacters: options.scannerReviewTracked
+        ? metricInteger(options.scannerComparedCharacters, MAX_LOT_LENGTH)
+        : 0,
     };
     pallet.lots.push(lot);
     pallet.activeLotId = lot.id;
@@ -1170,6 +1288,7 @@
     assertBoxCapacity,
     canonicalLot,
     displayLot,
+    scannerLotComparison,
     addLot,
     addModel,
     selectModel,
@@ -1180,6 +1299,7 @@
     updateModel,
     addActiveDuration,
     recordScanOutcome,
+    recordScannerReview,
     addCase,
     undoCase,
     setExpectedBoxCount,

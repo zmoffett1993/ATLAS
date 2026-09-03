@@ -1,12 +1,12 @@
-const VERSION = "atlas-pwa-v269-receiver-approval-fit";
+const VERSION = "atlas-pwa-v270-scanner-correction-metrics";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=153",
-  "./atlas-dashboard.js?v=158",
+  "./atlas-dashboard.css?v=154",
+  "./atlas-dashboard.js?v=159",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=58",
@@ -14,12 +14,12 @@ const APP_SHELL = [
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
   "./atlas-coc-case-quantities.js?v=3",
-  "./atlas-coc-core.js?v=20",
+  "./atlas-coc-core.js?v=21",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=6",
   "./atlas-coc-excel.js?v=18",
-  "./atlas-coc.js?v=62",
+  "./atlas-coc.js?v=63",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=18",
   "./coc-receiver/receiver.js?v=17",

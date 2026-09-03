@@ -70,6 +70,12 @@
       scanCanceled: 0,
       distinctLots: 0,
       manualLots: 0,
+      scannerReviewedLots: 0,
+      scannerExactLots: 0,
+      scannerCorrectedLots: 0,
+      scannerEditDistanceTotal: 0,
+      scannerComparedCharacters: 0,
+      scannerOneOrTwoCharacterCorrections: 0,
     },
     cocLoading: false,
     cocLoaded: false,
@@ -456,12 +462,31 @@
     const manualMethods = new Set(["manual", "manual_review", "manual_edit", "manual_entry"]);
     const scanAttempts = Number(analytics.scanAttempts || 0);
     const scanSuccesses = Number(analytics.scanSuccesses || 0);
+    const trackedLots = lots.filter((lot) => lot.scannerReviewTracked);
+    const trackedExactLots = trackedLots.filter((lot) => !lot.scannerTextCorrected);
+    const trackedCorrectedLots = trackedLots.filter((lot) => lot.scannerTextCorrected);
+    const hasScannerAnalytics = Object.prototype.hasOwnProperty.call(analytics, "scannerReviewedLots");
     return {
       activeDurationMs: Number(analytics.activeDurationMs || 0),
       scanAttempts,
       scanSuccesses,
       distinctLots: lots.length,
       manualLots: lots.filter((lot) => manualMethods.has(String(lot.captureMethod || "").toLowerCase())).length,
+      scannerReviewedLots: hasScannerAnalytics
+        ? Number(analytics.scannerReviewedLots || 0) : trackedLots.length,
+      scannerExactLots: hasScannerAnalytics
+        ? Number(analytics.scannerExactLots || 0) : trackedExactLots.length,
+      scannerCorrectedLots: hasScannerAnalytics
+        ? Number(analytics.scannerCorrectedLots || 0) : trackedCorrectedLots.length,
+      scannerEditDistanceTotal: hasScannerAnalytics
+        ? Number(analytics.scannerEditDistanceTotal || 0)
+        : trackedCorrectedLots.reduce((sum, lot) => sum + Number(lot.scannerEditDistance || 0), 0),
+      scannerComparedCharacters: hasScannerAnalytics
+        ? Number(analytics.scannerComparedCharacters || 0)
+        : trackedLots.reduce((sum, lot) => sum + Number(lot.scannerComparedCharacters || 0), 0),
+      scannerOneOrTwoCharacterCorrections: hasScannerAnalytics
+        ? Number(analytics.scannerOneOrTwoCharacterCorrections || 0)
+        : trackedCorrectedLots.filter((lot) => Number(lot.scannerEditDistance || 0) <= 2).length,
     };
   };
   const cocPlural = (count, word) => `${Number(count || 0).toLocaleString()} ${word}${Number(count) === 1 ? "" : word === "box" ? "es" : "s"}`;
@@ -542,6 +567,14 @@
         scanCanceled: Number(performance.scanCanceled || 0),
         distinctLots: Number(performance.distinctLots || 0),
         manualLots: Number(performance.manualLots || 0),
+        scannerReviewedLots: Number(performance.scannerReviewedLots || 0),
+        scannerExactLots: Number(performance.scannerExactLots || 0),
+        scannerCorrectedLots: Number(performance.scannerCorrectedLots || 0),
+        scannerEditDistanceTotal: Number(performance.scannerEditDistanceTotal || 0),
+        scannerComparedCharacters: Number(performance.scannerComparedCharacters || 0),
+        scannerOneOrTwoCharacterCorrections: Number(
+          performance.scannerOneOrTwoCharacterCorrections || 0,
+        ),
       };
       state.cocLoaded = true;
       state.lastSync = new Date();
@@ -1272,9 +1305,13 @@
     </div>`;
   };
 
+  const scannerCorrectionAudit = (lot) => lot?.scannerReviewTracked && lot?.scannerTextCorrected
+    ? `<small class="atlas-dashboard-coc-scan-correction">SCANNER PROPOSED <b>${escapeHtml(lot.scannerOriginalLot || "—")}</b> · ${cocPlural(lot.scannerEditDistance, "character")} corrected</small>`
+    : "";
+
   const renderCocPallets = (record) => (cocSnapshot(record).pallets || []).map((pallet) => `
     <section class="atlas-dashboard-coc-pallet"><header><h3>PALLET ${escapeHtml(pallet.number)}</h3><strong>${cocPlural((pallet.lots || []).reduce((sum, lot) => sum + Number(lot.cases || 0), 0), "box")}</strong></header>
-      ${(pallet.lots || []).map((lot) => `<div class="atlas-dashboard-coc-lot"><span><strong>${escapeHtml(lot.model || "—")}</strong><small>LOT <b>${escapeHtml(lot.lot || "—")}</b></small></span><b>${cocPlural(lot.cases, "box")} · ${(Number(lot.cases || 0) * Number(lot.caseQuantity || 0)).toLocaleString()} units</b></div>`).join("")}
+      ${(pallet.lots || []).map((lot) => `<div class="atlas-dashboard-coc-lot"><span><strong>${escapeHtml(lot.model || "—")}</strong><small>LOT <b>${escapeHtml(lot.lot || "—")}</b></small>${scannerCorrectionAudit(lot)}</span><b>${cocPlural(lot.cases, "box")} · ${(Number(lot.cases || 0) * Number(lot.caseQuantity || 0)).toLocaleString()} units</b></div>`).join("")}
     </section>`).join("");
 
   const renderCocPreview = (record) => {
@@ -1298,7 +1335,7 @@
     return `<section class="atlas-dashboard-coc-detail">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-detail-back>‹ All COCs</button>
       <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">${escapeHtml(cocStatus(record).toUpperCase())}</p><h2>${escapeHtml(snap.customerName || "—")}</h2><span>${escapeHtml(snap.invoiceNumber || "—")}</span></header>
-      <dl class="atlas-dashboard-coc-fields"><div><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div><dt>Sent By</dt><dd>${escapeHtml(record.submitted_by_display_name || snap.employeeDisplayName || snap.employee || "—")}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</dd></div><div><dt>Pallets</dt><dd>${totals.pallets}</dd></div><div><dt>Boxes</dt><dd>${totals.boxes}</dd></div><div><dt>Active COC Time</dt><dd>${escapeHtml(formatCocDuration(performance.activeDurationMs))}</dd></div><div><dt>Scan Success</dt><dd>${escapeHtml(cocPercentage(performance.scanSuccesses, performance.scanAttempts))}</dd></div><div><dt>Manual Lots</dt><dd>${performance.manualLots} / ${performance.distinctLots}</dd></div></dl>
+      <dl class="atlas-dashboard-coc-fields"><div><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div><dt>Sent By</dt><dd>${escapeHtml(record.submitted_by_display_name || snap.employeeDisplayName || snap.employee || "—")}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</dd></div><div><dt>Pallets</dt><dd>${totals.pallets}</dd></div><div><dt>Boxes</dt><dd>${totals.boxes}</dd></div><div><dt>Active COC Time</dt><dd>${escapeHtml(formatCocDuration(performance.activeDurationMs))}</dd></div><div><dt>Exact Scanner Accuracy</dt><dd>${escapeHtml(cocPercentage(performance.scanSuccesses, performance.scanAttempts))}</dd></div><div><dt>Exact Scanner Reads</dt><dd>${escapeHtml(cocPercentage(performance.scannerExactLots, performance.scannerReviewedLots))} · ${performance.scannerExactLots}/${performance.scannerReviewedLots}</dd></div><div><dt>Text-Corrected Scans</dt><dd>${performance.scannerCorrectedLots} lots · ${performance.scannerEditDistanceTotal} characters</dd></div><div><dt>1–2 Character Fixes</dt><dd>${performance.scannerOneOrTwoCharacterCorrections}</dd></div><div><dt>Manual Lots</dt><dd>${performance.manualLots} / ${performance.distinctLots}</dd></div></dl>
       <div class="atlas-dashboard-coc-pallets">${renderCocPallets(record)}</div>
       <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-official="${escapeHtml(record.id)}">View Official COC</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${cocCanDelete(record) ? `<button class="atlas-dashboard-button atlas-dashboard-button--danger" data-coc-delete="${escapeHtml(record.id)}">Delete COC</button>` : ""}</div>
     </section>`;
@@ -1326,10 +1363,10 @@
         <header><div><p class="atlas-dashboard-eyebrow">WAREHOUSE PERFORMANCE</p><h2>COC Workflow Metrics</h2><span>Active workflow time and lot-capture quality</span></div><label><span>Reporting period</span><select data-coc-performance-range aria-label="COC performance reporting period"><option value="7" ${state.cocPerformanceRange === "7" ? "selected" : ""}>Last 7 days</option><option value="30" ${state.cocPerformanceRange === "30" ? "selected" : ""}>Last 30 days</option><option value="all" ${state.cocPerformanceRange === "all" ? "selected" : ""}>All time</option></select></label></header>
         <div class="atlas-dashboard-coc-performance-grid">
           ${cocPerformanceCard("time", "AVG COC TIME", formatCocDuration(performance.averageActiveDurationMs), performance.completionSamples ? `Median ${formatCocDuration(performance.medianActiveDurationMs)} · ${cocPlural(performance.completionSamples, "COC")}` : "Timing begins with this update")}
-          ${cocPerformanceCard("scan", "SCAN SUCCESS", cocPercentage(performance.scanSuccesses, performance.scanAttempts), performance.scanAttempts ? `${performance.scanSuccesses.toLocaleString()} of ${performance.scanAttempts.toLocaleString()} confirmed attempts` : "No completed scan attempts yet")}
+          ${cocPerformanceCard("scan", "EXACT LOT SCAN", cocPercentage(performance.scanSuccesses, performance.scanAttempts), performance.scanAttempts ? `${performance.scanSuccesses.toLocaleString()} of ${performance.scanAttempts.toLocaleString()} scan attempts required no text correction or fallback` : "Scanner accuracy tracking begins with this update")}
           ${cocPerformanceCard("manual", "MANUAL ENTRY", cocPercentage(performance.manualLots, performance.distinctLots), performance.distinctLots ? `${performance.manualLots.toLocaleString()} of ${performance.distinctLots.toLocaleString()} distinct lots` : "No completed lot records yet")}
         </div>
-        <footer><span>${escapeHtml(rangeLabel)}</span><small>Canceled scans are tracked separately and excluded from scan success.</small></footer>
+        <footer><span>${escapeHtml(rangeLabel)}</span><small>Exact scan accuracy requires the original scanner value to be confirmed unchanged. Canceled scans are excluded.</small></footer>
       </article>
       <article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">LIVE COMPLIANCE OVERSIGHT</p><h2>COC Receiver Activity</h2><span>Review every office COC without pairing this dashboard as a Receiver.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
         <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["active","Incoming"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
