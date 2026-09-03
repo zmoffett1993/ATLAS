@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v275-coc-operations-intelligence";
+const VERSION = "atlas-pwa-v276-receiver-qr-rendering";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -21,8 +21,8 @@ const APP_SHELL = [
   "./atlas-coc-excel.js?v=18",
   "./atlas-coc.js?v=65",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=18",
-  "./coc-receiver/receiver.js?v=17",
+  "./coc-receiver/receiver.css?v=19",
+  "./coc-receiver/receiver.js?v=18",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
