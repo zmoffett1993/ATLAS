@@ -196,9 +196,9 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 .receiver-pair p{color:#657a92}
 .receiver-pair .receiver-primary{width:100%;margin-top:12px}
 .receiver-code{margin:20px 0 5px;font-size:3.2rem;letter-spacing:.2em;font-weight:900}
-.receiver-qr{width:220px;height:220px;margin:20px auto;display:grid;place-items:center;border:2px solid #bfd1e5;border-radius:18px;background:#f6f9fd;color:#63758c;overflow:hidden}
-.receiver-qr svg{display:block;width:100%;height:100%;max-width:none;max-height:none;fill:#000;stroke:none;stroke-width:0;shape-rendering:crispEdges}
-.receiver-qr svg path{fill:inherit;stroke:none}
+.receiver-qr{width:220px;height:220px;margin:20px auto;padding:10px;box-sizing:border-box;display:grid;place-items:center;border:2px solid #bfd1e5;border-radius:18px;background:#fff;color:#63758c;overflow:hidden}
+.receiver-qr svg{display:block;width:100%;height:100%;max-width:none;max-height:none;shape-rendering:crispEdges}
+.receiver-qr svg path,.receiver-qr svg rect{shape-rendering:crispEdges}
 
 .receiver-dialog-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:22px;background:rgba(3,17,37,.62);backdrop-filter:blur(5px)}
 .receiver-dialog{width:min(100%,500px);padding:34px;border:1px solid #d7e1eb;border-radius:24px;background:#fff;text-align:center;box-shadow:0 28px 80px rgba(0,15,36,.35)}
