@@ -953,7 +953,6 @@
     if (!pallet) return landingMarkup();
     if (!pallet.expectedBoxes || !Core.palletModels(session, pallet).length) return expectedCountMarkup(pallet);
     const total = Core.palletTotal(pallet);
-    const finished = completedPallets();
     const difference = total - pallet.expectedBoxes;
     const atLimit = total >= pallet.expectedBoxes;
     const remaining = Math.max(0, pallet.expectedBoxes - total);
@@ -979,7 +978,6 @@
       ${difference > 0 ? `<p class="atlas-coc-overage">${plural(difference, "box")} over the confirmed count. Undo a box or correct the count before finishing.</p>` : ""}
       ${countingLotsMarkup(pallet, atLimit)}
       ${countingStatusMarkup(pallet, lot, atLimit, difference === 0 && total > 0)}
-      ${finished.length ? `<div class="atlas-coc-finish-actions atlas-coc-work-complete"><button type="button" class="atlas-coc-complete-link" data-coc-action="review-complete">Complete COC with Verified Pallets</button></div>` : ""}
     </div>`;
   }
 

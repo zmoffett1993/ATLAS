@@ -2307,20 +2307,13 @@ html.atlas-coc-count-console .atlas-coc-counting {
   .atlas-coc-counting .atlas-coc-work-utilities button { min-height: 34px; }
 }
 
-/* V256: adaptive fit guard — fill when possible, scroll only when required. */
+/* V280: the mobile Pallet Work Console is a fixed, non-scrolling work surface. */
 @media (max-width: 719px) {
   html.atlas-coc-count-console .atlas-coc-counting {
     --coc-work-label-size: clamp(12px, min(3vw, 1.8dvh), 14px);
     --coc-work-value-size: clamp(20px, min(5.8vw, 3dvh), 26px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    scroll-padding-bottom: 4px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  html.atlas-coc-count-console .atlas-coc-counting::-webkit-scrollbar {
-    display: none;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   .atlas-coc-counting .atlas-coc-work-selector {
