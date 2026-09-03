@@ -544,7 +544,7 @@
         <span><strong>COMPLETED COCs</strong><small>Reports stored on this device</small></span>
         <span>View completed reports <b aria-hidden="true">›</b></span>
       </button>
-      ${Delivery.isSupervisor() ? `<button type="button" class="atlas-coc-history-card" data-coc-action="receiver-setup"><span><strong>OFFICE COC RECEIVER</strong><small>Supervisor setup</small></span><span>Approve a station <b aria-hidden="true">›</b></span></button>` : ""}
+      ${Delivery.isSupervisor() ? `<button type="button" class="atlas-coc-history-card" data-coc-action="receiver-setup"><span><strong>OFFICE RECEIVER PAIRING</strong><small>Connect or replace an office COC receiver</small></span><span>Pair receiver <b aria-hidden="true">›</b></span></button>` : ""}
     </div>`;
   }
 
