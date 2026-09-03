@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v267-pallet-setup-opening-position";
+const VERSION = "atlas-pwa-v268-receiver-qr-scanner";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=158",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
-  "./atlas-coc.css?v=56",
+  "./atlas-coc.css?v=57",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,9 +19,9 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=3",
   "./atlas-coc-delivery.js?v=6",
   "./atlas-coc-excel.js?v=18",
-  "./atlas-coc.js?v=61",
+  "./atlas-coc.js?v=62",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=17",
+  "./coc-receiver/receiver.css?v=18",
   "./coc-receiver/receiver.js?v=17",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",

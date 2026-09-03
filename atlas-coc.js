@@ -56,6 +56,13 @@
   let scanMetricPending = false;
   let countConsoleWasOpen = false;
   let palletSetupWasOpen = false;
+  let receiverSetupWasOpen = false;
+  let receiverQrStream = null;
+  let receiverQrScanToken = 0;
+  let receiverQrDetector = null;
+  let receiverQrReader = null;
+  let receiverQrFrameBusy = false;
+  let receiverQrSubmitting = false;
   const ACTIVE_TIMING_HEARTBEAT_MS = 30000;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
@@ -559,7 +566,26 @@
   }
 
   function receiverSetupMarkup() {
-    return `<div class="atlas-coc-page"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button><header class="atlas-coc-page-head"><span>${escapeHtml(Delivery.requestedWarehouseCode())} SUPERVISOR SETUP</span><h1>${escapeHtml(Delivery.activeStationName())}</h1><p>Open <strong>/coc-receiver/</strong> on the ${escapeHtml(Delivery.requestedWarehouseCode())} office computer, then approve its six-digit pairing code here.</p></header><form id="atlas-coc-pairing-form" class="atlas-coc-form-card"><label><strong>Pairing Code</strong><input name="pairingCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><p class="atlas-coc-form-error" aria-live="polite"></p><button class="atlas-coc-primary" type="submit">Approve ${escapeHtml(Delivery.requestedWarehouseCode())} Receiver</button></form></div>`;
+    return `<div class="atlas-coc-page atlas-coc-receiver-setup">
+      <button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button>
+      <header class="atlas-coc-page-head"><span>${escapeHtml(Delivery.requestedWarehouseCode())} SUPERVISOR SETUP</span><h1>${escapeHtml(Delivery.activeStationName())}</h1><p>Open <strong>/coc-receiver/</strong> on the ${escapeHtml(Delivery.requestedWarehouseCode())} office computer, then scan its QR code or enter the six-digit pairing code.</p></header>
+      <form id="atlas-coc-pairing-form" class="atlas-coc-form-card atlas-coc-pairing-card">
+        <section class="atlas-coc-pairing-scanner" aria-labelledby="atlas-coc-pairing-scan-title">
+          <span class="atlas-coc-eyebrow" id="atlas-coc-pairing-scan-title">SCAN RECEIVER QR CODE</span>
+          <div class="atlas-coc-pairing-camera">
+            <video id="atlas-coc-pairing-video" autoplay muted playsinline></video>
+            <span class="atlas-coc-pairing-guide" aria-hidden="true"></span>
+          </div>
+          <canvas id="atlas-coc-pairing-canvas" hidden></canvas>
+          <p id="atlas-coc-pairing-status" class="atlas-coc-pairing-status" role="status" aria-live="polite">Starting QR scanner…</p>
+          <button type="button" class="atlas-coc-pairing-restart" data-coc-action="start-receiver-qr">Start QR Scanner</button>
+        </section>
+        <div class="atlas-coc-pairing-divider"><span>OR ENTER THE 6-DIGIT CODE</span></div>
+        <label><strong>Pairing Code</strong><input name="pairingCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" required></label>
+        <p class="atlas-coc-form-error" aria-live="polite"></p>
+        <button class="atlas-coc-primary" type="submit">Approve ${escapeHtml(Delivery.requestedWarehouseCode())} Receiver</button>
+      </form>
+    </div>`;
   }
 
   function manualCaseQuantityMarkup() {
@@ -937,6 +963,184 @@
       if (errorElement) errorElement.textContent = message;
       else showToast(message, "warning");
       return false;
+    }
+  }
+
+  function stopReceiverQrScanner() {
+    receiverQrScanToken += 1;
+    receiverQrFrameBusy = false;
+    const video = document.getElementById("atlas-coc-pairing-video");
+    try { video?.pause?.(); } catch {}
+    if (video) video.srcObject = null;
+    stopCameraStream(receiverQrStream);
+    receiverQrStream = null;
+  }
+
+  function pairingApprovalFromQrValue(value) {
+    const raw = String(value || "").trim().slice(0, 1000);
+    if (!raw) return null;
+    if (/^\d{6}$/.test(raw)) return { pairingCode: raw };
+    try {
+      const parsed = JSON.parse(raw);
+      const pairingCode = String(parsed?.pairingCode || "").replace(/\D/g, "");
+      if (pairingCode.length === 6) return { pairingCode };
+      const qrToken = String(parsed?.cocPair || parsed?.qrToken || "").trim();
+      if (qrToken) return { qrToken: qrToken.slice(0, 500) };
+    } catch {}
+    if (/^[A-Za-z0-9._~-]{16,500}$/.test(raw)) return { qrToken: raw };
+    try {
+      const url = new URL(raw, window.location.origin);
+      const hashParams = new URLSearchParams(String(url.hash || "").replace(/^#/, ""));
+      const pairingCode = String(
+        url.searchParams.get("pairingCode") || hashParams.get("pairingCode") || "",
+      ).replace(/\D/g, "");
+      if (pairingCode.length === 6) return { pairingCode };
+      const qrToken = String(
+        url.searchParams.get("cocPair") || url.searchParams.get("qrToken") ||
+        hashParams.get("cocPair") || hashParams.get("qrToken") || "",
+      ).trim();
+      if (qrToken) return { qrToken: qrToken.slice(0, 500) };
+      if (/^https?:$/i.test(url.protocol)) return null;
+    } catch {}
+    return null;
+  }
+
+  async function detectReceiverQr(canvas) {
+    if (window.BarcodeDetector) {
+      try {
+        if (!receiverQrDetector) receiverQrDetector = new window.BarcodeDetector({ formats: ["qr_code"] });
+        const results = await receiverQrDetector.detect(canvas);
+        const value = String(results?.[0]?.rawValue || "").trim();
+        if (value) return value;
+      } catch {}
+    }
+    try {
+      if (!receiverQrReader && window.ZXingBrowser?.BrowserQRCodeReader)
+        receiverQrReader = new window.ZXingBrowser.BrowserQRCodeReader();
+      return String(receiverQrReader?.decodeFromCanvas?.(canvas)?.getText?.() || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  async function processReceiverQrFrame(token) {
+    if (
+      token !== receiverQrScanToken || workflowView !== "receiver-setup" ||
+      route !== "workflows" || receiverQrSubmitting
+    ) return;
+    const video = document.getElementById("atlas-coc-pairing-video");
+    const canvas = document.getElementById("atlas-coc-pairing-canvas");
+    if (!hasLiveCameraFrame(video) || !canvas || receiverQrFrameBusy) {
+      window.setTimeout(() => processReceiverQrFrame(token), 180);
+      return;
+    }
+    receiverQrFrameBusy = true;
+    try {
+      const scale = Math.min(1, 1280 / Number(video.videoWidth || 1280));
+      canvas.width = Math.max(1, Math.round(Number(video.videoWidth) * scale));
+      canvas.height = Math.max(1, Math.round(Number(video.videoHeight) * scale));
+      canvas.getContext("2d", { willReadFrequently: true }).drawImage(
+        video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, canvas.width, canvas.height,
+      );
+      const decoded = await detectReceiverQr(canvas);
+      if (token !== receiverQrScanToken || !decoded) return;
+      const approval = pairingApprovalFromQrValue(decoded);
+      const status = document.getElementById("atlas-coc-pairing-status");
+      if (!approval) {
+        if (status) status.textContent = "That QR code is not an ATLAS receiver code. Keep the receiver QR inside the frame.";
+        return;
+      }
+      receiverQrSubmitting = true;
+      const codeInput = document.querySelector("#atlas-coc-pairing-form input[name='pairingCode']");
+      if (approval.pairingCode && codeInput) codeInput.value = approval.pairingCode;
+      if (status) status.textContent = "Receiver QR detected — approving…";
+      stopReceiverQrScanner();
+      const approved = await requestPairingApproval(approval, { errorElement: status });
+      receiverQrSubmitting = false;
+      if (!approved && workflowView === "receiver-setup" && !modal) {
+        const restart = document.querySelector('[data-coc-action="start-receiver-qr"]');
+        if (restart) restart.textContent = "Try QR Scanner Again";
+      }
+      return;
+    } finally {
+      receiverQrFrameBusy = false;
+      if (
+        token === receiverQrScanToken && workflowView === "receiver-setup" &&
+        route === "workflows" && !receiverQrSubmitting
+      ) window.setTimeout(() => processReceiverQrFrame(token), 180);
+    }
+  }
+
+  function waitForReceiverQrFrame(video, token, timeoutMs = 4500) {
+    return new Promise((resolve) => {
+      const startedAt = Date.now();
+      const check = () => {
+        if (token !== receiverQrScanToken || workflowView !== "receiver-setup") resolve(false);
+        else if (hasLiveCameraFrame(video)) resolve(true);
+        else if (Date.now() - startedAt >= timeoutMs) resolve(false);
+        else window.setTimeout(check, 80);
+      };
+      check();
+    });
+  }
+
+  async function startReceiverQrScanner({ fallback = false } = {}) {
+    const video = document.getElementById("atlas-coc-pairing-video");
+    const status = document.getElementById("atlas-coc-pairing-status");
+    const restart = document.querySelector('[data-coc-action="start-receiver-qr"]');
+    if (!video || workflowView !== "receiver-setup" || receiverQrSubmitting) return false;
+    stopReceiverQrScanner();
+    const token = ++receiverQrScanToken;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      if (status) status.textContent = "Camera scanning is unavailable on this device. Enter the six-digit code below.";
+      if (restart) restart.textContent = "Try QR Scanner Again";
+      return false;
+    }
+    let stream = null;
+    if (status) status.textContent = fallback ? "Restarting QR scanner…" : "Starting QR scanner…";
+    if (restart) restart.disabled = true;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(cameraConstraints(fallback));
+      if (token !== receiverQrScanToken || workflowView !== "receiver-setup" || route !== "workflows") {
+        stopCameraStream(stream);
+        return false;
+      }
+      receiverQrStream = stream;
+      video.muted = true;
+      video.playsInline = true;
+      video.srcObject = stream;
+      try {
+        const playAttempt = video.play?.();
+        playAttempt?.catch?.(() => {});
+      } catch {}
+      const ready = await waitForReceiverQrFrame(video, token);
+      if (!ready) {
+        if (receiverQrStream === stream) receiverQrStream = null;
+        if (video.srcObject === stream) video.srcObject = null;
+        stopCameraStream(stream);
+        if (token !== receiverQrScanToken || workflowView !== "receiver-setup") return false;
+        if (!fallback) return startReceiverQrScanner({ fallback: true });
+        if (status) status.textContent = "The camera did not start. Enter the six-digit code below or try the scanner again.";
+        return false;
+      }
+      const track = stream.getVideoTracks?.()[0];
+      Scanner.configureTrack?.(track)?.catch?.(() => {});
+      if (status) status.textContent = "Point the camera at the receiver QR code. ATLAS will scan it automatically.";
+      if (restart) restart.textContent = "Restart QR Scanner";
+      processReceiverQrFrame(token);
+      return true;
+    } catch (error) {
+      if (receiverQrStream === stream) receiverQrStream = null;
+      if (video?.srcObject === stream) video.srcObject = null;
+      stopCameraStream(stream);
+      if (token !== receiverQrScanToken || workflowView !== "receiver-setup") return false;
+      const retryable = ["AbortError", "NotReadableError", "OverconstrainedError"].includes(error?.name);
+      if (!fallback && retryable) return startReceiverQrScanner({ fallback: true });
+      if (status) status.textContent = "Camera access is unavailable. Enter the six-digit code below.";
+      return false;
+    } finally {
+      const currentRestart = document.querySelector('[data-coc-action="start-receiver-qr"]');
+      if (currentRestart) currentRestart.disabled = false;
     }
   }
 
@@ -1565,6 +1769,10 @@
     );
     const enteredPalletSetup = palletSetupOpen && !palletSetupWasOpen;
     palletSetupWasOpen = palletSetupOpen;
+    const receiverSetupOpen = route === "workflows" && workflowView === "receiver-setup";
+    const enteredReceiverSetup = receiverSetupOpen && !receiverSetupWasOpen;
+    receiverSetupWasOpen = receiverSetupOpen;
+    if (!receiverSetupOpen && receiverQrStream) stopReceiverQrScanner();
     document.documentElement.classList.toggle("atlas-coc-count-console", countConsoleOpen);
     const bar = document.getElementById("atlas-coc-active-bar-slot");
     if (bar) {
@@ -1584,6 +1792,7 @@
         workflows.innerHTML = workflowMarkup();
         if (enteredCountConsole) scrollWorkflowToTop();
         if (enteredPalletSetup) positionPalletSetup();
+        if (enteredReceiverSetup) window.requestAnimationFrame?.(() => startReceiverQrScanner());
         window.requestAnimationFrame?.(() => Excel.fitOfficialWorkbookPreviews?.(workflows));
       } catch (error) {
         renderError = error;
@@ -2368,7 +2577,7 @@
     if (!action) return;
     if (action === "show-landing") {
       finishScanMetricAttempt("canceled");
-      cancelScanSession(); capture = freshCapture(); modal = null;
+      cancelScanSession(); stopReceiverQrScanner(); capture = freshCapture(); modal = null;
       workflowView = "landing"; renderAll(); return;
     }
     if (action === "coc-back") { backWithinCoc(); return; }
@@ -2387,6 +2596,7 @@
     if (action === "review-resend-completed") { modal = "resend-completed"; renderAll(); return; }
     if (action === "confirm-resend-completed") { await resendCompletedCoc(); return; }
     if (action === "receiver-setup") { workflowView = "receiver-setup"; renderAll(); return; }
+    if (action === "start-receiver-qr") { await startReceiverQrScanner(); return; }
     if (action === "cancel-receiver-replacement") { modal = null; renderAll(); return; }
     if (action === "confirm-receiver-replacement") {
       const approval = modal?.type === "replace-receiver" ? modal.approval : null;
@@ -2800,7 +3010,7 @@
   document.addEventListener("beforeinput", (event) => {
     const input = event.target;
     if (!input?.matches?.(
-      "#atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity], [data-coc-lot-case-quantity]",
+      "#atlas-coc-pairing-form input[name='pairingCode'], #atlas-coc-expected-form input[name='expectedBoxes'], #atlas-coc-edit-expected-form input[name='expectedBoxes'], [data-coc-manual-quantity], [data-coc-correct-quantity], [data-coc-lot-case-quantity]",
     )) return;
     if (event.data && /\D/.test(event.data)) event.preventDefault();
   });
@@ -2872,6 +3082,7 @@
       const error = event.target.querySelector(".atlas-coc-form-error");
       const pairingCode = String(new FormData(event.target).get("pairingCode") || "").replace(/\D/g, "");
       if (pairingCode.length !== 6) { error.textContent = "Enter the six-digit code shown on the office receiver."; return; }
+      stopReceiverQrScanner();
       requestPairingApproval({ pairingCode }, { errorElement: error });
       return;
     }
@@ -3183,6 +3394,7 @@
         scannerState = SCANNER_STATES.STARTING;
         setCameraControlsReady(false);
       }
+      if (workflowView === "receiver-setup") stopReceiverQrScanner();
     } else {
       syncActiveTiming();
       if (modal === "capture" && !cameraStream) {
@@ -3190,17 +3402,21 @@
         if (status) status.textContent = "Restarting camera…";
         window.requestAnimationFrame?.(() => startLiveCamera({ fallback: true }));
       }
+      if (workflowView === "receiver-setup" && !receiverQrStream && !modal && !receiverQrSubmitting)
+        window.requestAnimationFrame?.(() => startReceiverQrScanner({ fallback: true }));
     }
   });
   window.addEventListener("pagehide", () => {
     finishScanMetricAttempt("canceled");
     commitActiveTiming();
     cancelScanSession();
+    stopReceiverQrScanner();
   });
   window.addEventListener("beforeunload", () => {
     finishScanMetricAttempt("canceled");
     commitActiveTiming();
     cancelScanSession();
+    stopReceiverQrScanner();
   });
 
   window.atlasCoc = Object.freeze({
@@ -3212,6 +3428,7 @@
         capture = freshCapture();
         modal = null;
       }
+      if (destination !== "workflows") stopReceiverQrScanner();
       route = destination;
       renderAll();
     },
@@ -3222,6 +3439,7 @@
         capture = freshCapture();
         modal = null;
       }
+      stopReceiverQrScanner();
       route = "workflows";
       workflowView = "landing";
       renderAll();

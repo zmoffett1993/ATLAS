@@ -300,6 +300,37 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   margin: 4px auto 0;
   padding-inline: 24px;
 }
+.atlas-coc-receiver-setup { max-width: 650px; margin: 0 auto; }
+.atlas-coc-pairing-card { display: grid; gap: 18px; }
+.atlas-coc-pairing-scanner { display: grid; justify-items: center; gap: 12px; }
+.atlas-coc-pairing-camera {
+  position: relative;
+  width: min(100%, 330px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid #b9cde3;
+  border-radius: 22px;
+  background: #07182e;
+  box-shadow: 0 12px 28px rgba(6, 34, 73, .14);
+}
+.atlas-coc-pairing-camera video { width: 100%; height: 100%; display: block; object-fit: cover; }
+.atlas-coc-pairing-guide {
+  position: absolute;
+  inset: 12%;
+  border: 3px solid #1683ff;
+  border-radius: 18px;
+  box-shadow: 0 0 0 999px rgba(2, 17, 37, .22), 0 0 24px rgba(22, 131, 255, .45);
+  pointer-events: none;
+}
+.atlas-coc-pairing-status { min-height: 38px; margin: 0; color: var(--coc-muted); font-size: .88rem; font-weight: 700; line-height: 1.4; text-align: center; }
+.atlas-coc-pairing-restart { min-height: 48px; padding: 0 18px; color: var(--coc-blue-dark); font-weight: 850; border: 1.5px solid #9cc9f8; border-radius: 14px; background: #fff; }
+.atlas-coc-pairing-divider { display: flex; align-items: center; gap: 12px; color: #6a7d96; font-size: .68rem; font-weight: 900; letter-spacing: .13em; text-align: center; }
+.atlas-coc-pairing-divider::before,.atlas-coc-pairing-divider::after { content: ""; height: 1px; flex: 1; background: #d5e0eb; }
+.atlas-coc-pairing-card input[name="pairingCode"] { text-align: center; font-size: 2rem; font-weight: 850; letter-spacing: .18em; }
+@media (max-width: 480px) {
+  .atlas-coc-pairing-card { padding: 18px; }
+  .atlas-coc-pairing-camera { width: min(100%, 290px); }
+}
 .atlas-coc-invoice-line {
   display: flex;
   justify-content: space-between;
