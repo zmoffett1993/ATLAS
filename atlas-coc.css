@@ -681,15 +681,22 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-review-identifiers strong { color: var(--coc-ink); font-size: 15px; }
 .atlas-coc-review-identifiers b { color: var(--coc-blue-dark); font-size: 16px; }
 .atlas-coc-review-boxes { min-width: 74px; color: var(--coc-ink); text-align: right; white-space: nowrap; }
-.atlas-coc-final-review { max-height: 310px; overflow: auto; border: 1px solid var(--coc-line); border-radius: 14px; }
-.atlas-coc-final-review section + section { border-top: 8px solid var(--coc-soft); }
+.atlas-coc-final-review-dialog .atlas-coc-modal { overflow-x: hidden; overflow-y: auto; overscroll-behavior-x: none; }
+.atlas-coc-final-review { width: 100%; max-width: 100%; max-height: 310px; overflow-x: hidden; overflow-y: auto; border: 1px solid var(--coc-line); border-radius: 14px; box-sizing: border-box; }
+.atlas-coc-final-pallet-slide { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.atlas-coc-final-pallet-slide + .atlas-coc-final-pallet-slide { border-top: 8px solid var(--coc-soft); }
+.atlas-coc-final-review > section + section { border-top: 8px solid var(--coc-soft); }
 .atlas-coc-final-review header,
-.atlas-coc-final-review section > div,
+.atlas-coc-final-review > section > div,
+.atlas-coc-final-pallet > .atlas-coc-final-record,
 .atlas-coc-final-total { display: flex; justify-content: space-between; gap: 14px; align-items: center; }
 .atlas-coc-final-review header { padding: 11px 13px; color: #fff; background: var(--coc-navy); }
-.atlas-coc-final-review section > div { padding: 10px 13px; border-bottom: 1px solid #e8eef4; }
-.atlas-coc-final-review section > div:last-child { border-bottom: 0; }
-.atlas-coc-final-review section > div span { overflow-wrap: anywhere; }
+.atlas-coc-final-review > section > div,
+.atlas-coc-final-pallet > .atlas-coc-final-record { min-width: 0; padding: 10px 13px; border-bottom: 1px solid #e8eef4; }
+.atlas-coc-final-review > section > div:last-child,
+.atlas-coc-final-pallet > .atlas-coc-final-record:last-of-type { border-bottom: 0; }
+.atlas-coc-final-review > section > div span,
+.atlas-coc-final-pallet > .atlas-coc-final-record span { overflow-wrap: anywhere; }
 .atlas-coc-final-identifiers {
   min-width: 0;
   display: grid;
@@ -1354,6 +1361,74 @@ html.atlas-coc-work-mode .atlas-workflows-view {
     border-radius: 999px;
     background: #eaf4ff;
     box-shadow: 0 5px 14px rgba(8,78,151,.09);
+  }
+  .atlas-coc-final-review.is-carousel {
+    display: flex;
+    gap: 12px;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    border: 0;
+    border-radius: 0;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    touch-action: pan-y;
+  }
+  .atlas-coc-final-review.is-carousel::-webkit-scrollbar { display: none; }
+  .atlas-coc-final-review.is-carousel .atlas-coc-final-pallet-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    border-top: 0;
+  }
+  .atlas-coc-final-review.is-carousel .atlas-coc-final-pallet {
+    width: 100%;
+    max-width: 100%;
+    max-height: 310px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--coc-line);
+    border-radius: 14px;
+    box-sizing: border-box;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+  .atlas-coc-final-review.is-carousel .atlas-coc-final-pallet > header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .atlas-coc-final-review.is-carousel .atlas-coc-swipe-hint {
+    width: fit-content;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 9px;
+    padding: 0 15px;
+    color: #074f9f;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .15em;
+    border: 1px solid #b8d7f5;
+    border-radius: 999px;
+    background: #eaf4ff;
+    box-shadow: 0 5px 14px rgba(8,78,151,.09);
+  }
+  .atlas-coc-final-review.is-carousel .atlas-coc-final-record {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(88px, auto);
+    gap: 8px;
+  }
+  .atlas-coc-final-review.is-carousel .atlas-coc-final-boxes {
+    min-width: 0;
+    max-width: 126px;
+    white-space: normal;
+  }
+  .atlas-coc-final-review.is-carousel .atlas-coc-final-boxes > small {
+    line-height: 1.25;
   }
   #atlas-coc-active-bar-slot { width: calc(100% - 20px); margin-top: 9px; }
   .atlas-coc-active-bar { min-height: 58px; padding: 9px 11px; border-radius: 14px; }

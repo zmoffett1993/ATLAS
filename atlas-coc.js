@@ -442,6 +442,60 @@
     });
   }
 
+  function wireFinalReviewCarousel() {
+    const carousel = document.querySelector(".atlas-coc-final-review.is-carousel");
+    if (
+      !carousel || carousel.dataset.axisCarouselBound === "true" ||
+      !window.matchMedia?.("(max-width: 560px)").matches
+    ) return;
+    const slides = [...carousel.querySelectorAll(".atlas-coc-final-pallet-slide")];
+    if (slides.length < 2) return;
+    carousel.dataset.axisCarouselBound = "true";
+    carousel.dataset.carouselIndex = "0";
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartIndex = 0;
+
+    const goTo = (requestedIndex, behavior = "smooth") => {
+      const index = Math.max(0, Math.min(slides.length - 1, requestedIndex));
+      const left = slides[index].offsetLeft - slides[0].offsetLeft;
+      carousel.dataset.carouselIndex = String(index);
+      carousel.setAttribute(
+        "aria-label",
+        `Pallet ${index + 1} of ${slides.length}. Swipe left or right between pallets and scroll vertically to review lots.`,
+      );
+      if (typeof carousel.scrollTo === "function") carousel.scrollTo({ left, top: 0, behavior });
+      else carousel.scrollLeft = left;
+      slides[index].querySelector(".atlas-coc-final-pallet")?.scrollTo?.({ top: 0, behavior: "auto" });
+    };
+
+    carousel.addEventListener("touchstart", (event) => {
+      const touch = event.touches?.[0];
+      if (!touch) return;
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartIndex = Number(carousel.dataset.carouselIndex || 0);
+    }, { passive: true });
+
+    carousel.addEventListener("touchend", (event) => {
+      const touch = event.changedTouches?.[0];
+      if (!touch) return;
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      const horizontalSwipe = Math.abs(deltaX) >= 44 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+      if (!horizontalSwipe) return;
+      goTo(touchStartIndex + (deltaX < 0 ? 1 : -1));
+    }, { passive: true });
+
+    carousel.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      const index = Number(carousel.dataset.carouselIndex || 0);
+      goTo(index + (event.key === "ArrowRight" ? 1 : -1));
+    });
+    goTo(0, "auto");
+  }
+
   function positionPalletSetup() {
     if (!window.matchMedia?.("(max-width: 719px)").matches) return;
     const place = () => {
@@ -1408,8 +1462,20 @@
     );
     const blocked = activeHasWork && !activeReady;
     const total = completed.reduce((sum, item) => sum + Core.palletTotal(item), 0);
+    const multiplePallets = completed.length > 1;
+    const completedPalletMarkup = completed.map((item, index) => {
+      const swipeHint = !multiplePallets ? "" : index === 0
+        ? "← SWIPE"
+        : index === completed.length - 1
+          ? "SWIPE →"
+          : "← SWIPE →";
+      return `<article class="atlas-coc-final-pallet-slide" role="group" aria-label="Pallet ${item.number} of ${completed.length}">
+        ${swipeHint ? `<div class="atlas-coc-swipe-hint" aria-hidden="true">${swipeHint}</div>` : ""}
+        <section class="atlas-coc-final-pallet"><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div class="atlas-coc-final-record"><span class="atlas-coc-final-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span>${lotQuantityReviewMarkup(item, lot, "atlas-coc-final-boxes")}</div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>
+      </article>`;
+    }).join("");
     return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>${reportMode ? "Review completed COC" : "Complete this COC?"}</h2>
-      <div class="atlas-coc-final-review">${completed.map((item) => `<section><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div class="atlas-coc-final-record"><span class="atlas-coc-final-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span>${lotQuantityReviewMarkup(item, lot, "atlas-coc-final-boxes")}</div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>`).join("")}</div>
+      <div class="atlas-coc-final-review ${multiplePallets ? "is-carousel" : ""}" ${multiplePallets ? 'aria-label="Swipe through verified pallets" tabindex="0"' : ""}>${completedPalletMarkup}</div>
       <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(total, "box")} · ${plural(completed.length, "pallet")}</b></p>
       ${blocked
         ? `<p class="atlas-coc-warning">Pallet ${pallet.number} is not verified. Its confirmed and recorded box counts must match before completing the COC.</p>`
@@ -1418,6 +1484,7 @@
           : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will be ready for office completion.</p>`}
       <div class="atlas-coc-modal-actions atlas-coc-final-actions"><button type="button" data-coc-action="view-draft-official" ${blocked || !completed.length ? "disabled" : ""}>View Official COC</button>${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Complete COC</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button>`}</div>`, {
       label: "Complete COC review",
+      className: "atlas-coc-final-review-dialog",
       backAction: reportMode ? "back-to-verified-pallet" : "coc-back",
       backLabel: reportMode ? "‹ Back to Pallet" : "‹ Back",
     });
@@ -1938,7 +2005,10 @@
         [SCANNER_STATES.STARTING, SCANNER_STATES.READY].includes(scannerState);
       // Background snapshot syncs and other harmless status updates must not
       // replace the live video element while iOS is streaming into it.
-      if (!preserveLiveCameraModal) modalRoot.innerHTML = modalMarkup();
+      if (!preserveLiveCameraModal) {
+        modalRoot.innerHTML = modalMarkup();
+        wireFinalReviewCarousel();
+      }
       document.documentElement.classList.toggle("atlas-coc-modal-open", Boolean(modal));
     } catch (error) {
       console.error("ATLAS could not display the COC dialog.", error);

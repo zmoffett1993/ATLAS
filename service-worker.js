@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v280-stationary-pallet-console";
+const VERSION = "atlas-pwa-v281-final-review-pallet-carousel";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=163",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
-  "./atlas-coc.css?v=59",
+  "./atlas-coc.css?v=60",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=4",
   "./atlas-coc-delivery.js?v=7",
   "./atlas-coc-excel.js?v=18",
-  "./atlas-coc.js?v=68",
+  "./atlas-coc.js?v=69",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=19",
   "./coc-receiver/receiver.js?v=18",
