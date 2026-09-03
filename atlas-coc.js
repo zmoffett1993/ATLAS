@@ -737,7 +737,7 @@
   function receiverSetupMarkup() {
     return `<div class="atlas-coc-page atlas-coc-receiver-setup">
       <button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button>
-      <header class="atlas-coc-page-head"><span>${escapeHtml(Delivery.requestedWarehouseCode())} SUPERVISOR SETUP</span><h1>${escapeHtml(Delivery.activeStationName())}</h1><p>Open <strong>/coc-receiver/</strong> on the ${escapeHtml(Delivery.requestedWarehouseCode())} office computer, then scan its QR code or enter the six-digit pairing code.</p></header>
+      <header class="atlas-coc-page-head"><span>${escapeHtml(Delivery.requestedWarehouseCode())} SUPERVISOR SETUP</span><h1>${escapeHtml(Delivery.activeStationName())}</h1><p>Scan the QR on the ${escapeHtml(Delivery.requestedWarehouseCode())} office computer or enter its 6-digit code.</p></header>
       <form id="atlas-coc-pairing-form" class="atlas-coc-form-card atlas-coc-pairing-card">
         <section class="atlas-coc-pairing-scanner" aria-labelledby="atlas-coc-pairing-scan-title">
           <span class="atlas-coc-eyebrow" id="atlas-coc-pairing-scan-title">SCAN RECEIVER QR CODE</span>
@@ -1292,7 +1292,7 @@
       }
       const track = stream.getVideoTracks?.()[0];
       Scanner.configureTrack?.(track)?.catch?.(() => {});
-      if (status) status.textContent = "Point the camera at the receiver QR code. ATLAS will scan it automatically.";
+      if (status) status.textContent = "Point at the receiver QR code. ATLAS scans automatically.";
       if (restart) restart.textContent = "Restart QR Scanner";
       processReceiverQrFrame(token);
       return true;
