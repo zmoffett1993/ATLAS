@@ -2625,6 +2625,174 @@ html.atlas-dashboard-open #root {
   .atlas-coc-workspace-tabs button { min-height: 42px; font-size: 12px; }
 }
 
+/* v283: responsive mobile dashboard controls and activity layout. */
+@media (max-width: 820px) {
+  .atlas-dashboard-shell {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .atlas-dashboard-mobile-bar {
+    margin-right: -12px;
+    margin-bottom: 16px;
+    margin-left: -12px;
+  }
+
+  .atlas-dashboard-header {
+    margin-bottom: 14px;
+  }
+
+  .atlas-dashboard-header h1 {
+    font-size: clamp(28px, 8vw, 33px);
+    line-height: 1.04;
+  }
+
+  .atlas-dashboard-subtitle {
+    margin-top: 7px;
+    font-size: 13px;
+    line-height: 1.42;
+  }
+
+  .atlas-dashboard-header-actions {
+    margin-top: 13px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 8px;
+  }
+
+  .atlas-dashboard-header-actions > .atlas-dashboard-warehouse-switch,
+  .atlas-dashboard-header-actions > .atlas-dashboard-warehouse-badge {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .atlas-dashboard-warehouse-switch .atlas-premium-select--header {
+    width: 100%;
+  }
+
+  .atlas-dashboard-date-control {
+    grid-column: 1;
+    min-width: 0;
+    display: block;
+  }
+
+  .atlas-dashboard-date-control > .atlas-dashboard-range {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .atlas-dashboard-header-actions > .atlas-dashboard-button {
+    width: 100%;
+    min-width: 0;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .atlas-dashboard-header-actions > .atlas-dashboard-button[data-sign-out] {
+    grid-column: 2;
+  }
+
+  .atlas-dashboard-header-actions:has([data-account-add]) > .atlas-dashboard-button[data-sign-out],
+  .atlas-dashboard-header-actions:has(.atlas-dashboard-custom-range) > .atlas-dashboard-button[data-sign-out],
+  .atlas-dashboard-date-control:has(.atlas-dashboard-custom-range) {
+    grid-column: 1 / -1;
+  }
+
+  .atlas-dashboard-tabs {
+    margin: 0 0 14px;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .atlas-dashboard-tabs button {
+    min-width: 0;
+    min-height: 42px;
+    flex: 1 1 0;
+    padding: 0 4px;
+    font-size: clamp(9px, 2.65vw, 11px);
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .atlas-dashboard-statusline {
+    margin: 0 0 14px;
+  }
+
+  .atlas-dashboard-summary {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .atlas-dashboard-card {
+    min-height: 96px;
+    padding: 12px;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .atlas-dashboard-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .atlas-dashboard-card-copy span {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .atlas-dashboard-card-copy strong {
+    margin-top: 4px;
+    font-size: 25px;
+  }
+
+  .atlas-dashboard-main-grid {
+    gap: 12px;
+  }
+
+  .atlas-dashboard-panel-head {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .atlas-dashboard-tools {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 8px;
+  }
+
+  .atlas-dashboard-search {
+    min-width: 0;
+  }
+
+  .atlas-dashboard-search input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .atlas-dashboard-filter {
+    width: 112px;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .atlas-dashboard-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .atlas-dashboard-filter {
+    width: 100%;
+  }
+
+  .atlas-dashboard-tabs button {
+    font-size: 9px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .atlas-dashboard *,
   .atlas-dashboard *::before,
