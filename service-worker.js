@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v287-official-coc-excel-revisions";
+const VERSION = "atlas-pwa-v288-receiver-coc-excel-revisions";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=160",
-  "./atlas-dashboard.js?v=166",
+  "./atlas-dashboard.js?v=167",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=61",
@@ -17,12 +17,12 @@ const APP_SHELL = [
   "./atlas-coc-core.js?v=21",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=4",
-  "./atlas-coc-delivery.js?v=7",
+  "./atlas-coc-delivery.js?v=8",
   "./atlas-coc-excel.js?v=18",
   "./atlas-coc.js?v=70",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=19",
-  "./coc-receiver/receiver.js?v=18",
+  "./coc-receiver/receiver.css?v=20",
+  "./coc-receiver/receiver.js?v=19",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

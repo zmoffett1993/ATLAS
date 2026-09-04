@@ -377,6 +377,14 @@
     return edgeRequest("scanner-intelligence", { action: "record-attempt", ...payload });
   }
 
+  async function cocWorkbookRevision(action, payload = {}, warehouseCode = requestedWarehouseCode()) {
+    return edgeRequest("coc-workbook-revisions", {
+      ...payload,
+      action: clean(action, 60),
+      warehouseCode: clean(warehouseCode, 8).toUpperCase(),
+    });
+  }
+
   function subscribeToDeliveries({ filter = "", onChange = () => {}, onState = () => {} } = {}) {
     const session = getAuthSession();
     if (!session) return { close() {} };
@@ -470,6 +478,7 @@
     acknowledgeDelivery,
     markOfficeCompleted,
     submitScannerAttempt,
+    cocWorkbookRevision,
     subscribeToDeliveries,
   });
 })(window);

@@ -499,12 +499,12 @@
     revisions: [],
   });
 
-  const canReviseOfficialCoc = () => ["admin", "administrator"].includes(String(state.currentProfile?.role || "").toLowerCase());
+  const canReviseOfficialCoc = () => Boolean(state.session?.user?.id);
 
   const cocRevisionErrorMessage = (error, fallback = "The workbook revision could not be completed.") => {
     const raw = String(error?.message || error || "");
     const messages = [
-      [/ADMINISTRATOR_REQUIRED/i, "Only an ATLAS administrator can revise an Official COC."],
+      [/ATLAS_AUTH_REQUIRED/i, "Sign in to ATLAS before revising an Official COC."],
       [/COC_REVISION_HAS_NO_CHANGES/i, "No COC data changes were detected in the uploaded workbook."],
       [/COC_REVISION_STATUS_NOT_EDITABLE/i, "Only a received or office-completed COC can be revised."],
       [/COC_REVISION_(?:XLSX_REQUIRED|XLSX_INVALID|FILE_INVALID)/i, "Select the revised Microsoft Excel .xlsx workbook."],
@@ -1727,7 +1727,7 @@
     return `<ol class="atlas-dashboard-coc-revision-progress" aria-label="Official COC revision progress">${labels.map((label, index) => `<li class="${index + 1 === active ? "is-active" : ""} ${index + 1 < active ? "is-complete" : ""}"><span>${index + 1}</span><b>${label}</b></li>`).join("")}</ol>`;
   };
 
-  const cocRevisionProfileName = (userId, fallback = "ATLAS Administrator") => {
+  const cocRevisionProfileName = (userId, fallback = "ATLAS User") => {
     const profile = state.profiles.find((item) => String(item.id || item.user_id) === String(userId || ""));
     return profile?.display_name || profile?.name || fallback;
   };
@@ -1751,7 +1751,7 @@
           <section><i>2</i><h3>Edit & Save</h3><p>Correct the submitted values, then save the workbook.</p></section>
           <section><i>3</i><h3>Return</h3><p>Upload the saved XLSX to ATLAS for validation.</p></section>
         </div>
-        <p class="atlas-dashboard-coc-revision-note"><strong>The current Official COC stays protected.</strong> It is replaced only after the revised workbook passes validation and an administrator approves it.</p>
+        <p class="atlas-dashboard-coc-revision-note"><strong>The current Official COC stays protected.</strong> It is replaced only after the revised workbook passes validation and the signed-in user confirms the final revision.</p>
         ${state.cocRevision.error ? `<p class="atlas-dashboard-coc-error">${escapeHtml(state.cocRevision.error)}</p>` : ""}
         <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button" type="button" data-coc-revision-cancel>Cancel</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-coc-revision-download="${escapeHtml(record.id)}" ${state.cocRevision.loading ? "disabled" : ""}>${state.cocRevision.loading ? "Preparing Workbook…" : "Download & Open in Excel"}</button></div>
       </article>
@@ -1763,7 +1763,7 @@
     return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-revision-step="handoff">‹ Edit Instructions</button>
       ${renderCocRevisionProgress("upload")}
-      ${renderCocRevisionHeader(record, "UPLOAD REVISED WORKBOOK", "Return the Saved XLSX to ATLAS", "Select the file you saved in Excel. ATLAS validates its structure and records every changed COC field.", "ADMIN APPROVAL REQUIRED")}
+      ${renderCocRevisionHeader(record, "UPLOAD REVISED WORKBOOK", "Return the Saved XLSX to ATLAS", "Select the file you saved in Excel. ATLAS validates its structure and records every changed COC field.", "FINAL CONFIRMATION REQUIRED")}
       <form class="atlas-dashboard-coc-revision-panel" data-coc-revision-upload-form>
         <label class="atlas-dashboard-coc-revision-upload ${file ? "has-file" : ""}">
           <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-coc-revision-file>
@@ -1794,7 +1794,7 @@
     return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-revision-step="upload">‹ Replace File</button>
       ${renderCocRevisionProgress("review")}
-      ${renderCocRevisionHeader(record, "FINAL ADMIN REVIEW", `Approve Revision ${Number(candidate?.revisionNumber || 2)}?`, "Review the exact uploaded workbook and detected changes before making it official.", "VALIDATED XLSX")}
+      ${renderCocRevisionHeader(record, "FINAL WORKBOOK REVIEW", `Approve Revision ${Number(candidate?.revisionNumber || 2)}?`, "Review the exact uploaded workbook and detected changes before making it official.", "VALIDATED XLSX")}
       <div class="atlas-dashboard-coc-revision-review-grid">
         <div class="atlas-dashboard-coc-revision-workbook">${state.cocRevision.filePreviewHtml}</div>
         <aside class="atlas-dashboard-coc-revision-summary"><p class="atlas-dashboard-eyebrow">DETECTED COC CHANGES</p><h3>${cocPlural(changes.length, "field")} changed</h3>${renderCocRevisionChanges(candidate)}<dl><div><dt>Reason</dt><dd>${escapeHtml(candidate?.reason || "—")}</dd></div><div><dt>Submitted by</dt><dd>${escapeHtml(cocRevisionProfileName(candidate?.createdByUserId))}</dd></div><div><dt>File integrity</dt><dd>${escapeHtml(String(candidate?.sha256 || "").slice(0, 12))}…</dd></div></dl><p class="atlas-dashboard-coc-revision-warning"><strong>Approval is final.</strong> These exact uploaded XLSX bytes become the current Official COC.</p></aside>
@@ -1806,7 +1806,7 @@
 
   const renderCocRevisionHistory = () => {
     const revisions = state.cocRevision.revisions || [];
-    return `<div class="atlas-dashboard-coc-revision-history"><h3>Revision History</h3><div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Revision</th><th>Saved</th><th>By</th><th>Reason</th><th>Status</th></tr></thead><tbody>${revisions.map((revision) => { const status = revision.isCurrent ? "CURRENT" : revision.status === "PENDING" ? "AWAITING APPROVAL" : "PRESERVED"; return `<tr><td><strong>Revision ${Number(revision.revisionNumber || 1)}</strong></td><td>${escapeHtml(formatDateTime(parseDate(revision.approvedAt || revision.createdAt)))}</td><td>${escapeHtml(cocRevisionProfileName(revision.approvedByUserId || revision.createdByUserId, Number(revision.revisionNumber) === 1 ? "Warehouse submission" : "ATLAS Administrator"))}</td><td>${escapeHtml(revision.reason || "—")}</td><td><span class="atlas-dashboard-coc-status ${revision.isCurrent ? "is-completed" : ""}">${status}</span></td></tr>`; }).join("")}</tbody></table></div></div>`;
+    return `<div class="atlas-dashboard-coc-revision-history"><h3>Revision History</h3><div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Revision</th><th>Saved</th><th>By</th><th>Reason</th><th>Status</th></tr></thead><tbody>${revisions.map((revision) => { const status = revision.isCurrent ? "CURRENT" : revision.status === "PENDING" ? "AWAITING APPROVAL" : "PRESERVED"; return `<tr><td><strong>Revision ${Number(revision.revisionNumber || 1)}</strong></td><td>${escapeHtml(formatDateTime(parseDate(revision.approvedAt || revision.createdAt)))}</td><td>${escapeHtml(cocRevisionProfileName(revision.approvedByUserId || revision.createdByUserId, Number(revision.revisionNumber) === 1 ? "Warehouse submission" : "ATLAS User"))}</td><td>${escapeHtml(revision.reason || "—")}</td><td><span class="atlas-dashboard-coc-status ${revision.isCurrent ? "is-completed" : ""}">${status}</span></td></tr>`; }).join("")}</tbody></table></div></div>`;
   };
 
   const renderCocRevisionSuccess = (record) => {
