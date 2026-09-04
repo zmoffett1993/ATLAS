@@ -88,6 +88,16 @@
     cocNotice: "",
     cocSelected: null,
     cocPreview: { status: "idle", html: "", error: "", id: "" },
+    cocRevision: {
+      step: "preview",
+      loading: false,
+      error: "",
+      file: null,
+      filePreviewHtml: "",
+      candidate: null,
+      currentRevision: null,
+      revisions: [],
+    },
     cocDelete: null,
     cocWorkspace: "operations",
     scannerView: "performance",
@@ -472,6 +482,45 @@
       body: { action, warehouseCode, ...payload },
     });
 
+  const cocRevisionApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") =>
+    api("/functions/v1/coc-workbook-revisions", {
+      method: "POST",
+      body: { action, warehouseCode, ...payload },
+    });
+
+  const freshCocRevision = () => ({
+    step: "preview",
+    loading: false,
+    error: "",
+    file: null,
+    filePreviewHtml: "",
+    candidate: null,
+    currentRevision: null,
+    revisions: [],
+  });
+
+  const canReviseOfficialCoc = () => ["admin", "administrator"].includes(String(state.currentProfile?.role || "").toLowerCase());
+
+  const cocRevisionErrorMessage = (error, fallback = "The workbook revision could not be completed.") => {
+    const raw = String(error?.message || error || "");
+    const messages = [
+      [/ADMINISTRATOR_REQUIRED/i, "Only an ATLAS administrator can revise an Official COC."],
+      [/COC_REVISION_HAS_NO_CHANGES/i, "No COC data changes were detected in the uploaded workbook."],
+      [/COC_REVISION_STATUS_NOT_EDITABLE/i, "Only a received or office-completed COC can be revised."],
+      [/COC_REVISION_(?:XLSX_REQUIRED|XLSX_INVALID|FILE_INVALID)/i, "Select the revised Microsoft Excel .xlsx workbook."],
+      [/COC_REVISION_(?:FILE_TOO_LARGE|WORKBOOK_TOO_COMPLEX)/i, "The revised workbook must be 5 MB or smaller and use the official COC structure."],
+      [/COC_REVISION_(?:TEMPLATE_STRUCTURE_MISSING|TEMPLATE_LAYOUT_CHANGED|OFFICIAL_SHEET_REQUIRED)/i, "The uploaded file no longer matches the official ATLAS COC template. Restore the original sheet and layout, then try again."],
+      [/COC_REVISION_HEADER_FIELDS_REQUIRED/i, "Customer, invoice, and IF number must remain populated."],
+      [/COC_REVISION_DETAIL_ROWS_REQUIRED/i, "The revised workbook must contain at least one COC detail row."],
+      [/COC_REVISION_TOO_MANY_CHANGES/i, "This workbook contains too many structural changes for controlled revision. Start again from the current Official COC."],
+      [/COC_REVISION_EXTERNAL_CONTENT_NOT_ALLOWED/i, "External workbook links, connections, and macros are not allowed in an Official COC."],
+      [/COC_REVISION_NOT_PENDING/i, "This revision was already processed. Reopen the current Official COC to continue."],
+      [/COC_WORKBOOK_NOT_AVAILABLE/i, "The current Official COC workbook is unavailable."],
+      [/Request failed \(404\)|Failed to send a request to the Edge Function/i, "The Official COC revision service is not available yet."],
+    ];
+    return messages.find(([pattern]) => pattern.test(raw))?.[1] || fallback;
+  };
+
   const scannerApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") =>
     api("/functions/v1/scanner-intelligence", {
       method: "POST",
@@ -839,6 +888,7 @@
 
   const openDashboardCocPreview = async (id) => {
     if (!id) return;
+    state.cocRevision = freshCocRevision();
     state.cocPreview = { status: "loading", html: "", error: "", id };
     render();
     try {
@@ -846,6 +896,7 @@
       const html = await window.AtlasCocExcel.renderOfficialWorkbookPreview(workbook.blob);
       if (state.cocSelected?.id !== id) return;
       state.cocPreview = { status: "ready", html, error: "", id };
+      if (canReviseOfficialCoc()) void loadCocRevisionStatus(id);
     } catch (error) {
       state.cocPreview = { status: "error", html: "", error: error instanceof Error ? error.message : "The Official COC could not be opened.", id };
     }
@@ -863,8 +914,133 @@
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
     } catch (error) {
       state.cocError = error instanceof Error ? error.message : "The Official COC could not be downloaded.";
+      render();
+      return false;
+    }
+  };
+
+  const blobToBase64 = async (blob) => {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const parts = [];
+    const chunkSize = 0x8000;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize)
+      parts.push(String.fromCharCode(...bytes.subarray(offset, offset + chunkSize)));
+    return btoa(parts.join(""));
+  };
+
+  const loadCocRevisionStatus = async (id, { renderAfter = true } = {}) => {
+    if (!id || !canReviseOfficialCoc()) return;
+    try {
+      const result = await cocRevisionApi("status", { deliveryId: id });
+      if (state.cocSelected?.id !== id) return;
+      state.cocRevision.currentRevision = result.currentRevision || null;
+      state.cocRevision.revisions = Array.isArray(result.revisions) ? result.revisions : [];
+      state.cocRevision.error = "";
+    } catch (error) {
+      if (state.cocSelected?.id !== id) return;
+      state.cocRevision.error = cocRevisionErrorMessage(error, "Workbook revision history is unavailable.");
+    }
+    if (renderAfter) render();
+  };
+
+  const beginCocExcelRevision = async (id) => {
+    if (!id || !canReviseOfficialCoc()) return;
+    state.cocRevision = { ...state.cocRevision, step: "handoff", error: "", file: null, candidate: null, filePreviewHtml: "" };
+    render();
+  };
+
+  const downloadCocForRevision = async (id) => {
+    if (!id || state.cocRevision.loading) return;
+    state.cocRevision.loading = true;
+    state.cocRevision.error = "";
+    render();
+    const downloaded = await downloadDashboardCoc(id);
+    if (!downloaded) {
+      state.cocRevision.loading = false;
+      state.cocRevision.error = state.cocError || "The workbook could not be downloaded for editing.";
+      render();
+      return;
+    }
+    state.cocRevision = { ...state.cocRevision, step: "upload", loading: false, error: "", file: null, candidate: null, filePreviewHtml: "" };
+    render();
+  };
+
+  const stageCocWorkbookRevision = async (form) => {
+    const record = state.cocSelected;
+    const file = state.cocRevision.file;
+    const message = form.querySelector("[data-coc-revision-error]");
+    const submit = form.querySelector('button[type="submit"]');
+    if (!record || !file) {
+      if (message) message.textContent = "Select the revised XLSX file saved from Excel.";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      if (message) message.textContent = "The revised workbook must be 5 MB or smaller.";
+      return;
+    }
+    state.cocRevision.loading = true;
+    state.cocRevision.error = "";
+    if (submit) { submit.disabled = true; submit.textContent = "Validating Workbook…"; }
+    try {
+      const previewHtml = await window.AtlasCocExcel.renderOfficialWorkbookPreview(file);
+      const result = await cocRevisionApi("stage-revision", {
+        deliveryId: record.id,
+        fileName: file.name,
+        workbookBase64: await blobToBase64(file),
+        reason: form.elements.reason.value,
+        note: form.elements.note.value,
+      });
+      if (state.cocSelected?.id !== record.id) return;
+      state.cocRevision = {
+        ...state.cocRevision,
+        step: "review",
+        loading: false,
+        error: "",
+        candidate: result.candidate || null,
+        filePreviewHtml: previewHtml,
+      };
+      render();
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    } catch (error) {
+      state.cocRevision.loading = false;
+      state.cocRevision.error = cocRevisionErrorMessage(error, "The revised workbook could not be validated.");
+      if (message) message.textContent = state.cocRevision.error;
+      if (submit) { submit.disabled = false; submit.textContent = "Validate Revised Workbook"; }
+    }
+  };
+
+  const approveCocWorkbookRevision = async () => {
+    const record = state.cocSelected;
+    const candidate = state.cocRevision.candidate;
+    if (!record || !candidate?.id || state.cocRevision.loading) return;
+    state.cocRevision.loading = true;
+    state.cocRevision.error = "";
+    render();
+    try {
+      const result = await cocRevisionApi("approve-revision", {
+        deliveryId: record.id,
+        revisionId: candidate.id,
+      });
+      cocWorkbookCache.delete(record.id);
+      const workbook = await loadCocWorkbook(record.id);
+      const html = await window.AtlasCocExcel.renderOfficialWorkbookPreview(workbook.blob);
+      state.cocPreview = { status: "ready", html, error: "", id: record.id };
+      state.cocRevision = {
+        ...state.cocRevision,
+        step: "success",
+        loading: false,
+        error: "",
+        currentRevision: result.approved || candidate,
+        revisions: Array.isArray(result.revisions) ? result.revisions : state.cocRevision.revisions,
+      };
+      render();
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    } catch (error) {
+      state.cocRevision.loading = false;
+      state.cocRevision.error = cocRevisionErrorMessage(error, "The revision could not be approved.");
       render();
     }
   };
@@ -1543,8 +1719,111 @@
       ${(pallet.lots || []).map((lot) => `<div class="atlas-dashboard-coc-lot"><span><strong>${escapeHtml(lot.model || "—")}</strong><small>LOT <b>${escapeHtml(lot.lot || "—")}</b></small>${scannerCorrectionAudit(lot)}</span><b>${cocPlural(lot.cases, "box")} · ${(Number(lot.cases || 0) * Number(lot.caseQuantity || 0)).toLocaleString()} units</b></div>`).join("")}
     </section>`).join("");
 
-  const renderCocPreview = (record) => {
+  const cocRevisionStepNumber = (step) => ({ handoff: 2, upload: 3, review: 4, success: 5 }[step] || 1);
+
+  const renderCocRevisionProgress = (step) => {
+    const active = cocRevisionStepNumber(step);
+    const labels = ["Review", "Edit", "Upload", "Approve", "Complete"];
+    return `<ol class="atlas-dashboard-coc-revision-progress" aria-label="Official COC revision progress">${labels.map((label, index) => `<li class="${index + 1 === active ? "is-active" : ""} ${index + 1 < active ? "is-complete" : ""}"><span>${index + 1}</span><b>${label}</b></li>`).join("")}</ol>`;
+  };
+
+  const cocRevisionProfileName = (userId, fallback = "ATLAS Administrator") => {
+    const profile = state.profiles.find((item) => String(item.id || item.user_id) === String(userId || ""));
+    return profile?.display_name || profile?.name || fallback;
+  };
+
+  const renderCocRevisionHeader = (record, eyebrow, title, description, badge = "") => {
     const snap = cocSnapshot(record);
+    return `<header class="atlas-dashboard-coc-detail-head atlas-dashboard-coc-revision-head"><div><p class="atlas-dashboard-eyebrow">${escapeHtml(eyebrow)}</p><h2>${escapeHtml(title)}</h2><span>${escapeHtml(description || `${snap.customerName || "—"} · ${snap.invoiceNumber || "—"}`)}</span></div>${badge ? `<strong class="atlas-dashboard-coc-revision-badge">${escapeHtml(badge)}</strong>` : ""}</header>`;
+  };
+
+  const renderCocRevisionHandoff = (record) => {
+    const current = state.cocRevision.currentRevision;
+    const fileName = current?.fileName || cocWorkbookCache.get(record.id)?.fileName || "Official COC.xlsx";
+    return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
+      <button class="atlas-dashboard-coc-back" type="button" data-coc-revision-cancel>‹ Official COC</button>
+      ${renderCocRevisionProgress("handoff")}
+      ${renderCocRevisionHeader(record, "REVISION WORKFLOW", "Edit the Actual Workbook", "ATLAS downloads the exact current XLSX. Your saved workbook becomes a proposed revision—not a silent overwrite.", "ORIGINAL PRESERVED")}
+      <article class="atlas-dashboard-coc-revision-panel atlas-dashboard-coc-revision-handoff">
+        <div class="atlas-dashboard-coc-revision-file"><span aria-hidden="true">XLSX</span><div><strong>${escapeHtml(fileName)}</strong><small>Official COC · Revision ${Number(current?.revisionNumber || 1)} · Exact stored workbook</small></div></div>
+        <div class="atlas-dashboard-coc-revision-instructions">
+          <section><i>1</i><h3>Open</h3><p>Download and open the XLSX in Microsoft Excel.</p></section>
+          <section><i>2</i><h3>Edit & Save</h3><p>Correct the submitted values, then save the workbook.</p></section>
+          <section><i>3</i><h3>Return</h3><p>Upload the saved XLSX to ATLAS for validation.</p></section>
+        </div>
+        <p class="atlas-dashboard-coc-revision-note"><strong>The current Official COC stays protected.</strong> It is replaced only after the revised workbook passes validation and an administrator approves it.</p>
+        ${state.cocRevision.error ? `<p class="atlas-dashboard-coc-error">${escapeHtml(state.cocRevision.error)}</p>` : ""}
+        <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button" type="button" data-coc-revision-cancel>Cancel</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-coc-revision-download="${escapeHtml(record.id)}" ${state.cocRevision.loading ? "disabled" : ""}>${state.cocRevision.loading ? "Preparing Workbook…" : "Download & Open in Excel"}</button></div>
+      </article>
+    </section>`;
+  };
+
+  const renderCocRevisionUpload = (record) => {
+    const file = state.cocRevision.file;
+    return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
+      <button class="atlas-dashboard-coc-back" type="button" data-coc-revision-step="handoff">‹ Edit Instructions</button>
+      ${renderCocRevisionProgress("upload")}
+      ${renderCocRevisionHeader(record, "UPLOAD REVISED WORKBOOK", "Return the Saved XLSX to ATLAS", "Select the file you saved in Excel. ATLAS validates its structure and records every changed COC field.", "ADMIN APPROVAL REQUIRED")}
+      <form class="atlas-dashboard-coc-revision-panel" data-coc-revision-upload-form>
+        <label class="atlas-dashboard-coc-revision-upload ${file ? "has-file" : ""}">
+          <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-coc-revision-file>
+          <span class="atlas-dashboard-coc-revision-upload-icon" aria-hidden="true">${file ? "✓" : "↑"}</span>
+          <strong>${escapeHtml(file?.name || "Choose Revised XLSX")}</strong>
+          <small>${file ? `${Math.max(1, Math.round(file.size / 1024)).toLocaleString()} KB · Ready to validate` : "Microsoft Excel workbook (.xlsx) · Maximum 5 MB"}</small>
+          <b class="atlas-dashboard-button">${file ? "Choose a Different File" : "Select Revised Workbook"}</b>
+        </label>
+        <div class="atlas-dashboard-coc-revision-fields">
+          <label><span>Correction reason</span><select name="reason" required><option value="">Select a reason</option><option>Lot number corrected</option><option>Quantity corrected</option><option>Customer, invoice, or IF corrected</option><option>Model number corrected</option><option>Other correction</option></select></label>
+          <label><span>Revision note</span><textarea name="note" maxlength="500" placeholder="Briefly describe what was corrected"></textarea></label>
+        </div>
+        <p class="atlas-dashboard-coc-form-error" data-coc-revision-error role="alert">${escapeHtml(state.cocRevision.error)}</p>
+        <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button" type="button" data-coc-revision-step="handoff">Back</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="submit" ${!file || state.cocRevision.loading ? "disabled" : ""}>${state.cocRevision.loading ? "Validating Workbook…" : "Validate Revised Workbook"}</button></div>
+      </form>
+    </section>`;
+  };
+
+  const renderCocRevisionChanges = (candidate) => {
+    const changes = Array.isArray(candidate?.changes) ? candidate.changes : [];
+    const visible = changes.slice(0, 12);
+    return `<div class="atlas-dashboard-coc-revision-change-list">${visible.map((change) => `<article><small>${escapeHtml(change.label || change.reference || "COC field")}</small><span class="is-before">${escapeHtml(change.before || "Blank")}</span><i aria-hidden="true">→</i><span class="is-after">${escapeHtml(change.after || "Blank")}</span></article>`).join("")}${changes.length > visible.length ? `<p>${(changes.length - visible.length).toLocaleString()} additional changes are recorded in the audit history.</p>` : ""}</div>`;
+  };
+
+  const renderCocRevisionReview = (record) => {
+    const candidate = state.cocRevision.candidate;
+    const changes = Array.isArray(candidate?.changes) ? candidate.changes : [];
+    return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
+      <button class="atlas-dashboard-coc-back" type="button" data-coc-revision-step="upload">‹ Replace File</button>
+      ${renderCocRevisionProgress("review")}
+      ${renderCocRevisionHeader(record, "FINAL ADMIN REVIEW", `Approve Revision ${Number(candidate?.revisionNumber || 2)}?`, "Review the exact uploaded workbook and detected changes before making it official.", "VALIDATED XLSX")}
+      <div class="atlas-dashboard-coc-revision-review-grid">
+        <div class="atlas-dashboard-coc-revision-workbook">${state.cocRevision.filePreviewHtml}</div>
+        <aside class="atlas-dashboard-coc-revision-summary"><p class="atlas-dashboard-eyebrow">DETECTED COC CHANGES</p><h3>${cocPlural(changes.length, "field")} changed</h3>${renderCocRevisionChanges(candidate)}<dl><div><dt>Reason</dt><dd>${escapeHtml(candidate?.reason || "—")}</dd></div><div><dt>Submitted by</dt><dd>${escapeHtml(cocRevisionProfileName(candidate?.createdByUserId))}</dd></div><div><dt>File integrity</dt><dd>${escapeHtml(String(candidate?.sha256 || "").slice(0, 12))}…</dd></div></dl><p class="atlas-dashboard-coc-revision-warning"><strong>Approval is final.</strong> These exact uploaded XLSX bytes become the current Official COC.</p></aside>
+      </div>
+      ${state.cocRevision.error ? `<p class="atlas-dashboard-coc-error">${escapeHtml(state.cocRevision.error)}</p>` : ""}
+      <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button" type="button" data-coc-revision-step="upload">Replace File</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-coc-revision-approve ${state.cocRevision.loading ? "disabled" : ""}>${state.cocRevision.loading ? "Approving Revision…" : `Approve Revision ${Number(candidate?.revisionNumber || 2)}`}</button></div>
+    </section>`;
+  };
+
+  const renderCocRevisionHistory = () => {
+    const revisions = state.cocRevision.revisions || [];
+    return `<div class="atlas-dashboard-coc-revision-history"><h3>Revision History</h3><div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Revision</th><th>Saved</th><th>By</th><th>Reason</th><th>Status</th></tr></thead><tbody>${revisions.map((revision) => { const status = revision.isCurrent ? "CURRENT" : revision.status === "PENDING" ? "AWAITING APPROVAL" : "PRESERVED"; return `<tr><td><strong>Revision ${Number(revision.revisionNumber || 1)}</strong></td><td>${escapeHtml(formatDateTime(parseDate(revision.approvedAt || revision.createdAt)))}</td><td>${escapeHtml(cocRevisionProfileName(revision.approvedByUserId || revision.createdByUserId, Number(revision.revisionNumber) === 1 ? "Warehouse submission" : "ATLAS Administrator"))}</td><td>${escapeHtml(revision.reason || "—")}</td><td><span class="atlas-dashboard-coc-status ${revision.isCurrent ? "is-completed" : ""}">${status}</span></td></tr>`; }).join("")}</tbody></table></div></div>`;
+  };
+
+  const renderCocRevisionSuccess = (record) => {
+    const current = state.cocRevision.currentRevision || state.cocRevision.candidate;
+    return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
+      ${renderCocRevisionProgress("success")}
+      <article class="atlas-dashboard-coc-revision-panel atlas-dashboard-coc-revision-success"><span class="atlas-dashboard-coc-revision-success-icon" aria-hidden="true">✓</span><p class="atlas-dashboard-eyebrow">REVISION APPROVED</p><h2>Revision ${Number(current?.revisionNumber || 2)} Is Now Official</h2><p>The exact spreadsheet uploaded from Excel is now the current Official COC. Every prior approved workbook remains preserved for audit history.</p><strong class="atlas-dashboard-coc-revision-badge">ACTUAL XLSX · REVISION ${Number(current?.revisionNumber || 2)} · CURRENT</strong><div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button><button class="atlas-dashboard-button" type="button" data-coc-revision-return>View Official COC</button></div>${renderCocRevisionHistory()}</article>
+    </section>`;
+  };
+
+  const renderCocPreview = (record) => {
+    if (state.cocRevision.step === "handoff") return renderCocRevisionHandoff(record);
+    if (state.cocRevision.step === "upload") return renderCocRevisionUpload(record);
+    if (state.cocRevision.step === "review") return renderCocRevisionReview(record);
+    if (state.cocRevision.step === "success") return renderCocRevisionSuccess(record);
+    const snap = cocSnapshot(record);
+    const revisionNumber = Number(state.cocRevision.currentRevision?.revisionNumber || 1);
     const body = state.cocPreview.status === "ready" && state.cocPreview.id === record.id
       ? state.cocPreview.html
       : state.cocPreview.status === "error"
@@ -1552,9 +1831,11 @@
         : `<div class="atlas-dashboard-coc-preview-status"><span class="atlas-dashboard-spinner"></span><strong>Opening the saved Official COC…</strong><p>ATLAS is reading the actual XLSX workbook.</p></div>`;
     return `<section class="atlas-dashboard-coc-detail">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-preview-back>‹ COC Operations</button>
-      <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">ACTUAL WORKBOOK · READ ONLY</p><h2>Official COC</h2><span>${escapeHtml(snap.customerName || "—")} · ${escapeHtml(snap.invoiceNumber || "—")}</span></header>
+      <header class="atlas-dashboard-coc-detail-head atlas-dashboard-coc-revision-head"><div><p class="atlas-dashboard-eyebrow">ACTUAL WORKBOOK · CURRENT</p><h2>Official COC</h2><span>${escapeHtml(snap.customerName || "—")} · ${escapeHtml(snap.invoiceNumber || "—")}</span></div><strong class="atlas-dashboard-coc-revision-badge">ACTUAL XLSX · REVISION ${revisionNumber}</strong></header>
       ${body}
-      <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button></div>
+      ${state.cocRevision.error ? `<p class="atlas-dashboard-coc-error">Workbook editing is unavailable: ${escapeHtml(state.cocRevision.error)}</p>` : ""}
+      <div class="atlas-dashboard-coc-detail-actions">${canReviseOfficialCoc() ? `<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-edit="${escapeHtml(record.id)}">Edit in Excel</button>` : ""}<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button></div>
+      ${canReviseOfficialCoc() && state.cocRevision.revisions.length > 1 ? renderCocRevisionHistory() : ""}
     </section>`;
   };
 
@@ -1872,6 +2153,7 @@
       state.accountModal = null;
       state.cocSelected = null;
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+      state.cocRevision = freshCocRevision();
       state.cocDelete = null;
       render();
       if (state.view === "access" && !state.adminUsersLoaded) loadAdminUsers();
@@ -1885,6 +2167,7 @@
       cocWorkspaceScrollPositions.set(state.cocWorkspace, currentTop);
       state.cocWorkspace = button.dataset.cocWorkspace || "operations";
       state.cocSelected = null;
+      state.cocRevision = freshCocRevision();
       state.scannerSelected = null;
       renderPreservingScroll(cocWorkspaceScrollPositions.get(state.cocWorkspace) ?? currentTop);
       if (!state.cocLoaded) loadCocData();
@@ -1942,6 +2225,7 @@
     } else if (button.matches("[data-coc-open]")) {
       state.cocSelected = state.cocRecords.find((record) => record.id === button.dataset.cocOpen) || null;
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+      state.cocRevision = freshCocRevision();
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       render();
     } else if (button.matches("[data-coc-official-row]")) {
@@ -1953,12 +2237,30 @@
       }
     } else if (button.matches("[data-coc-official]")) {
       void openDashboardCocPreview(button.dataset.cocOfficial);
+    } else if (button.matches("[data-coc-edit]")) {
+      void beginCocExcelRevision(button.dataset.cocEdit);
+    } else if (button.matches("[data-coc-revision-cancel]")) {
+      state.cocRevision = { ...state.cocRevision, step: "preview", loading: false, error: "", file: null, filePreviewHtml: "", candidate: null };
+      render();
+    } else if (button.matches("[data-coc-revision-step]")) {
+      state.cocRevision = { ...state.cocRevision, step: button.dataset.cocRevisionStep || "preview", loading: false, error: "" };
+      render();
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    } else if (button.matches("[data-coc-revision-download]")) {
+      void downloadCocForRevision(button.dataset.cocRevisionDownload);
+    } else if (button.matches("[data-coc-revision-approve]")) {
+      void approveCocWorkbookRevision();
+    } else if (button.matches("[data-coc-revision-return]")) {
+      state.cocRevision = { ...state.cocRevision, step: "preview", loading: false, error: "", file: null, filePreviewHtml: "", candidate: null };
+      render();
     } else if (button.matches("[data-coc-preview-back]")) {
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+      state.cocRevision = freshCocRevision();
       render();
     } else if (button.matches("[data-coc-detail-back]")) {
       state.cocSelected = null;
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+      state.cocRevision = freshCocRevision();
       state.cocDelete = null;
       render();
     } else if (button.matches("[data-coc-download]")) {
@@ -2036,6 +2338,21 @@
   };
 
   const handleChange = (event) => {
+    if (event.target.matches("[data-coc-revision-file]")) {
+      const file = event.target.files?.[0] || null;
+      state.cocRevision.error = "";
+      if (file && !/\.xlsx$/i.test(file.name)) {
+        state.cocRevision.file = null;
+        state.cocRevision.error = "Select a Microsoft Excel .xlsx workbook.";
+      } else if (file && file.size > 5 * 1024 * 1024) {
+        state.cocRevision.file = null;
+        state.cocRevision.error = "The revised workbook must be 5 MB or smaller.";
+      } else {
+        state.cocRevision.file = file;
+      }
+      render();
+      return;
+    }
     if (event.target.matches("[data-warehouse-selector]")) {
       const code = String(event.target.value || "").toUpperCase();
       localStorage.setItem(WAREHOUSE_SELECTION_KEY, code);
@@ -2072,6 +2389,7 @@
       state.cocNotice = "";
       state.cocSelected = null;
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+      state.cocRevision = freshCocRevision();
       state.cocDelete = null;
       state.cocPage = 1;
       state.scannerData = null;
@@ -2249,6 +2567,7 @@
     state.cocSelected = null;
     state.cocDelete = null;
     state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+    state.cocRevision = freshCocRevision();
     state.cocWorkspace = "operations";
     state.scannerData = null;
     state.scannerCorrections = [];
@@ -2359,7 +2678,11 @@
 
   const handleSubmit = (event) => {
     const form = event.target;
-    if (form.matches("[data-scanner-review]")) {
+    if (form.matches("[data-coc-revision-upload-form]")) {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      void stageCocWorkbookRevision(form);
+    } else if (form.matches("[data-scanner-review]")) {
       event.preventDefault();
       void saveScannerReview(form);
     } else if (form.matches("[data-coc-delete-form]")) {
@@ -2389,6 +2712,7 @@
         state.cocDelete = null;
         state.cocSelected = null;
         state.cocPreview = { status: "idle", html: "", error: "", id: "" };
+        state.cocRevision = freshCocRevision();
         state.cocNotice = `COC ${invoice} was permanently deleted. Its audit record was retained.`;
         await loadCocData();
       }).catch((error) => {
