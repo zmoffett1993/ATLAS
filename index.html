@@ -25333,16 +25333,25 @@ Error generating stack: ` +
             const selectedExisting = activeLocations.find(
               (location) => location.id === existingLocationId,
             );
-            const payload = {
-              p_source_location_id: locationId,
-              p_destination_location_id: existingLocationId || null,
-              p_new_aisle: existingLocationId ? null : correctAisle,
-              p_new_section: existingLocationId ? null : correctSection,
-              p_employee_name: employee,
-              p_reason: `${reason}${details ? ` — ${details}` : ""}`,
-            };
+            const rpcName = existingLocationId
+              ? "consolidate_inventory_location"
+              : "move_inventory_location";
+            const payload = existingLocationId
+              ? {
+                  p_source_location_id: locationId,
+                  p_destination_location_id: existingLocationId,
+                  p_employee_name: employee,
+                  p_reason: `${reason}${details ? ` — ${details}` : ""}`,
+                }
+              : {
+                  p_location_id: locationId,
+                  p_new_aisle: correctAisle,
+                  p_new_section: correctSection,
+                  p_employee_name: employee,
+                  p_reason: `${reason}${details ? ` — ${details}` : ""}`,
+                };
             const response = await fetch(
-              `${atlasApiUrl}/rest/v1/rpc/correct_inventory_location`,
+              `${atlasApiUrl}/rest/v1/rpc/${rpcName}`,
               {
                 method: "POST",
                 headers: {
@@ -25732,14 +25741,22 @@ Error generating stack: ` +
             updateButton.disabled = true;
             updateButton.textContent = "Updating…";
             try {
-              await atlasPostRpc("correct_inventory_location", {
-                p_source_location_id: sourceLocation.id,
-                p_destination_location_id: existingLocation?.id || null,
-                p_new_aisle: existingLocation ? null : newAisle,
-                p_new_section: existingLocation ? null : newSection,
-                p_employee_name: employee,
-                p_reason: "Product found in a different location",
-              });
+              if (existingLocation) {
+                await atlasPostRpc("consolidate_inventory_location", {
+                  p_source_location_id: sourceLocation.id,
+                  p_destination_location_id: existingLocation.id,
+                  p_employee_name: employee,
+                  p_reason: "Product found in a different location",
+                });
+              } else {
+                await atlasPostRpc("move_inventory_location", {
+                  p_location_id: sourceLocation.id,
+                  p_new_aisle: newAisle,
+                  p_new_section: newSection,
+                  p_employee_name: employee,
+                  p_reason: "Product found in a different location",
+                });
+              }
               const destination = existingLocation
                 ? atlasLocationCode(existingLocation)
                 : atlasLocationCode({ aisle: newAisle, section: newSection });

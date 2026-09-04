@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v285-coc-reporting-period";
+const VERSION = "atlas-pwa-v286-location-correction-routing";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
