@@ -518,6 +518,70 @@
     });
   }
 
+  /** Read the editable COC values from the exact stored XLSX without exposing formatting controls. */
+  async function readOfficialWorkbookData(workbook) {
+    if (!global.JSZip || !global.DOMParser) throw new Error("COC_WORKBOOK_EDITOR_UNAVAILABLE");
+    const bytes = await bytesFrom(workbook);
+    const zip = await global.JSZip.loadAsync(bytes);
+    const [sheetXml, sharedXml] = await Promise.all([
+      zip.file("xl/worksheets/sheet1.xml")?.async("string") || Promise.resolve(""),
+      zip.file("xl/sharedStrings.xml")?.async("string") || Promise.resolve(""),
+    ]);
+    if (!sheetXml) throw new Error("COC_WORKBOOK_EDITOR_STRUCTURE_MISSING");
+    const parser = new global.DOMParser();
+    const sheet = parser.parseFromString(sheetXml, "application/xml");
+    const sharedDocument = parser.parseFromString(sharedXml || "<sst/>", "application/xml");
+    if ([sheet, sharedDocument].some((document) => previewDescendants(document, "parsererror").length))
+      throw new Error("COC_WORKBOOK_EDITOR_XML_INVALID");
+    const sharedStrings = previewDescendants(sharedDocument, "si")
+      .map((item) => previewDescendants(item, "t").map((text) => text.textContent || "").join(""));
+    const cells = new Map();
+    previewDescendants(sheet, "c").forEach((cell) => {
+      const reference = String(cell.getAttribute("r") || "").toUpperCase();
+      if (!reference) return;
+      const type = cell.getAttribute("t") || "";
+      const raw = previewDescendants(cell, "v")[0]?.textContent || "";
+      const value = type === "s"
+        ? sharedStrings[Number(raw)] || ""
+        : type === "inlineStr"
+          ? previewDescendants(cell, "t").map((text) => text.textContent || "").join("")
+          : raw;
+      cells.set(reference, safeText(value, 240));
+    });
+    const valueAt = (reference) => safeText(cells.get(reference), 240);
+    const lines = [];
+    let palletNumber = 1;
+    let currentModel = "";
+    for (let row = FINAL_MAPPING.detailRows.first; row <= FINAL_MAPPING.detailRows.last; row += 1) {
+      const model = valueAt(`A${row}`);
+      const lot = valueAt(`B${row}`);
+      const quantity = valueAt(`C${row}`).replace(/,/g, "");
+      const pallet = lot.match(/^PALLET\s+(\d+)$/i);
+      if (pallet) {
+        palletNumber = Math.max(1, Number(pallet[1]) || 1);
+        currentModel = model || currentModel;
+        continue;
+      }
+      if (/^TOTAL\s+QTY$/i.test(lot)) continue;
+      if (!model && !lot && !quantity) continue;
+      if (model) currentModel = model;
+      if (!lot && !quantity) continue;
+      lines.push({
+        palletNumber,
+        model: model || currentModel,
+        lot,
+        quantity: Number.isFinite(Number(quantity)) ? Math.max(0, Math.round(Number(quantity))) : 0,
+      });
+    }
+    if (!lines.length) throw new Error("COC_WORKBOOK_EDITOR_ROWS_MISSING");
+    return Object.freeze({
+      customerName: valueAt(FINAL_MAPPING.customerCell),
+      invoiceNumber: valueAt(FINAL_MAPPING.invoiceCell),
+      ifNumber: valueAt(FINAL_MAPPING.ifNumberCell),
+      lines: lines.map((line) => Object.freeze(line)),
+    });
+  }
+
   /** Render the actual populated XLSX bytes as a fit-to-width, read-only sheet. */
   async function renderOfficialWorkbookPreview(workbook) {
     if (!global.JSZip || !global.DOMParser) throw new Error("COC_WORKBOOK_PREVIEW_UNAVAILABLE");
@@ -642,6 +706,7 @@
     mappingReadiness,
     outputFileName,
     populateOfficialTemplate,
+    readOfficialWorkbookData,
     renderOfficialWorkbookPreview,
     fitOfficialWorkbookPreviews,
     generateCompanyCoc,
