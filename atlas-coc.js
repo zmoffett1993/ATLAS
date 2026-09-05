@@ -90,6 +90,57 @@
     const number = Number(text);
     return Number.isSafeInteger(number) && number > 0 ? number : null;
   };
+  const replaceInputValuePreservingSelection = (input, transform) => {
+    const current = String(input?.value || "");
+    const start = typeof input?.selectionStart === "number" ? input.selectionStart : current.length;
+    const end = typeof input?.selectionEnd === "number" ? input.selectionEnd : start;
+    const direction = input?.selectionDirection || "none";
+    const next = transform(current);
+    if (next === current) return next;
+    const nextStart = transform(current.slice(0, start)).length;
+    const nextEnd = transform(current.slice(0, end)).length;
+    input.value = next;
+    try { input.setSelectionRange(nextStart, nextEnd, direction); } catch {}
+    return next;
+  };
+  const preciseCaretInput = (target) => {
+    const input = target?.closest?.(".atlas-coc-page input, .atlas-coc-modal input");
+    if (!input || input.disabled || input.readOnly) return null;
+    const type = String(input.getAttribute("type") || "text").toLowerCase();
+    return ["text", "search", "tel", "email", "url", "password"].includes(type) ? input : null;
+  };
+  const caretIndexAtClientX = (input, clientX) => {
+    const value = String(input.value || "");
+    if (!value) return 0;
+    const style = window.getComputedStyle(input);
+    const canvas = caretIndexAtClientX.canvas || (caretIndexAtClientX.canvas = document.createElement("canvas"));
+    const context = canvas.getContext("2d");
+    if (!context) return value.length;
+    context.font = style.font && style.font !== "normal normal normal normal 16px / normal serif"
+      ? style.font
+      : `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const spacing = Number.parseFloat(style.letterSpacing) || 0;
+    const widthOf = (text) => context.measureText(text).width + Math.max(0, text.length - 1) * spacing;
+    const rect = input.getBoundingClientRect();
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    const textWidth = widthOf(value);
+    const alignment = style.textAlign;
+    let origin = rect.left + paddingLeft - input.scrollLeft;
+    if (alignment === "center") origin = rect.left + (rect.width - textWidth) / 2 - input.scrollLeft;
+    else if (["right", "end"].includes(alignment)) origin = rect.right - paddingRight - textWidth - input.scrollLeft;
+    let closest = 0;
+    let distance = Number.POSITIVE_INFINITY;
+    for (let index = 0; index <= value.length; index += 1) {
+      const candidateDistance = Math.abs(clientX - (origin + widthOf(value.slice(0, index))));
+      if (candidateDistance < distance) {
+        closest = index;
+        distance = candidateDistance;
+      }
+    }
+    return closest;
+  };
+  let preciseCaretTap = null;
   const boxCountError = (value, palletNumber) => {
     const text = String(value ?? "").trim();
     if (!text) return `Enter the total number of boxes on Pallet ${palletNumber}.`;
@@ -3218,10 +3269,40 @@
     if (event.data && /\D/.test(event.data)) event.preventDefault();
   });
 
+  document.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "touch") return;
+    const input = preciseCaretInput(event.target);
+    if (!input) return;
+    preciseCaretTap = {
+      pointerId: event.pointerId,
+      input,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      startedAt: window.performance?.now?.() || Date.now(),
+    };
+  }, { passive: true });
+
+  document.addEventListener("pointerup", (event) => {
+    const tap = preciseCaretTap;
+    preciseCaretTap = null;
+    if (!tap || tap.pointerId !== event.pointerId || tap.input !== preciseCaretInput(event.target)) return;
+    const elapsed = (window.performance?.now?.() || Date.now()) - tap.startedAt;
+    const moved = Math.hypot(event.clientX - tap.clientX, event.clientY - tap.clientY);
+    if (elapsed > 450 || moved > 10) return;
+    const caret = caretIndexAtClientX(tap.input, event.clientX);
+    window.requestAnimationFrame?.(() => {
+      if (!tap.input.isConnected) return;
+      tap.input.focus({ preventScroll: true });
+      try { tap.input.setSelectionRange(caret, caret); } catch {}
+    });
+  }, { passive: true });
+
+  document.addEventListener("pointercancel", () => { preciseCaretTap = null; }, { passive: true });
+
   document.addEventListener("input", (event) => {
     const input = event.target;
     if (input?.matches?.("#atlas-coc-start-form input[name='customerName']")) {
-      input.value = input.value.toUpperCase();
+      replaceInputValuePreservingSelection(input, (value) => value.toUpperCase());
       return;
     }
     if (input?.id === "atlas-coc-lot-review-input") {
@@ -3255,7 +3336,7 @@
       return;
     }
     if (input?.matches?.("input[name='modelNumber']")) {
-      input.value = input.value.toUpperCase();
+      replaceInputValuePreservingSelection(input, (value) => value.toUpperCase());
       updateModelInputFeedback(input);
       updateModelSuggestions(input);
       scheduleExactSkuRefresh(input);
@@ -3263,7 +3344,7 @@
       return;
     }
     if (input?.matches?.("[data-coc-manual-quantity], [data-coc-correct-quantity], [data-coc-lot-case-quantity]")) {
-      input.value = input.value.replace(/\D/g, "");
+      replaceInputValuePreservingSelection(input, (value) => value.replace(/\D/g, ""));
       const form = input.closest("form");
       if (input.matches("[data-coc-manual-quantity]")) updatePalletSetupButton(form);
       const error = form?.querySelector?.(".atlas-coc-form-error");

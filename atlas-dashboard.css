@@ -322,6 +322,14 @@ html.atlas-dashboard-open #root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+html.atlas-dashboard-open {
+  scrollbar-gutter: stable;
+}
+
+.atlas-dashboard {
+  overflow-anchor: none;
+}
+
 .atlas-dashboard[hidden] {
   display: none !important;
 }
@@ -343,6 +351,11 @@ html.atlas-dashboard-open #root {
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 24px;
+}
+
+.atlas-dashboard-heading {
+  min-width: 0;
+  min-height: 122px;
 }
 
 .atlas-dashboard-eyebrow {
@@ -2731,6 +2744,10 @@ html.atlas-dashboard-open #root {
 
   .atlas-dashboard-header {
     margin-bottom: 14px;
+  }
+
+  .atlas-dashboard-heading {
+    min-height: 0;
   }
 
   .atlas-dashboard-header h1 {

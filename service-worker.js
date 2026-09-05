@@ -1,15 +1,15 @@
-const VERSION = "atlas-pwa-v289-native-coc-final-review";
+const VERSION = "atlas-pwa-v290-stable-dashboard-and-precise-caret";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=160",
-  "./atlas-dashboard.js?v=167",
+  "./atlas-dashboard.css?v=161",
+  "./atlas-dashboard.js?v=168",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
-  "./atlas-coc.css?v=61",
+  "./atlas-coc.css?v=62",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,7 +19,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=4",
   "./atlas-coc-delivery.js?v=8",
   "./atlas-coc-excel.js?v=19",
-  "./atlas-coc.js?v=70",
+  "./atlas-coc.js?v=71",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=21",
   "./coc-receiver/receiver.js?v=20",

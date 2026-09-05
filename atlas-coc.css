@@ -846,7 +846,9 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-source-choice-help { margin:0 0 12px; color:var(--coc-muted); font-size:11px; line-height:1.45; }
 .atlas-coc-lot-review { display:block; margin:14px 0 8px; }
 .atlas-coc-lot-review>strong { display:block; margin-bottom:6px; color:var(--coc-ink); }
-.atlas-coc-lot-review input { width:100%; min-height:58px; padding:10px 13px; color:var(--coc-ink); font-size:22px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.02em; caret-color:var(--coc-blue); cursor:text; touch-action:auto; user-select:text; -webkit-user-select:text; -webkit-touch-callout:default; border:2px solid #aac4e0; border-radius:14px; background:#fff; }
+.atlas-coc-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.atlas-coc-modal input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { cursor:text; touch-action:manipulation; user-select:text; -webkit-user-select:text; -webkit-touch-callout:default; }
+.atlas-coc-lot-review input { width:100%; min-height:58px; padding:10px 13px; color:var(--coc-ink); font-size:22px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.02em; caret-color:var(--coc-blue); cursor:text; touch-action:manipulation; user-select:text; -webkit-user-select:text; -webkit-touch-callout:default; border:2px solid #aac4e0; border-radius:14px; background:#fff; }
 .atlas-coc-lot-review input:focus { outline:3px solid rgba(8,107,255,.22); border-color:var(--coc-blue); }
 .atlas-coc-review-help { margin:7px 0 12px!important; color:var(--coc-muted)!important; font-size:12px!important; line-height:1.45!important; }
 .atlas-coc-confirm-actions { grid-template-columns:1fr 1.35fr!important; }

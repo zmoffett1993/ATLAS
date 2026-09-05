@@ -1156,7 +1156,7 @@
     state.loading = true;
     state.error = "";
     state.accessRequired = false;
-    render();
+    renderPreservingScroll();
     const token = state.session?.access_token;
     try {
       const warehouseContext = suppliedWarehouseContext || await window.AtlasCocDelivery?.warehouseContext?.({
@@ -1268,7 +1268,7 @@
     } finally {
       if (requestId !== dashboardRequestSequence) return;
       state.loading = false;
-      render();
+      renderPreservingScroll();
     }
   };
 
@@ -1277,7 +1277,7 @@
     state.adminLoading = true;
     state.adminError = "";
     if (!preserveNotice) state.adminNotice = "";
-    render();
+    renderPreservingScroll();
     try {
       const result = await adminApi("list");
       state.adminUsers = (result.users || []).sort((left, right) =>
@@ -1288,7 +1288,7 @@
       state.adminError = error instanceof Error ? error.message : "ATLAS accounts could not be loaded.";
     } finally {
       state.adminLoading = false;
-      render();
+      renderPreservingScroll();
     }
   };
 
@@ -1997,7 +1997,7 @@
         : "Warehouse activity, inventory changes, and SKU oversight in one clear operational view.";
     const header = `
       <header class="atlas-dashboard-header">
-        <div><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${title}</h1><p class="atlas-dashboard-subtitle ${accessView || cocView ? "" : "atlas-dashboard-mobile-only"}">${subtitle}</p></div>
+        <div class="atlas-dashboard-heading"><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${title}</h1><p class="atlas-dashboard-subtitle">${subtitle}</p></div>
         <div class="atlas-dashboard-header-actions">
           ${state.warehouses.length > 1 && isAdmin ? `<div class="atlas-dashboard-warehouse-switch"><span>Warehouse</span>${renderPremiumSelect({ value: state.selectedWarehouse?.code || "CA", options: warehouseSelectOptions(), ariaLabel: "Select warehouse", dataAttribute: "data-warehouse-selector", className: "atlas-premium-select--header" })}</div>` : `<span class="atlas-dashboard-warehouse-badge">${escapeHtml(state.selectedWarehouse?.code || "CA")} · ${escapeHtml(state.selectedWarehouse?.display_name || "California Warehouse")}</span>`}
           ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : cocView ? `<button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh COCs</button>` : `${canViewNotifications ? renderNotificationBell(notifications) : ""}<div class="atlas-dashboard-date-control"><select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
@@ -2033,15 +2033,53 @@
       </section>${canViewNotifications ? renderNotificationCenter(notifications) : ""}${renderActivityDrawer()}`;
   };
 
+  const dashboardFieldSnapshot = (content) => {
+    const field = document.activeElement;
+    if (!field || !content?.contains(field) || !field.matches?.("input, textarea")) return null;
+    const marker = ["data-search", "data-account-search", "data-coc-search", "data-custom-start", "data-custom-end", "data-coc-custom-start", "data-coc-custom-end"]
+      .find((attribute) => field.hasAttribute(attribute));
+    const selector = field.id
+      ? `#${window.CSS?.escape?.(field.id) || field.id}`
+      : marker
+        ? `[${marker}]`
+        : field.name
+          ? `[name="${String(field.name).replaceAll('"', '\\"')}"]`
+          : "";
+    if (!selector) return null;
+    return {
+      selector,
+      start: typeof field.selectionStart === "number" ? field.selectionStart : null,
+      end: typeof field.selectionEnd === "number" ? field.selectionEnd : null,
+      direction: field.selectionDirection || "none",
+      scrollLeft: field.scrollLeft || 0,
+      scrollTop: field.scrollTop || 0,
+    };
+  };
+
+  const restoreDashboardField = (content, snapshot) => {
+    if (!snapshot) return;
+    const field = content.querySelector(snapshot.selector);
+    if (!field) return;
+    try {
+      field.focus({ preventScroll: true });
+      if (snapshot.start !== null && typeof field.setSelectionRange === "function")
+        field.setSelectionRange(snapshot.start, snapshot.end, snapshot.direction);
+      field.scrollLeft = snapshot.scrollLeft;
+      field.scrollTop = snapshot.scrollTop;
+    } catch {}
+  };
+
   const render = () => {
     if (!state.mounted || !state.open) return;
     const content = document.querySelector("[data-dashboard-content]");
     if (!content) return;
+    const fieldSnapshot = dashboardFieldSnapshot(content);
     if (state.loading && !state.skus.length && state.view !== "cocs") content.innerHTML = renderLoading();
     else if (state.accessRequired) content.innerHTML = renderAccess();
     else if (state.error) {
       content.innerHTML = `<div class="atlas-dashboard-error"><strong>Dashboard data could not load</strong><p>${escapeHtml(state.error)}</p><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-retry>Try Again</button></div>`;
     } else content.innerHTML = renderDashboard();
+    restoreDashboardField(content, fieldSnapshot);
     window.requestAnimationFrame?.(() => window.AtlasCocExcel?.fitOfficialWorkbookPreviews?.(content));
   };
 
@@ -2146,6 +2184,7 @@
     else if (button.matches("[data-export]")) exportCsv();
     else if (button.matches("[data-sign-out]")) signOut();
     else if (button.matches("[data-dashboard-view]")) {
+      const currentTop = currentPageScrollTop();
       const view = button.dataset.dashboardView;
       if (view === "access" && state.currentProfile?.role !== "admin") return;
       if (view === "cocs" && !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
@@ -2155,7 +2194,7 @@
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
       state.cocRevision = freshCocRevision();
       state.cocDelete = null;
-      render();
+      renderPreservingScroll(currentTop);
       if (state.view === "access" && !state.adminUsersLoaded) loadAdminUsers();
       if (state.view === "cocs") {
         if (!state.cocLoaded) loadCocData();
@@ -2322,19 +2361,25 @@
       return;
     }
     if (event.target.matches("[data-account-search]")) {
+      const start = event.target.selectionStart;
+      const end = event.target.selectionEnd;
+      const direction = event.target.selectionDirection;
       state.accountSearch = event.target.value;
       render();
       const input = document.querySelector("[data-account-search]");
       input?.focus({ preventScroll: true });
-      input?.setSelectionRange(state.accountSearch.length, state.accountSearch.length);
+      if (typeof start === "number") input?.setSelectionRange(start, end, direction || "none");
       return;
     }
     if (!event.target.matches("[data-search]")) return;
+    const start = event.target.selectionStart;
+    const end = event.target.selectionEnd;
+    const direction = event.target.selectionDirection;
     state.search = event.target.value;
     render();
     const input = document.querySelector("[data-search]");
-    input?.focus();
-    input?.setSelectionRange(state.search.length, state.search.length);
+    input?.focus({ preventScroll: true });
+    if (typeof start === "number") input?.setSelectionRange(start, end, direction || "none");
   };
 
   const handleChange = (event) => {
