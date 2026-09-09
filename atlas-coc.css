@@ -136,6 +136,8 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 }
 .atlas-coc-page-head h1 { margin: 5px 0 6px; font-size: clamp(26px, 6vw, 38px); line-height: 1.05; }
 .atlas-coc-page-head p { margin: 0; color: var(--coc-muted); }
+.atlas-coc-official-heading { margin-top: 18px; margin-bottom: 18px; text-align: center; }
+.atlas-coc-official-heading h1 { margin: 0; font-size: clamp(38px, 9vw, 54px); letter-spacing: -.035em; }
 
 .atlas-coc-launch-card,
 .atlas-coc-form-card,
@@ -931,7 +933,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 
 .atlas-coc-session-meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 13px 18px;
   margin: 12px 0 22px;
   padding: 20px;
@@ -941,9 +943,10 @@ html.atlas-coc-work-mode .atlas-workflows-view {
   background: radial-gradient(circle at 90% 8%,rgba(37,143,255,.35),transparent 44%),linear-gradient(125deg,#061d3b,#0a4fa8);
   box-shadow: 0 14px 30px rgba(4,31,70,.18);
 }
-.atlas-coc-session-kicker { grid-column: 1 / -1; margin: 0; color: #9fd0ff; font-size: 10px; font-weight: 950; letter-spacing: .17em; }
+.atlas-coc-session-kicker { grid-column: 1 / -1; margin: 0; color: #9fd0ff; font-size: 10px; font-weight: 950; letter-spacing: .17em; text-align: center; }
 .atlas-coc-session-customer { grid-column: 1 / -1; padding-bottom: 12px; border-bottom: 1px solid rgba(185,218,251,.25); text-align: center; }
 .atlas-coc-session-reference { width: 100%; text-align: center; }
+.atlas-coc-session-sales-order { grid-column: 1 / -1; width: 50%; justify-self: center; }
 .atlas-coc-session-meta span { min-width: 0; }
 .atlas-coc-session-meta small,
 .atlas-coc-session-meta strong { display: block; }

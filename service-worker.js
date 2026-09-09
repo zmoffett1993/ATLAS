@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v291-coc-receiver-audit-and-sales-order";
+const VERSION = "atlas-pwa-v292-coc-review-interface-cleanup";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=169",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
-  "./atlas-coc.css?v=63",
+  "./atlas-coc.css?v=64",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -19,10 +19,10 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=5",
   "./atlas-coc-delivery.js?v=8",
   "./atlas-coc-excel.js?v=19",
-  "./atlas-coc.js?v=72",
+  "./atlas-coc.js?v=73",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=22",
-  "./coc-receiver/receiver.js?v=21",
+  "./coc-receiver/receiver.css?v=23",
+  "./coc-receiver/receiver.js?v=22",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

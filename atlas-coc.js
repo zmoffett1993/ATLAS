@@ -33,6 +33,7 @@
   let cloudTimer = null;
   let modelLookupTimer = null;
   let modelLookupToken = 0;
+  let modelSuggestionScrollTimers = [];
   let scannerState = SCANNER_STATES.IDLE;
   let recognitionToken = 0;
   let activeOcrWorker = null;
@@ -703,7 +704,7 @@
       : workbookPreview.status === "error"
         ? `<div class="atlas-coc-preview-status is-error"><strong>Preview unavailable</strong><p>${escapeHtml(workbookPreview.error)}</p><button type="button" data-coc-action="view-completed-official">Try Again</button></div>`
         : `<div class="atlas-coc-preview-status"><span class="atlas-coc-spinner" aria-hidden="true"></span><strong>Opening the saved Official COC…</strong><p>ATLAS is reading the actual XLSX workbook.</p></div>`;
-    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-completed-official">‹ Completed COC</button><header class="atlas-coc-page-head"><span>ACTUAL WORKBOOK</span><h1>Official COC</h1><p>This read-only view is rendered directly from the saved XLSX file.</p></header>${body}</div>`;
+    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-completed-official">‹ Completed COC</button><header class="atlas-coc-page-head atlas-coc-official-heading"><h1>Official COC</h1></header>${body}</div>`;
   }
 
   async function openCompletedWorkbookPreview() {
@@ -732,7 +733,7 @@
           ? `<div class="atlas-coc-preview-status"><strong>Sign-in required</strong><p>${escapeHtml(draftWorkbookPreview.error)}</p><button type="button" data-coc-action="sign-in-for-official-coc">Sign In</button></div>`
           : `<div class="atlas-coc-preview-status is-error"><strong>Preview unavailable</strong><p>${escapeHtml(draftWorkbookPreview.error)}</p><button type="button" data-coc-action="view-draft-official">Try Again</button></div>`
         : `<div class="atlas-coc-preview-status"><span class="atlas-coc-spinner" aria-hidden="true"></span><strong>Building the Official COC preview…</strong><p>ATLAS is populating the actual XLSX workbook without sending it.</p></div>`;
-    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-draft-official">‹ Final Review</button><header class="atlas-coc-page-head"><span>ACTUAL WORKBOOK · NOT SENT</span><h1>Official COC</h1><p>This read-only preview is rendered from the same XLSX file ATLAS will send to the office.</p></header>${body}</div>`;
+    return `<div class="atlas-coc-page atlas-coc-history atlas-coc-official-page"><button type="button" class="atlas-coc-back" data-coc-action="close-draft-official">‹ Final Review</button><header class="atlas-coc-page-head atlas-coc-official-heading"><h1>Official COC</h1></header>${body}</div>`;
   }
 
   async function openDraftWorkbookPreview() {
@@ -961,7 +962,7 @@
       <span class="atlas-coc-session-customer"><small>CUSTOMER</small><strong>${escapeHtml(session.customerName || "—")}</strong></span>
       <span class="atlas-coc-session-reference"><small>INVOICE</small><strong>${escapeHtml(session.invoiceNumber || "—")}</strong></span>
       <span class="atlas-coc-session-reference"><small>IF NUMBER</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
-      <span class="atlas-coc-session-reference"><small>SALES ORDER</small><strong>${escapeHtml(session.salesOrderNumber || "—")}</strong></span>
+      <span class="atlas-coc-session-reference atlas-coc-session-sales-order"><small>SALES ORDER</small><strong>${escapeHtml(session.salesOrderNumber || "—")}</strong></span>
     </div>`;
   }
 
@@ -1091,11 +1092,10 @@
 
   function reportMarkup() {
     const total = Core.sessionTotal(session);
-    const stationName = Delivery.stationNameForWarehouse(session.warehouseCode || Delivery.requestedWarehouseCode());
     return `<div class="atlas-coc-page atlas-coc-report">
       <button type="button" class="atlas-coc-back atlas-coc-report-back" data-coc-action="review-complete">‹ Back to Review</button>
       <header class="atlas-coc-transfer-head"><span>COC COMPLETE ✓</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
-      <section class="atlas-coc-destination"><span>Destination · ${escapeHtml(session.warehouseCode || Delivery.requestedWarehouseCode())}</span><h2>🖥 ${escapeHtml(stationName)}</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the correct warehouse COC Inbox.</p>`}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></section>
+      <section class="atlas-coc-destination"><span>Destination · ${escapeHtml(session.warehouseCode || Delivery.requestedWarehouseCode())}</span><h2>🖥 Office COC Receiver</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the correct warehouse COC Inbox.</p>`}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button></div></section>
     </div>`;
   }
 
@@ -1873,6 +1873,46 @@
       return `<button type="button" role="option" data-coc-action="select-model-suggestion" data-model="${escapeHtml(record.modelNumber)}" data-existing="${alreadyOnPallet}"><strong>${escapeHtml(record.modelNumber)}</strong><small>${detail}</small></button>`;
     }).join("");
     input.setAttribute("aria-expanded", String(Boolean(matches.length)));
+    keepTopModelSuggestionsVisible(input);
+  }
+
+  function keepTopModelSuggestionsVisible(input) {
+    if (!input?.isConnected || !window.matchMedia?.("(max-width: 719px)").matches) return;
+    modelSuggestionScrollTimers.forEach((timer) => window.clearTimeout(timer));
+    modelSuggestionScrollTimers = [];
+
+    const reveal = () => {
+      if (!input.isConnected || document.activeElement !== input) return;
+      const target = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions")
+        || document.getElementById("atlas-coc-model-suggestions");
+      const options = [...(target?.querySelectorAll?.("button[role='option']") || [])].slice(0, 3);
+      if (!options.length) return;
+      const viewport = window.visualViewport;
+      const viewportTop = Math.max(0, Number(viewport?.offsetTop || 0));
+      const viewportBottom = viewportTop + Math.max(0, Number(viewport?.height || window.innerHeight)) - 18;
+      const lastOption = options[options.length - 1].getBoundingClientRect();
+      const overflow = Math.ceil(lastOption.bottom - viewportBottom);
+      if (overflow <= 0) return;
+      const shift = overflow + 14;
+      const workflow = input.closest(".atlas-workflows-view");
+      const workflowStyle = workflow ? window.getComputedStyle(workflow) : null;
+      const workflowScrolls = Boolean(
+        workflow
+        && /(auto|scroll)/.test(workflowStyle?.overflowY || "")
+        && workflow.scrollHeight > workflow.clientHeight + 2
+      );
+      if (workflowScrolls) {
+        workflow.scrollTo({ top: workflow.scrollTop + shift, left: 0, behavior: "auto" });
+        return;
+      }
+      const scrollingElement = document.scrollingElement || document.documentElement;
+      const nextTop = Math.max(0, Number(scrollingElement.scrollTop || window.scrollY || 0) + shift);
+      window.scrollTo({ top: nextTop, left: 0, behavior: "auto" });
+      scrollingElement.scrollTop = nextTop;
+    };
+
+    window.requestAnimationFrame?.(reveal);
+    modelSuggestionScrollTimers = [120, 300].map((delay) => window.setTimeout(reveal, delay));
   }
 
   function scheduleExactSkuRefresh(input) {
@@ -3670,6 +3710,10 @@
   });
   window.addEventListener("atlas:coc-case-quantities-ready", () => {
     if (!session || workflowView === "setup") renderAll();
+  });
+  window.visualViewport?.addEventListener("resize", () => {
+    const input = document.activeElement;
+    if (input?.matches?.("input[name='modelNumber']")) keepTopModelSuggestionsVisible(input);
   });
   window.setInterval?.(() => {
     if (!shouldTrackActiveCocTime()) return;
