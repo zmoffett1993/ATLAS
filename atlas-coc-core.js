@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const SCHEMA_VERSION = 10;
+  const SCHEMA_VERSION = 11;
   const MAX_INVOICE_LENGTH = 80;
   const MAX_LOT_LENGTH = 120;
   const MAX_CUSTOMER_LENGTH = 160;
@@ -158,7 +158,7 @@
   }
 
   function createSession({
-    customerName = "", ifNumber = "", invoiceNumber = "", orderNumber = "",
+    customerName = "", ifNumber = "", invoiceNumber = "", salesOrderNumber = "", orderNumber = "",
     deviceId = "", employee = "", employeeDisplayName = "", warehouseCode = "", warehouseName = "", sku = "", models = [], modelNumbers = [],
   } = {}) {
     const createdAt = timestamp();
@@ -166,6 +166,7 @@
     const invoice = cleanText(invoiceNumber || orderNumber, MAX_INVOICE_LENGTH);
     const customer = cleanText(customerName, MAX_CUSTOMER_LENGTH).toUpperCase();
     const ifValue = cleanText(ifNumber, MAX_INVOICE_LENGTH);
+    const salesOrder = cleanText(salesOrderNumber, MAX_INVOICE_LENGTH);
     const selectedModels = normalizeModels(
       models.length ? models : modelNumbers.length ? modelNumbers : sku ? [sku] : [],
       createdAt,
@@ -183,6 +184,7 @@
       customerName: customer,
       invoiceNumber: invoice,
       ifNumber: ifValue,
+      salesOrderNumber: salesOrder,
       models: selectedModels,
       modelNumbers: selectedModels.map((model) => model.modelNumber),
       activeModel,
@@ -440,6 +442,7 @@
       customerName: cleanText(raw.customerName, MAX_CUSTOMER_LENGTH).toUpperCase(),
       invoiceNumber: cleanText(raw.invoiceNumber || raw.orderNumber, MAX_INVOICE_LENGTH),
       ifNumber: cleanText(raw.ifNumber, MAX_INVOICE_LENGTH),
+      salesOrderNumber: cleanText(raw.salesOrderNumber, MAX_INVOICE_LENGTH),
       models,
       modelNumbers: models.map((model) => model.modelNumber),
       activeModel,

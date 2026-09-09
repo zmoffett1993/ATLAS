@@ -857,7 +857,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-manual-form label { margin-bottom: 14px; }
 .atlas-coc-form-error { min-height: 20px; color: var(--coc-red); font-weight: 750; }
 
-/* Compact header entry: the three COC header fields fit without repetitive
+/* Compact header entry: the four COC header fields fit without repetitive
    helper copy or oversized vertical spacing on warehouse phones. */
 .atlas-coc-header-form { padding: 17px 18px; }
 .atlas-coc-setup .atlas-coc-page-head { margin-bottom: 13px; }
@@ -931,7 +931,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 
 .atlas-coc-session-meta {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 13px 18px;
   margin: 12px 0 22px;
   padding: 20px;

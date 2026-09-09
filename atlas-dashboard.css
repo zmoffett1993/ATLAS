@@ -696,6 +696,7 @@ html.atlas-dashboard-open {
   font-variant-numeric: tabular-nums;
 }
 .atlas-dashboard-notification-badge.is-empty { background: #0f5ccb; }
+.atlas-dashboard-notification-badge.is-coc-edit { background: #b87525; }
 .atlas-dashboard-notification-attention-dot { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 99px; background: var(--atlas-dashboard-amber); }
 .atlas-dashboard-notification-scrim { position: fixed; z-index: 10070; inset: 0; background: transparent; }
 .atlas-dashboard-notification-panel {
@@ -728,6 +729,7 @@ html.atlas-dashboard-open {
 .atlas-dashboard-notification-row { width: 100%; min-height: 67px; padding: 11px 17px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; color: inherit; border: 0; border-bottom: 1px solid #edf2f6; background: #fff; text-align: left; font: inherit; cursor: pointer; }
 .atlas-dashboard-notification-row:last-child { border-bottom: 0; }
 .atlas-dashboard-notification-row:hover { background: #f8fbff; }
+.atlas-dashboard-notification-row.is-coc-edit.is-unread { background: #fff9ef; box-shadow: inset 3px 0 #b87525; }
 .atlas-dashboard-notification-row:focus-visible { outline: 3px solid rgba(20, 103, 221, 0.28); outline-offset: -3px; }
 .atlas-dashboard-notification-icon { width: 28px; height: 28px; display: grid; place-items: center; color: var(--notification-icon-ink, #fff); border: 1px solid var(--notification-color); border-radius: 9px; background: linear-gradient(145deg, color-mix(in srgb, var(--notification-color) 88%, white), var(--notification-color)); box-shadow: 0 4px 9px color-mix(in srgb, var(--notification-color) 22%, transparent); font-size: 15px; font-weight: 850; line-height: 1; }
 .atlas-dashboard-notification-copy, .atlas-dashboard-notification-meta { min-width: 0; }
@@ -2335,7 +2337,7 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-custom-range label { display: grid; gap: 5px; color: #60738a; font-size: 9px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
 .atlas-dashboard-coc-custom-range input { width: 100%; box-sizing: border-box; }
 .atlas-dashboard-coc-table-wrap { width: 100%; overflow-x: auto; }
-.atlas-dashboard-coc-table-wrap table { width: 100%; min-width: 980px; border-collapse: collapse; }
+.atlas-dashboard-coc-table-wrap table { width: 100%; min-width: 1120px; border-collapse: collapse; }
 .atlas-dashboard-coc-table-wrap th { padding: 12px 16px; color: #687a90; background: #f7f9fc; border-bottom: 1px solid var(--atlas-dashboard-line); text-align: left; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
 .atlas-dashboard-coc-table-wrap td { padding: 15px 16px; color: #34475f; border-bottom: 1px solid #e8edf3; font-size: 12px; vertical-align: middle; }
 .atlas-dashboard-coc-table-wrap tbody tr:hover { background: #f8fbff; }
@@ -2345,6 +2347,7 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-status.is-received { color: #915b00; background: #fff3d5; }
 .atlas-dashboard-coc-status.is-completed { color: #08734a; background: #e7f7ef; }
 .atlas-dashboard-coc-status.is-archived { color: #5b5278; background: #efebf8; }
+.atlas-dashboard-coc-edited { display: inline-flex; margin-left: 6px; padding: 4px 7px; vertical-align: middle; color: #8a5717; border: 1px solid #e3bf87; border-radius: 999px; background: #fff6e6; font-size: 8px; font-weight: 900; letter-spacing: .08em; line-height: 1; }
 .atlas-dashboard-coc-row-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .atlas-dashboard-coc-row-actions button { padding: 6px 8px; color: #0f5ccb; border: 1px solid #b8cee9; border-radius: 7px; background: #f7fbff; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
 .atlas-dashboard-coc-row-actions button:hover { background: #e8f3ff; border-color: #82aee0; }
@@ -2487,12 +2490,13 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-revision-summary { padding: 20px; border: 1px solid #cad8e7; border-radius: 16px; background: #fff; box-shadow: 0 9px 24px rgba(11,35,64,.05); }
 .atlas-dashboard-coc-revision-summary h3 { margin: 4px 0 14px; color: var(--atlas-dashboard-navy); font-size: 21px; }
 .atlas-dashboard-coc-revision-change-list { display: grid; gap: 9px; }
-.atlas-dashboard-coc-revision-change-list article { padding: 11px; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 8px; border: 1px solid #dde6ef; border-radius: 10px; background: #f8fafc; }
-.atlas-dashboard-coc-revision-change-list small { grid-column: 1/-1; color: #64768c; font-size: 9px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
-.atlas-dashboard-coc-revision-change-list span { min-width: 0; overflow-wrap: anywhere; font-size: 11px; font-weight: 750; }
-.atlas-dashboard-coc-revision-change-list .is-before { color: #9c3c3c; text-decoration: line-through; }
-.atlas-dashboard-coc-revision-change-list .is-after { color: #08734a; }
-.atlas-dashboard-coc-revision-change-list i { color: #71849a; font-style: normal; }
+.atlas-dashboard-coc-revision-change-list article { padding: 11px; display: grid; grid-template-columns: 26px minmax(0,1fr); align-items: center; gap: 9px; border: 1px solid #dde6ef; border-radius: 10px; background: #f8fafc; }
+.atlas-dashboard-coc-revision-change-list article > i { width: 24px; height: 24px; display: grid; place-items: center; color: #fff; border-radius: 50%; background: #15936a; font-size: 11px; font-style: normal; font-weight: 900; }
+.atlas-dashboard-coc-revision-change-list article > span { min-width: 0; }
+.atlas-dashboard-coc-revision-change-list strong,
+.atlas-dashboard-coc-revision-change-list small { display: block; overflow-wrap: anywhere; }
+.atlas-dashboard-coc-revision-change-list strong { color: #173b62; font-size: 11px; }
+.atlas-dashboard-coc-revision-change-list small { margin-top: 3px; color: #64768c; font-size: 9px; line-height: 1.4; }
 .atlas-dashboard-coc-revision-change-list > p { margin: 3px 0 0; color: var(--atlas-dashboard-muted); font-size: 10px; }
 .atlas-dashboard-coc-revision-summary dl { margin: 17px 0; display: grid; gap: 10px; }
 .atlas-dashboard-coc-revision-summary dl div { padding-top: 10px; border-top: 1px solid #e3eaf1; }
@@ -2504,10 +2508,18 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-revision-success h2 { margin: 3px 0 8px; color: var(--atlas-dashboard-navy); font-size: clamp(27px,4vw,40px); }
 .atlas-dashboard-coc-revision-success > p:not(.atlas-dashboard-eyebrow) { max-width: 650px; margin: 0 auto 18px; color: var(--atlas-dashboard-muted); font-size: 13px; line-height: 1.6; }
 .atlas-dashboard-coc-revision-success > .atlas-dashboard-coc-revision-badge { margin: 0 auto; }
-.atlas-dashboard-coc-revision-history { margin-top: 22px; text-align: left; }
-.atlas-dashboard-coc-revision-history h3 { color: var(--atlas-dashboard-navy); font-size: 18px; }
-.atlas-dashboard-coc-revision-history .atlas-dashboard-coc-table-wrap { border: 1px solid #d6e1ec; border-radius: 13px; }
-.atlas-dashboard-coc-revision-history .atlas-dashboard-coc-table-wrap table { min-width: 720px; }
+.atlas-dashboard-coc-revision-history { margin-top: 22px; padding: 20px; text-align: left; border: 1px solid #d6e1ec; border-radius: 16px; background: #f8fbfe; }
+.atlas-dashboard-coc-revision-history > header { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.atlas-dashboard-coc-revision-history h3 { margin: 3px 0; color: var(--atlas-dashboard-navy); font-size: 18px; }
+.atlas-dashboard-coc-revision-history > header span { color: #718399; font-size: 10px; }
+.atlas-dashboard-coc-revision-history-list { margin-top: 15px; display: grid; gap: 12px; }
+.atlas-dashboard-coc-revision-history-list > article { padding: 15px; border: 1px solid #dce5ee; border-radius: 13px; background: #fff; }
+.atlas-dashboard-coc-revision-history-list > article > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.atlas-dashboard-coc-revision-history-list > article > header div strong,
+.atlas-dashboard-coc-revision-history-list > article > header div span { display: block; }
+.atlas-dashboard-coc-revision-history-list > article > header div strong { color: #12375f; font-size: 13px; }
+.atlas-dashboard-coc-revision-history-list > article > header div span { margin-top: 3px; color: #718399; font-size: 9px; }
+.atlas-dashboard-coc-revision-history-list > article > p { margin: 10px 0; color: #5d7188; font-size: 10px; }
 
 @media (max-width: 900px) {
   .atlas-dashboard-coc-revision-review-grid { grid-template-columns: 1fr; }

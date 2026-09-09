@@ -82,6 +82,7 @@
       customerName: text(record?.customerName, 160).toUpperCase(),
       invoiceNumber: text(record?.invoiceNumber, 80),
       ifNumber: text(record?.ifNumber, 80),
+      salesOrderNumber: text(record?.salesOrderNumber || record?.reportSnapshot?.salesOrderNumber, 80),
       completedAt: text(record?.completedAt, 40),
       palletCount: Math.max(0, Number(record?.palletCount) || 0),
       totalConfirmedBoxes: Math.max(0, Number(record?.totalConfirmedBoxes) || 0),

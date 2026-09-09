@@ -670,7 +670,7 @@
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COCs</h1><p>Read-only reports saved for the signed-in employee on this device.</p></header>
       ${completedRecords.length ? `<button type="button" class="atlas-coc-clear-history" data-coc-action="review-clear-completed"><span aria-hidden="true">⌫</span><strong>Clear Stored COCs</strong><small>Remove ${plural(completedRecords.length, "report")} from this device</small></button>` : ""}
-      ${groups.size ? [...groups].map(([label, records]) => `<section><h2>${escapeHtml(label)}</h2>${records.map((record) => `<button type="button" class="atlas-coc-history-row" data-coc-action="open-completed" data-coc-id="${escapeHtml(record.cocId)}"><span><strong>${escapeHtml(record.invoiceNumber)}</strong><b>${escapeHtml(record.customerName)}</b><small>${escapeHtml(record.ifNumber)} · ${plural(record.palletCount, "pallet")} · ${plural(record.totalConfirmedBoxes, "box")}</small><small>Completed ${new Date(record.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><i aria-hidden="true">›</i></button>`).join("")}</section>`).join("") : `<div class="atlas-coc-empty-list">No completed COCs are stored for this user on this device.</div>`}
+      ${groups.size ? [...groups].map(([label, records]) => `<section><h2>${escapeHtml(label)}</h2>${records.map((record) => { const salesOrder = record.salesOrderNumber || record.reportSnapshot?.salesOrderNumber || ""; return `<button type="button" class="atlas-coc-history-row" data-coc-action="open-completed" data-coc-id="${escapeHtml(record.cocId)}"><span><strong>${escapeHtml(record.invoiceNumber)}</strong><b>${escapeHtml(record.customerName)}</b><small>${escapeHtml(record.ifNumber)}${salesOrder ? ` · SO ${escapeHtml(salesOrder)}` : ""} · ${plural(record.palletCount, "pallet")} · ${plural(record.totalConfirmedBoxes, "box")}</small><small>Completed ${new Date(record.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><i aria-hidden="true">›</i></button>`; }).join("")}</section>`).join("") : `<div class="atlas-coc-empty-list">No completed COCs are stored for this user on this device.</div>`}
     </div>`;
   }
 
@@ -776,7 +776,7 @@
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-completed">‹ Completed COCs</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COC</h1></header>
       <section class="atlas-coc-completed-detail">
-        <dl class="atlas-coc-completed-meta"><div class="is-wide"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div class="is-wide"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
+        <dl class="atlas-coc-completed-meta"><div class="is-wide"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div><dt>Sales Order</dt><dd>${escapeHtml(record.salesOrderNumber || snapshot.salesOrderNumber || "—")}</dd></div><div class="is-wide"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
         <div class="atlas-coc-readonly-pallets ${(snapshot.pallets || []).length > 1 ? "is-carousel" : ""}" ${(snapshot.pallets || []).length > 1 ? 'aria-label="Swipe through pallets"' : ""}>${completedPalletSummaryMarkup(snapshot)}</div>
         <div class="atlas-coc-completed-actions">
           <button type="button" class="atlas-coc-primary" data-coc-action="view-completed-official">View Official COC</button>
@@ -926,7 +926,7 @@
   function setupMarkup() {
     return `<div class="atlas-coc-page atlas-coc-setup">
       <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
-      <header class="atlas-coc-page-head"><span>START COC</span><h1>COC Information</h1><p>Enter the three header fields for the official COC.</p></header>
+      <header class="atlas-coc-page-head"><span>START COC</span><h1>COC Information</h1><p>Enter the COC references. The Sales Order number is for ATLAS record search only and will not appear on the Official COC.</p></header>
       <form id="atlas-coc-start-form" class="atlas-coc-form-card atlas-coc-header-form">
         <label><strong>Customer Name</strong>
           <input name="customerName" maxlength="160" autocomplete="organization" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Enter customer name" required /></label>
@@ -934,6 +934,8 @@
           <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" required /></label>
         <label><strong>IF Number</strong>
           <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF number" required /></label>
+        <label><strong>Sales Order Number</strong><small>ATLAS search only · not shown on the Official COC</small>
+          <input name="salesOrderNumber" maxlength="80" autocomplete="off" placeholder="Enter sales order number" required /></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
         <button type="submit" class="atlas-coc-primary">Continue to Pallet 1</button>
       </form>
@@ -959,6 +961,7 @@
       <span class="atlas-coc-session-customer"><small>CUSTOMER</small><strong>${escapeHtml(session.customerName || "—")}</strong></span>
       <span class="atlas-coc-session-reference"><small>INVOICE</small><strong>${escapeHtml(session.invoiceNumber || "—")}</strong></span>
       <span class="atlas-coc-session-reference"><small>IF NUMBER</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
+      <span class="atlas-coc-session-reference"><small>SALES ORDER</small><strong>${escapeHtml(session.salesOrderNumber || "—")}</strong></span>
     </div>`;
   }
 
@@ -1395,11 +1398,11 @@
       const generated = await Excel.generateCompanyCoc(session, { saveGeneratedWorkbook: async () => {} });
       const workbookBlob = new Blob([generated.bytes], { type: Delivery.MIME_XLSX });
       const idempotencyKey = `coc:${session.id}:office:${Delivery.stationKeyForWarehouse(session.warehouseCode || Delivery.requestedWarehouseCode())}`;
-      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "WAREHOUSE_COMPLETE" });
+      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, salesOrderNumber: session.salesOrderNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "WAREHOUSE_COMPLETE" });
       await Storage.putPending({ cocId: session.id, userId, idempotencyKey, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob });
       sendState = { ...sendState, phase: "sending" }; renderAll();
       const receipt = await Delivery.submitCoc({ cocId: session.id, idempotencyKey, snapshot: session, workbookBytes: generated.bytes, workbookFileName: generated.fileName });
-      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "SENT", officeTransferId: receipt.deliveryId, sentAt: receipt.sentAt });
+      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, salesOrderNumber: session.salesOrderNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "SENT", officeTransferId: receipt.deliveryId, sentAt: receipt.sentAt });
       await Storage.deletePending(session.id);
       sendState = { ...sendState, phase: "sent", deliveryId: receipt.deliveryId, sentAt: receipt.sentAt };
       localStorage.removeItem(ACTIVE_KEY);
@@ -3376,6 +3379,7 @@
       const customerName = String(data.get("customerName") || "").trim().toUpperCase();
       const invoiceNumber = String(data.get("invoiceNumber") || "").trim();
       const ifNumber = String(data.get("ifNumber") || "").trim();
+      const salesOrderNumber = String(data.get("salesOrderNumber") || "").trim();
       const error = event.target.querySelector(".atlas-coc-form-error");
       if (!customerName) {
         if (error) error.textContent = "Customer Name is required.";
@@ -3389,10 +3393,15 @@
         if (error) error.textContent = "IF Number is required.";
         return;
       }
+      if (!salesOrderNumber) {
+        if (error) error.textContent = "Sales Order Number is required.";
+        return;
+      }
       session = Core.createSession({
         customerName,
         invoiceNumber,
         ifNumber,
+        salesOrderNumber,
         deviceId: getDeviceId(),
         employee: getEmployee(),
         employeeDisplayName: getEmployeeDisplayName(),
