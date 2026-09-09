@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v294-coc-oversight-detail-cleanup";
+const VERSION = "atlas-pwa-v295-coc-live-receiver-responsive-review";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,10 +7,10 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=163",
   "./atlas-coc-references.js?v=1",
-  "./atlas-dashboard.js?v=171",
+  "./atlas-dashboard.js?v=172",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
-  "./atlas-coc.css?v=64",
+  "./atlas-coc.css?v=65",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
@@ -18,12 +18,12 @@ const APP_SHELL = [
   "./atlas-coc-core.js?v=22",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=5",
-  "./atlas-coc-delivery.js?v=9",
+  "./atlas-coc-delivery.js?v=10",
   "./atlas-coc-excel.js?v=19",
-  "./atlas-coc.js?v=73",
+  "./atlas-coc.js?v=74",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=24",
-  "./coc-receiver/receiver.js?v=23",
+  "./coc-receiver/receiver.css?v=25",
+  "./coc-receiver/receiver.js?v=24",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

@@ -174,7 +174,11 @@
 
   async function stationStatus(warehouseCode = "") {
     const context = await warehouseContext({ warehouseCode });
-    return edgeRequest("coc-receiver", { action: "station-status", warehouseCode: context.selectedWarehouse.code });
+    return edgeRequest("coc-receiver", {
+      action: "station-status",
+      warehouseCode: context.selectedWarehouse.code,
+      stationKey: context.station?.key || stationKeyForWarehouse(context.selectedWarehouse.code),
+    });
   }
 
   async function submitCoc({ cocId, idempotencyKey, snapshot, workbookBytes, workbookFileName, forceResend = false }) {

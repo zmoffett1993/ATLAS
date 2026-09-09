@@ -8,6 +8,7 @@
   const Scanner = window.AtlasCocScannerV3 || window.AtlasCocScannerV2;
   const Storage = window.AtlasCocStorage;
   const Delivery = window.AtlasCocDelivery;
+  const References = window.AtlasCocReferences;
   if (!Core || !Parser || !Excel || !Catalog || !Storage || !Delivery) {
     console.error("ATLAS COC modules did not load.");
     return;
@@ -49,7 +50,9 @@
   let draftWorkbookPreview = { status: "idle", html: "", error: "", cocId: "" };
   let resendInProgress = false;
   let clearCompletedInProgress = false;
-  let stationPresence = { online: false, reachable: false };
+  let stationPresence = { online: false, reachable: false, checking: true, lastCheckedAt: 0 };
+  let stationPresenceTimer = null;
+  let stationPresenceRequest = 0;
   let sendState = { phase: "ready", error: "", deliveryId: "", sentAt: "", receivedAt: "", officeCompletedAt: "" };
   let resumeRenderToken = 0;
   let cameraStream = null;
@@ -69,6 +72,7 @@
   let receiverQrFrameBusy = false;
   let receiverQrSubmitting = false;
   const ACTIVE_TIMING_HEARTBEAT_MS = 30000;
+  const STATION_PRESENCE_REFRESH_MS = 10000;
   const freshCapture = (failures = 0) => ({
     photo: "", text: "", confidence: null, fieldConfidence: null,
     status: "", progress: 0, failures,
@@ -777,7 +781,7 @@
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-completed">‹ Completed COCs</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COC</h1></header>
       <section class="atlas-coc-completed-detail">
-        <dl class="atlas-coc-completed-meta"><div class="is-wide"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div><dt>Sales Order</dt><dd>${escapeHtml(record.salesOrderNumber || snapshot.salesOrderNumber || "—")}</dd></div><div class="is-wide"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
+        <dl class="atlas-coc-completed-meta"><div class="is-wide"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div><dt>Sales Order</dt><dd>${escapeHtml(record.salesOrderNumber || snapshot.salesOrderNumber || "—")}</dd></div><div class="is-wide"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
         <div class="atlas-coc-readonly-pallets ${(snapshot.pallets || []).length > 1 ? "is-carousel" : ""}" ${(snapshot.pallets || []).length > 1 ? 'aria-label="Swipe through pallets"' : ""}>${completedPalletSummaryMarkup(snapshot)}</div>
         <div class="atlas-coc-completed-actions">
           <button type="button" class="atlas-coc-primary" data-coc-action="view-completed-official">View Official COC</button>
@@ -933,8 +937,8 @@
           <input name="customerName" maxlength="160" autocomplete="organization" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Enter customer name" required /></label>
         <label><strong>Invoice Number</strong>
           <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" required /></label>
-        <label><strong>IF Number</strong>
-          <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF number" required /></label>
+        <label><strong>IF</strong>
+          <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF" required /></label>
         <label><strong>Sales Order Number</strong><small>ATLAS search only · not shown on the Official COC</small>
           <input name="salesOrderNumber" maxlength="80" autocomplete="off" placeholder="Enter sales order number" required /></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
@@ -961,7 +965,7 @@
       <p class="atlas-coc-session-kicker">CURRENT COC · PALLET ${pallet.number} SETUP</p>
       <span class="atlas-coc-session-customer"><small>CUSTOMER</small><strong>${escapeHtml(session.customerName || "—")}</strong></span>
       <span class="atlas-coc-session-reference"><small>INVOICE</small><strong>${escapeHtml(session.invoiceNumber || "—")}</strong></span>
-      <span class="atlas-coc-session-reference"><small>IF NUMBER</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
+      <span class="atlas-coc-session-reference"><small>IF</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
       <span class="atlas-coc-session-reference atlas-coc-session-sales-order"><small>SALES ORDER</small><strong>${escapeHtml(session.salesOrderNumber || "—")}</strong></span>
     </div>`;
   }
@@ -1092,10 +1096,17 @@
 
   function reportMarkup() {
     const total = Core.sessionTotal(session);
+    const status = stationPresence.checking && !stationPresence.lastCheckedAt
+      ? { className: "is-checking", label: "Checking live connection…", copy: "ATLAS is confirming the Office COC Receiver now." }
+      : !stationPresence.reachable
+        ? { className: "is-checking", label: "Live status unavailable", copy: "ATLAS will keep checking. The report can still wait securely in the office inbox." }
+        : stationPresence.online
+          ? { className: "is-online", label: "Online · Live", copy: "" }
+          : { className: "is-offline", label: "Offline", copy: "The report will wait securely in the correct warehouse COC Inbox." };
     return `<div class="atlas-coc-page atlas-coc-report">
       <button type="button" class="atlas-coc-back atlas-coc-report-back" data-coc-action="review-complete">‹ Back to Review</button>
       <header class="atlas-coc-transfer-head"><span>COC COMPLETE ✓</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
-      <section class="atlas-coc-destination"><span>Destination · ${escapeHtml(session.warehouseCode || Delivery.requestedWarehouseCode())}</span><h2>🖥 Office COC Receiver</h2><p class="${stationPresence.online ? "is-online" : "is-offline"}">● ${stationPresence.online ? "Online" : "Offline"}</p>${stationPresence.online ? "" : `<p>The report will wait securely in the correct warehouse COC Inbox.</p>`}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button></div></section>
+      <section class="atlas-coc-destination"><span>Destination · ${escapeHtml(session.warehouseCode || Delivery.requestedWarehouseCode())}</span><h2>🖥 Office COC Receiver</h2><p class="${status.className}">● ${status.label}</p>${status.copy ? `<p>${escapeHtml(status.copy)}</p>` : ""}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button></div></section>
     </div>`;
   }
 
@@ -1103,7 +1114,12 @@
     const phase = sendState.phase;
     const stationName = sendState.stationName || Delivery.stationNameForWarehouse(session?.warehouseCode || sendState.warehouseCode || Delivery.requestedWarehouseCode());
     if (phase === "preparing" || phase === "sending") return `<div class="atlas-coc-page atlas-coc-send-state"><div class="atlas-coc-spinner" aria-hidden="true"></div><h1>${phase === "preparing" ? "PREPARING REPORT" : "SENDING TO OFFICE"}</h1><p>Keep ATLAS open while the completed COC is securely transferred.</p></div>`;
-    if (phase === "received" || phase === "office_completed") return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? `${escapeHtml(stationName)} completed the report.` : `${escapeHtml(stationName)} received the report.`}</p><section><strong>${escapeHtml(session?.invoiceNumber || sendState.invoiceNumber)}</strong><b>${escapeHtml(session?.customerName || sendState.customerName)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
+    if (phase === "received" || phase === "office_completed") {
+      const customerName = session?.customerName || sendState.customerName || "—";
+      const rawInvoice = session?.invoiceNumber || sendState.invoiceNumber || "";
+      const invoiceNumber = References?.normalize?.("invoice", rawInvoice) || rawInvoice || "—";
+      return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? `${escapeHtml(stationName)} completed the report.` : `${escapeHtml(stationName)} received the report.`}</p><section class="atlas-coc-received-summary"><strong class="atlas-coc-received-customer">${escapeHtml(customerName)}</strong><b class="atlas-coc-received-invoice">${escapeHtml(invoiceNumber)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
+    }
     if (phase === "failed") return `<div class="atlas-coc-page atlas-coc-send-state"><h1>SEND NOT COMPLETED</h1><p>${escapeHtml(sendState.error || "The office transfer could not be confirmed. Your completed COC is still open and nothing was lost.")}</p><div class="atlas-coc-send-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office">TRY AGAIN</button><button type="button" data-coc-action="return-to-report">Back to Report</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></div>`;
     return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>SENT ✓</h1><p>The completed COC was sent to:</p><h2>${escapeHtml(stationName)}</h2><p>Waiting for receipt…</p></div>`;
   }
@@ -1134,13 +1150,23 @@
   }
 
   async function refreshStationPresence() {
+    window.clearTimeout(stationPresenceTimer);
+    stationPresenceTimer = null;
+    const request = ++stationPresenceRequest;
+    if (!(session?.status === "report" && workflowView === "session")) return;
+    stationPresence = { ...stationPresence, checking: !stationPresence.lastCheckedAt };
     try {
       const result = await Delivery.stationStatus(session?.warehouseCode || "");
-      stationPresence = { online: Boolean(result?.online), reachable: true, ...result };
+      if (request !== stationPresenceRequest) return;
+      stationPresence = { ...result, online: Boolean(result?.online), reachable: true, checking: false, lastCheckedAt: Date.now() };
     } catch {
-      stationPresence = { online: false, reachable: navigator.onLine };
+      if (request !== stationPresenceRequest) return;
+      stationPresence = { online: false, reachable: false, checking: false, lastCheckedAt: Date.now() };
     }
-    if (session?.status === "report" && workflowView === "session") renderAll();
+    if (session?.status === "report" && workflowView === "session") {
+      renderAll();
+      stationPresenceTimer = window.setTimeout(refreshStationPresence, STATION_PRESENCE_REFRESH_MS);
+    }
   }
 
   async function approvePairingFromLink() {
@@ -1796,7 +1822,7 @@
         <p class="atlas-coc-model-result" aria-live="polite">Enter the complete model number on the shipment.</p>
         ${manualCaseQuantityMarkup()}
         <p class="atlas-coc-form-error" aria-live="polite"></p>
-        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Add &amp; Select SKU</button></div>
+        <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Cancel</button><button type="submit" class="atlas-coc-primary">Add SKU</button></div>
       </form>`, { label: "Add COC SKU" });
   }
 
@@ -3430,7 +3456,7 @@
         return;
       }
       if (!ifNumber) {
-        if (error) error.textContent = "IF Number is required.";
+        if (error) error.textContent = "IF is required.";
         return;
       }
       if (!salesOrderNumber) {
@@ -3690,6 +3716,13 @@
   window.addEventListener("online", () => scheduleCloudSync());
   window.addEventListener("online", () => scheduleScannerQueue());
   window.addEventListener("online", () => Catalog.loadRemote());
+  window.addEventListener("online", () => {
+    if (session?.status === "report" && workflowView === "session") refreshStationPresence();
+  });
+  window.addEventListener("offline", () => {
+    stationPresence = { online: false, reachable: false, checking: false, lastCheckedAt: Date.now() };
+    if (session?.status === "report" && workflowView === "session") renderAll();
+  });
   window.addEventListener("atlas-auth-changed", (event) => {
     if (!event.detail?.session) return;
     Catalog.loadRemote();
