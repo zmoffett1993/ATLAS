@@ -180,11 +180,12 @@
   async function submitCoc({ cocId, idempotencyKey, snapshot, workbookBytes, workbookFileName, forceResend = false }) {
     const submissionWarehouse = clean(snapshot?.warehouseCode || DEFAULT_WAREHOUSE_CODE, 8).toUpperCase();
     const context = await warehouseContext({ warehouseCode: submissionWarehouse });
+    const databaseSnapshot = global.AtlasCocReferences?.normalizeSnapshot?.(snapshot) || { ...snapshot };
     const result = await edgeRequest("submit-coc-to-office", {
       cocId,
       idempotencyKey,
       warehouseCode: context.selectedWarehouse.code,
-      reportSnapshot: { ...snapshot, warehouseCode: context.selectedWarehouse.code, warehouseName: context.selectedWarehouse.display_name },
+      reportSnapshot: { ...databaseSnapshot, warehouseCode: context.selectedWarehouse.code, warehouseName: context.selectedWarehouse.display_name },
       workbookFileName,
       workbookBase64: bytesToBase64(workbookBytes),
       workbookMimeType: MIME_XLSX,

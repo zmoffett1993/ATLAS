@@ -561,7 +561,10 @@
     correctionSize: state.scannerCorrectionSize,
   });
 
-  const cocSnapshot = (record) => record?.report_snapshot || {};
+  const cocSnapshot = (record) => {
+    const snapshot = record?.report_snapshot || {};
+    return window.AtlasCocReferences?.normalizeSnapshot?.(snapshot) || snapshot;
+  };
   const cocEditsForDelivery = (deliveryId) => state.cocEditAlerts.filter((revision) => String(revision.deliveryId) === String(deliveryId));
   const cocWasEdited = (record) => cocEditsForDelivery(record?.id).length > 0
     || Number(state.cocRevision.currentRevision?.revisionNumber || 1) > 1;
@@ -1516,7 +1519,7 @@
     const content = rows.length
       ? rows.slice(0, 24).map((row) => {
           if (row.notificationType === "coc-edit") {
-            const reference = row.salesOrder ? `SO ${row.salesOrder}` : row.invoice ? `Invoice ${row.invoice}` : "Official COC";
+            const reference = row.salesOrder || row.invoice || "Official COC";
             return `<button type="button" class="atlas-dashboard-notification-row is-coc-edit ${row.seen ? "" : "is-unread"}" data-coc-edit-notification="${escapeHtml(row.id)}" style="--notification-color:${ACTION_COLORS.edit};--notification-icon-ink:#fff">
               <span class="atlas-dashboard-notification-icon" aria-hidden="true">✎</span>
               <span class="atlas-dashboard-notification-copy"><strong>Official COC edited</strong><small>${escapeHtml(row.reviewer)} · ${escapeHtml(row.customer)}</small></span>
@@ -1936,7 +1939,7 @@
         : `<div class="atlas-dashboard-coc-preview-status"><span class="atlas-dashboard-spinner"></span><strong>Opening the saved Official COC…</strong><p>ATLAS is reading the actual XLSX workbook.</p></div>`;
     return `<section class="atlas-dashboard-coc-detail">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-preview-back>‹ COC Operations</button>
-      <header class="atlas-dashboard-coc-detail-head atlas-dashboard-coc-revision-head"><div><p class="atlas-dashboard-eyebrow">ACTUAL WORKBOOK · CURRENT</p><h2>Official COC ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2><span>${escapeHtml(snap.customerName || "—")} · ${escapeHtml(snap.invoiceNumber || "—")}${snap.salesOrderNumber ? ` · SO ${escapeHtml(snap.salesOrderNumber)}` : ""}</span></div><strong class="atlas-dashboard-coc-revision-badge">ACTUAL XLSX · REVISION ${revisionNumber}</strong></header>
+      <header class="atlas-dashboard-coc-detail-head atlas-dashboard-coc-revision-head"><div><p class="atlas-dashboard-eyebrow">ACTUAL WORKBOOK · CURRENT</p><h2>Official COC ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2><span>${escapeHtml(snap.customerName || "—")} · ${escapeHtml(snap.invoiceNumber || "—")}${snap.salesOrderNumber ? ` · ${escapeHtml(snap.salesOrderNumber)}` : ""}</span></div><strong class="atlas-dashboard-coc-revision-badge">ACTUAL XLSX · REVISION ${revisionNumber}</strong></header>
       ${body}
       ${state.cocRevision.error ? `<p class="atlas-dashboard-coc-error">Workbook editing is unavailable: ${escapeHtml(state.cocRevision.error)}</p>` : ""}
       <div class="atlas-dashboard-coc-detail-actions">${canReviseOfficialCoc() ? `<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-edit="${escapeHtml(record.id)}">Edit in Excel</button>` : ""}<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${approvedEdits.length ? `<button class="atlas-dashboard-button" type="button" data-coc-revision-history-toggle>${state.cocRevision.historyOpen ? "Hide" : "View"} Edit History (${approvedEdits.length})</button>` : ""}</div>
@@ -1949,7 +1952,7 @@
     const snap = cocSnapshot(record), totals = cocTotals(record), performance = cocRecordPerformance(record);
     return `<section class="atlas-dashboard-coc-detail">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-detail-back>‹ All COCs</button>
-      <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">${escapeHtml(cocStatus(record).toUpperCase())}</p><h2>${escapeHtml(snap.customerName || "—")} ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2><span>${escapeHtml(snap.invoiceNumber || "—")}${snap.salesOrderNumber ? ` · SO ${escapeHtml(snap.salesOrderNumber)}` : ""}</span></header>
+      <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">${escapeHtml(cocStatus(record).toUpperCase())}</p><h2>${escapeHtml(snap.customerName || "—")} ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2><span>${escapeHtml(snap.invoiceNumber || "—")}${snap.salesOrderNumber ? ` · ${escapeHtml(snap.salesOrderNumber)}` : ""}</span></header>
       <dl class="atlas-dashboard-coc-fields"><div><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div><dt>Sales Order</dt><dd>${escapeHtml(snap.salesOrderNumber || "—")}</dd></div><div><dt>Sent By</dt><dd>${escapeHtml(record.submitted_by_display_name || snap.employeeDisplayName || snap.employee || "—")}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</dd></div><div><dt>Pallets</dt><dd>${totals.pallets}</dd></div><div><dt>Boxes</dt><dd>${totals.boxes}</dd></div><div><dt>Active COC Time</dt><dd>${escapeHtml(formatCocDuration(performance.activeDurationMs))}</dd></div><div><dt>Exact Scanner Accuracy</dt><dd>${escapeHtml(cocPercentage(performance.scanSuccesses, performance.scanAttempts))}</dd></div><div><dt>Exact Scanner Reads</dt><dd>${escapeHtml(cocPercentage(performance.scannerExactLots, performance.scannerReviewedLots))} · ${performance.scannerExactLots}/${performance.scannerReviewedLots}</dd></div><div><dt>Text-Corrected Scans</dt><dd>${performance.scannerCorrectedLots} lots · ${performance.scannerEditDistanceTotal} characters</dd></div><div><dt>1–2 Character Fixes</dt><dd>${performance.scannerOneOrTwoCharacterCorrections}</dd></div><div><dt>Manual Lots</dt><dd>${performance.manualLots} / ${performance.distinctLots}</dd></div></dl>
       <div class="atlas-dashboard-coc-pallets">${renderCocPallets(record)}</div>
       <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-official="${escapeHtml(record.id)}">View Official COC</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${cocCanDelete(record) ? `<button class="atlas-dashboard-button atlas-dashboard-button--danger" data-coc-delete="${escapeHtml(record.id)}">Delete COC</button>` : ""}</div>
