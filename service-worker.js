@@ -1,13 +1,13 @@
-const VERSION = "atlas-pwa-v293-coc-database-reference-normalization";
+const VERSION = "atlas-pwa-v294-coc-oversight-detail-cleanup";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=162",
+  "./atlas-dashboard.css?v=163",
   "./atlas-coc-references.js?v=1",
-  "./atlas-dashboard.js?v=170",
+  "./atlas-dashboard.js?v=171",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=64",

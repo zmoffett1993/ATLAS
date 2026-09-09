@@ -1797,13 +1797,9 @@
     </div>`;
   };
 
-  const scannerCorrectionAudit = (lot) => lot?.scannerReviewTracked && lot?.scannerTextCorrected
-    ? `<small class="atlas-dashboard-coc-scan-correction">SCANNER PROPOSED <b>${escapeHtml(lot.scannerOriginalLot || "—")}</b> · ${cocPlural(lot.scannerEditDistance, "character")} corrected</small>`
-    : "";
-
   const renderCocPallets = (record) => (cocSnapshot(record).pallets || []).map((pallet) => `
     <section class="atlas-dashboard-coc-pallet"><header><h3>PALLET ${escapeHtml(pallet.number)}</h3><strong>${cocPlural((pallet.lots || []).reduce((sum, lot) => sum + Number(lot.cases || 0), 0), "box")}</strong></header>
-      ${(pallet.lots || []).map((lot) => `<div class="atlas-dashboard-coc-lot"><span><strong>${escapeHtml(lot.model || "—")}</strong><small>LOT <b>${escapeHtml(lot.lot || "—")}</b></small>${scannerCorrectionAudit(lot)}</span><b>${cocPlural(lot.cases, "box")} · ${(Number(lot.cases || 0) * Number(lot.caseQuantity || 0)).toLocaleString()} units</b></div>`).join("")}
+      ${(pallet.lots || []).map((lot) => `<div class="atlas-dashboard-coc-lot"><span><strong>${escapeHtml(lot.model || "—")}</strong><small>LOT <b>${escapeHtml(lot.lot || "—")}</b></small></span><b>${cocPlural(lot.cases, "box")} · ${(Number(lot.cases || 0) * Number(lot.caseQuantity || 0)).toLocaleString()} units</b></div>`).join("")}
     </section>`).join("");
 
   const cocRevisionStepNumber = (step) => ({ handoff: 2, upload: 3, review: 4, success: 5 }[step] || 1);
@@ -1949,11 +1945,14 @@
 
   const renderCocDetail = (record) => {
     if (state.cocPreview.status !== "idle") return renderCocPreview(record);
-    const snap = cocSnapshot(record), totals = cocTotals(record), performance = cocRecordPerformance(record);
+    const snap = cocSnapshot(record);
+    const submitter = record.submitted_by_display_name || snap.employeeDisplayName || snap.employee || "—";
+    const sentTime = record.sent_at ? formatPacificTime(parseDate(record.sent_at)) : "—";
+    const receivedTime = record.received_at ? formatDateTime(parseDate(record.received_at)) : "—";
     return `<section class="atlas-dashboard-coc-detail">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-detail-back>‹ All COCs</button>
-      <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">${escapeHtml(cocStatus(record).toUpperCase())}</p><h2>${escapeHtml(snap.customerName || "—")} ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2><span>${escapeHtml(snap.invoiceNumber || "—")}${snap.salesOrderNumber ? ` · ${escapeHtml(snap.salesOrderNumber)}` : ""}</span></header>
-      <dl class="atlas-dashboard-coc-fields"><div><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div><dt>IF Number</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div><dt>Sales Order</dt><dd>${escapeHtml(snap.salesOrderNumber || "—")}</dd></div><div><dt>Sent By</dt><dd>${escapeHtml(record.submitted_by_display_name || snap.employeeDisplayName || snap.employee || "—")}</dd></div><div><dt>Recorded</dt><dd>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</dd></div><div><dt>Pallets</dt><dd>${totals.pallets}</dd></div><div><dt>Boxes</dt><dd>${totals.boxes}</dd></div><div><dt>Active COC Time</dt><dd>${escapeHtml(formatCocDuration(performance.activeDurationMs))}</dd></div><div><dt>Exact Scanner Accuracy</dt><dd>${escapeHtml(cocPercentage(performance.scanSuccesses, performance.scanAttempts))}</dd></div><div><dt>Exact Scanner Reads</dt><dd>${escapeHtml(cocPercentage(performance.scannerExactLots, performance.scannerReviewedLots))} · ${performance.scannerExactLots}/${performance.scannerReviewedLots}</dd></div><div><dt>Text-Corrected Scans</dt><dd>${performance.scannerCorrectedLots} lots · ${performance.scannerEditDistanceTotal} characters</dd></div><div><dt>1–2 Character Fixes</dt><dd>${performance.scannerOneOrTwoCharacterCorrections}</dd></div><div><dt>Manual Lots</dt><dd>${performance.manualLots} / ${performance.distinctLots}</dd></div></dl>
+      <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">${escapeHtml(cocStatus(record).toUpperCase())}</p><h2>${escapeHtml(snap.customerName || "—")} ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2></header>
+      <dl class="atlas-dashboard-coc-fields"><div class="atlas-dashboard-coc-reference"><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div class="atlas-dashboard-coc-reference"><dt>IF Number</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div class="atlas-dashboard-coc-reference"><dt>Sales Order</dt><dd>${escapeHtml(snap.salesOrderNumber || "—")}</dd></div><div class="atlas-dashboard-coc-timing"><dt>Sent By</dt><dd>${escapeHtml(submitter)} · ${escapeHtml(sentTime)}</dd></div><div class="atlas-dashboard-coc-timing"><dt>Received</dt><dd>${escapeHtml(receivedTime)}</dd></div></dl>
       <div class="atlas-dashboard-coc-pallets">${renderCocPallets(record)}</div>
       <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-official="${escapeHtml(record.id)}">View Official COC</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${cocCanDelete(record) ? `<button class="atlas-dashboard-button atlas-dashboard-button--danger" data-coc-delete="${escapeHtml(record.id)}">Delete COC</button>` : ""}</div>
     </section>`;

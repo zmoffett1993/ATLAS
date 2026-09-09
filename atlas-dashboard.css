@@ -2368,8 +2368,10 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-detail-head { padding: 25px 27px; border: 1px solid var(--atlas-dashboard-line); border-radius: 17px; background: linear-gradient(135deg, #fff, #f5f9ff); }
 .atlas-dashboard-coc-detail-head h2 { margin: 0; color: var(--atlas-dashboard-navy); font-size: clamp(27px, 4vw, 42px); line-height: 1.08; }
 .atlas-dashboard-coc-detail-head > span { display: block; margin-top: 7px; color: #526780; font-size: 15px; font-weight: 650; }
-.atlas-dashboard-coc-fields { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
-.atlas-dashboard-coc-fields div { padding: 16px 18px; border: 1px solid var(--atlas-dashboard-line); border-radius: 13px; background: #fff; }
+.atlas-dashboard-coc-fields { margin: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 11px; }
+.atlas-dashboard-coc-fields div { padding: 16px 18px; border: 1px solid var(--atlas-dashboard-line); border-radius: 13px; background: #fff; text-align: center; }
+.atlas-dashboard-coc-reference { grid-column: span 2; }
+.atlas-dashboard-coc-timing { grid-column: span 3; }
 .atlas-dashboard-coc-fields dt { color: #6b7d92; font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
 .atlas-dashboard-coc-fields dd { margin: 6px 0 0; color: var(--atlas-dashboard-navy); font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
 .atlas-dashboard-coc-pallets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -2382,8 +2384,6 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-lot span > strong { display: block; color: var(--atlas-dashboard-navy); font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
 .atlas-dashboard-coc-lot small { display: block; margin-top: 7px; color: #728197; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .atlas-dashboard-coc-lot small b { color: var(--atlas-dashboard-navy); font-size: 13px; font-weight: 650; letter-spacing: 0; }
-.atlas-dashboard-coc-lot .atlas-dashboard-coc-scan-correction { color: #9a5b12; letter-spacing: .045em; }
-.atlas-dashboard-coc-lot .atlas-dashboard-coc-scan-correction b { color: #7d4306; font-size: 10px; font-weight: 850; }
 .atlas-dashboard-coc-lot > b { flex: 0 0 auto; color: #526780; font-size: 11px; font-weight: 650; text-align: right; }
 .atlas-dashboard-coc-detail-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .atlas-dashboard-coc-preview-status { min-height: 320px; display: grid; place-items: center; align-content: center; gap: 10px; color: var(--atlas-dashboard-muted); text-align: center; border: 1px solid var(--atlas-dashboard-line); background: #fff; }
@@ -2407,6 +2407,9 @@ html.atlas-dashboard-open {
   .atlas-dashboard-coc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .atlas-dashboard-coc-performance-grid { grid-template-columns: 1fr; }
   .atlas-dashboard-coc-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .atlas-dashboard-coc-reference,
+  .atlas-dashboard-coc-timing { grid-column: auto; }
+  .atlas-dashboard-coc-reference:nth-child(3) { grid-column: 1 / -1; }
   .atlas-dashboard-coc-pallets { grid-template-columns: 1fr; }
   .atlas-dashboard-coc-toolbar { grid-template-columns: minmax(0, 1fr) minmax(150px, .6fr); }
   .atlas-dashboard-coc-toolbar .atlas-dashboard-button { width: 100%; }
@@ -2433,7 +2436,10 @@ html.atlas-dashboard-open {
   .atlas-dashboard-coc-toolbar { padding: 13px; grid-template-columns: 1fr; }
   .atlas-dashboard-coc-custom-range { grid-column: auto; grid-template-columns: 1fr 1fr; }
   .atlas-dashboard-coc-panel > footer { padding: 12px 15px; align-items: flex-start; flex-direction: column; }
-  .atlas-dashboard-coc-fields { grid-template-columns: 1fr 1fr; }
+  .atlas-dashboard-coc-fields { grid-template-columns: 1fr; }
+  .atlas-dashboard-coc-reference,
+  .atlas-dashboard-coc-reference:nth-child(3),
+  .atlas-dashboard-coc-timing { grid-column: 1; }
   .atlas-dashboard-coc-detail-head { padding: 21px; }
   .atlas-dashboard-coc-lot { align-items: flex-start; }
   .atlas-dashboard-coc-detail-actions { display: grid; grid-template-columns: 1fr; }
