@@ -129,6 +129,9 @@
   let dashboardRequestSequence = 0;
   let cocRequestSequence = 0;
   let scannerRequestSequence = 0;
+  let dashboardPointerActive = false;
+  let backgroundRenderPending = false;
+  let backgroundRenderTimer = null;
   const cocWorkspaceScrollPositions = new Map();
   const scannerViewScrollPositions = new Map();
 
@@ -824,6 +827,44 @@
     restorePageScroll(top);
   };
 
+  const dashboardInteractionActive = () => {
+    const dashboard = document.getElementById("atlasOperationsDashboard");
+    const active = document.activeElement;
+    return Boolean(
+      dashboardPointerActive
+      || dashboard?.querySelector("[data-atlas-select].is-open")
+      || (active && dashboard?.contains(active) && active.matches?.("input, textarea, select, [contenteditable='true']")),
+    );
+  };
+
+  const cancelBackgroundRender = () => {
+    backgroundRenderPending = false;
+    if (backgroundRenderTimer) window.clearTimeout(backgroundRenderTimer);
+    backgroundRenderTimer = null;
+  };
+
+  const flushBackgroundRender = () => {
+    backgroundRenderTimer = null;
+    if (!backgroundRenderPending || !state.open) return;
+    if (dashboardInteractionActive()) {
+      backgroundRenderTimer = window.setTimeout(flushBackgroundRender, 250);
+      return;
+    }
+    backgroundRenderPending = false;
+    renderPreservingScroll();
+  };
+
+  const requestBackgroundRender = () => {
+    backgroundRenderPending = true;
+    if (backgroundRenderTimer) return;
+    if (dashboardInteractionActive()) {
+      backgroundRenderTimer = window.setTimeout(flushBackgroundRender, 250);
+      return;
+    }
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(flushBackgroundRender);
+    else flushBackgroundRender();
+  };
+
   const loadCocData = async ({ background = false, warehouseCode = state.selectedWarehouse?.code || "CA" } = {}) => {
     if (!state.session?.access_token || !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
     const requestedWarehouseCode = String(warehouseCode || "CA").toUpperCase();
@@ -883,7 +924,8 @@
       if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocLoading = false;
       const previewLocked = state.cocSelected && state.cocPreview.status === "ready";
-      if (!background || !previewLocked) renderPreservingScroll();
+      if (!background) renderPreservingScroll();
+      else if (!previewLocked) requestBackgroundRender();
     }
   };
 
@@ -918,7 +960,8 @@
     } finally {
       if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.scannerLoading = false;
-      renderPreservingScroll();
+      if (background) requestBackgroundRender();
+      else renderPreservingScroll();
     }
   };
 
@@ -1138,6 +1181,16 @@
     dashboard.addEventListener("change", handleChange);
     dashboard.addEventListener("keydown", handleKeydown);
     dashboard.addEventListener("submit", handleSubmit);
+    dashboard.addEventListener("pointerdown", () => { dashboardPointerActive = true; });
+    dashboard.addEventListener("focusout", () => window.setTimeout(flushBackgroundRender, 0));
+    window.addEventListener("pointerup", () => {
+      dashboardPointerActive = false;
+      window.setTimeout(flushBackgroundRender, 0);
+    });
+    window.addEventListener("pointercancel", () => {
+      dashboardPointerActive = false;
+      window.setTimeout(flushBackgroundRender, 0);
+    });
     state.mounted = true;
   };
 
@@ -1160,6 +1213,7 @@
   const stopDashboardRefresh = () => {
     if (state.refreshTimer) window.clearInterval(state.refreshTimer);
     state.refreshTimer = null;
+    cancelBackgroundRender();
   };
 
   const startDashboardRefresh = () => {
@@ -1986,11 +2040,11 @@
   };
 
   const renderCocRows = () => {
-    if (state.cocLoading && !state.cocLoaded) return `<tr><td colspan="8"><div class="atlas-dashboard-coc-empty">Loading COCs…</div></td></tr>`;
-    if (!state.cocRecords.length) return `<tr><td colspan="8"><div class="atlas-dashboard-coc-empty">${state.cocSearch ? "No COCs match this search and reporting period." : `No COCs are available for ${escapeHtml(cocPeriodLabel().toLowerCase())}.`}</div></td></tr>`;
+    if (state.cocLoading && !state.cocLoaded) return `<tr><td colspan="7"><div class="atlas-dashboard-coc-empty">Loading COCs…</div></td></tr>`;
+    if (!state.cocRecords.length) return `<tr><td colspan="7"><div class="atlas-dashboard-coc-empty">${state.cocSearch ? "No COCs match this search and reporting period." : `No COCs are available for ${escapeHtml(cocPeriodLabel().toLowerCase())}.`}</div></td></tr>`;
     return state.cocRecords.map((record) => {
-      const snap = cocSnapshot(record), totals = cocTotals(record);
-      return `<tr><td><span class="atlas-dashboard-coc-status is-${escapeHtml(cocStatus(record).toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(cocStatus(record))}</span>${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</td><td>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</td><td><strong>${escapeHtml(snap.customerName || "—")}</strong></td><td>${escapeHtml(snap.ifNumber || "—")}</td><td>${escapeHtml(snap.invoiceNumber || "—")}</td><td>${escapeHtml(snap.salesOrderNumber || "—")}</td><td>${cocPlural(totals.pallets, "pallet")} · ${cocPlural(totals.boxes, "box")}</td><td><div class="atlas-dashboard-coc-row-actions"><button data-coc-open="${escapeHtml(record.id)}">View</button><button data-coc-official-row="${escapeHtml(record.id)}">Official COC</button>${cocCanDelete(record) ? `<button class="is-delete" data-coc-delete="${escapeHtml(record.id)}">Delete</button>` : ""}</div></td></tr>`;
+      const snap = cocSnapshot(record);
+      return `<tr><td><span class="atlas-dashboard-coc-status is-${escapeHtml(cocStatus(record).toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(cocStatus(record))}</span>${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</td><td>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</td><td><strong>${escapeHtml(snap.customerName || "—")}</strong></td><td>${escapeHtml(snap.ifNumber || "—")}</td><td>${escapeHtml(snap.invoiceNumber || "—")}</td><td>${escapeHtml(snap.salesOrderNumber || "—")}</td><td><div class="atlas-dashboard-coc-row-actions"><button data-coc-open="${escapeHtml(record.id)}">View</button><button data-coc-official-row="${escapeHtml(record.id)}">Official COC</button>${cocCanDelete(record) ? `<button class="is-delete" data-coc-delete="${escapeHtml(record.id)}">Delete</button>` : ""}</div></td></tr>`;
     }).join("");
   };
 
@@ -2032,10 +2086,10 @@
 
   const renderCocRecordsPanel = () => {
     const pages = Math.max(1, Math.ceil(state.cocTotal / COC_PAGE_SIZE));
-    return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">DAILY COC OPERATIONS</p><h2>COC Receiver Activity</h2><span>Monitor incoming work and review completed or archived COCs for this warehouse.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
-      <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["active","Incoming"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
+    return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">DAILY COC OPERATIONS</p><h2>COC Receiver Activity</h2><span>Review COC records and manage completed or archived reports for this warehouse.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
+      <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
       <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, IF, or sales order" aria-label="Search COCs"><select data-coc-period aria-label="Reporting period"><option value="today" ${state.cocPeriod === "today" ? "selected" : ""}>Today</option><option value="week" ${state.cocPeriod === "week" ? "selected" : ""}>This Week</option><option value="7d" ${state.cocPeriod === "7d" ? "selected" : ""}>Last 7 Days</option><option value="30d" ${state.cocPeriod === "30d" ? "selected" : ""}>Last 30 Days</option><option value="all" ${state.cocPeriod === "all" ? "selected" : ""}>All Time</option><option value="custom" ${state.cocPeriod === "custom" ? "selected" : ""}>Custom Range</option></select><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button>${state.cocPeriod === "custom" ? `<div class="atlas-dashboard-coc-custom-range"><label><span>From</span><input type="date" data-coc-custom-start value="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(state.cocCustomEnd || cocTodayInputValue())}"></label><label><span>Through</span><input type="date" data-coc-custom-end value="${escapeHtml(state.cocCustomEnd)}" min="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(cocTodayInputValue())}"></label></div>` : ""}</div>
-      <div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Status</th><th>Recorded</th><th>Customer</th><th>IF</th><th>Invoice</th><th>Sales Order</th><th>Pallets / Boxes</th><th>Actions</th></tr></thead><tbody>${renderCocRows()}</tbody></table></div>
+      <div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Status</th><th>Recorded</th><th>Customer</th><th>IF</th><th>Invoice</th><th>Sales Order</th><th>Actions</th></tr></thead><tbody>${renderCocRows()}</tbody></table></div>
       <footer><span>Showing ${state.cocTotal ? ((state.cocPage - 1) * COC_PAGE_SIZE) + 1 : 0}–${Math.min(state.cocPage * COC_PAGE_SIZE, state.cocTotal)} of ${state.cocTotal.toLocaleString()} COCs · ${escapeHtml(cocPeriodLabel())}</span><div><button type="button" data-coc-page="${state.cocPage - 1}" ${state.cocPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.cocPage} / ${pages}</strong><button type="button" data-coc-page="${state.cocPage + 1}" ${state.cocPage >= pages ? "disabled" : ""}>›</button></div></footer>
     </article>`;
   };
@@ -2205,6 +2259,7 @@
 
   const render = () => {
     if (!state.mounted || !state.open) return;
+    cancelBackgroundRender();
     const content = document.querySelector("[data-dashboard-content]");
     if (!content) return;
     const fieldSnapshot = dashboardFieldSnapshot(content);

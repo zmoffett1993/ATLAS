@@ -1,13 +1,13 @@
-const VERSION = "atlas-pwa-v301-sleek-desktop-icon-rail";
+const VERSION = "atlas-pwa-v302-coc-manager-background-refresh";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=164",
+  "./atlas-dashboard.css?v=165",
   "./atlas-coc-references.js?v=1",
-  "./atlas-dashboard.js?v=174",
+  "./atlas-dashboard.js?v=175",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=67",
