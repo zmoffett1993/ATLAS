@@ -89,6 +89,14 @@
     .replaceAll("'", "&#039;");
   const plural = (count, word) =>
     `${count} ${word}${count === 1 ? "" : word === "box" ? "es" : "s"}`;
+  const officialFileNameForRecord = (record) => {
+    const snapshot = record?.reportSnapshot || record || {};
+    return Excel.outputFileName(
+      snapshot.customerName || record?.customerName,
+      snapshot.invoiceNumber || record?.invoiceNumber,
+      snapshot.ifNumber || record?.ifNumber,
+    );
+  };
   const positiveWhole = (value) => {
     const text = String(value ?? "").trim();
     if (!/^\d+$/.test(text)) return null;
@@ -1459,17 +1467,19 @@
     renderAll();
     try {
       const workbookBytes = new Uint8Array(await record.workbookBlob.arrayBuffer());
+      const workbookFileName = officialFileNameForRecord(record);
       const idempotencyKey = `coc:${record.cocId}:office:${record.reportSnapshot?.warehouseCode === "TX" ? "OFFICE_COC_TX" : "OFFICE_COC_01"}`;
       const receipt = await Delivery.submitCoc({
         cocId: record.cocId,
         idempotencyKey,
         snapshot: record.reportSnapshot,
         workbookBytes,
-        workbookFileName: record.workbookFileName,
+        workbookFileName,
         forceResend: true,
       });
       await Storage.upsertCompleted({
         ...record,
+        workbookFileName,
         officeTransferStatus: "SENT",
         officeTransferId: receipt.deliveryId,
         sentAt: receipt.sentAt,
@@ -2923,7 +2933,7 @@
     if (action === "review-clear-completed") { if (completedRecords.length) { modal = "clear-completed"; renderAll(); } return; }
     if (action === "confirm-clear-completed") { await clearCompletedOnDevice(); return; }
     if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; workflowView = "history-detail"; renderAll(); return; }
-    if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, selectedCompleted.workbookFileName); return; }
+    if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, officialFileNameForRecord(selectedCompleted)); return; }
     if (action === "view-completed-official") { await openCompletedWorkbookPreview(); return; }
     if (action === "close-completed-official") { workflowView = "history-detail"; renderAll(); return; }
     if (action === "view-draft-official") { await openDraftWorkbookPreview(); return; }

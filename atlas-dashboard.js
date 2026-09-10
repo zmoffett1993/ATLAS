@@ -993,7 +993,7 @@
       snapshot.customerName,
       snapshot.invoiceNumber,
       snapshot.ifNumber,
-    ) || result.fileName || "Official COC.xlsx";
+    ) || String(result.fileName || "Official COC.xlsx").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
     const workbook = { blob: await response.blob(), fileName };
     cocWorkbookCache.set(id, workbook);
     return workbook;
@@ -1099,10 +1099,18 @@
     state.cocRevision.error = "";
     if (submit) { submit.disabled = true; submit.textContent = "Validating Workbook…"; }
     try {
-      const previewHtml = await window.AtlasCocExcel.renderOfficialWorkbookPreview(file);
+      const [previewHtml, workbookData] = await Promise.all([
+        window.AtlasCocExcel.renderOfficialWorkbookPreview(file),
+        window.AtlasCocExcel.readOfficialWorkbookData(file),
+      ]);
+      const fileName = window.AtlasCocExcel.outputFileName(
+        workbookData.customerName,
+        workbookData.invoiceNumber,
+        workbookData.ifNumber,
+      );
       const result = await cocRevisionApi("stage-revision", {
         deliveryId: record.id,
-        fileName: file.name,
+        fileName,
         workbookBase64: await blobToBase64(file),
         reason: form.elements.reason.value,
         note: form.elements.note.value,
@@ -1903,7 +1911,12 @@
 
   const renderCocRevisionHandoff = (record) => {
     const current = state.cocRevision.currentRevision;
-    const fileName = current?.fileName || cocWorkbookCache.get(record.id)?.fileName || "Official COC.xlsx";
+    const snap = cocSnapshot(record);
+    const fileName = window.AtlasCocExcel?.outputFileName?.(
+      snap.customerName,
+      snap.invoiceNumber,
+      snap.ifNumber,
+    ) || String(current?.fileName || cocWorkbookCache.get(record.id)?.fileName || "Official COC.xlsx").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
     return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-revision-cancel>‹ Official COC</button>
       ${renderCocRevisionProgress("handoff")}

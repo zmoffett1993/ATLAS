@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v302-coc-manager-background-refresh";
+const VERSION = "atlas-pwa-v303-coc-filename-space-lock";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=165",
   "./atlas-coc-references.js?v=1",
-  "./atlas-dashboard.js?v=175",
+  "./atlas-dashboard.js?v=176",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=67",
@@ -20,10 +20,10 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=5",
   "./atlas-coc-delivery.js?v=10",
   "./atlas-coc-excel.js?v=19",
-  "./atlas-coc.js?v=76",
+  "./atlas-coc.js?v=77",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=27",
-  "./coc-receiver/receiver.js?v=26",
+  "./coc-receiver/receiver.js?v=27",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
