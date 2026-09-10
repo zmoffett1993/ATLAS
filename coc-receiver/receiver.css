@@ -49,7 +49,7 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 
 .receiver-incoming{margin:28px 0 32px}
 .receiver-incoming>h2{margin:0 0 13px 4px;color:#58708d;font-size:.69rem;letter-spacing:.2em}
-.receiver-incoming-card{position:relative;padding:26px 30px;border:1px solid #b5d3f4;border-radius:21px;background:linear-gradient(100deg,#fff 0,#f9fcff 69%,#eef7ff 100%);display:grid;grid-template-columns:auto minmax(0,1fr) minmax(145px,.36fr) auto;align-items:center;gap:clamp(14px,2vw,26px);box-shadow:0 11px 30px rgba(6,42,85,.07)}
+.receiver-incoming-card{position:relative;padding:26px 30px;border:1px solid #b5d3f4;border-radius:21px;background:linear-gradient(100deg,#fff 0,#f9fcff 69%,#eef7ff 100%);display:grid;grid-template-columns:auto auto minmax(0,1fr) minmax(145px,.36fr);align-items:center;gap:clamp(14px,2vw,26px);box-shadow:0 11px 30px rgba(6,42,85,.07)}
 .receiver-new{align-self:start;width:max-content;padding:8px 12px;border-radius:999px;background:#dff7ec;color:#07885d;font-size:.67rem;font-weight:900;letter-spacing:.14em}
 .receiver-incoming-card dl{min-width:0;margin:0;display:grid;grid-template-columns:minmax(150px,1.35fr) repeat(3,minmax(110px,1fr));gap:clamp(12px,1.7vw,28px)}
 .receiver-incoming-card dl div{min-width:0}
@@ -259,7 +259,7 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 
 @media(max-width:1100px){
   .receiver-shell,.receiver-retention{width:min(calc(100% - 32px),1380px)}
-  .receiver-incoming-card{grid-template-columns:70px minmax(0,1fr) auto}.receiver-incoming-meta{display:none}
+  .receiver-incoming-card{grid-template-columns:auto 70px minmax(0,1fr)}.receiver-incoming-meta{display:none}
   .receiver-toolbar{grid-template-columns:minmax(240px,1fr) 185px}.receiver-toolbar-actions{grid-column:1/-1;justify-content:flex-start}
   .receiver-metric b{display:none}.receiver-atlas-lockup small{white-space:normal}.receiver-head{grid-template-columns:minmax(210px,1fr) auto minmax(210px,1fr);gap:20px;padding-right:32px;padding-left:32px}.receiver-brand-title{padding-right:22px;padding-left:22px}.receiver-status{min-width:210px}
 }
