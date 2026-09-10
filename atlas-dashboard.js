@@ -792,6 +792,33 @@
     });
   };
 
+  const restoreDashboardAnchor = (selector, viewportTop, fallbackTop = currentPageScrollTop()) => {
+    const expectedTop = Number(viewportTop);
+    if (!Number.isFinite(expectedTop)) {
+      restorePageScroll(fallbackTop);
+      return;
+    }
+    const restore = () => {
+      const anchor = document.querySelector(selector);
+      if (!anchor) {
+        window.scrollTo({ top: Math.max(0, Number(fallbackTop) || 0), left: 0, behavior: "auto" });
+        return;
+      }
+      const delta = anchor.getBoundingClientRect().top - expectedTop;
+      if (Math.abs(delta) > 0.5) {
+        window.scrollTo({ top: Math.max(0, currentPageScrollTop() + delta), left: 0, behavior: "auto" });
+      }
+    };
+    if (typeof window.requestAnimationFrame !== "function") {
+      restore();
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      restore();
+      window.requestAnimationFrame(restore);
+    });
+  };
+
   const renderPreservingScroll = (top = currentPageScrollTop()) => {
     render();
     restorePageScroll(top);
@@ -2306,6 +2333,7 @@
     else if (button.matches("[data-sign-out]")) signOut();
     else if (button.matches("[data-dashboard-view]")) {
       const currentTop = currentPageScrollTop();
+      const tabsTop = button.closest(".atlas-dashboard-tabs")?.getBoundingClientRect().top;
       const view = button.dataset.dashboardView;
       if (view === "access" && state.currentProfile?.role !== "admin") return;
       if (view === "cocs" && !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
@@ -2315,7 +2343,8 @@
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
       state.cocRevision = freshCocRevision();
       state.cocDelete = null;
-      renderPreservingScroll(currentTop);
+      render();
+      restoreDashboardAnchor(".atlas-dashboard-tabs", tabsTop, currentTop);
       if (state.view === "access" && !state.adminUsersLoaded) loadAdminUsers();
       if (state.view === "cocs") {
         if (!state.cocLoaded) loadCocData();
