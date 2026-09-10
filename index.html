@@ -17,7 +17,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link id="atlas-app-manifest" rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./atlas-dashboard.css?v=163" />
-    <link rel="stylesheet" href="./atlas-coc.css?v=65" />
+    <link rel="stylesheet" href="./atlas-coc.css?v=66" />
     <script>
       (() => {
         const isAndroid =
@@ -14684,6 +14684,42 @@ Error generating stack: ` +
         }
         return [...new Set(n.filter((e) => e.length >= 4))];
       }
+      function atlasExtractPrintedSkuCandidate(e, t = []) {
+        const raw = String(e || ``).toUpperCase();
+        const normalizeColor = (value) =>
+          /^0[A-Z0-9]{2,3}$/.test(value) ? `O${value.slice(1)}` : value;
+        const normalizeHead = (value) =>
+          /^CG[A-Z]{2,6}Y$/.test(value) ? `${value.slice(0, -1)}5` : value;
+        const finish = (parts) => {
+          if (!Array.isArray(parts) || parts.length !== 4) return ``;
+          const candidate = [normalizeHead(parts[0]), parts[1], normalizeColor(parts[2]), normalizeColor(parts[3])].join(`-`);
+          const canonical = atlasCanonicalizeSku(candidate, t);
+          return canonical.valid ? canonical.value : ``;
+        };
+        const lines = raw
+          .split(/\r?\n/)
+          .map((line) => line
+            .replace(/(?:\bCASE\s*)?(?:[QO0]TY|QUANTITY)\s*[:.-]?\s*.*$/i, ``)
+            .replace(/^.*?\b(?:SKU|ITEM|PART|MODEL|PRODUCT|CODE)\s*[:#.-]?\s*/i, ``)
+            .replace(/[^A-Z0-9.\/-]+/g, ` `)
+            .trim())
+          .filter(Boolean);
+        const structured = lines.join(` `);
+        const direct = structured.match(/(CG[A-Z0-9]{3,8})[\s/-]+([0-9][A-Z0-9.]{2,10})[\s/-]+([A-Z0-9]{3,4})[\s/-]+([A-Z0-9]{3,4})(?=\s|$)/);
+        const directCandidate = finish(direct?.slice(1, 5));
+        if (directCandidate) return directCandidate;
+        for (let index = 0; index < lines.length - 1; index += 1) {
+          const headSource = lines[index].replace(/^.*?(?=CG)/, ``).replace(/[^A-Z0-9]/g, ``);
+          const head = headSource.match(/^(CG[A-Z0-9]{3,8})$/)?.[1];
+          if (!head) continue;
+          const tail = String(lines[index + 1] || ``).match(/^([0-9][A-Z0-9.]{2,10})[\s/-]+([A-Z0-9]{3,4})[\s/-]+([A-Z0-9]{3,4})(?=\s|$)/);
+          const splitCandidate = finish(tail ? [head, ...tail.slice(1, 4)] : null);
+          if (splitCandidate) return splitCandidate;
+        }
+        const compact = structured.replace(/[^A-Z0-9.]/g, ``);
+        const compactFourPart = compact.match(/(CG[A-Z]{2,6}[5Y])([0-9]{1,4}(?:GX|ML|MM|OZ)[A-Z0-9.]{0,5})([O0]BK)([O0]BK)/);
+        return finish(compactFourPart?.slice(1, 5));
+      }
       function atlasOcrImageQualityAdvice(e) {
         let t = e?.data;
         if (!t?.length) return ``;
@@ -17963,6 +17999,24 @@ Error generating stack: ` +
                 !/^\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4}$/.test(line) &&
                 !/^\d[\d,.\s]*$/.test(line),
             );
+          const printedCandidate = atlasExtractPrintedSkuCandidate(e, t);
+          if (printedCandidate) {
+            const existing = atlasFindExistingSku(printedCandidate, t, !0);
+            if (existing)
+              return {
+                exact: existing.sku,
+                confidence: `printed-label`,
+                suggestions: [],
+                raw: e,
+              };
+            return {
+              candidate: printedCandidate,
+              candidateValid: !0,
+              confidence: `printed-label`,
+              suggestions: [],
+              raw: e,
+            };
+          }
           const candidates = new Set(Ze(cleanedLines.join(`\n`)));
           const printedSkuPrefixes = [`SKU`, `ITEM`, `PART`, `MODEL`, `PRODUCT`, `CODE`];
           for (const candidate of [...candidates]) {
@@ -18071,13 +18125,13 @@ Error generating stack: ` +
               raw: e,
             };
           }
-          let i =
-              normalizedCandidates.sort(
-                (left, right) => right.length - left.length,
-              )[0] || ``,
-            a = atlasCanonicalizeSku(i, t);
+          const safeCandidates = normalizedCandidates
+            .map((candidate) => atlasCleanSkuText(candidate))
+            .filter((candidate) => candidate.length <= 36 && atlasSkuFormatIsValid(candidate));
+          const i = safeCandidates[0] || ``;
+          const a = atlasCanonicalizeSku(i, t);
           return {
-            candidate: a.valid ? a.value : atlasCleanSkuText(i),
+            candidate: a.valid ? a.value : ``,
             candidateValid: a.valid,
             suggestions: scored.slice(0, 4).map((item) => item.sku),
             raw: e,
@@ -18172,7 +18226,7 @@ Error generating stack: ` +
                   pageMode: x.SPARSE_TEXT,
                 },
               ];
-              const readings = [];
+              const readings = [], passMatches = [];
               let w = null,
                 scanQualityAdvice = ``;
               for (
@@ -18239,9 +18293,10 @@ Error generating stack: ` +
                 const passText = passResult.data.text || ``;
                 readings.push(passText);
                 const passMatch = v(passText);
+                passMatches.push(passMatch);
                 if (
                   passMatch.exact &&
-                  [`exact`, `ocr-equivalent`].includes(passMatch.confidence)
+                  [`exact`, `ocr-equivalent`, `printed-label`].includes(passMatch.confidence)
                 ) {
                   w = passMatch;
                   break;
@@ -18249,7 +18304,23 @@ Error generating stack: ` +
               }
               await S.terminate();
               atlasOcrWorker = null;
-              (l(100), w || (w = v(readings.join(`\n`))));
+              if (!w) {
+                const combinedMatch = v(readings.join(`\n`));
+                if (combinedMatch.exact) w = combinedMatch;
+                else {
+                  const votes = new Map();
+                  passMatches.filter((match) => match.candidateValid && match.candidate).forEach((match) => {
+                    const key = atlasCleanSkuText(match.candidate);
+                    const prior = votes.get(key) || { match, count: 0 };
+                    prior.count += 1;
+                    votes.set(key, prior);
+                  });
+                  const voted = [...votes.values()].sort((left, right) => right.count - left.count)[0]?.match;
+                  const suggestions = [...new Set(passMatches.flatMap((match) => match.suggestions || []))].slice(0, 4);
+                  w = voted || { candidate: ``, candidateValid: !1, suggestions, raw: readings.join(`\n`) };
+                }
+              }
+              l(100);
               (m(w),
                 w.exact
                   ? (s(`Exact ATLAS SKU found.`),
@@ -26185,7 +26256,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=230",
+              "./service-worker.js?v=231",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });
@@ -33775,7 +33846,7 @@ Error generating stack: ` +
       }
       .atlas-pallet-guide-metrics {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 9px;
       }
       .atlas-pallet-guide-metric {
@@ -33847,11 +33918,11 @@ Error generating stack: ` +
       .atlas-pallet-guide-editor > p { margin: -6px 0 0; color: #5d7088; font-size: 12px; line-height: 1.45; }
       .atlas-pallet-guide-editor-fields {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
       .atlas-pallet-guide-editor label { display: grid; gap: 7px; color: #173b66; font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-      .atlas-pallet-guide-editor label:last-child { grid-column: 1 / -1; }
+      .atlas-pallet-guide-editor label.is-initials { grid-column: 1 / -1; }
       .atlas-pallet-guide-editor input {
         width: 100%;
         min-height: 50px;
@@ -33923,6 +33994,7 @@ Error generating stack: ` +
         color: #60738a;
         font-size: 9px;
         font-weight: 900;
+        text-align: right;
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
@@ -34069,6 +34141,7 @@ Error generating stack: ` +
           padding: 15px;
         }
         .atlas-pallet-guide-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 7px;
         }
         .atlas-pallet-guide-metric {
@@ -34087,7 +34160,7 @@ Error generating stack: ` +
         .atlas-pallet-guide-control-row { align-items: flex-start; }
         .atlas-pallet-guide-updated { max-width: 56%; }
         .atlas-pallet-guide-editor-fields { grid-template-columns: 1fr; }
-        .atlas-pallet-guide-editor label:last-child { grid-column: auto; }
+        .atlas-pallet-guide-editor label.is-initials { grid-column: auto; }
         .atlas-pallet-guide-diagram {
           padding: 12px;
         }
@@ -34572,6 +34645,8 @@ Error generating stack: ` +
           ];
           const casesPerLayer = layerCases.length ? layerCases.join(" / ") : "—";
           const editableBoxesPerLayer = guide.override?.boxesPerLayer || (layerCases.length ? Math.max(...layerCases) : "");
+          const quantityRecord = window.AtlasCocCaseQuantities?.resolve?.(guide.sku) || null;
+          const unitsPerBox = Number(quantityRecord?.caseQuantity || 0);
 
           const backdrop = document.createElement("div");
           backdrop.className = "atlas-pallet-guide-backdrop";
@@ -34593,6 +34668,7 @@ Error generating stack: ` +
                   <div class="atlas-pallet-guide-metric"><span>Total Boxes<br>Per Pallet</span><strong></strong></div>
                   <div class="atlas-pallet-guide-metric"><span>Number<br>Of Layers</span><strong></strong></div>
                   <div class="atlas-pallet-guide-metric"><span>Boxes<br>Per Layer</span><strong></strong></div>
+                  <div class="atlas-pallet-guide-metric"><span>Units<br>Per Box</span><strong></strong></div>
                 </section>
                 <div class="atlas-pallet-guide-control-row">
                   <small class="atlas-pallet-guide-updated"></small>
@@ -34600,12 +34676,13 @@ Error generating stack: ` +
                 </div>
                 <form class="atlas-pallet-guide-editor" ${guide.isNew ? "" : "hidden"}>
                   <h3>${guide.isNew ? "Create pallet standard" : "Update pallet standard"}</h3>
-                  <p>${guide.isNew ? "Enter the three pallet values and your initials. ATLAS will save the new guide and create its layer diagram." : "Edit all three pallet values. They must describe the same build; ATLAS validates the combination and redraws any partial final layer."}</p>
+                  <p>${guide.isNew ? "Enter the pallet layout, units in each box, and your initials. ATLAS will save the new guide and create its layer diagram." : "Update the pallet layout or units per box. ATLAS validates the build, redraws the diagram, and uses this quantity in future COCs."}</p>
                   <div class="atlas-pallet-guide-editor-fields">
                     <label>Total Boxes Per Pallet<input name="totalCases" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${guide.totalCases || ""}" required></label>
                     <label>Number Of Layers<input name="totalLayers" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="${guide.totalLayers || ""}" required></label>
                     <label>Boxes Per Layer (Max 12)<input name="boxesPerLayer" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="${editableBoxesPerLayer}" required></label>
-                    <label>Your Initials<input name="initials" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. ZM" required></label>
+                    <label>Units Per Box<input name="unitsPerBox" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="7" value="${unitsPerBox || ""}" required></label>
+                    <label class="is-initials">Your Initials<input name="initials" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. ZM" required></label>
                   </div>
                   <p class="atlas-pallet-guide-editor-error" aria-live="polite"></p>
                   <div class="atlas-pallet-guide-editor-actions"><button type="button" class="atlas-pallet-guide-editor-cancel">Cancel</button><button type="submit" class="atlas-pallet-guide-editor-save">Save &amp; Redraw</button></div>
@@ -34624,11 +34701,12 @@ Error generating stack: ` +
           metricValues[0].textContent = guide.totalCases ? String(guide.totalCases) : "—";
           metricValues[1].textContent = guide.totalLayers ? String(guide.totalLayers) : "—";
           metricValues[2].textContent = casesPerLayer;
+          metricValues[3].textContent = unitsPerBox ? unitsPerBox.toLocaleString() : "—";
           const updateStatus = backdrop.querySelector(".atlas-pallet-guide-updated");
           if (guide.override) {
             const updated = new Date(guide.override.updatedAt);
             const dateLabel = Number.isNaN(updated.valueOf()) ? "Recently" : updated.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-            updateStatus.textContent = `${dateLabel} · ${guide.override.initials}${guide.override.syncPending ? " · Sync pending" : ""}`;
+            updateStatus.textContent = `${dateLabel} · ${guide.override.initials}${guide.override.syncPending || quantityRecord?.syncPending ? " · Sync pending" : ""}`;
           } else updateStatus.textContent = guide.isNew ? "No pallet standard yet" : "Published pallet standard";
 
           const layerGrid = backdrop.querySelector(".atlas-pallet-guide-layer-grid");
@@ -34645,7 +34723,7 @@ Error generating stack: ` +
             layer.querySelector("strong").textContent = multipleVariants
               ? `Layer ${variantId}`
               : "Every Layer";
-            layer.querySelector("span").textContent = `${variant.cases} boxes`;
+            layer.querySelector("span").textContent = `${variant.cases} boxes${unitsPerBox ? ` · ${unitsPerBox.toLocaleString()} units each` : ""}`;
             layer
               .querySelector(".atlas-pallet-guide-diagram")
               .appendChild(createLayerDiagram(variant));
@@ -34694,7 +34772,7 @@ Error generating stack: ` +
           editor.elements.initials.addEventListener("input", () => {
             editor.elements.initials.value = editor.elements.initials.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
           });
-          [editor.elements.totalCases, editor.elements.totalLayers, editor.elements.boxesPerLayer].forEach((input) => input.addEventListener("input", () => {
+          [editor.elements.totalCases, editor.elements.totalLayers, editor.elements.boxesPerLayer, editor.elements.unitsPerBox].forEach((input) => input.addEventListener("input", () => {
             input.value = input.value.replace(/\D/g, "");
           }));
           editor.addEventListener("submit", async (event) => {
@@ -34702,6 +34780,7 @@ Error generating stack: ` +
             const totalCases = Number(editor.elements.totalCases.value);
             const totalLayers = Number(editor.elements.totalLayers.value);
             const boxesPerLayer = Number(editor.elements.boxesPerLayer.value);
+            const unitsPerBox = Number(editor.elements.unitsPerBox.value);
             const initials = String(editor.elements.initials.value || "").trim().toUpperCase();
             const error = editor.querySelector(".atlas-pallet-guide-editor-error");
             if (!Number.isSafeInteger(totalCases) || totalCases < 1 || totalCases > 999) {
@@ -34714,6 +34793,10 @@ Error generating stack: ` +
             }
             if (!Number.isSafeInteger(totalLayers) || totalLayers < 1 || totalLayers > 99) {
               error.textContent = "Enter a layer count from 1 to 99.";
+              return;
+            }
+            if (!Number.isSafeInteger(unitsPerBox) || unitsPerBox < 1 || unitsPerBox > 9_999_999) {
+              error.textContent = "Enter the number of units in each box.";
               return;
             }
             const requiredLayers = Math.ceil(totalCases / boxesPerLayer);
@@ -34729,7 +34812,11 @@ Error generating stack: ` +
             const saveButton = editor.querySelector(".atlas-pallet-guide-editor-save");
             saveButton.disabled = true;
             saveButton.textContent = "Saving…";
-            const synced = await saveOverride(guide.sku, { totalCases, totalLayers, boxesPerLayer, initials });
+            const [guideSynced, quantitySynced] = await Promise.all([
+              saveOverride(guide.sku, { totalCases, totalLayers, boxesPerLayer, initials }),
+              window.AtlasCocCaseQuantities.saveCaseQuantity(guide.sku, unitsPerBox, { initials }),
+            ]);
+            const synced = guideSynced && quantitySynced;
             const triggerTarget = returnFocus;
             backdrop.remove();
             document.body.classList.remove("atlas-pallet-guide-open");
@@ -36430,13 +36517,13 @@ Error generating stack: ` +
     <script src="./atlas-zxing-browser.min.js?v=1" defer></script>
     <script src="./atlas-coc-scanner.js?v=7" defer></script>
     <script src="./atlas-coc-parser.js?v=11" defer></script>
-    <script src="./atlas-coc-case-quantities.js?v=3" defer></script>
+    <script src="./atlas-coc-case-quantities.js?v=4" defer></script>
     <script src="./atlas-coc-core.js?v=22" defer></script>
     <script src="./atlas-jszip.min.js?v=1" defer></script>
     <script src="./atlas-coc-storage.js?v=5" defer></script>
     <script src="./atlas-coc-delivery.js?v=10" defer></script>
     <script src="./atlas-coc-excel.js?v=19" defer></script>
-    <script src="./atlas-coc.js?v=74" defer></script>
+    <script src="./atlas-coc.js?v=75" defer></script>
   <script src="./atlas-desktop.js?v=131" defer></script>
 
 </body>

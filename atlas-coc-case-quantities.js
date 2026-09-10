@@ -3,6 +3,7 @@
 
   const SOURCE = "Photographed company case-quantity tables · 2026-08-27";
   const SKU_CACHE_KEY = "atlas-coc-sku-suggestions-v1";
+  const QUANTITY_OVERRIDE_KEY = "atlas-coc-case-quantity-overrides-v1";
   const EMBEDDED_ROWS = [
     ["CGPCS-40G", 600],
     ["CGPCS-50GL", 500, "NEW NOV 2025"],
@@ -137,6 +138,30 @@
     })];
   }));
   const skuSuggestions = new Map();
+  const quantityOverrides = new Map();
+
+  function normalizeQuantityOverride(value) {
+    const modelNumber = normalize(value?.modelNumber || value?.model_number);
+    const caseQuantity = Number(value?.caseQuantity ?? value?.case_quantity);
+    if (!modelNumber || !Number.isSafeInteger(caseQuantity) || caseQuantity < 1 || caseQuantity > 9_999_999) return null;
+    return Object.freeze({
+      modelNumber,
+      caseQuantity,
+      sourceRevision: String(value?.sourceRevision || value?.source_revision || "PALLET GUIDE"),
+      source: "ATLAS Pallet Guide",
+      origin: "pallet-guide",
+      updatedAt: String(value?.updatedAt || value?.updated_at || ""),
+      syncPending: Boolean(value?.syncPending),
+    });
+  }
+
+  function persistQuantityOverrides() {
+    try {
+      global.localStorage?.setItem(QUANTITY_OVERRIDE_KEY, JSON.stringify(
+        Object.fromEntries(quantityOverrides),
+      ));
+    } catch {}
+  }
 
   function addSkuSuggestion(value, origin = "embedded") {
     const modelNumber = normalize(value);
@@ -150,12 +175,23 @@
   EMBEDDED_ROWS.forEach(([modelNumber]) => addSkuSuggestion(modelNumber));
 
   try {
+    const stored = JSON.parse(global.localStorage?.getItem(QUANTITY_OVERRIDE_KEY) || "{}");
+    Object.values(stored || {}).forEach((value) => {
+      const record = normalizeQuantityOverride(value);
+      if (!record) return;
+      quantityOverrides.set(record.modelNumber, record);
+      addSkuSuggestion(record.modelNumber, "pallet-guide");
+    });
+  } catch {}
+
+  try {
     const cached = JSON.parse(global.localStorage?.getItem(SKU_CACHE_KEY) || "[]");
     if (Array.isArray(cached)) cached.slice(0, 2000).forEach((value) => addSkuSuggestion(value, "cache"));
   } catch {}
 
   function list() {
-    return [...catalog.values()].sort((a, b) => a.modelNumber.localeCompare(b.modelNumber));
+    return [...new Map([...catalog, ...quantityOverrides]).values()]
+      .sort((a, b) => a.modelNumber.localeCompare(b.modelNumber));
   }
 
   function suggestionList() {
@@ -197,7 +233,7 @@
   function resolve(value) {
     const modelNumber = normalize(value);
     if (!modelNumber) return null;
-    const exact = catalog.get(modelNumber);
+    const exact = quantityOverrides.get(modelNumber) || catalog.get(modelNumber);
     const record = exact || list()
       .filter((item) => modelNumber.startsWith(`${item.modelNumber}-`))
       .sort((a, b) => b.modelNumber.length - a.modelNumber.length)[0];
@@ -209,6 +245,8 @@
       sourceRevision: record.sourceRevision,
       source: record.source,
       origin: record.origin,
+      updatedAt: record.updatedAt || "",
+      syncPending: Boolean(record.syncPending),
     });
   }
 
@@ -240,6 +278,57 @@
     } catch {}
   }
 
+  async function syncCaseQuantity(record) {
+    const config = global.atlasSupabaseConfig;
+    const session = global.AtlasAuth?.getSession?.() || global.AtlasCocDelivery?.getAuthSession?.();
+    if (!config?.url || !config?.key || !session?.access_token || !global.navigator?.onLine) return false;
+    const response = await fetch(`${config.url}/rest/v1/coc_model_case_quantities?on_conflict=model_number`, {
+      method: "POST",
+      headers: {
+        ...requestHeaders(config),
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify({
+        model_number: record.modelNumber,
+        case_quantity: record.caseQuantity,
+        source_revision: record.sourceRevision,
+        effective_date: new Date().toISOString().slice(0, 10),
+        active: true,
+      }),
+    });
+    if (!response.ok) throw new Error(`case quantity sync unavailable (${response.status})`);
+    return true;
+  }
+
+  async function saveCaseQuantity(value, quantity, { initials = "ATLAS" } = {}) {
+    const modelNumber = normalize(value);
+    const caseQuantity = Number(quantity);
+    const safeInitials = String(initials || "ATLAS").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) || "ATLAS";
+    const record = normalizeQuantityOverride({
+      modelNumber,
+      caseQuantity,
+      sourceRevision: `PALLET GUIDE · ${safeInitials}`,
+      updatedAt: new Date().toISOString(),
+      syncPending: true,
+    });
+    if (!record) throw new Error("CASE_QUANTITY_INVALID");
+    quantityOverrides.set(modelNumber, record);
+    addSkuSuggestion(modelNumber, "pallet-guide");
+    persistQuantityOverrides();
+    global.dispatchEvent?.(new CustomEvent("atlas:coc-case-quantities-ready"));
+    try {
+      if (await syncCaseQuantity(record)) {
+        quantityOverrides.set(modelNumber, Object.freeze({ ...record, syncPending: false }));
+        persistQuantityOverrides();
+        return true;
+      }
+    } catch (error) {
+      console.info("ATLAS saved the case quantity on this device; cloud sync is pending.", error?.message || error);
+    }
+    return false;
+  }
+
   async function refreshExactSku(value) {
     const modelNumber = normalize(value);
     const config = global.atlasSupabaseConfig;
@@ -266,6 +355,15 @@
     const config = global.atlasSupabaseConfig;
     if (!config?.url || !config?.key || !global.navigator?.onLine) return list();
     const headers = requestHeaders(config);
+    for (const [modelNumber, record] of quantityOverrides) {
+      if (!record.syncPending) continue;
+      try {
+        if (await syncCaseQuantity(record)) {
+          quantityOverrides.set(modelNumber, Object.freeze({ ...record, syncPending: false }));
+        }
+      } catch {}
+    }
+    persistQuantityOverrides();
     const loadQuantities = async () => {
       const response = await fetch(`${config.url}/rest/v1/coc_model_case_quantities?select=model_number,case_quantity,source_revision,effective_date&active=eq.true&order=model_number.asc`, {
         headers,
@@ -314,6 +412,7 @@
     resolve,
     recordForSession,
     refreshExactSku,
+    saveCaseQuantity,
     loadRemote,
   });
 })(window);

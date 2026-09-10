@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v295-coc-live-receiver-responsive-review";
+const VERSION = "atlas-pwa-v296-coc-stored-scan-pallet-quantity";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -10,20 +10,20 @@ const APP_SHELL = [
   "./atlas-dashboard.js?v=172",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
-  "./atlas-coc.css?v=65",
+  "./atlas-coc.css?v=66",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
   "./atlas-coc-parser.js?v=11",
-  "./atlas-coc-case-quantities.js?v=3",
+  "./atlas-coc-case-quantities.js?v=4",
   "./atlas-coc-core.js?v=22",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=5",
   "./atlas-coc-delivery.js?v=10",
   "./atlas-coc-excel.js?v=19",
-  "./atlas-coc.js?v=74",
+  "./atlas-coc.js?v=75",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=25",
-  "./coc-receiver/receiver.js?v=24",
+  "./coc-receiver/receiver.css?v=26",
+  "./coc-receiver/receiver.js?v=25",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

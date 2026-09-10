@@ -781,7 +781,7 @@
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-completed">‹ Completed COCs</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COC</h1></header>
       <section class="atlas-coc-completed-detail">
-        <dl class="atlas-coc-completed-meta"><div class="is-wide"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div><dt>IF</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div><dt>Sales Order</dt><dd>${escapeHtml(record.salesOrderNumber || snapshot.salesOrderNumber || "—")}</dd></div><div class="is-wide"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
+        <dl class="atlas-coc-completed-meta"><div class="is-wide is-primary"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div class="is-reference"><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div class="is-reference"><dt>IF</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div class="is-reference is-sales-order"><dt>Sales Order</dt><dd>${escapeHtml(record.salesOrderNumber || snapshot.salesOrderNumber || "—")}</dd></div><div class="is-wide is-completed"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div class="is-stat"><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div class="is-stat"><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
         <div class="atlas-coc-readonly-pallets ${(snapshot.pallets || []).length > 1 ? "is-carousel" : ""}" ${(snapshot.pallets || []).length > 1 ? 'aria-label="Swipe through pallets"' : ""}>${completedPalletSummaryMarkup(snapshot)}</div>
         <div class="atlas-coc-completed-actions">
           <button type="button" class="atlas-coc-primary" data-coc-action="view-completed-official">View Official COC</button>
@@ -937,7 +937,7 @@
           <input name="customerName" maxlength="160" autocomplete="organization" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Enter customer name" required /></label>
         <label><strong>Invoice Number</strong>
           <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" required /></label>
-        <label><strong>IF</strong>
+        <label><strong>Item Fulfillment</strong>
           <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF" required /></label>
         <label><strong>Sales Order Number</strong><small>ATLAS search only · not shown on the Official COC</small>
           <input name="salesOrderNumber" maxlength="80" autocomplete="off" placeholder="Enter sales order number" required /></label>
