@@ -230,6 +230,13 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 .receiver-pair h1{margin:9px 0;font-size:2rem}
 .receiver-pair p{color:#657a92}
 .receiver-pair .receiver-primary{width:100%;margin-top:12px}
+.receiver-sign-in{text-align:left}
+.receiver-sign-in>h1,.receiver-sign-in>p,.receiver-sign-in>.receiver-eyebrow{display:block;text-align:center}
+.receiver-sign-in form{display:grid;gap:15px;margin-top:28px}
+.receiver-sign-in label{display:grid;gap:7px;color:#173b66;font-size:.75rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.receiver-sign-in input{width:100%;min-height:56px;box-sizing:border-box;padding:0 16px;color:#071f43;border:1px solid #b9c9da;border-radius:14px;background:#fff;font:800 1rem/1 inherit}
+.receiver-sign-in input:focus{outline:3px solid rgba(9,103,214,.16);border-color:#0967d6}
+.receiver-sign-in-error{min-height:20px;margin:0!important;color:#a43b49!important;font-size:.85rem;font-weight:800;text-align:left!important}
 .receiver-code{margin:20px 0 5px;font-size:3.2rem;letter-spacing:.2em;font-weight:900}
 .receiver-qr{width:220px;height:220px;margin:20px auto;padding:10px;box-sizing:border-box;display:grid;place-items:center;border:2px solid #bfd1e5;border-radius:18px;background:#fff;color:#63758c;overflow:hidden}
 .receiver-qr .receiver-qr-symbol{display:block;width:100%;height:100%;max-width:none;max-height:none;fill:none;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;shape-rendering:crispEdges}

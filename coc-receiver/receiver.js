@@ -21,6 +21,7 @@
   let screen="inbox",search="",sort=SORT_VALUES.has(savedSort)?savedSort:"newest",page=1,total=0;
   let metrics={awaiting:0,receivedToday:0,completedToday:0},selectedIds=new Set(),openMenu=null,bulkMenu=false;
   let dialog=null,notice=null,loading=true,searchTimer=null,loadSequence=0;
+  let signInState={loading:false,error:""},receiverAuthSequence=0;
 
   const esc=(value)=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   const plural=(count,word)=>`${Number(count||0).toLocaleString()} ${word}${Number(count)===1?"":word==="box"?"es":"s"}`;
@@ -57,7 +58,7 @@
   function branchName(){return branchContext?.selectedWarehouse?.display_name||branchContext?.warehouse?.display_name||`${branchCode()} Warehouse`}
   function header(){return `<header class="receiver-head"><div class="receiver-atlas-lockup" aria-label="ATLAS Warehouse Management"><img src="../atlas-brand-mark-dark.svg?v=97" alt="" aria-hidden="true"><span><b>ATLAS</b><small>WAREHOUSE MANAGEMENT</small></span></div><div class="receiver-brand-title"><h1>${esc(branchCode())} COC RECEIVER</h1><p>${esc(branchName())}</p></div><div class="receiver-status ${connection==="connected"?"":"is-offline"}"><strong>● ${connection==="connected"?"CONNECTED · READY":connection==="reconnecting"?"RECONNECTING…":"OFFLINE"}</strong><small>Last synced ${lastSynced?time(lastSynced):"—"}</small></div></header>`}
   function pairingMarkup(){
-    if(!Delivery.getAuthSession())return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>ATLAS sign-in required</h1><p>Use the name and password assigned to this office station.</p><button class="receiver-primary" data-action="sign-in">SIGN IN</button></section>`;
+    if(!Delivery.getAuthSession())return `<section class="receiver-pair receiver-sign-in"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>Sign in to the COC Receiver</h1><p>Use the name and password assigned to this office station.</p><form data-receiver-sign-in><label><span>ATLAS name</span><input name="login_name" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Enter station name" required ${signInState.loading?"disabled":""}></label><label><span>Password</span><input name="password" type="password" autocomplete="current-password" placeholder="Enter password" required ${signInState.loading?"disabled":""}></label><p class="receiver-sign-in-error" role="alert">${esc(signInState.error)}</p><button class="receiver-primary" type="submit" ${signInState.loading?"disabled":""}>${signInState.loading?"SIGNING IN…":"SIGN IN"}</button></form></section>`;
     if(!pairing)return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>Pair this computer</h1><p>This browser needs supervisor approval before it can receive compliance reports.</p><button class="receiver-primary" data-action="start-pairing">Create Pairing Code</button></section>`;
     return `<section class="receiver-pair"><span class="receiver-eyebrow">PAIRING REQUEST</span><h1>Approve on a warehouse phone</h1><p>Workflows → Office COC Receiver</p><div class="receiver-code">${esc(pairing.pairingCode)}</div><div class="receiver-qr">${pairingQrMarkup()}</div><p>Expires ${time(pairing.expiresAt)}</p><p>${esc(pairing.status||"Waiting for supervisor approval…")}</p></section>`;
   }
@@ -177,7 +178,6 @@
 
   root.addEventListener("click",async(event)=>{
     const button=event.target.closest("[data-action]");if(!button)return;const action=button.dataset.action,id=button.dataset.id;
-    if(action==="sign-in")window.AtlasAuth?.open?.();
     if(action==="start-pairing")startPairing();
     if(action==="open"){selected=[...activeDeliveries,...completedDeliveries].find((item)=>item.id===id)||null;preview=false;previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();openMenu=null;render()}
     if(action==="back"){selected=null;preview=false;previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();render()}
@@ -212,8 +212,19 @@
     if(event.target.matches("[data-select-id]")){event.target.checked?selectedIds.add(event.target.dataset.selectId):selectedIds.delete(event.target.dataset.selectId);render();return}
     if(event.target.matches("[data-select-page]")){if(event.target.checked)completedDeliveries.forEach((item)=>selectedIds.add(item.id));else completedDeliveries.forEach((item)=>selectedIds.delete(item.id));render()}
   });
-  root.addEventListener("submit",(event)=>{if(!event.target.matches("[data-native-editor]"))return;event.preventDefault();if(!event.target.reportValidity())return;stageNativeRevision(event.target)});
-  window.addEventListener("atlas-auth-changed",async()=>{credentials=null;branchContext=await Delivery.warehouseContext({force:true}).catch(()=>null);const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};render();if(credentials)connect()});
+  root.addEventListener("submit",async(event)=>{
+    if(event.target.matches("[data-receiver-sign-in]")){
+      event.preventDefault();if(!event.target.reportValidity()||signInState.loading)return;
+      const form=event.target,loginName=form.elements.login_name.value,password=form.elements.password.value;
+      signInState={loading:true,error:""};render();
+      try{await window.AtlasAuth.signIn(loginName,password);signInState={loading:false,error:""}}
+      catch(error){signInState={loading:false,error:error?.message||"Sign in failed."};render()}
+      return;
+    }
+    if(!event.target.matches("[data-native-editor]"))return;event.preventDefault();if(!event.target.reportValidity())return;stageNativeRevision(event.target)
+  });
+  async function refreshReceiverAuth(){const sequence=++receiverAuthSequence;credentials=null;branchContext=await Delivery.warehouseContext({force:true}).catch(()=>null);const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));if(sequence!==receiverAuthSequence)return;credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};signInState={loading:false,error:""};render();if(credentials)connect()}
+  window.addEventListener("atlas-auth-changed",()=>{void refreshReceiverAuth()});
   window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";renderBackgroundUpdate()});
   (async()=>{branchContext=await Delivery.warehouseContext().catch(()=>null);const verified=await Delivery.verifyReceiver().catch(()=>({paired:false}));credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};render();if(credentials)connect()})();
 })();
