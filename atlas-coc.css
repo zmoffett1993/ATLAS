@@ -970,8 +970,8 @@ html.atlas-coc-work-mode .atlas-workflows-view {
 .atlas-coc-session-meta span { min-width: 0; }
 .atlas-coc-session-meta small,
 .atlas-coc-session-meta strong { display: block; }
-.atlas-coc-session-meta small { margin-bottom: 5px; color: #a9d3fb; font-size: 9px; font-weight: 900; letter-spacing: .13em; }
-.atlas-coc-session-meta strong { overflow-wrap: anywhere; font-size: 15px; }
+.atlas-coc-session-meta small { margin-bottom: 6px; color: #a9d3fb; font-size: clamp(10px,2.6vw,12px); font-weight: 900; letter-spacing: .13em; }
+.atlas-coc-session-meta strong { overflow-wrap: anywhere; font-size: clamp(18px,4.8vw,22px); line-height: 1.12; }
 .atlas-coc-session-customer strong { font-size: clamp(21px,5vw,28px); line-height: 1.15; }
 
 .atlas-coc-model-switcher { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; margin:10px 0 16px; padding:12px 12px 12px 14px; border:1px solid #cbddeb; border-radius:15px; background:#f7fbff; }
@@ -1400,13 +1400,16 @@ html.atlas-coc-work-mode .atlas-workflows-view {
     display: flex;
     gap: 12px;
     max-height: none;
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 0;
     border: 0;
     border-radius: 0;
     overscroll-behavior-inline: contain;
     scrollbar-width: none;
-    touch-action: pan-y;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
   }
   .atlas-coc-final-review.is-carousel::-webkit-scrollbar { display: none; }
   .atlas-coc-final-review.is-carousel .atlas-coc-final-pallet-slide {
@@ -1416,6 +1419,8 @@ html.atlas-coc-work-mode .atlas-workflows-view {
     min-width: 0;
     overflow: hidden;
     border-top: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
   .atlas-coc-final-review.is-carousel .atlas-coc-final-pallet {
     width: 100%;
@@ -1427,7 +1432,7 @@ html.atlas-coc-work-mode .atlas-workflows-view {
     border-radius: 14px;
     box-sizing: border-box;
     overscroll-behavior-y: contain;
-    touch-action: pan-y;
+    touch-action: pan-x pan-y;
   }
   .atlas-coc-final-review.is-carousel .atlas-coc-final-pallet > header {
     position: sticky;

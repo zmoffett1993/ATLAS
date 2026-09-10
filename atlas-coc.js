@@ -508,39 +508,40 @@
     if (slides.length < 2) return;
     carousel.dataset.axisCarouselBound = "true";
     carousel.dataset.carouselIndex = "0";
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchStartIndex = 0;
+    let scrollFrame = 0;
 
-    const goTo = (requestedIndex, behavior = "smooth") => {
-      const index = Math.max(0, Math.min(slides.length - 1, requestedIndex));
-      const left = slides[index].offsetLeft - slides[0].offsetLeft;
+    const setCurrent = (index) => {
       carousel.dataset.carouselIndex = String(index);
       carousel.setAttribute(
         "aria-label",
         `Pallet ${index + 1} of ${slides.length}. Swipe left or right between pallets and scroll vertically to review lots.`,
       );
+    };
+
+    const goTo = (requestedIndex, behavior = "smooth") => {
+      const index = Math.max(0, Math.min(slides.length - 1, requestedIndex));
+      const left = slides[index].offsetLeft - slides[0].offsetLeft;
+      setCurrent(index);
       if (typeof carousel.scrollTo === "function") carousel.scrollTo({ left, top: 0, behavior });
       else carousel.scrollLeft = left;
       slides[index].querySelector(".atlas-coc-final-pallet")?.scrollTo?.({ top: 0, behavior: "auto" });
     };
 
-    carousel.addEventListener("touchstart", (event) => {
-      const touch = event.touches?.[0];
-      if (!touch) return;
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
-      touchStartIndex = Number(carousel.dataset.carouselIndex || 0);
-    }, { passive: true });
+    const syncIndexToScroll = () => {
+      scrollFrame = 0;
+      const index = slides.reduce((closest, slide, candidate) => {
+        const candidateDistance = Math.abs(carousel.scrollLeft - (slide.offsetLeft - slides[0].offsetLeft));
+        const closestDistance = Math.abs(carousel.scrollLeft - (slides[closest].offsetLeft - slides[0].offsetLeft));
+        return candidateDistance < closestDistance ? candidate : closest;
+      }, 0);
+      setCurrent(index);
+    };
 
-    carousel.addEventListener("touchend", (event) => {
-      const touch = event.changedTouches?.[0];
-      if (!touch) return;
-      const deltaX = touch.clientX - touchStartX;
-      const deltaY = touch.clientY - touchStartY;
-      const horizontalSwipe = Math.abs(deltaX) >= 44 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
-      if (!horizontalSwipe) return;
-      goTo(touchStartIndex + (deltaX < 0 ? 1 : -1));
+    // Native horizontal overflow makes the carousel track the employee's
+    // finger continuously. JS only keeps accessibility state in sync.
+    carousel.addEventListener("scroll", () => {
+      if (scrollFrame) return;
+      scrollFrame = window.requestAnimationFrame(syncIndexToScroll);
     }, { passive: true });
 
     carousel.addEventListener("keydown", (event) => {
@@ -938,7 +939,7 @@
         <label><strong>Invoice Number</strong>
           <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" required /></label>
         <label><strong>Item Fulfillment</strong>
-          <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF" required /></label>
+          <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF number" required /></label>
         <label><strong>Sales Order Number</strong><small>ATLAS search only · not shown on the Official COC</small>
           <input name="salesOrderNumber" maxlength="80" autocomplete="off" placeholder="Enter sales order number" required /></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
@@ -1021,7 +1022,7 @@
       <strong class="atlas-coc-work-empty-title"><span>Add a lot for</span><span class="atlas-coc-work-empty-sku">${escapeHtml(activeModel)}</span></strong>
       <p>The next confirmed lot starts at Box 1.</p>
       <button type="button" class="atlas-coc-add-case" data-coc-action="new-lot" ${atLimit ? "disabled" : ""}>SCAN FIRST LOT</button>
-      <div class="atlas-coc-work-utilities"><button type="button" disabled>− Remove Box</button><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Complete Pallet ${pallet.number}</button></div>
+      <div class="atlas-coc-work-utilities"><button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" disabled>Verify &amp; Complete Pallet ${pallet.number}</button><button type="button" disabled>− Remove Box</button></div>
     </section>`;
     const selectedLotHasHistory = pallet.history.some((entry) => entry.lotId === lot.id);
     const quantity = lotQuantityDetails(pallet, lot);
@@ -1032,8 +1033,8 @@
       <div class="atlas-coc-work-count"><strong>${plural(lot.cases, "box").toUpperCase()}</strong><small class="${quantity.override ? "is-lot-override" : ""}">${formatQuantity(quantity.total)} units · ${formatQuantity(quantity.perBox)}/box${quantity.override ? " · LOT OVERRIDE" : ""}</small></div>
       <button type="button" class="atlas-coc-add-case" data-coc-action="add-case" ${atLimit ? "disabled" : ""}><span aria-hidden="true">+</span> ADD BOX</button>
       <div class="atlas-coc-work-utilities">
-        <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box</button>
         <button type="button" class="atlas-coc-verify-finish" data-coc-action="review-pallet" ${canFinish ? "" : "disabled"}>Verify &amp; Complete Pallet ${pallet.number}</button>
+        <button type="button" data-coc-action="undo" ${selectedLotHasHistory ? "" : "disabled"}>− Remove Box</button>
       </div>
     </section>`;
   }
@@ -1911,15 +1912,20 @@
       if (!input.isConnected || document.activeElement !== input) return;
       const target = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions")
         || document.getElementById("atlas-coc-model-suggestions");
-      const options = [...(target?.querySelectorAll?.("button[role='option']") || [])].slice(0, 3);
+      const options = [...(target?.querySelectorAll?.("button[role='option']") || [])].slice(0, 5);
       if (!options.length) return;
       const viewport = window.visualViewport;
       const viewportTop = Math.max(0, Number(viewport?.offsetTop || 0));
       const viewportBottom = viewportTop + Math.max(0, Number(viewport?.height || window.innerHeight)) - 18;
+      const fieldset = input.closest(".atlas-coc-model-fields") || input.closest(".atlas-coc-model-row");
+      const fieldsetTop = fieldset?.getBoundingClientRect?.().top;
       const lastOption = options[options.length - 1].getBoundingClientRect();
-      const overflow = Math.ceil(lastOption.bottom - viewportBottom);
-      if (overflow <= 0) return;
-      const shift = overflow + 14;
+      const alignShift = Number.isFinite(fieldsetTop)
+        ? Math.max(0, Math.ceil(fieldsetTop - (viewportTop + 10)))
+        : 0;
+      const overflowShift = Math.max(0, Math.ceil(lastOption.bottom - viewportBottom) + 14);
+      const shift = Math.max(alignShift, overflowShift);
+      if (shift <= 0) return;
       const workflow = input.closest(".atlas-workflows-view");
       const workflowStyle = workflow ? window.getComputedStyle(workflow) : null;
       const workflowScrolls = Boolean(
@@ -1939,6 +1945,29 @@
 
     window.requestAnimationFrame?.(reveal);
     modelSuggestionScrollTimers = [120, 300].map((delay) => window.setTimeout(reveal, delay));
+  }
+
+  function revealPalletContinueAction(form) {
+    if (!form?.isConnected || !window.matchMedia?.("(max-width: 719px)").matches) return;
+    const place = () => {
+      if (!form.isConnected || document.activeElement?.matches?.("input[name='modelNumber']")) return;
+      const button = form.querySelector("[data-coc-box-confirm]");
+      if (!button) return;
+      const viewport = window.visualViewport;
+      const viewportTop = Math.max(0, Number(viewport?.offsetTop || 0));
+      const viewportBottom = viewportTop + Math.max(0, Number(viewport?.height || window.innerHeight)) - 18;
+      const bounds = button.getBoundingClientRect();
+      if (bounds.bottom <= viewportBottom && bounds.top >= viewportTop) return;
+      const scrollingElement = document.scrollingElement || document.documentElement;
+      const shift = bounds.bottom > viewportBottom
+        ? bounds.bottom - viewportBottom + 12
+        : bounds.top - viewportTop - 12;
+      const nextTop = Math.max(0, Number(scrollingElement.scrollTop || window.scrollY || 0) + shift);
+      window.scrollTo({ top: nextTop, left: 0, behavior: "auto" });
+      scrollingElement.scrollTop = nextTop;
+    };
+    window.requestAnimationFrame?.(() => window.requestAnimationFrame?.(place));
+    [180, 360].forEach((delay) => window.setTimeout(place, delay));
   }
 
   function scheduleExactSkuRefresh(input) {
@@ -3042,9 +3071,8 @@
         const suggestions = input.closest("form, .atlas-coc-model-row")?.querySelector(".atlas-coc-model-suggestions");
         if (suggestions) suggestions.innerHTML = "";
         input.setAttribute("aria-expanded", "false");
-        const controls = manualQuantityControls(input);
-        if (controls.wrap && !controls.wrap.hidden) controls.input?.focus?.();
-        else dismissSoftKeyboard(input);
+        dismissSoftKeyboard(input);
+        revealPalletContinueAction(form);
       }
       return;
     }
