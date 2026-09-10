@@ -27,7 +27,7 @@
   const plural=(count,word)=>`${Number(count||0).toLocaleString()} ${word}${Number(count)===1?"":word==="box"?"es":"s"}`;
   const snapshot=(record)=>{const source=record?.report_snapshot||{};return References?.normalizeSnapshot?.(source)||source};
   const recordById=(id)=>[selected,...activeDeliveries,...completedDeliveries].find((record)=>record?.id===id)||null;
-  const officialFileName=(record,fallback="Official COC.xlsx")=>record?.workbook_file_name||fallback;
+  const officialFileName=(record,fallback="Official COC.xlsx")=>{const snap=snapshot(record),generated=snap.customerName&&snap.invoiceNumber&&snap.ifNumber?window.AtlasCocExcel?.outputFileName?.(snap.customerName,snap.invoiceNumber,snap.ifNumber):"";return generated||String(record?.workbook_file_name||fallback).replace(/_+/g," ").replace(/\s+/g," ").trim()};
   const submitterName=(record)=>record?.submitted_by_display_name||snapshot(record).employeeDisplayName||snapshot(record).employee||"—";
   const recordTotals=(record)=>{const pallets=snapshot(record).pallets||[];return{pallets:pallets.length,boxes:pallets.reduce((sum,pallet)=>sum+(pallet.lots||[]).reduce((n,lot)=>n+Number(lot.cases||0),0),0)}};
   const time=(value)=>value?new Date(value).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"—";
