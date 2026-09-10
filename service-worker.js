@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v298-dashboard-tab-stability";
+const VERSION = "atlas-pwa-v299-dashboard-heading-line-break";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=164",
   "./atlas-coc-references.js?v=1",
-  "./atlas-dashboard.js?v=173",
+  "./atlas-dashboard.js?v=174",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=67",

@@ -2123,7 +2123,7 @@
     const notifications = dashboardNotifications();
     const accessView = state.view === "access" && isAdmin;
     const cocView = state.view === "cocs" && canViewNotifications;
-    const title = accessView ? "Access Management" : cocView ? "COC Oversight" : "Operations Dashboard";
+    const title = accessView ? "Access<br>Management" : cocView ? "COC<br>Oversight" : "Operations<br>Dashboard";
     const subtitle = accessView
       ? "Manage employee identities, passwords, roles, and dashboard permissions securely from ATLAS."
       : cocView
