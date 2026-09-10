@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v299-dashboard-heading-line-break";
+const VERSION = "atlas-pwa-v300-desktop-collapsible-navigation";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -29,11 +29,11 @@ const APP_SHELL = [
   "./atlas-restock.css?v=3",
   "./atlas-restock.js?v=3",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=145",
+  "./atlas-desktop.css?v=146",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",
-  "./atlas-desktop.js?v=131",
+  "./atlas-desktop.js?v=132",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106",
   "./pallet-guides.json?v=20260831-thick-wall-aliases-v7",

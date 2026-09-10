@@ -976,6 +976,179 @@
   }
 }
 
+/* v300: persistent, icon-only desktop navigation rail. */
+.atlas-desktop-menu-tooltip,
+.atlas-desktop-toggle-tooltip {
+  display: none;
+}
+
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  html.atlas-desktop.atlas-desktop-nav-collapsed {
+    --atlas-desktop-sidebar: 78px;
+    --atlas-dashboard-sidebar: 78px;
+  }
+
+  html.atlas-desktop body,
+  html.atlas-desktop .atlas-desktop-topbar,
+  html.atlas-desktop .premium-drawer-backdrop.atlas-menu-backdrop,
+  html.atlas-desktop .premium-drawer.atlas-menu-drawer,
+  html.atlas-desktop .atlas-desktop-inventory-flyout {
+    transition:
+      width 220ms cubic-bezier(.2,.8,.2,1),
+      left 220ms cubic-bezier(.2,.8,.2,1),
+      padding-left 220ms cubic-bezier(.2,.8,.2,1) !important;
+  }
+
+  html.atlas-desktop .premium-drawer-backdrop.atlas-menu-backdrop,
+  html.atlas-desktop .premium-drawer-backdrop.atlas-menu-backdrop.open,
+  html.atlas-desktop .premium-drawer.atlas-menu-drawer,
+  html.atlas-desktop .premium-drawer-backdrop.open .premium-drawer.atlas-menu-drawer {
+    overflow: visible !important;
+  }
+
+  html.atlas-desktop .atlas-desktop-sidebar-toggle {
+    position: absolute;
+    top: 24px;
+    right: -19px;
+    z-index: 4;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    color: #174f91;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid #c7d7e8;
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(3, 27, 55, 0.2);
+  }
+
+  html.atlas-desktop .atlas-desktop-sidebar-toggle:hover {
+    color: #0b66d4;
+    border-color: #8cb8e9;
+    box-shadow: 0 10px 26px rgba(3, 35, 72, 0.24);
+  }
+
+  html.atlas-desktop .atlas-desktop-sidebar-toggle:focus-visible {
+    outline: 3px solid rgba(63, 151, 255, 0.5);
+    outline-offset: 2px;
+  }
+
+  html.atlas-desktop .atlas-desktop-sidebar-toggle svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  html.atlas-desktop .atlas-desktop-sidebar-toggle__arrow {
+    transform-origin: 13px 12px;
+    transition: transform 180ms ease;
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-desktop-sidebar-toggle__arrow {
+    transform: rotate(180deg);
+  }
+
+  html.atlas-desktop .atlas-desktop-toggle-tooltip,
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-desktop-menu-tooltip {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 12px);
+    z-index: 8;
+    width: max-content;
+    max-width: 210px;
+    padding: 8px 10px;
+    display: block;
+    color: #fff;
+    pointer-events: none;
+    background: #071d38;
+    border: 1px solid rgba(151, 198, 250, 0.24);
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(3, 23, 46, 0.25);
+    opacity: 0;
+    transform: translate(6px, -50%);
+    transition: opacity 120ms ease, transform 150ms ease;
+    white-space: nowrap;
+  }
+
+  html.atlas-desktop .atlas-desktop-sidebar-toggle:hover .atlas-desktop-toggle-tooltip,
+  html.atlas-desktop .atlas-desktop-sidebar-toggle:focus-visible .atlas-desktop-toggle-tooltip,
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-item:hover .atlas-desktop-menu-tooltip,
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-item:focus-visible .atlas-desktop-menu-tooltip {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-brand {
+    min-height: 108px !important;
+    padding: 22px 14px 18px !important;
+    justify-content: center !important;
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-lockup {
+    width: 44px !important;
+    height: 44px !important;
+    aspect-ratio: 1 !important;
+    background-image: url("./atlas-brand-mark-dark.svg?v=97") !important;
+    background-position: center !important;
+    background-size: contain !important;
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .premium-drawer-nav.atlas-menu-nav {
+    padding: 8px 10px 16px !important;
+    align-items: center !important;
+    overflow: visible !important;
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-drawer .premium-drawer-link.atlas-menu-item,
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:first-child,
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-drawer .premium-drawer-link.atlas-menu-item:nth-child(3),
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-drawer .premium-drawer-link.atlas-menu-item.is-active {
+    position: relative;
+    width: 54px !important;
+    min-height: 54px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    place-items: center !important;
+    gap: 0 !important;
+    overflow: visible !important;
+    border-radius: 12px !important;
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-icon {
+    width: 27px !important;
+    height: 27px !important;
+    margin: 0 auto !important;
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-label,
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-chevron {
+    display: none !important;
+  }
+
+  html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-footer {
+    display: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.atlas-desktop body,
+    html.atlas-desktop .atlas-desktop-topbar,
+    html.atlas-desktop .premium-drawer-backdrop.atlas-menu-backdrop,
+    html.atlas-desktop .premium-drawer.atlas-menu-drawer,
+    html.atlas-desktop .atlas-desktop-inventory-flyout,
+    html.atlas-desktop .atlas-desktop-sidebar-toggle__arrow {
+      transition: none !important;
+    }
+  }
+}
+
 /* Desktop-only direct inventory navigation. The mobile drawer and its large
    touch-first Inventory menu remain untouched. */
 @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {

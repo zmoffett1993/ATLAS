@@ -5,9 +5,18 @@
     "(min-width: 1024px) and (hover: hover) and (pointer: fine)",
   );
   const root = document.documentElement;
+  const SIDEBAR_COLLAPSE_KEY = "atlas-desktop-sidebar-collapsed-v1";
+  const readSidebarPreference = () => {
+    try {
+      return window.localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  };
   let observer = null;
   let clockTimer = null;
   let syncQueued = false;
+  let sidebarCollapsed = readSidebarPreference();
 
   const icons = {
     search:
@@ -226,10 +235,89 @@
     root.classList.toggle("atlas-inventory-flyout-open", inventoryExpanded);
   };
 
+  const syncSidebarToggle = () => {
+    const toggle = document.querySelector("[data-atlas-sidebar-toggle]");
+    if (!toggle) return;
+    const label = sidebarCollapsed ? "Expand navigation" : "Collapse navigation";
+    toggle.setAttribute("aria-label", label);
+    toggle.setAttribute("aria-expanded", String(!sidebarCollapsed));
+    toggle.dataset.atlasDesktopLabel = label;
+    const tooltip = toggle.querySelector(".atlas-desktop-toggle-tooltip");
+    if (tooltip && tooltip.textContent !== label) tooltip.textContent = label;
+  };
+
+  const syncSidebarItemLabels = (nav) => {
+    nav.querySelectorAll(".atlas-menu-item").forEach((item) => {
+      const label = item.querySelector(".atlas-menu-label")?.textContent?.trim();
+      if (!label) return;
+      if (item.dataset.atlasDesktopLabel !== label) item.dataset.atlasDesktopLabel = label;
+      item.setAttribute("aria-label", label);
+      let tooltip = item.querySelector(":scope > .atlas-desktop-menu-tooltip");
+      if (!tooltip) {
+        tooltip = document.createElement("span");
+        tooltip.className = "atlas-desktop-menu-tooltip";
+        tooltip.setAttribute("aria-hidden", "true");
+        item.appendChild(tooltip);
+      }
+      if (tooltip.textContent !== label) tooltip.textContent = label;
+    });
+  };
+
+  const setSidebarCollapsed = (collapsed, { persist = true } = {}) => {
+    sidebarCollapsed = Boolean(collapsed);
+    root.classList.toggle("atlas-desktop-nav-collapsed", sidebarCollapsed);
+    if (persist) {
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSE_KEY, String(sidebarCollapsed));
+      } catch {
+        // The navigation still works when storage is unavailable.
+      }
+    }
+    if (inventoryExpanded) {
+      inventoryFlyoutDismissed = true;
+      inventoryFlyoutPreview = false;
+      setInventoryExpanded(false);
+    }
+    syncSidebarToggle();
+    window.requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+  };
+
+  const ensureSidebarToggle = () => {
+    const drawer = document.querySelector(".atlas-menu-drawer");
+    if (!drawer) return null;
+    let toggle = drawer.querySelector("[data-atlas-sidebar-toggle]");
+    if (!toggle) {
+      toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "atlas-desktop-sidebar-toggle";
+      toggle.dataset.atlasSidebarToggle = "true";
+      toggle.setAttribute("aria-controls", "atlasPremiumDrawer");
+      toggle.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+          <path d="M9 3v18"></path>
+          <path class="atlas-desktop-sidebar-toggle__arrow" d="m15 8-4 4 4 4"></path>
+        </svg>
+        <span class="atlas-desktop-toggle-tooltip" aria-hidden="true"></span>`;
+      toggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setSidebarCollapsed(!sidebarCollapsed);
+      });
+      drawer.appendChild(toggle);
+    }
+    syncSidebarToggle();
+    return toggle;
+  };
+
   const ensureDesktopSidebar = () => {
     const nav = document.querySelector(".premium-drawer-nav.atlas-menu-nav");
     if (!nav) return null;
-    if (nav.dataset.atlasDesktopNavigation === "true") return nav;
+    ensureSidebarToggle();
+    if (nav.dataset.atlasDesktopNavigation === "true") {
+      syncSidebarItemLabels(nav);
+      return nav;
+    }
 
     const home = nav.querySelector('[data-nav="Home"]');
     const browse = nav.querySelector('[data-nav="Browse Aisles"]');
@@ -291,6 +379,7 @@
     about.querySelector(".atlas-menu-label").textContent = "About ATLAS";
     nav.replaceChildren(home, desktopInventory, workflows, dashboard, about);
     nav.dataset.atlasDesktopNavigation = "true";
+    syncSidebarItemLabels(nav);
     setInventoryExpanded(false);
     return nav;
   };
@@ -307,6 +396,12 @@
     workflows.querySelector(".atlas-menu-label").textContent = "WORKFLOWS";
     dashboard.querySelector(".atlas-menu-label").textContent = "DASHBOARD";
     about.querySelector(".atlas-menu-label").textContent = "ABOUT";
+    nav.querySelectorAll(".atlas-desktop-menu-tooltip").forEach((tooltip) => tooltip.remove());
+    nav.querySelectorAll(".atlas-menu-item").forEach((item) => {
+      delete item.dataset.atlasDesktopLabel;
+      item.removeAttribute("aria-label");
+    });
+    document.querySelector("[data-atlas-sidebar-toggle]")?.remove();
     delete nav.dataset.atlasDesktopNavigation;
     sidebarState = null;
     inventoryExpanded = false;
@@ -408,6 +503,7 @@
 
   const enableDesktop = () => {
     if (!desktopQuery.matches) return;
+    root.classList.toggle("atlas-desktop-nav-collapsed", sidebarCollapsed);
     root.classList.add("atlas-desktop");
     if (!observer) {
       observer = new MutationObserver(queueSync);
@@ -432,8 +528,10 @@
       "atlas-view-dashboard",
       "atlas-view-about",
       "atlas-inventory-action-page",
+      "atlas-desktop-nav-collapsed",
     );
     restoreMobileSidebar();
+    document.querySelector("[data-atlas-sidebar-toggle]")?.remove();
     document.querySelector(".atlas-desktop-topbar")?.remove();
     observer?.disconnect();
     observer = null;
