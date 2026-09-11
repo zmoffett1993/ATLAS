@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v311-receiver-reporting-period";
+const VERSION = "atlas-pwa-v312-receiver-workflow-completion";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -22,8 +22,8 @@ const APP_SHELL = [
   "./atlas-coc-excel.js?v=19",
   "./atlas-coc.js?v=80",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=33",
-  "./coc-receiver/receiver.js?v=33",
+  "./coc-receiver/receiver.css?v=34",
+  "./coc-receiver/receiver.js?v=34",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
