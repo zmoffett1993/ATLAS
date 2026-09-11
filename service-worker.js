@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v304-stored-official-preview-position";
+const VERSION = "atlas-pwa-v305-coc-workflow-reference-format";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./atlas-dashboard.css?v=165",
-  "./atlas-coc-references.js?v=1",
+  "./atlas-coc-references.js?v=2",
   "./atlas-dashboard.js?v=176",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
@@ -20,7 +20,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=5",
   "./atlas-coc-delivery.js?v=10",
   "./atlas-coc-excel.js?v=19",
-  "./atlas-coc.js?v=78",
+  "./atlas-coc.js?v=79",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=27",
   "./coc-receiver/receiver.js?v=27",

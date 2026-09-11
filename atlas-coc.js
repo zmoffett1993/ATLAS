@@ -97,6 +97,8 @@
       snapshot.ifNumber || record?.ifNumber,
     );
   };
+  const workflowReference = (kind, value) =>
+    References?.formatForWorkflow?.(kind, value) || String(value ?? "").trim().toUpperCase();
   const positiveWhole = (value) => {
     const text = String(value ?? "").trim();
     if (!/^\d+$/.test(text)) return null;
@@ -641,7 +643,7 @@
     if (session.status === "report") {
       return `<button type="button" class="atlas-coc-active-bar is-complete" data-coc-action="resume">
         <span class="atlas-coc-active-bar__signal" aria-hidden="true">✓</span>
-        <span><strong>COC COMPLETE</strong><small>${session.invoiceNumber ? `Invoice ${escapeHtml(session.invoiceNumber)} · ` : ""}Review final report · ${plural(Core.sessionTotal(session), "box")}</small></span>
+        <span><strong>COC COMPLETE</strong><small>${session.invoiceNumber ? `Invoice ${escapeHtml(workflowReference("invoice", session.invoiceNumber))} · ` : ""}Review final report · ${plural(Core.sessionTotal(session), "box")}</small></span>
         <b>OPEN</b>
       </button>`;
     }
@@ -652,7 +654,7 @@
       : "Box count not verified";
     return `<button type="button" class="atlas-coc-active-bar" data-coc-action="resume">
       <span class="atlas-coc-active-bar__signal" aria-hidden="true"></span>
-      <span><strong>COC ACTIVE · PALLET ${pallet?.number || 1}</strong><small>${session.invoiceNumber ? `Invoice ${escapeHtml(session.invoiceNumber)} · ` : ""}${countCopy}</small></span>
+      <span><strong>COC ACTIVE · PALLET ${pallet?.number || 1}</strong><small>${session.invoiceNumber ? `Invoice ${escapeHtml(workflowReference("invoice", session.invoiceNumber))} · ` : ""}${countCopy}</small></span>
       <b>RESUME</b>
     </button>`;
   }
@@ -693,7 +695,7 @@
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-landing">‹ Back</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COCs</h1><p>Read-only reports saved for the signed-in employee on this device.</p></header>
       ${completedRecords.length ? `<button type="button" class="atlas-coc-clear-history" data-coc-action="review-clear-completed"><span aria-hidden="true">⌫</span><strong>Clear Stored COCs</strong><small>Remove ${plural(completedRecords.length, "report")} from this device</small></button>` : ""}
-      ${groups.size ? [...groups].map(([label, records]) => `<section><h2>${escapeHtml(label)}</h2>${records.map((record) => { const salesOrder = record.salesOrderNumber || record.reportSnapshot?.salesOrderNumber || ""; return `<button type="button" class="atlas-coc-history-row" data-coc-action="open-completed" data-coc-id="${escapeHtml(record.cocId)}"><span><strong>${escapeHtml(record.invoiceNumber)}</strong><b>${escapeHtml(record.customerName)}</b><small>${escapeHtml(record.ifNumber)}${salesOrder ? ` · SO ${escapeHtml(salesOrder)}` : ""} · ${plural(record.palletCount, "pallet")} · ${plural(record.totalConfirmedBoxes, "box")}</small><small>Completed ${new Date(record.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><i aria-hidden="true">›</i></button>`; }).join("")}</section>`).join("") : `<div class="atlas-coc-empty-list">No completed COCs are stored for this user on this device.</div>`}
+      ${groups.size ? [...groups].map(([label, records]) => `<section><h2>${escapeHtml(label)}</h2>${records.map((record) => { const salesOrder = record.salesOrderNumber || record.reportSnapshot?.salesOrderNumber || ""; return `<button type="button" class="atlas-coc-history-row" data-coc-action="open-completed" data-coc-id="${escapeHtml(record.cocId)}"><span><strong>${escapeHtml(workflowReference("invoice", record.invoiceNumber))}</strong><b>${escapeHtml(record.customerName)}</b><small>${escapeHtml(workflowReference("if", record.ifNumber))}${salesOrder ? ` · ${escapeHtml(workflowReference("salesOrder", salesOrder))}` : ""} · ${plural(record.palletCount, "pallet")} · ${plural(record.totalConfirmedBoxes, "box")}</small><small>Completed ${new Date(record.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small></span><i aria-hidden="true">›</i></button>`; }).join("")}</section>`).join("") : `<div class="atlas-coc-empty-list">No completed COCs are stored for this user on this device.</div>`}
     </div>`;
   }
 
@@ -801,7 +803,7 @@
     return `<div class="atlas-coc-page atlas-coc-history"><button type="button" class="atlas-coc-back" data-coc-action="show-completed">‹ Completed COCs</button>
       <header class="atlas-coc-page-head"><span>STORED ON THIS DEVICE</span><h1>Completed COC</h1></header>
       <section class="atlas-coc-completed-detail">
-        <dl class="atlas-coc-completed-meta"><div class="is-wide is-primary"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div class="is-reference"><dt>Invoice</dt><dd>${escapeHtml(record.invoiceNumber)}</dd></div><div class="is-reference"><dt>IF</dt><dd>${escapeHtml(record.ifNumber)}</dd></div><div class="is-reference is-sales-order"><dt>Sales Order</dt><dd>${escapeHtml(record.salesOrderNumber || snapshot.salesOrderNumber || "—")}</dd></div><div class="is-wide is-completed"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div class="is-stat"><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div class="is-stat"><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
+        <dl class="atlas-coc-completed-meta"><div class="is-wide is-primary"><dt>Customer</dt><dd>${escapeHtml(record.customerName)}</dd></div><div class="is-reference"><dt>Invoice</dt><dd>${escapeHtml(workflowReference("invoice", record.invoiceNumber) || "—")}</dd></div><div class="is-reference"><dt>IF</dt><dd>${escapeHtml(workflowReference("if", record.ifNumber) || "—")}</dd></div><div class="is-reference is-sales-order"><dt>Sales Order</dt><dd>${escapeHtml(workflowReference("salesOrder", record.salesOrderNumber || snapshot.salesOrderNumber) || "—")}</dd></div><div class="is-wide is-completed"><dt>Completed</dt><dd>${escapeHtml(formatDate(record.completedAt))}</dd></div><div class="is-stat"><dt>Pallets</dt><dd>${record.palletCount}</dd></div><div class="is-stat"><dt>Boxes</dt><dd>${record.totalConfirmedBoxes}</dd></div></dl>
         <div class="atlas-coc-readonly-pallets ${(snapshot.pallets || []).length > 1 ? "is-carousel" : ""}" ${(snapshot.pallets || []).length > 1 ? 'aria-label="Swipe through pallets"' : ""}>${completedPalletSummaryMarkup(snapshot)}</div>
         <div class="atlas-coc-completed-actions">
           <button type="button" class="atlas-coc-primary" data-coc-action="view-completed-official">View Official COC</button>
@@ -984,9 +986,9 @@
     return `<div class="atlas-coc-session-meta">
       <p class="atlas-coc-session-kicker">CURRENT COC · PALLET ${pallet.number} SETUP</p>
       <span class="atlas-coc-session-customer"><small>CUSTOMER</small><strong>${escapeHtml(session.customerName || "—")}</strong></span>
-      <span class="atlas-coc-session-reference"><small>INVOICE</small><strong>${escapeHtml(session.invoiceNumber || "—")}</strong></span>
-      <span class="atlas-coc-session-reference"><small>IF</small><strong>${escapeHtml(session.ifNumber || "—")}</strong></span>
-      <span class="atlas-coc-session-reference atlas-coc-session-sales-order"><small>SALES ORDER</small><strong>${escapeHtml(session.salesOrderNumber || "—")}</strong></span>
+      <span class="atlas-coc-session-reference"><small>INVOICE</small><strong>${escapeHtml(workflowReference("invoice", session.invoiceNumber) || "—")}</strong></span>
+      <span class="atlas-coc-session-reference"><small>IF</small><strong>${escapeHtml(workflowReference("if", session.ifNumber) || "—")}</strong></span>
+      <span class="atlas-coc-session-reference atlas-coc-session-sales-order"><small>SALES ORDER</small><strong>${escapeHtml(workflowReference("salesOrder", session.salesOrderNumber) || "—")}</strong></span>
     </div>`;
   }
 
@@ -1137,7 +1139,7 @@
     if (phase === "received" || phase === "office_completed") {
       const customerName = session?.customerName || sendState.customerName || "—";
       const rawInvoice = session?.invoiceNumber || sendState.invoiceNumber || "";
-      const invoiceNumber = References?.normalize?.("invoice", rawInvoice) || rawInvoice || "—";
+      const invoiceNumber = workflowReference("invoice", rawInvoice) || "—";
       return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? `${escapeHtml(stationName)} completed the report.` : `${escapeHtml(stationName)} received the report.`}</p><section class="atlas-coc-received-summary"><strong class="atlas-coc-received-customer">${escapeHtml(customerName)}</strong><b class="atlas-coc-received-invoice">${escapeHtml(invoiceNumber)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
     }
     if (phase === "failed") return `<div class="atlas-coc-page atlas-coc-send-state"><h1>SEND NOT COMPLETED</h1><p>${escapeHtml(sendState.error || "The office transfer could not be confirmed. Your completed COC is still open and nothing was lost.")}</p><div class="atlas-coc-send-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office">TRY AGAIN</button><button type="button" data-coc-action="return-to-report">Back to Report</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></div>`;
@@ -1752,9 +1754,9 @@
   function resendCompletedModal() {
     const record = selectedCompleted;
     if (!record) return "";
-    return modalShell(`<span class="atlas-coc-eyebrow">RESEND COMPLETED COC</span><h2>${escapeHtml(record.invoiceNumber)}</h2>
+    return modalShell(`<span class="atlas-coc-eyebrow">RESEND COMPLETED COC</span><h2>${escapeHtml(workflowReference("invoice", record.invoiceNumber))}</h2>
       <p>This sends the saved official workbook to the Office COC Station again. It does not rebuild the spreadsheet or delete the existing office record.</p>
-      <div class="atlas-coc-final-review"><section><header><strong>${escapeHtml(record.customerName)}</strong><b>${plural(record.palletCount, "pallet")}</b></header><div><span>IF ${escapeHtml(record.ifNumber)}</span><strong>${plural(record.totalConfirmedBoxes, "box")}</strong></div></section></div>
+      <div class="atlas-coc-final-review"><section><header><strong>${escapeHtml(record.customerName)}</strong><b>${plural(record.palletCount, "pallet")}</b></header><div><span>${escapeHtml(workflowReference("if", record.ifNumber))}</span><strong>${plural(record.totalConfirmedBoxes, "box")}</strong></div></section></div>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal" ${resendInProgress ? "disabled" : ""}>Cancel</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-resend-completed" ${resendInProgress ? "disabled" : ""}>${resendInProgress ? "Resending…" : "Resend to Office"}</button></div>`, {
       label: "Resend completed COC", dismiss: !resendInProgress, showBack: false, showDiscard: false,
     });
@@ -3355,6 +3357,11 @@
   });
 
   document.addEventListener("change", (event) => {
+    if (event.target.matches?.("#atlas-coc-start-form input[name='invoiceNumber'], #atlas-coc-start-form input[name='ifNumber'], #atlas-coc-start-form input[name='salesOrderNumber']")) {
+      const kind = event.target.name === "invoiceNumber" ? "invoice" : event.target.name === "ifNumber" ? "if" : "salesOrder";
+      event.target.value = workflowReference(kind, event.target.value);
+      return;
+    }
     if (event.target.id === "atlas-coc-active-model") {
       try {
         session = Core.selectModel(session, event.target.value);
@@ -3420,6 +3427,10 @@
   document.addEventListener("input", (event) => {
     const input = event.target;
     if (input?.matches?.("#atlas-coc-start-form input[name='customerName']")) {
+      replaceInputValuePreservingSelection(input, (value) => value.toUpperCase());
+      return;
+    }
+    if (input?.matches?.("#atlas-coc-start-form input[name='invoiceNumber'], #atlas-coc-start-form input[name='ifNumber'], #atlas-coc-start-form input[name='salesOrderNumber']")) {
       replaceInputValuePreservingSelection(input, (value) => value.toUpperCase());
       return;
     }
@@ -3492,9 +3503,9 @@
       event.preventDefault();
       const data = new FormData(event.target);
       const customerName = String(data.get("customerName") || "").trim().toUpperCase();
-      const invoiceNumber = String(data.get("invoiceNumber") || "").trim();
-      const ifNumber = String(data.get("ifNumber") || "").trim();
-      const salesOrderNumber = String(data.get("salesOrderNumber") || "").trim();
+      const invoiceNumber = References?.referenceBody?.("invoice", data.get("invoiceNumber")) || "";
+      const ifNumber = References?.referenceBody?.("if", data.get("ifNumber")) || "";
+      const salesOrderNumber = References?.referenceBody?.("salesOrder", data.get("salesOrderNumber")) || "";
       const error = event.target.querySelector(".atlas-coc-form-error");
       if (!customerName) {
         if (error) error.textContent = "Customer Name is required.";

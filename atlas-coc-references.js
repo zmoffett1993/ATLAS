@@ -6,6 +6,7 @@
     if: Object.freeze({ prefix: "IF", tokens: ["IF"], regional: false }),
     salesOrder: Object.freeze({ prefix: "SO-US", tokens: ["SALES ORDER", "SALESORDER", "SO"], regional: true }),
   });
+  const WORKFLOW_PREFIX = Object.freeze({ invoice: "INV", if: "IF", salesOrder: "SO" });
   const SEPARATOR = "[\\s._:#/\\-]";
   const normalizeDashes = (value) => String(value ?? "").replace(/[‐‑‒–—−]/g, "-");
   const escapePattern = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s*");
@@ -42,6 +43,13 @@
     return config ? `${config.prefix}-${body}`.slice(0, 100) : body;
   }
 
+  function formatForWorkflow(kind, value) {
+    const body = referenceBody(kind, value);
+    if (!body) return "";
+    const prefix = WORKFLOW_PREFIX[kind];
+    return prefix ? `${prefix}-${body}`.slice(0, 100) : body;
+  }
+
   function normalizeSnapshot(snapshot) {
     const source = snapshot && typeof snapshot === "object" ? snapshot : {};
     return {
@@ -55,6 +63,7 @@
   global.AtlasCocReferences = Object.freeze({
     normalize,
     referenceBody,
+    formatForWorkflow,
     normalizeInvoice: (value) => normalize("invoice", value),
     normalizeIf: (value) => normalize("if", value),
     normalizeSalesOrder: (value) => normalize("salesOrder", value),
