@@ -1872,6 +1872,26 @@ html.atlas-desktop .atlas-coc-toast { bottom: 34px; }
 
 /* V249: single-screen Pallet Work Console. */
 html.atlas-coc-count-console .bottom-nav { display: none !important; }
+/* Pallet setup is also a focused work surface. On phones the persistent nav
+   consumed the same space as the keyboard and could appear between the SKU
+   field and its results. Keep it out until setup has been confirmed. */
+@media (max-width: 719px) {
+  html.atlas-coc-pallet-setup .bottom-nav { display: none !important; }
+  html.atlas-coc-pallet-setup body { padding-bottom: 0 !important; }
+  html.atlas-coc-pallet-setup .atlas-workflows-view {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  html.atlas-coc-pallet-setup.atlas-coc-sku-focus .atlas-coc-expected {
+    /* Gives iOS enough real scroll range to place the model field above the
+       keyboard with five full catalog options below it. */
+    padding-bottom: max(52vh, 350px);
+  }
+  html.atlas-coc-pallet-setup.atlas-coc-sku-focus .atlas-coc-model-suggestions {
+    max-height: 350px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
 html.atlas-coc-count-console .atlas-workflows-view {
   padding-top: calc(7px + env(safe-area-inset-top));
   padding-bottom: calc(8px + env(safe-area-inset-bottom));

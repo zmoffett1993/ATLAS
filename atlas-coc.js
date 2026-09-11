@@ -1967,7 +1967,10 @@
     };
 
     window.requestAnimationFrame?.(reveal);
-    modelSuggestionScrollTimers = [120, 300].map((delay) => window.setTimeout(reveal, delay));
+    // iOS reports several intermediate visualViewport heights while its
+    // keyboard animates. Keep aligning through the final keyboard frame so
+    // five catalog choices remain reachable instead of only the first two.
+    modelSuggestionScrollTimers = [90, 220, 420, 650].map((delay) => window.setTimeout(reveal, delay));
   }
 
   function revealPalletContinueAction(form) {
@@ -2126,6 +2129,8 @@
     receiverSetupWasOpen = receiverSetupOpen;
     if (!receiverSetupOpen && receiverQrStream) stopReceiverQrScanner();
     document.documentElement.classList.toggle("atlas-coc-count-console", countConsoleOpen);
+    document.documentElement.classList.toggle("atlas-coc-pallet-setup", palletSetupOpen);
+    if (!palletSetupOpen) document.documentElement.classList.remove("atlas-coc-sku-focus");
     const bar = document.getElementById("atlas-coc-active-bar-slot");
     if (bar) {
       try {
@@ -3487,6 +3492,24 @@
     const count = positiveWhole(input.value);
     updatePalletSetupButton(form);
     if (error) error.textContent = input.value ? boxCountError(input.value, activePallet()?.number || 1) : "";
+  });
+
+  document.addEventListener("focusin", (event) => {
+    const input = event.target;
+    if (!input?.matches?.("#atlas-coc-expected-form input[name='modelNumber']")) return;
+    document.documentElement.classList.add("atlas-coc-sku-focus");
+    keepTopModelSuggestionsVisible(input);
+  });
+
+  document.addEventListener("focusout", (event) => {
+    if (!event.target?.matches?.("#atlas-coc-expected-form input[name='modelNumber']")) return;
+    // Delay cleanup so tapping a suggestion cannot move the list out from
+    // under the employee's finger before the click is delivered.
+    window.setTimeout(() => {
+      if (!document.activeElement?.matches?.("#atlas-coc-expected-form input[name='modelNumber']")) {
+        document.documentElement.classList.remove("atlas-coc-sku-focus");
+      }
+    }, 360);
   });
 
   document.addEventListener("submit", (event) => {
