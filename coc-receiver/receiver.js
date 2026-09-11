@@ -6,11 +6,17 @@
   const References=window.AtlasCocReferences;
   const root=document.getElementById("receiver-root");
   const PAGE_SIZE=8;
+  const PERIOD_FETCH_PAGE_SIZE=50;
   const SORT_OPTIONS=[
     ["newest","Newest first"],["oldest","Oldest first"],
     ["customer-asc","Customer A–Z"],
   ];
+  const PERIOD_OPTIONS=[
+    ["today","Today"],["week","This Week"],["month","This Month"],
+    ["7d","Last 7 Days"],["30d","Last 30 Days"],["all","All Time"],
+  ];
   const SORT_VALUES=new Set(SORT_OPTIONS.map(([value])=>value));
+  const PERIOD_VALUES=new Set(PERIOD_OPTIONS.map(([value])=>value));
   let credentials=null,activeDeliveries=[],completedDeliveries=[],selected=null,preview=false;
   let branchContext=null;
   let previewState={status:"idle",html:"",error:"",id:""};
@@ -18,7 +24,8 @@
   const workbookCache=new Map();
   let connection="reconnecting",pairing=null,pollTimer=null,subscription=null,lastSynced=null;
   const savedSort=readPreference("sort");
-  let screen="inbox",search="",sort=SORT_VALUES.has(savedSort)?savedSort:"newest",page=1,total=0;
+  let screen="inbox",search="",sort=SORT_VALUES.has(savedSort)?savedSort:"newest",period="today",page=1,total=0;
+  let reportingDayKey="";
   let metrics={awaiting:0,receivedToday:0,completedToday:0},selectedIds=new Set(),openMenu=null,bulkMenu=false;
   let dialog=null,notice=null,loading=true,searchTimer=null,loadSequence=0;
   let signInState={loading:false,error:""},receiverAuthSequence=0;
@@ -33,6 +40,13 @@
   const time=(value)=>value?new Date(value).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"—";
   const dateTime=(value)=>value?`${new Date(value).toLocaleDateString([],{month:"short",day:"numeric"})} · ${time(value)}`:"—";
   const dayStart=()=>{const date=new Date();date.setHours(0,0,0,0);return date.toISOString()};
+  const warehouseTimeZone=()=>branchContext?.selectedWarehouse?.time_zone||branchContext?.warehouse?.time_zone||(branchCode()==="TX"?"America/Chicago":"America/Los_Angeles");
+  const zonedDateParts=(date,timeZone,includeTime=false)=>{const options=includeTime?{timeZone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}:{timeZone,year:"numeric",month:"2-digit",day:"2-digit"},parts=new Intl.DateTimeFormat("en-CA",options).formatToParts(date),values=Object.fromEntries(parts.map((part)=>[part.type,part.value]));return{year:Number(values.year),month:Number(values.month),day:Number(values.day),hour:Number(values.hour||0),minute:Number(values.minute||0),second:Number(values.second||0)}};
+  const shiftCalendarDate=(parts,days)=>{const shifted=new Date(Date.UTC(parts.year,parts.month-1,parts.day+days));return{year:shifted.getUTCFullYear(),month:shifted.getUTCMonth()+1,day:shifted.getUTCDate()}};
+  const zonedMidnightUtc=(parts,timeZone)=>{const target=Date.UTC(parts.year,parts.month-1,parts.day,0,0,0);let guess=target;for(let attempt=0;attempt<4;attempt+=1){const actual=zonedDateParts(new Date(guess),timeZone,true),actualAsUtc=Date.UTC(actual.year,actual.month-1,actual.day,actual.hour,actual.minute,actual.second),adjustment=target-actualAsUtc;guess+=adjustment;if(!adjustment)break}return guess};
+  const reportingDateKey=(date=new Date())=>{const parts=zonedDateParts(date,warehouseTimeZone());return`${parts.year}-${String(parts.month).padStart(2,"0")}-${String(parts.day).padStart(2,"0")}`};
+  function reportingPeriodBounds(selectedPeriod=period,date=new Date()){const timeZone=warehouseTimeZone(),today=zonedDateParts(date,timeZone);let startParts=null;if(selectedPeriod==="today")startParts=today;else if(selectedPeriod==="week"){const weekday=new Date(Date.UTC(today.year,today.month-1,today.day)).getUTCDay();startParts=shiftCalendarDate(today,-((weekday+6)%7))}else if(selectedPeriod==="month")startParts={year:today.year,month:today.month,day:1};else if(selectedPeriod==="7d")startParts=shiftCalendarDate(today,-6);else if(selectedPeriod==="30d")startParts=shiftCalendarDate(today,-29);return startParts?{periodStart:new Date(zonedMidnightUtc(startParts,timeZone)).toISOString(),periodEnd:new Date(zonedMidnightUtc(shiftCalendarDate(today,1),timeZone)).toISOString()}:{periodStart:"",periodEnd:""}}
+  function resetReportingPeriodAtMidnight(date=new Date()){const current=reportingDateKey(date);if(!reportingDayKey){reportingDayKey=current;return false}if(reportingDayKey===current)return false;reportingDayKey=current;period="today";search="";page=1;selectedIds.clear();openMenu=null;bulkMenu=false;return true}
   const selectedOnPage=()=>completedDeliveries.filter((item)=>selectedIds.has(item.id));
   function freshRevision(){return{step:"preview",loading:false,error:"",editor:null,filePreviewHtml:"",generatedBytes:null,candidate:null,currentRevision:null,revisions:[]}}
   function readPreference(key){try{return localStorage.getItem(`atlas-coc-receiver-${key}`)||""}catch{return""}}
@@ -67,11 +81,13 @@
   function incomingCard(record){const snap=snapshot(record),totals=recordTotals(record);return `<article class="receiver-incoming-card"><button type="button" class="receiver-open-report" data-action="open" data-id="${esc(record.id)}">OPEN REPORT <span>→</span></button><span class="receiver-new">NEW</span><dl><div><dt>Customer Name</dt><dd>${esc(snap.customerName||"—")}</dd></div><div><dt>IF NUMBER</dt><dd>${esc(snap.ifNumber||"—")}</dd></div><div><dt>INV Number</dt><dd>${esc(snap.invoiceNumber||"—")}</dd></div><div><dt>Sales Order</dt><dd>${esc(snap.salesOrderNumber||"—")}</dd></div></dl><div class="receiver-incoming-meta"><p class="receiver-incoming-summary">${icon("clipboard")} ${plural(totals.pallets,"pallet")} <b>·</b> ${plural(totals.boxes,"box")}</p><p class="receiver-incoming-submitter">${esc(submitterName(record))} <b>·</b> ${time(record.sent_at)}</p></div></article>`}
   function incomingMarkup(){return `<section class="receiver-incoming"><h2>INCOMING COCs</h2>${activeDeliveries.length?activeDeliveries.map(incomingCard).join(""):`<div class="receiver-ready-strip"><span>${icon("check")}</span><div><strong>No COCs are waiting</strong><small>The receiver is connected and ready for the next warehouse report.</small></div></div>`}</section>`}
   function sortOptions(){return SORT_OPTIONS.map(([value,label])=>`<option value="${value}" ${sort===value?"selected":""}>${label}</option>`).join("")}
+  function periodOptions(){return PERIOD_OPTIONS.map(([value,label])=>`<option value="${value}" ${period===value?"selected":""}>${label}</option>`).join("")}
+  function periodLabel(){return PERIOD_OPTIONS.find(([value])=>value===period)?.[1]||"Today"}
   function backButton(action,label,extraClass=""){return `<button type="button" class="receiver-nav-back ${extraClass}" data-action="${esc(action)}"><span class="receiver-nav-back-icon" aria-hidden="true">←</span><span>${esc(label)}</span></button>`}
-  function toolbarMarkup({archive=false}={}){const count=selectedIds.size;return `<div class="receiver-toolbar"><label class="receiver-search">${icon("search")}<input type="search" data-receiver-search value="${esc(search)}" placeholder="Search customer, invoice, IF, or sales order" autocomplete="off"></label><label class="receiver-sort"><span class="sr-only">Sort reports</span><select data-receiver-sort>${sortOptions()}</select></label><div class="receiver-toolbar-actions">${archive?backButton("show-inbox","Back to COC Receiver","receiver-toolbar-back"):`<button type="button" class="receiver-outline" data-action="show-archive">VIEW ARCHIVE</button>`}<button type="button" class="receiver-outline ${archive?"is-restore":""}" data-action="${archive?"restore-selected":"archive-selected"}" ${count?"":"disabled"}>${archive?"RESTORE":"ARCHIVE"} SELECTED${count?` (${count})`:""}</button>${archive?"":`<div class="receiver-bulk-menu"><button type="button" class="receiver-icon-button" data-action="toggle-bulk-menu" aria-label="More archive actions" aria-expanded="${bulkMenu}">•••</button>${bulkMenu?`<div class="receiver-menu"><button type="button" data-action="archive-all">Archive all completed COCs</button></div>`:""}</div>`}</div></div>`}
+  function toolbarMarkup({archive=false}={}){const count=selectedIds.size;return `<div class="receiver-toolbar ${archive?"is-archive":""}"><label class="receiver-search">${icon("search")}<input type="search" data-receiver-search value="${esc(search)}" placeholder="Search customer, invoice, IF, or sales order" autocomplete="off"></label>${archive?"":`<label class="receiver-period"><span class="sr-only">Reporting period</span><select data-receiver-period aria-label="Reporting period">${periodOptions()}</select></label>`}<label class="receiver-sort"><span class="sr-only">Sort reports</span><select data-receiver-sort>${sortOptions()}</select></label><div class="receiver-toolbar-actions">${archive?backButton("show-inbox","Back to COC Receiver","receiver-toolbar-back"):`<button type="button" class="receiver-outline" data-action="show-archive">VIEW ARCHIVE</button>`}<button type="button" class="receiver-outline ${archive?"is-restore":""}" data-action="${archive?"restore-selected":"archive-selected"}" ${count?"":"disabled"}>${archive?"RESTORE":"ARCHIVE"} SELECTED${count?` (${count})`:""}</button>${archive?"":`<div class="receiver-bulk-menu"><button type="button" class="receiver-icon-button" data-action="toggle-bulk-menu" aria-label="More archive actions" aria-expanded="${bulkMenu}">•••</button>${bulkMenu?`<div class="receiver-menu"><button type="button" data-action="archive-all">Archive all completed COCs</button></div>`:""}</div>`}</div></div>`}
   function rowMarkup(record,{archive=false}={}){const snap=snapshot(record),totals=recordTotals(record),checked=selectedIds.has(record.id),menu=openMenu===record.id;return `<tr class="${checked?"is-selected":""}"><td><input type="checkbox" data-select-id="${esc(record.id)}" aria-label="Select ${esc(snap.invoiceNumber||"COC")}" ${checked?"checked":""}></td><td data-label="Date completed"><span class="receiver-date-check">✓</span>${dateTime(record.office_completed_at)}${archive&&record.receiver_archived_at?`<small>Archived ${dateTime(record.receiver_archived_at)}</small>`:""}</td><td data-label="Customer"><strong>${esc(snap.customerName||"—")}</strong></td><td data-label="Invoice">${esc(snap.invoiceNumber||"—")}</td><td data-label="IF Number">${esc(snap.ifNumber||"—")}</td><td data-label="Sales order">${esc(snap.salesOrderNumber||"—")}</td><td data-label="Pallets / boxes">${plural(totals.pallets,"pallet")} · ${plural(totals.boxes,"box")}</td><td data-label="Actions"><div class="receiver-row-actions"><button type="button" class="receiver-view" data-action="open" data-id="${esc(record.id)}">VIEW</button><button type="button" class="receiver-small-action" data-action="download" data-id="${esc(record.id)}" aria-label="Download ${esc(snap.invoiceNumber||"COC")}">${icon("download")}</button><div class="receiver-row-menu"><button type="button" class="receiver-small-action" data-action="toggle-row-menu" data-id="${esc(record.id)}" aria-label="More actions" aria-expanded="${menu}">•••</button>${menu?`<div class="receiver-menu"><button type="button" data-action="${archive?"restore-one":"archive-one"}" data-id="${esc(record.id)}">${icon(archive?"restore":"archive")} ${archive?"Restore to Completed":"Archive COC"}</button></div>`:""}</div></div></td></tr>`}
   function pageButtons(){const pages=Math.max(1,Math.ceil(total/PAGE_SIZE)),start=Math.max(1,Math.min(page-2,pages-4)),end=Math.min(pages,start+4);let items=`<button type="button" data-action="page" data-page="${page-1}" ${page<=1?"disabled":""} aria-label="Previous page">‹</button>`;for(let number=start;number<=end;number+=1)items+=`<button type="button" data-action="page" data-page="${number}" class="${number===page?"is-active":""}">${number}</button>`;if(end<pages)items+=`<span>…</span>`;items+=`<button type="button" data-action="page" data-page="${page+1}" ${page>=pages?"disabled":""} aria-label="Next page">›</button>`;return items}
-  function reportsPanel({archive=false}={}){const from=total?((page-1)*PAGE_SIZE)+1:0,to=Math.min(page*PAGE_SIZE,total),allChecked=completedDeliveries.length&&completedDeliveries.every((item)=>selectedIds.has(item.id)),dateHeading=sort==="oldest"?"DATE COMPLETED ↑":sort==="newest"?"DATE COMPLETED ↓":"DATE COMPLETED";return `<section class="receiver-report-panel"><div class="receiver-panel-title"><div><span class="receiver-eyebrow">${archive?"SECURE RECORD STORAGE":"OFFICE HISTORY"}</span><h2>${archive?"COC ARCHIVE":"COMPLETED COCs"}</h2><p>${archive?"Archived reports remain securely stored, downloadable, and restorable.":"Completed reports remain available until archived."}</p></div></div>${toolbarMarkup({archive})}<div class="receiver-table-wrap"><table><thead><tr><th><input type="checkbox" data-select-page aria-label="Select all reports on this page" ${allChecked?"checked":""}></th><th>${dateHeading}</th><th>CUSTOMER</th><th>INVOICE</th><th>IF NUMBER</th><th>SALES ORDER</th><th>PALLETS / BOXES</th><th>ACTIONS</th></tr></thead><tbody>${completedDeliveries.length?completedDeliveries.map((item)=>rowMarkup(item,{archive})).join(""):`<tr><td colspan="8"><div class="receiver-table-empty">${search?"No reports match this search.":archive?"No COCs have been archived.":"No completed COCs yet."}</div></td></tr>`}</tbody></table></div><footer class="receiver-pagination"><span>Showing ${from}–${to} of ${total.toLocaleString()} ${archive?"archived":"completed"} COCs</span><nav aria-label="Report pages">${pageButtons()}</nav></footer></section>`}
+  function reportsPanel({archive=false}={}){const from=total?((page-1)*PAGE_SIZE)+1:0,to=Math.min(page*PAGE_SIZE,total),allChecked=completedDeliveries.length&&completedDeliveries.every((item)=>selectedIds.has(item.id)),dateHeading=sort==="oldest"?"DATE COMPLETED ↑":sort==="newest"?"DATE COMPLETED ↓":"DATE COMPLETED",emptyMessage=search?`No ${archive?"archived":"completed"} COCs match this search${archive?"":` for ${periodLabel().toLowerCase()}`}.`:archive?"No COCs have been archived.":`No completed COCs for ${periodLabel().toLowerCase()}.`;return `<section class="receiver-report-panel"><div class="receiver-panel-title"><div><span class="receiver-eyebrow">${archive?"SECURE RECORD STORAGE":"OFFICE HISTORY"}</span><h2>${archive?"COC ARCHIVE":"COMPLETED COCs"}</h2><p>${archive?"Archived reports remain securely stored, downloadable, and restorable.":"Completed reports stay available here and can be filtered by date."}</p></div></div>${toolbarMarkup({archive})}<div class="receiver-table-wrap"><table><thead><tr><th><input type="checkbox" data-select-page aria-label="Select all reports on this page" ${allChecked?"checked":""}></th><th>${dateHeading}</th><th>CUSTOMER</th><th>INVOICE</th><th>IF NUMBER</th><th>SALES ORDER</th><th>PALLETS / BOXES</th><th>ACTIONS</th></tr></thead><tbody>${completedDeliveries.length?completedDeliveries.map((item)=>rowMarkup(item,{archive})).join(""):`<tr><td colspan="8"><div class="receiver-table-empty">${emptyMessage}</div></td></tr>`}</tbody></table></div><footer class="receiver-pagination"><span>Showing ${from}–${to} of ${total.toLocaleString()} ${archive?"archived":`${periodLabel().toLowerCase()} completed`} COCs</span><nav aria-label="Report pages">${pageButtons()}</nav></footer></section>`}
   function inboxMarkup(){return `<div class="receiver-shell">${header()}${metricsMarkup()}${incomingMarkup()}${reportsPanel()}</div>`}
   function archiveMarkup(){return `<div class="receiver-shell">${header()}<div class="receiver-archive-head">${backButton("show-inbox","Back to COC Receiver")}<div><span class="receiver-eyebrow">RETAINED RECORDS</span><h1>COC Archive</h1><p>Search, download, or restore any archived compliance report.</p></div></div>${reportsPanel({archive:true})}</div>`}
   function palletMarkup(record){return (snapshot(record).pallets||[]).map((pallet)=>`<section class="receiver-pallet"><h3>PALLET ${pallet.number}</h3>${(pallet.lots||[]).map((lot)=>`<div class="receiver-lot"><span><strong>${esc(lot.model)}</strong><small><i>LOT</i><b>${esc(lot.lot)}</b></small></span><b>${plural(Number(lot.cases||0),"box")} · ${(Number(lot.cases||0)*Number(lot.caseQuantity||0)).toLocaleString()} units</b></div>`).join("")}</section>`).join("")}
@@ -120,14 +136,32 @@
   }
   function renderBackgroundUpdate(){if(!(selected&&preview&&previewState.status==="ready"))render()}
 
+  function sortCompletedRecords(records){return [...records].sort((left,right)=>{const leftTime=new Date(left?.office_completed_at||0).valueOf()||0,rightTime=new Date(right?.office_completed_at||0).valueOf()||0;if(sort==="oldest")return leftTime-rightTime;if(sort==="customer-asc"){const customerOrder=String(snapshot(left).customerName||"").localeCompare(String(snapshot(right).customerName||""),undefined,{sensitivity:"base"});return customerOrder||rightTime-leftTime}return rightTime-leftTime})}
+  async function loadReportList(section){
+    if(section==="archive"||period==="all")return Delivery.receiverInbox(credentials,{section,withMeta:true,page,pageSize:PAGE_SIZE,search,sort});
+    const bounds=reportingPeriodBounds(),start=new Date(bounds.periodStart).valueOf(),end=new Date(bounds.periodEnd).valueOf(),records=[];
+    let remotePage=1;
+    while(true){
+      const result=await Delivery.receiverInbox(credentials,{section,withMeta:true,page:remotePage,pageSize:PERIOD_FETCH_PAGE_SIZE,search,sort:"newest"}),batch=Array.isArray(result.deliveries)?result.deliveries:[];
+      batch.forEach((record)=>{const completedAt=new Date(record?.office_completed_at||0).valueOf();if(Number.isFinite(completedAt)&&completedAt>=start&&completedAt<end)records.push(record)});
+      const reachedStart=batch.some((record)=>{const completedAt=new Date(record?.office_completed_at||0).valueOf();return Number.isFinite(completedAt)&&completedAt<start});
+      if(reachedStart||batch.length<PERIOD_FETCH_PAGE_SIZE||remotePage*PERIOD_FETCH_PAGE_SIZE>=Number(result.total||0))break;
+      remotePage+=1;
+    }
+    const ordered=sortCompletedRecords(records),offset=(page-1)*PAGE_SIZE;
+    return{deliveries:ordered.slice(offset,offset+PAGE_SIZE),total:ordered.length,page,pageSize:PAGE_SIZE};
+  }
+
   async function loadInbox(){
     if(!credentials)return;const sequence=++loadSequence;loading=true;
     try{
+      resetReportingPeriodAtMidnight();
       const section=screen==="archive"?"archive":"completed";
+      const todayBounds=reportingPeriodBounds("today");
       let [activeResult,listResult,metricResult]=await Promise.all([
         screen==="archive"?Promise.resolve({deliveries:[]}):Delivery.receiverInbox(credentials,{section:"active",withMeta:true}),
-        Delivery.receiverInbox(credentials,{section,withMeta:true,page,pageSize:PAGE_SIZE,search,sort}),
-        Delivery.receiverInbox(credentials,{section:"metrics",withMeta:true,dayStart:dayStart()}),
+        loadReportList(section),
+        Delivery.receiverInbox(credentials,{section:"metrics",withMeta:true,dayStart:todayBounds.periodStart||dayStart()}),
       ]);
       if(sequence!==loadSequence)return;
       const sent=(activeResult.deliveries||[]).filter((item)=>item.status==="SENT");
@@ -369,6 +403,7 @@
     if(event.key==="Escape"){event.preventDefault();closeReceiverSkuSuggestions(input)}
   });
   root.addEventListener("change",(event)=>{
+    if(event.target.matches("[data-receiver-period]")){period=PERIOD_VALUES.has(event.target.value)?event.target.value:"today";reportingDayKey=reportingDateKey();page=1;selectedIds.clear();openMenu=null;bulkMenu=false;render();loadInbox();return}
     if(event.target.matches("[data-receiver-sort]")){sort=event.target.value;writePreference("sort",sort);page=1;selectedIds.clear();render();loadInbox();return}
     if(event.target.matches("[data-select-id]")){event.target.checked?selectedIds.add(event.target.dataset.selectId):selectedIds.delete(event.target.dataset.selectId);render();return}
     if(event.target.matches("[data-select-page]")){if(event.target.checked)completedDeliveries.forEach((item)=>selectedIds.add(item.id));else completedDeliveries.forEach((item)=>selectedIds.delete(item.id));render()}
