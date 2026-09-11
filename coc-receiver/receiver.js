@@ -165,7 +165,7 @@
     if(!list)return;
     const matches=receiverSkuMatches(input.value);
     if(normalizedSku(input.value).length<2){closeReceiverSkuSuggestions(input);return}
-    list.innerHTML=`<header><span>ATLAS SKU MATCHES</span><small>Complete color selections only</small></header>${matches.length?matches.map((item,index)=>`<button type="button" id="${list.id}-option-${index}" role="option" tabindex="-1" data-action="select-receiver-sku" data-model="${esc(item.modelNumber)}"><span><strong>${esc(item.modelNumber)}</strong><small>Complete SKU</small></span><b>${item.caseQuantity?`${Number(item.caseQuantity).toLocaleString()}<small>units/box</small>`:"<small>Enter quantity</small>"}</b></button>`).join(""):`<p>No complete color SKUs match. Keep typing or verify the model.</p>`}`;
+    list.innerHTML=`<header><span>ATLAS SKU MATCHES</span></header>${matches.length?matches.map((item,index)=>`<button type="button" id="${list.id}-option-${index}" role="option" tabindex="-1" data-action="select-receiver-sku" data-model="${esc(item.modelNumber)}"><span><strong>${esc(item.modelNumber)}</strong></span><b>${item.caseQuantity?`${Number(item.caseQuantity).toLocaleString()}<small>units/box</small>`:"<small>Enter quantity</small>"}</b></button>`).join(""):`<p>No SKUs match. Keep typing or verify the model.</p>`}`;
     list.hidden=false;
     input.setAttribute("aria-expanded","true");
   }
