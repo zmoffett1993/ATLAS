@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v309-clean-sku-picker";
+const VERSION = "atlas-pwa-v310-grouped-coc-change-review";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -22,8 +22,8 @@ const APP_SHELL = [
   "./atlas-coc-excel.js?v=19",
   "./atlas-coc.js?v=80",
   "./coc-receiver/index.html",
-  "./coc-receiver/receiver.css?v=31",
-  "./coc-receiver/receiver.js?v=31",
+  "./coc-receiver/receiver.css?v=32",
+  "./coc-receiver/receiver.js?v=32",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
