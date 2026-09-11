@@ -506,6 +506,15 @@
     });
   }
 
+  function positionCompletedOfficialPreview() {
+    if (!window.matchMedia?.("(max-width: 719px)").matches) return;
+    // Stored COC details can be much taller than the workbook preview. Never
+    // carry that prior scroll offset into the read-only XLSX screen: reset the
+    // document and the Workflows container while iOS finishes both layout
+    // passes so the Back control, heading, and centered workbook stay visible.
+    scrollWorkflowToTop();
+  }
+
   function wireFinalReviewCarousel() {
     const carousel = document.querySelector(".atlas-coc-final-review.is-carousel");
     if (
@@ -727,6 +736,7 @@
     workbookPreview = { status: "loading", html: "", error: "", cocId };
     workflowView = "official-preview";
     renderAll();
+    positionCompletedOfficialPreview();
     try {
       if (!record.workbookBlob?.size) throw new Error("The saved Official COC workbook is unavailable on this device.");
       const html = await Excel.renderOfficialWorkbookPreview(record.workbookBlob);
@@ -736,6 +746,7 @@
       workbookPreview = { status: "error", html: "", error: error?.message || "The Official COC could not be opened.", cocId };
     }
     renderAll();
+    positionCompletedOfficialPreview();
   }
 
   function draftOfficialPreviewMarkup() {

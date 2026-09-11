@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v303-coc-filename-space-lock";
+const VERSION = "atlas-pwa-v304-stored-official-preview-position";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -20,7 +20,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=5",
   "./atlas-coc-delivery.js?v=10",
   "./atlas-coc-excel.js?v=19",
-  "./atlas-coc.js?v=77",
+  "./atlas-coc.js?v=78",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=27",
   "./coc-receiver/receiver.js?v=27",
