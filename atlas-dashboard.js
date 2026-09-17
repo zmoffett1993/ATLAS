@@ -52,7 +52,6 @@
     accountDeleteError: "",
     accountWarehouseFilter: "all",
     accountRoleFilter: "all",
-    accountStatusFilter: "active",
     accountSearch: "",
     accountSort: "name",
     accountModal: null,
@@ -132,8 +131,6 @@
   let dashboardPointerActive = false;
   let backgroundRenderPending = false;
   let backgroundRenderTimer = null;
-  const cocWorkspaceScrollPositions = new Map();
-  const scannerViewScrollPositions = new Map();
 
   const escapeHtml = (value) =>
     String(value ?? "").replace(
@@ -751,7 +748,7 @@
     const result = await cocRevisionApi("list-edits", { limit: 50 }, warehouseCode);
     return Array.isArray(result.edits) ? result.edits : [];
   };
-  const cocCanDelete = (record) => record?.status === "OFFICE_COMPLETED";
+  const cocCanDelete = (record) => state.currentProfile?.role === "admin" && record?.status === "OFFICE_COMPLETED";
   const cocMetricIcon = (kind) => {
     const paths = {
       all: '<path d="M9 5h6M9 9h6M9 13h4"/><path d="M9 3h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/>',
@@ -1251,8 +1248,6 @@
     document.documentElement.classList.add("atlas-dashboard-open");
     syncMenuState();
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    cocWorkspaceScrollPositions.clear();
-    scannerViewScrollPositions.clear();
     state.session = getSession();
     void loadProductImages();
     render();
@@ -1818,8 +1813,6 @@
     const filteredUsers = state.adminUsers.filter((user) => {
       if (state.accountWarehouseFilter !== "all" && (user.warehouse_code || "CA") !== state.accountWarehouseFilter) return false;
       if (state.accountRoleFilter !== "all" && user.role !== state.accountRoleFilter) return false;
-      if (state.accountStatusFilter === "active" && !user.active) return false;
-      if (state.accountStatusFilter === "inactive" && user.active) return false;
       if (search && !`${user.display_name || ""} ${user.login_name || ""}`.toLowerCase().includes(search)) return false;
       return true;
     }).sort((left, right) => {
@@ -1856,13 +1849,12 @@
             <div class="atlas-account-filter-controls">
               <label class="atlas-account-search"><span class="sr-only">Search employees</span><input type="search" data-account-search value="${escapeHtml(state.accountSearch)}" placeholder="Search employee" aria-label="Search employees"></label>
               ${renderPremiumSelect({ value: state.accountRoleFilter, options: [{ value: "all", label: "All roles", badge: "ALL", meta: "Every ATLAS role" }, ...roleSelectOptions()], ariaLabel: "Filter accounts by role", dataAttribute: "data-account-role-filter", className: "atlas-premium-select--filter" })}
-              ${renderPremiumSelect({ value: state.accountStatusFilter, options: [{ value: "all", label: "All statuses", badge: "ALL" }, { value: "active", label: "Active", badge: "ON" }, { value: "inactive", label: "Inactive", badge: "OFF" }], ariaLabel: "Filter accounts by status", dataAttribute: "data-account-status-filter", className: "atlas-premium-select--filter" })}
               ${renderPremiumSelect({ value: state.accountSort, options: [{ value: "name", label: "Name A–Z", badge: "AZ" }, { value: "role", label: "Role", badge: "R" }, { value: "warehouse", label: "Warehouse", badge: "WH" }, { value: "recent", label: "Last sign-in", badge: "↻" }], ariaLabel: "Sort accounts", dataAttribute: "data-account-sort", className: "atlas-premium-select--filter atlas-premium-select--sort" })}
             </div>
             <p class="atlas-account-filter-result">Showing ${filteredUsers.length.toLocaleString()} of ${state.adminUsers.length.toLocaleString()} accounts</p>
           </div>
           <div class="atlas-account-list">
-            ${state.adminLoading && !state.adminUsersLoaded ? renderLoading() : rows || `<div class="atlas-dashboard-empty"><strong>No accounts match these filters</strong><p>Adjust the warehouse, role, status, or employee search.</p></div>`}
+            ${state.adminLoading && !state.adminUsersLoaded ? renderLoading() : rows || `<div class="atlas-dashboard-empty"><strong>No accounts match these filters</strong><p>Adjust the warehouse, role, or employee search.</p></div>`}
           </div>
         </article>
       </section>
@@ -2099,7 +2091,7 @@
 
   const renderCocRecordsPanel = () => {
     const pages = Math.max(1, Math.ceil(state.cocTotal / COC_PAGE_SIZE));
-    return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">DAILY COC OPERATIONS</p><h2>COC Receiver Activity</h2><span>Review COC records and manage completed or archived reports for this warehouse.</span></div><span class="atlas-dashboard-coc-live">● LIVE · 15 SEC</span></header>
+    return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">DAILY COC OPERATIONS</p><h2>COC Receiver Activity</h2><span>Review COC records and manage completed or archived reports for this warehouse.</span></div></header>
       <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
       <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, IF, or sales order" aria-label="Search COCs"><select data-coc-period aria-label="Reporting period"><option value="today" ${state.cocPeriod === "today" ? "selected" : ""}>Today</option><option value="week" ${state.cocPeriod === "week" ? "selected" : ""}>This Week</option><option value="7d" ${state.cocPeriod === "7d" ? "selected" : ""}>Last 7 Days</option><option value="30d" ${state.cocPeriod === "30d" ? "selected" : ""}>Last 30 Days</option><option value="all" ${state.cocPeriod === "all" ? "selected" : ""}>All Time</option><option value="custom" ${state.cocPeriod === "custom" ? "selected" : ""}>Custom Range</option></select><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button>${state.cocPeriod === "custom" ? `<div class="atlas-dashboard-coc-custom-range"><label><span>From</span><input type="date" data-coc-custom-start value="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(state.cocCustomEnd || cocTodayInputValue())}"></label><label><span>Through</span><input type="date" data-coc-custom-end value="${escapeHtml(state.cocCustomEnd)}" min="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(cocTodayInputValue())}"></label></div>` : ""}</div>
       <div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Status</th><th>Recorded</th><th>Customer</th><th>IF</th><th>Invoice</th><th>Sales Order</th><th>Actions</th></tr></thead><tbody>${renderCocRows()}</tbody></table></div>
@@ -2146,7 +2138,7 @@
     const performance = `<div class="atlas-scanner-performance">
       <div class="atlas-scanner-metrics">${renderScannerMetric("Exact Lot Scan", scannerPercent(summary.exactRate), `${Number(summary.exactScans || 0).toLocaleString()} exact of ${Number(summary.attempts || 0).toLocaleString()} attempts`)}${renderScannerMetric("Character Accuracy", scannerPercent(summary.characterAccuracy), "Every corrected character included", "green")}${renderScannerMetric("Corrected Scans", Number(summary.correctedScans || 0).toLocaleString(), `${Number(summary.oneTwoCharacterCorrections || 0).toLocaleString()} required only 1–2 edits`, "amber")}${renderScannerMetric("Fallback / Failure", scannerPercent(summary.manualFallbackRate), `${Number(summary.failures || 0).toLocaleString()} failed scan attempts`, "slate")}</div>
       <article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">ACCURACY TREND</p><h2>Scanner Performance</h2><span>Exact confirmation and character-level accuracy over time</span></div></header>${renderScannerTrend()}</article>
-      <article class="atlas-scanner-panel atlas-scanner-workflow-context"><header><div><p class="atlas-dashboard-eyebrow">WORKFLOW CONTEXT</p><h2>COC Processing Time</h2><span>Operational timing for ${escapeHtml(rangeLabel.toLowerCase())}</span></div></header><div class="atlas-scanner-context-metrics">${renderScannerMetric("Average COC Time", formatCocDuration(workflow.averageActiveDurationMs), workflow.completionSamples ? `${cocPlural(workflow.completionSamples, "COC")} measured` : "Timing begins after a completed COC", "blue")}${renderScannerMetric("Median COC Time", formatCocDuration(workflow.medianActiveDurationMs), "Typical active processing time", "green")}${renderScannerMetric("Completed Sample", Number(workflow.completionSamples || 0).toLocaleString(), "Completed COCs included in timing", "slate")}</div></article>
+      <article class="atlas-scanner-panel atlas-scanner-workflow-context"><header><div><p class="atlas-dashboard-eyebrow">WORKFLOW CONTEXT</p><h2>COC Processing Time</h2><span>Operational timing for ${escapeHtml(rangeLabel.toLowerCase())}</span></div></header><div class="atlas-scanner-context-metrics">${renderScannerMetric("Average COC Time", formatCocDuration(workflow.averageActiveDurationMs), workflow.completionSamples ? `${cocPlural(workflow.completionSamples, "COC")} measured` : "Timing begins after a completed COC", "blue")}${renderScannerMetric("Median COC Time", formatCocDuration(workflow.medianActiveDurationMs), "Typical active processing time", "green")}${renderScannerMetric("Completed COCs Analyzed", Number(workflow.completionSamples || 0).toLocaleString(), "Used to calculate average and median completion time", "slate")}</div></article>
       <div class="atlas-scanner-split"><article class="atlas-scanner-panel atlas-scanner-capture-panel"><header><div><h2>Capture Method</h2><span>Performance by the way the lot was captured</span></div></header><div class="atlas-scanner-table">${(data.byCaptureMethod || []).map((item) => `<div><strong>${escapeHtml(item.name)}</strong><span>${item.attempts.toLocaleString()} attempts</span><b>${scannerPercent(item.exactRate)}</b><small>${scannerPercent(item.characterAccuracy)} characters</small></div>`).join("") || `<div>No capture activity yet.</div>`}</div></article>
       <article class="atlas-scanner-panel"><header><div><h2>Recent Corrections</h2><span>${Number(summary.unreviewed || 0)} awaiting supervisor review</span></div><button type="button" data-scanner-view="review">Review Queue</button></header><div class="atlas-scanner-mini-list">${(data.recentCorrections || []).map((item) => `<button type="button" data-scanner-correction="${escapeHtml(item.id)}"><span>${escapeHtml(item.sku || "SKU")}</span><strong>${escapeHtml(item.scanner_original_lot || "—")} → ${escapeHtml(item.confirmed_lot || "—")}</strong><small>${Number(item.edit_distance || 0)} character edit${Number(item.edit_distance) === 1 ? "" : "s"}</small></button>`).join("") || `<p>No corrected scans in this period.</p>`}</div></article></div>
     </div>`;
@@ -2421,12 +2413,13 @@
       startDashboardRefresh();
     } else if (button.matches("[data-coc-workspace]")) {
       const currentTop = currentPageScrollTop();
-      cocWorkspaceScrollPositions.set(state.cocWorkspace, currentTop);
+      const tabsTop = button.closest(".atlas-coc-workspace-tabs")?.getBoundingClientRect().top;
       state.cocWorkspace = button.dataset.cocWorkspace || "operations";
       state.cocSelected = null;
       state.cocRevision = freshCocRevision();
       state.scannerSelected = null;
-      renderPreservingScroll(cocWorkspaceScrollPositions.get(state.cocWorkspace) ?? currentTop);
+      render();
+      restoreDashboardAnchor(".atlas-coc-workspace-tabs", tabsTop, currentTop);
       if (!state.cocLoaded) loadCocData();
       if (state.cocWorkspace === "scanner" && !state.scannerLoaded) loadScannerData();
     } else if (button.matches("[data-scanner-clear-filters]")) {
@@ -2438,10 +2431,11 @@
       void Promise.all([loadScannerData(), loadCocData()]);
     } else if (button.matches("[data-scanner-view]")) {
       const currentTop = currentPageScrollTop();
-      scannerViewScrollPositions.set(state.scannerView, currentTop);
+      const tabsTop = button.closest(".atlas-scanner-tabs")?.getBoundingClientRect().top;
       state.scannerView = button.dataset.scannerView || "performance";
       state.scannerSelected = null;
-      renderPreservingScroll(scannerViewScrollPositions.get(state.scannerView) ?? currentTop);
+      render();
+      restoreDashboardAnchor(".atlas-scanner-tabs", tabsTop, currentTop);
     } else if (button.matches("[data-scanner-correction]")) {
       state.scannerView = "review";
       void loadScannerCorrection(button.dataset.scannerCorrection);
@@ -2682,7 +2676,6 @@
     else if (event.target.matches("[data-custom-end]")) state.customEnd = event.target.value;
     else if (event.target.matches("[data-filter]")) state.filter = event.target.value;
     else if (event.target.matches("[data-account-role-filter]")) state.accountRoleFilter = event.target.value;
-    else if (event.target.matches("[data-account-status-filter]")) state.accountStatusFilter = event.target.value;
     else if (event.target.matches("[data-account-sort]")) state.accountSort = event.target.value;
     else if (event.target.matches("[data-coc-performance-range]")) {
       state.cocPerformanceRange = event.target.value;
@@ -2981,7 +2974,7 @@
         state.cocSelected = null;
         state.cocPreview = { status: "idle", html: "", error: "", id: "" };
         state.cocRevision = freshCocRevision();
-        state.cocNotice = `COC ${invoice} was permanently deleted. Its audit record was retained.`;
+        state.cocNotice = "";
         await loadCocData();
       }).catch((error) => {
         message.textContent = error instanceof Error ? error.message : "The COC could not be deleted.";
