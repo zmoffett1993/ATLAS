@@ -1009,21 +1009,20 @@
   html.atlas-desktop .atlas-desktop-sidebar-toggle {
     position: absolute;
     top: 50%;
-    right: -16px;
+    right: -24px;
     z-index: 4;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 42px;
     padding: 0;
     display: grid;
     place-items: center;
-    color: rgba(240, 248, 255, 0.88);
+    color: rgba(244, 249, 255, 0.94);
     cursor: pointer;
-    background: rgba(126, 164, 201, 0.3);
-    border: 1px solid rgba(196, 223, 250, 0.32);
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(2, 18, 38, 0.12);
-    -webkit-backdrop-filter: blur(10px) saturate(120%);
-    backdrop-filter: blur(10px) saturate(120%);
+    background: linear-gradient(180deg, rgba(26, 67, 103, 0.98), rgba(10, 42, 73, 0.98));
+    border: 1px solid rgba(167, 204, 237, 0.14);
+    border-left: 0;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 4px 0 10px rgba(2, 18, 38, 0.14);
     transform: translateY(-50%);
     transition:
       color 150ms ease,
@@ -1034,9 +1033,9 @@
 
   html.atlas-desktop .atlas-desktop-sidebar-toggle:hover {
     color: #fff;
-    background: rgba(126, 164, 201, 0.46);
-    border-color: rgba(205, 230, 255, 0.5);
-    box-shadow: 0 4px 12px rgba(2, 18, 38, 0.16);
+    background: linear-gradient(180deg, rgba(36, 83, 124, 0.99), rgba(15, 52, 87, 0.99));
+    border-color: rgba(184, 216, 246, 0.28);
+    box-shadow: 4px 0 12px rgba(2, 18, 38, 0.18);
   }
 
   html.atlas-desktop .atlas-desktop-sidebar-toggle:focus-visible {
@@ -1069,7 +1068,7 @@
 
   html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-desktop-sidebar-toggle {
     top: 50%;
-    right: -16px;
+    right: -24px;
   }
 
   html.atlas-desktop .atlas-desktop-toggle-tooltip,
