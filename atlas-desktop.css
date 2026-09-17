@@ -1008,22 +1008,23 @@
 
   html.atlas-desktop .atlas-desktop-sidebar-toggle {
     position: absolute;
-    top: 104px;
-    right: 18px;
+    top: 50%;
+    right: -16px;
     z-index: 4;
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     display: grid;
     place-items: center;
-    color: rgba(222, 238, 255, 0.86);
+    color: rgba(240, 248, 255, 0.88);
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.055);
-    border: 1px solid rgba(165, 207, 255, 0.14);
-    border-radius: 10px;
-    box-shadow: none;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    background: rgba(126, 164, 201, 0.3);
+    border: 1px solid rgba(196, 223, 250, 0.32);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(2, 18, 38, 0.12);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    backdrop-filter: blur(10px) saturate(120%);
+    transform: translateY(-50%);
     transition:
       color 150ms ease,
       background-color 150ms ease,
@@ -1033,9 +1034,9 @@
 
   html.atlas-desktop .atlas-desktop-sidebar-toggle:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(165, 207, 255, 0.3);
-    box-shadow: 0 7px 18px rgba(2, 18, 38, 0.18);
+    background: rgba(126, 164, 201, 0.46);
+    border-color: rgba(205, 230, 255, 0.5);
+    box-shadow: 0 4px 12px rgba(2, 18, 38, 0.16);
   }
 
   html.atlas-desktop .atlas-desktop-sidebar-toggle:focus-visible {
@@ -1044,13 +1045,17 @@
   }
 
   html.atlas-desktop .atlas-desktop-sidebar-toggle svg {
-    width: 19px;
-    height: 19px;
+    width: 16px;
+    height: 16px;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.8;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  html.atlas-desktop .atlas-desktop-sidebar-toggle svg > :not(.atlas-desktop-sidebar-toggle__arrow) {
+    display: none;
   }
 
   html.atlas-desktop .atlas-desktop-sidebar-toggle__arrow {
@@ -1063,8 +1068,8 @@
   }
 
   html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-desktop-sidebar-toggle {
-    top: 72px;
-    right: 22px;
+    top: 50%;
+    right: -16px;
   }
 
   html.atlas-desktop .atlas-desktop-toggle-tooltip,

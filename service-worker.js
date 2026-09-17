@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v314-receiver-completion-centered";
+const VERSION = "atlas-pwa-v315-sidebar-toggle-refinement";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -29,7 +29,7 @@ const APP_SHELL = [
   "./atlas-restock.css?v=3",
   "./atlas-restock.js?v=3",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=147",
+  "./atlas-desktop.css?v=148",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",
