@@ -171,9 +171,8 @@
       models.length ? models : modelNumbers.length ? modelNumbers : sku ? [sku] : [],
       createdAt,
     );
-    if (!invoice) throw new Error("INVOICE_REQUIRED");
     if (!customer) throw new Error("CUSTOMER_REQUIRED");
-    if (!ifValue) throw new Error("IF_NUMBER_REQUIRED");
+    if (!salesOrder) throw new Error("SALES_ORDER_REQUIRED");
     if (selectedModels.some((model) => !model.caseQuantity))
       throw new Error("MODEL_CASE_QUANTITY_REQUIRED");
     const activeModel = "";

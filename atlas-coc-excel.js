@@ -40,9 +40,6 @@
     const safe = core.sanitize(JSON.parse(JSON.stringify(session)));
     if (safe.status !== "report") throw new Error("COC_FINAL_REVIEW_REQUIRED");
     if (!safe.customerName) throw new Error("COC_CUSTOMER_REQUIRED");
-    if (!safe.invoiceNumber) throw new Error("COC_INVOICE_REQUIRED");
-    if (!safe.ifNumber) throw new Error("COC_IF_NUMBER_REQUIRED");
-
     const pallets = safe.pallets.map((pallet) => {
       const progress = core.palletProgress(pallet);
       if (!progress.verified) throw new Error(`PALLET_${pallet.number}_NOT_VERIFIED`);

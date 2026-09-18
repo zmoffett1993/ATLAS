@@ -30,6 +30,7 @@
   let route = "home";
   let workflowView = "landing";
   let modal = null;
+  let startFormDraft = null;
   let toastTimer = null;
   let cloudTimer = null;
   let modelLookupTimer = null;
@@ -951,18 +952,19 @@
   }
 
   function setupMarkup() {
+    const draft = startFormDraft || {};
     return `<div class="atlas-coc-page atlas-coc-setup">
       <button type="button" class="atlas-coc-back" data-coc-action="coc-back">‹ Back</button>
       <header class="atlas-coc-page-head"><span>START COC</span><h1>COC Information</h1><p>Enter the COC references. The Sales Order number is for ATLAS record search only and will not appear on the Official COC.</p></header>
       <form id="atlas-coc-start-form" class="atlas-coc-form-card atlas-coc-header-form">
         <label><strong>Customer Name</strong>
-          <input name="customerName" maxlength="160" autocomplete="organization" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Enter customer name" required /></label>
+          <input name="customerName" maxlength="160" autocomplete="organization" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Enter customer name" value="${escapeHtml(draft.customerName || "")}" required /></label>
         <label><strong>Invoice Number</strong>
-          <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" required /></label>
+          <input name="invoiceNumber" maxlength="80" autocomplete="off" placeholder="Enter invoice number" value="${escapeHtml(workflowReference("invoice", draft.invoiceNumber) || "")}" /></label>
         <label><strong>Item Fulfillment</strong>
-          <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF number" required /></label>
-        <label><strong>Sales Order Number</strong><small>ATLAS search only · not shown on the Official COC</small>
-          <input name="salesOrderNumber" maxlength="80" autocomplete="off" placeholder="Enter sales order number" required /></label>
+          <input name="ifNumber" maxlength="80" autocomplete="off" placeholder="Enter IF number" value="${escapeHtml(workflowReference("if", draft.ifNumber) || "")}" /></label>
+        <label><strong>Sales Order Number</strong>
+          <input name="salesOrderNumber" maxlength="80" autocomplete="off" placeholder="Enter sales order number" value="${escapeHtml(workflowReference("salesOrder", draft.salesOrderNumber) || "")}" required /></label>
         <p class="atlas-coc-form-error" aria-live="polite"></p>
         <button type="submit" class="atlas-coc-primary">Continue to Pallet 1</button>
       </form>
@@ -1549,8 +1551,42 @@
       <div class="atlas-coc-compare"><div><span>CONFIRMED</span><small>BOX COUNT</small><strong>${progress.expected}</strong></div><div><span>RECORDED</span><small>BOX COUNT</small><strong>${progress.recorded}</strong></div></div>
       <p class="atlas-coc-review-instruction">Verify each SKU, lot number, and box quantity before finishing.</p>
       <div class="atlas-coc-review-list">${pallet.lots.map((lot) => `<div class="atlas-coc-review-record"><span class="atlas-coc-review-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span>${lotQuantityReviewMarkup(pallet, lot, "atlas-coc-review-boxes")}</div>`).join("") || `<p>No lots recorded.</p>`}</div>
-      <p>The pallet can only be completed when the confirmed and recorded box counts match.</p>
       <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="close-modal">Keep Counting</button><button type="button" class="atlas-coc-primary" data-coc-action="verify-pallet">Verify &amp; Complete Pallet ${pallet.number}</button></div>`, { label: `Review pallet ${pallet.number}` });
+  }
+
+  function missingReferencesModal(details) {
+    const missing = Array.isArray(details?.missing) ? details.missing : [];
+    const labels = missing.map((field) => field === "invoiceNumber" ? "Invoice Number" : "IF Number");
+    const fieldCopy = labels.length > 1
+      ? `${labels[0]} and ${labels[1]}`
+      : labels[0] || "the missing information";
+    return modalShell(`<span class="atlas-coc-eyebrow">MISSING COC INFORMATION</span><h2>Continue without ${escapeHtml(fieldCopy)}?</h2>
+      <p>${escapeHtml(fieldCopy)} will remain blank on the Official COC unless the information is added later during office review.</p>
+      <div class="atlas-coc-modal-actions"><button type="button" data-coc-action="cancel-missing-references">Go Back</button><button type="button" class="atlas-coc-primary" data-coc-action="confirm-missing-references">Continue Anyway</button></div>`, {
+      label: `Continue without ${fieldCopy}`,
+      dismiss: false,
+      showBack: false,
+      showDiscard: false,
+    });
+  }
+
+  function startCocSession(details) {
+    session = Core.createSession({
+      customerName: details.customerName,
+      invoiceNumber: details.invoiceNumber,
+      ifNumber: details.ifNumber,
+      salesOrderNumber: details.salesOrderNumber,
+      deviceId: getDeviceId(),
+      employee: getEmployee(),
+      employeeDisplayName: getEmployeeDisplayName(),
+      warehouseCode: Delivery.requestedWarehouseCode(),
+      warehouseName: `${Delivery.requestedWarehouseCode()} Warehouse`,
+    });
+    modal = null;
+    startFormDraft = null;
+    workflowView = "session";
+    persist();
+    showToast("COC started · Pallet 1 ready");
   }
 
   function reviewCompleteModal() {
@@ -2072,6 +2108,7 @@
 
   function modalMarkup() {
     if (!modal) return "";
+    if (modal?.type === "confirm-missing-references") return missingReferencesModal(modal);
     if (modal === "review-pallet") return reviewPalletModal();
     if (modal === "review-complete") return reviewCompleteModal();
     if (modal === "discard") return discardModal();
@@ -2946,7 +2983,7 @@
     }
     if (action === "coc-back") { backWithinCoc(); return; }
     if (action === "back-to-verified-pallet") { backToVerifiedPallet(); return; }
-    if (action === "start-setup") { workflowView = "setup"; renderAll(); return; }
+    if (action === "start-setup") { startFormDraft = null; workflowView = "setup"; renderAll(); return; }
     if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "review-clear-completed") { if (completedRecords.length) { modal = "clear-completed"; renderAll(); } return; }
     if (action === "confirm-clear-completed") { await clearCompletedOnDevice(); return; }
@@ -2983,6 +3020,17 @@
     }
     if (action === "discard-recovery-coc") {
       discardActiveCoc();
+      return;
+    }
+    if (action === "cancel-missing-references") {
+      modal = null;
+      renderAll();
+      return;
+    }
+    if (action === "confirm-missing-references") {
+      const details = modal?.type === "confirm-missing-references" ? modal.details : null;
+      if (!details) return;
+      startCocSession(details);
       return;
     }
     if (action === "close-modal") { finishScanMetricAttempt("canceled"); cancelScanSession(); modal = null; renderAll(); return; }
@@ -3534,32 +3582,27 @@
         if (error) error.textContent = "Customer Name is required.";
         return;
       }
-      if (!invoiceNumber) {
-        if (error) error.textContent = "Invoice Number is required.";
-        return;
-      }
-      if (!ifNumber) {
-        if (error) error.textContent = "IF is required.";
-        return;
-      }
       if (!salesOrderNumber) {
         if (error) error.textContent = "Sales Order Number is required.";
         return;
       }
-      session = Core.createSession({
+      const details = {
         customerName,
         invoiceNumber,
         ifNumber,
         salesOrderNumber,
-        deviceId: getDeviceId(),
-        employee: getEmployee(),
-        employeeDisplayName: getEmployeeDisplayName(),
-        warehouseCode: Delivery.requestedWarehouseCode(),
-        warehouseName: `${Delivery.requestedWarehouseCode()} Warehouse`,
-      });
-      workflowView = "session";
-      persist();
-      showToast("COC started · Pallet 1 ready");
+      };
+      startFormDraft = details;
+      const missing = [
+        !invoiceNumber ? "invoiceNumber" : "",
+        !ifNumber ? "ifNumber" : "",
+      ].filter(Boolean);
+      if (missing.length) {
+        modal = { type: "confirm-missing-references", missing, details };
+        renderAll();
+        return;
+      }
+      startCocSession(details);
       return;
     }
     if (event.target.id === "atlas-coc-add-model-form") {

@@ -2048,7 +2048,7 @@
       <button class="atlas-dashboard-coc-back" type="button" data-coc-detail-back>‹ All COCs</button>
       <header class="atlas-dashboard-coc-detail-head"><p class="atlas-dashboard-eyebrow">${escapeHtml(cocStatus(record).toUpperCase())}</p><h2>${escapeHtml(snap.customerName || "—")} ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2></header>
       <dl class="atlas-dashboard-coc-fields"><div class="atlas-dashboard-coc-reference"><dt>Invoice</dt><dd>${escapeHtml(snap.invoiceNumber || "—")}</dd></div><div class="atlas-dashboard-coc-reference"><dt>IF</dt><dd>${escapeHtml(snap.ifNumber || "—")}</dd></div><div class="atlas-dashboard-coc-reference"><dt>Sales Order</dt><dd>${escapeHtml(snap.salesOrderNumber || "—")}</dd></div><div class="atlas-dashboard-coc-timing"><dt>Sent By</dt><dd>${escapeHtml(submitter)} · ${escapeHtml(sentTime)}</dd></div><div class="atlas-dashboard-coc-timing"><dt>Received</dt><dd>${escapeHtml(receivedTime)}</dd></div></dl>
-      <div class="atlas-dashboard-coc-pallets">${renderCocPallets(record)}</div>
+      <div class="atlas-dashboard-coc-pallets ${(snap.pallets || []).length === 1 ? "is-single" : ""}">${renderCocPallets(record)}</div>
       <div class="atlas-dashboard-coc-detail-actions"><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-official="${escapeHtml(record.id)}">View Official COC</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${cocCanDelete(record) ? `<button class="atlas-dashboard-button atlas-dashboard-button--danger" data-coc-delete="${escapeHtml(record.id)}">Delete COC</button>` : ""}</div>
     </section>`;
   };
