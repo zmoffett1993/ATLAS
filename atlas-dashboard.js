@@ -748,7 +748,9 @@
     const result = await cocRevisionApi("list-edits", { limit: 50 }, warehouseCode);
     return Array.isArray(result.edits) ? result.edits : [];
   };
-  const cocCanDelete = (record) => state.currentProfile?.role === "admin" && record?.status === "OFFICE_COMPLETED";
+  const cocRecordIsCompleted = (record) => String(record?.status || "").toUpperCase() === "OFFICE_COMPLETED"
+    || Boolean(record?.office_completed_at);
+  const cocCanDelete = (record) => state.currentProfile?.role === "admin" && cocRecordIsCompleted(record);
   const cocMetricIcon = (kind) => {
     const paths = {
       all: '<path d="M9 5h6M9 9h6M9 13h4"/><path d="M9 3h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/>',
@@ -1407,12 +1409,21 @@
     }
   };
 
-  const loadAdminUsers = async ({ preserveNotice = false } = {}) => {
+  const loadAdminUsers = async ({ preserveNotice = false, anchorViewportTop = null, anchorScrollTop = null } = {}) => {
     if (state.adminLoading || state.currentProfile?.role !== "admin") return;
+    const preserveTabsAnchor = Number.isFinite(Number(anchorViewportTop));
+    const renderAdminState = () => {
+      if (!preserveTabsAnchor) {
+        renderPreservingScroll();
+        return;
+      }
+      render();
+      restoreDashboardAnchor(".atlas-dashboard-tabs", Number(anchorViewportTop), Number(anchorScrollTop));
+    };
     state.adminLoading = true;
     state.adminError = "";
     if (!preserveNotice) state.adminNotice = "";
-    renderPreservingScroll();
+    renderAdminState();
     try {
       const result = await adminApi("list");
       state.adminUsers = (result.users || []).sort((left, right) =>
@@ -1423,7 +1434,7 @@
       state.adminError = error instanceof Error ? error.message : "ATLAS accounts could not be loaded.";
     } finally {
       state.adminLoading = false;
-      renderPreservingScroll();
+      renderAdminState();
     }
   };
 
@@ -1869,9 +1880,7 @@
       <form class="atlas-dashboard-coc-modal" data-coc-delete-form role="dialog" aria-modal="true" aria-labelledby="atlasCocDeleteTitle">
         <p class="atlas-dashboard-eyebrow">PERMANENT COC DELETION</p>
         <h2 id="atlasCocDeleteTitle">Delete ${escapeHtml(snap.invoiceNumber || "this COC")}?</h2>
-        <p>This permanently removes the central COC record and saved workbook. ATLAS will retain a deletion audit showing who removed it and why.</p>
-        <label><span>Reason for deletion</span><textarea name="reason" minlength="4" maxlength="300" placeholder="Example: Duplicate test COC" required></textarea></label>
-        <label><span>Type the invoice number to confirm</span><input name="confirmation" autocomplete="off" placeholder="${escapeHtml(snap.invoiceNumber || "Invoice number")}" required></label>
+        <p>This permanently removes the central COC record and saved workbook. This action cannot be undone.</p>
         <p class="atlas-dashboard-coc-form-error" data-coc-delete-error role="alert"></p>
         <div><button type="button" class="atlas-dashboard-button" data-coc-delete-close>Cancel</button><button type="submit" class="atlas-dashboard-button atlas-dashboard-button--danger">Permanently Delete COC</button></div>
       </form>
@@ -2024,7 +2033,7 @@
       <header class="atlas-dashboard-coc-detail-head atlas-dashboard-coc-revision-head"><div><p class="atlas-dashboard-eyebrow">ACTUAL WORKBOOK · CURRENT</p><h2>Official COC ${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</h2><span>${escapeHtml(snap.customerName || "—")} · ${escapeHtml(snap.invoiceNumber || "—")}${snap.salesOrderNumber ? ` · ${escapeHtml(snap.salesOrderNumber)}` : ""}</span></div><strong class="atlas-dashboard-coc-revision-badge">ACTUAL XLSX · REVISION ${revisionNumber}</strong></header>
       ${body}
       ${state.cocRevision.error ? `<p class="atlas-dashboard-coc-error">Workbook editing is unavailable: ${escapeHtml(state.cocRevision.error)}</p>` : ""}
-      <div class="atlas-dashboard-coc-detail-actions">${canReviseOfficialCoc() ? `<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-edit="${escapeHtml(record.id)}">Edit in Excel</button>` : ""}<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${approvedEdits.length ? `<button class="atlas-dashboard-button" type="button" data-coc-revision-history-toggle>${state.cocRevision.historyOpen ? "Hide" : "View"} Edit History (${approvedEdits.length})</button>` : ""}</div>
+      <div class="atlas-dashboard-coc-detail-actions">${canReviseOfficialCoc() ? `<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-edit="${escapeHtml(record.id)}">Edit in Excel</button>` : ""}<button class="atlas-dashboard-button atlas-dashboard-button--primary" data-coc-download="${escapeHtml(record.id)}">Download Official COC</button>${approvedEdits.length ? `<button class="atlas-dashboard-button" type="button" data-coc-revision-history-toggle>${state.cocRevision.historyOpen ? "Hide" : "View"} Edit History (${approvedEdits.length})</button>` : ""}${cocCanDelete(record) ? `<button class="atlas-dashboard-button atlas-dashboard-button--danger" type="button" data-coc-delete="${escapeHtml(record.id)}">Delete COC</button>` : ""}</div>
       ${approvedEdits.length && state.cocRevision.historyOpen ? renderCocRevisionHistory() : ""}
     </section>`;
   };
@@ -2049,7 +2058,7 @@
     if (!state.cocRecords.length) return `<tr><td colspan="7"><div class="atlas-dashboard-coc-empty">${state.cocSearch ? "No COCs match this search and reporting period." : `No COCs are available for ${escapeHtml(cocPeriodLabel().toLowerCase())}.`}</div></td></tr>`;
     return state.cocRecords.map((record) => {
       const snap = cocSnapshot(record);
-      return `<tr><td><span class="atlas-dashboard-coc-status is-${escapeHtml(cocStatus(record).toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(cocStatus(record))}</span>${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</td><td>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</td><td><strong>${escapeHtml(snap.customerName || "—")}</strong></td><td>${escapeHtml(snap.ifNumber || "—")}</td><td>${escapeHtml(snap.invoiceNumber || "—")}</td><td>${escapeHtml(snap.salesOrderNumber || "—")}</td><td><div class="atlas-dashboard-coc-row-actions"><button data-coc-open="${escapeHtml(record.id)}">View</button><button data-coc-official-row="${escapeHtml(record.id)}">Official COC</button>${cocCanDelete(record) ? `<button class="is-delete" data-coc-delete="${escapeHtml(record.id)}">Delete</button>` : ""}</div></td></tr>`;
+      return `<tr><td><span class="atlas-dashboard-coc-status is-${escapeHtml(cocStatus(record).toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(cocStatus(record))}</span>${cocWasEdited(record) ? `<span class="atlas-dashboard-coc-edited">EDITED</span>` : ""}</td><td>${escapeHtml(formatDateTime(parseDate(cocRecordDate(record))))}</td><td><strong>${escapeHtml(snap.customerName || "—")}</strong></td><td>${escapeHtml(snap.ifNumber || "—")}</td><td>${escapeHtml(snap.invoiceNumber || "—")}</td><td>${escapeHtml(snap.salesOrderNumber || "—")}</td><td><div class="atlas-dashboard-coc-row-actions"><button data-coc-open="${escapeHtml(record.id)}">View</button><button data-coc-official-row="${escapeHtml(record.id)}">Official COC</button>${cocCanDelete(record) ? `<button class="is-delete" type="button" data-coc-delete="${escapeHtml(record.id)}" aria-label="Delete COC ${escapeHtml(snap.invoiceNumber || "")}">Delete COC</button>` : ""}</div></td></tr>`;
     }).join("");
   };
 
@@ -2405,7 +2414,7 @@
       state.cocDelete = null;
       render();
       restoreDashboardAnchor(".atlas-dashboard-tabs", tabsTop, currentTop);
-      if (state.view === "access" && !state.adminUsersLoaded) loadAdminUsers();
+      if (state.view === "access" && !state.adminUsersLoaded) void loadAdminUsers({ anchorViewportTop: tabsTop, anchorScrollTop: currentTop });
       if (state.view === "cocs") {
         if (!state.cocLoaded) loadCocData();
         if (state.cocWorkspace === "scanner" && !state.scannerLoaded) loadScannerData();
@@ -2951,19 +2960,9 @@
       const record = state.cocDelete;
       const message = form.querySelector("[data-coc-delete-error]");
       const submit = form.querySelector('button[type="submit"]');
-      const reason = form.elements.reason.value.trim();
-      const confirmation = form.elements.confirmation.value.trim();
-      const invoice = String(cocSnapshot(record).invoiceNumber || "").trim();
+      const reason = "Administrator confirmed permanent deletion";
       if (!record || !cocCanDelete(record)) {
         message.textContent = "Only completed COCs can be deleted.";
-        return;
-      }
-      if (reason.length < 4) {
-        message.textContent = "Enter a short reason for this deletion.";
-        return;
-      }
-      if (!invoice || confirmation.toLowerCase() !== invoice.toLowerCase()) {
-        message.textContent = "The invoice number does not match.";
         return;
       }
       submit.disabled = true;

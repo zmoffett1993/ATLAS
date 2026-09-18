@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v317-dashboard-refinements";
+const VERSION = "atlas-pwa-v319-simple-coc-delete-confirmation";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=166",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=177",
+  "./atlas-dashboard.js?v=179",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=68",
@@ -23,7 +23,7 @@ const APP_SHELL = [
   "./atlas-coc.js?v=80",
   "./coc-receiver/index.html",
   "./coc-receiver/receiver.css?v=34",
-  "./coc-receiver/receiver.js?v=36",
+  "./coc-receiver/receiver.js?v=37",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
