@@ -2362,7 +2362,7 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-status.is-archived { color: #5b5278; background: #efebf8; }
 .atlas-dashboard-coc-edited { display: inline-flex; margin-left: 6px; padding: 4px 7px; vertical-align: middle; color: #8a5717; border: 1px solid #e3bf87; border-radius: 999px; background: #fff6e6; font-size: 8px; font-weight: 900; letter-spacing: .08em; line-height: 1; }
 .atlas-dashboard-coc-row-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.atlas-dashboard-coc-row-actions button { padding: 6px 8px; color: #0f5ccb; border: 1px solid #b8cee9; border-radius: 7px; background: #f7fbff; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
+.atlas-dashboard-coc-row-actions button { width: 84px; min-height: 30px; padding: 6px 8px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; color: #0f5ccb; border: 1px solid #b8cee9; border-radius: 7px; background: #f7fbff; font: inherit; font-size: 9px; font-weight: 800; line-height: 1.2; cursor: pointer; }
 .atlas-dashboard-coc-row-actions button:hover { background: #e8f3ff; border-color: #82aee0; }
 .atlas-dashboard-coc-row-actions button.is-delete { color: #a22626; border-color: #e6b8b8; background: #fff7f7; }
 .atlas-dashboard-coc-row-actions button.is-delete:hover { background: #ffeaea; border-color: #d88e8e; }
