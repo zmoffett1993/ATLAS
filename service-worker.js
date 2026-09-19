@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v325-no-coc-archive";
+const VERSION = "atlas-pwa-v327-sidebar-tooltip-clearance";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -30,7 +30,7 @@ const APP_SHELL = [
   "./atlas-restock.css?v=3",
   "./atlas-restock.js?v=3",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=150",
+  "./atlas-desktop.css?v=151",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",

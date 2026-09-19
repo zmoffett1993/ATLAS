@@ -1105,6 +1105,15 @@
     transform: translate(0, -50%);
   }
 
+  /* v327: the centered sidebar toggle shares the Dashboard row. Keep the
+     Dashboard label beyond the attached toggle so neither control obscures
+     the other while preserving the approved midpoint placement. */
+  html.atlas-desktop.atlas-desktop-nav-collapsed
+    .atlas-menu-item[data-action="dashboard"]
+    > .atlas-desktop-menu-tooltip {
+    left: calc(100% + 44px);
+  }
+
   html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-menu-brand {
     min-height: 108px !important;
     padding: 22px 14px 18px !important;
