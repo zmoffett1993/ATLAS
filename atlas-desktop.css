@@ -1071,6 +1071,10 @@
     right: -24px;
   }
 
+  html.atlas-desktop.atlas-dashboard-open .atlas-dashboard-shell {
+    padding-left: calc(clamp(20px, 3.2vw, 52px) + 24px);
+  }
+
   html.atlas-desktop .atlas-desktop-toggle-tooltip,
   html.atlas-desktop.atlas-desktop-nav-collapsed .atlas-desktop-menu-tooltip {
     position: absolute;

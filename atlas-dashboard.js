@@ -610,7 +610,7 @@
     };
   };
   const cocPlural = (count, word) => `${Number(count || 0).toLocaleString()} ${word}${Number(count) === 1 ? "" : word === "box" ? "es" : "s"}`;
-  const cocStatus = (record) => record?.receiver_archived_at ? "Archived" : ({ SENT: "Sent", RECEIVED: "Received", OFFICE_COMPLETED: "Completed" })[record?.status] || "Warehouse complete";
+  const cocStatus = (record) => ({ SENT: "Sent", RECEIVED: "Received", OFFICE_COMPLETED: "Completed" })[record?.status] || "Warehouse complete";
   const cocRecordDate = (record) => record?.office_completed_at || record?.received_at || record?.sent_at || record?.created_at;
   const cocWarehouseTimeZone = (warehouseCode = state.selectedWarehouse?.code || "CA") =>
     state.selectedWarehouse?.code === warehouseCode && state.selectedWarehouse?.time_zone
@@ -750,7 +750,7 @@
   };
   const cocRecordIsCompleted = (record) => String(record?.status || "").toUpperCase() === "OFFICE_COMPLETED"
     || Boolean(record?.office_completed_at);
-  const cocCanDelete = (record) => state.currentProfile?.role === "admin" && cocRecordIsCompleted(record);
+  const cocCanDelete = (record) => ["admin", "administrator"].includes(String(state.currentProfile?.role || "").toLowerCase()) && cocRecordIsCompleted(record);
   const cocMetricIcon = (kind) => {
     const paths = {
       all: '<path d="M9 5h6M9 9h6M9 13h4"/><path d="M9 3h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/>',
@@ -2100,8 +2100,8 @@
 
   const renderCocRecordsPanel = () => {
     const pages = Math.max(1, Math.ceil(state.cocTotal / COC_PAGE_SIZE));
-    return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">DAILY COC OPERATIONS</p><h2>COC Receiver Activity</h2><span>Review COC records and manage completed or archived reports for this warehouse.</span></div></header>
-      <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["completed","Completed"],["archive","Archive"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
+    return `<article class="atlas-dashboard-coc-panel"><header><div><p class="atlas-dashboard-eyebrow">DAILY COC OPERATIONS</p><h2>COC Receiver Activity</h2><span>Review COC records for this warehouse. Administrators can permanently delete completed COCs.</span></div></header>
+      <nav class="atlas-dashboard-coc-sections" aria-label="COC record sections">${[["all","All COCs"],["completed","Completed"]].map(([value, label]) => `<button type="button" data-coc-section="${value}" class="${state.cocSection === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
       <div class="atlas-dashboard-coc-toolbar"><input type="search" data-coc-search value="${escapeHtml(state.cocSearch)}" placeholder="Search customer, invoice, IF, or sales order" aria-label="Search COCs"><select data-coc-period aria-label="Reporting period"><option value="today" ${state.cocPeriod === "today" ? "selected" : ""}>Today</option><option value="week" ${state.cocPeriod === "week" ? "selected" : ""}>This Week</option><option value="7d" ${state.cocPeriod === "7d" ? "selected" : ""}>Last 7 Days</option><option value="30d" ${state.cocPeriod === "30d" ? "selected" : ""}>Last 30 Days</option><option value="all" ${state.cocPeriod === "all" ? "selected" : ""}>All Time</option><option value="custom" ${state.cocPeriod === "custom" ? "selected" : ""}>Custom Range</option></select><select data-coc-sort aria-label="Sort COCs"><option value="newest" ${state.cocSort === "newest" ? "selected" : ""}>Newest first</option><option value="oldest" ${state.cocSort === "oldest" ? "selected" : ""}>Oldest first</option><option value="customer-asc" ${state.cocSort === "customer-asc" ? "selected" : ""}>Customer A–Z</option></select><button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh</button>${state.cocPeriod === "custom" ? `<div class="atlas-dashboard-coc-custom-range"><label><span>From</span><input type="date" data-coc-custom-start value="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(state.cocCustomEnd || cocTodayInputValue())}"></label><label><span>Through</span><input type="date" data-coc-custom-end value="${escapeHtml(state.cocCustomEnd)}" min="${escapeHtml(state.cocCustomStart)}" max="${escapeHtml(cocTodayInputValue())}"></label></div>` : ""}</div>
       <div class="atlas-dashboard-coc-table-wrap"><table><thead><tr><th>Status</th><th>Recorded</th><th>Customer</th><th>IF</th><th>Invoice</th><th>Sales Order</th><th>Actions</th></tr></thead><tbody>${renderCocRows()}</tbody></table></div>
       <footer><span>Showing ${state.cocTotal ? ((state.cocPage - 1) * COC_PAGE_SIZE) + 1 : 0}–${Math.min(state.cocPage * COC_PAGE_SIZE, state.cocTotal)} of ${state.cocTotal.toLocaleString()} COCs · ${escapeHtml(cocPeriodLabel())}</span><div><button type="button" data-coc-page="${state.cocPage - 1}" ${state.cocPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.cocPage} / ${pages}</strong><button type="button" data-coc-page="${state.cocPage + 1}" ${state.cocPage >= pages ? "disabled" : ""}>›</button></div></footer>

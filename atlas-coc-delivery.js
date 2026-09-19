@@ -317,23 +317,6 @@
     return options.withMeta ? result : Array.isArray(result?.deliveries) ? result.deliveries : [];
   }
 
-  async function archiveOfficeCompleted(deliveryIds, credentials, { all = false } = {}) {
-    return edgeRequest("coc-receiver", {
-      action: "archive-completed",
-      stationKey: credentials.stationKey,
-      deliveryIds: Array.isArray(deliveryIds) ? deliveryIds.slice(0, 100) : [],
-      archiveAll: Boolean(all),
-    }, { receiverCredentials: credentials });
-  }
-
-  async function restoreOfficeArchived(deliveryIds, credentials) {
-    return edgeRequest("coc-receiver", {
-      action: "restore-archived",
-      stationKey: credentials.stationKey,
-      deliveryIds: Array.isArray(deliveryIds) ? deliveryIds.slice(0, 100) : [],
-    }, { receiverCredentials: credentials });
-  }
-
   async function downloadOfficeWorkbook(deliveryId, credentials) {
     const result = await edgeRequest("coc-receiver", { action: "download-workbook", deliveryId }, { receiverCredentials: credentials });
     if (!result?.downloadUrl) throw new Error("COC_WORKBOOK_NOT_AVAILABLE");
@@ -477,8 +460,6 @@
     verifyReceiver,
     heartbeat,
     receiverInbox,
-    archiveOfficeCompleted,
-    restoreOfficeArchived,
     downloadOfficeWorkbook,
     acknowledgeDelivery,
     markOfficeCompleted,
