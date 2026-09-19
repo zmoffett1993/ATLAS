@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v329-background-refresh-and-filters";
+const VERSION = "atlas-pwa-v330-calendar-and-dashboard-stability";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -23,14 +23,14 @@ const APP_SHELL = [
   "./atlas-coc.js?v=81",
   "./coc-receiver/index.html",
   "./coc-receiver/coc-receiver-favicon-32.png?v=2",
-  "./coc-receiver/receiver.css?v=36",
-  "./coc-receiver/receiver.js?v=42",
+  "./coc-receiver/receiver.css?v=37",
+  "./coc-receiver/receiver.js?v=43",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
   "./atlas-restock.js?v=3",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=152",
+  "./atlas-desktop.css?v=153",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",

@@ -1413,3 +1413,11 @@
 }
 /* The desktop command bar already communicates connection state. */
 .atlas-desktop .brand-top > .connection{display:none!important}
+
+/* Keep top-level dashboard navigation stationary when the full sidebar leaves
+   a constrained desktop canvas. Every view receives the same header geometry. */
+@media (min-width:1024px) and (max-width:1320px) and (hover:hover) and (pointer:fine){
+  html.atlas-desktop:not(.atlas-desktop-nav-collapsed).atlas-dashboard-open .atlas-dashboard-header{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:14px}
+  html.atlas-desktop:not(.atlas-desktop-nav-collapsed).atlas-dashboard-open .atlas-dashboard-heading{min-width:0;min-height:124px}
+  html.atlas-desktop:not(.atlas-desktop-nav-collapsed).atlas-dashboard-open .atlas-dashboard-header-actions{width:100%;min-height:64px;justify-content:flex-end;flex-wrap:nowrap}
+}
