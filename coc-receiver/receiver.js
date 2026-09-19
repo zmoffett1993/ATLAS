@@ -31,6 +31,7 @@
   let completionState=null;
   let signInState={loading:false,error:""},receiverAuthSequence=0;
   let inboxLoaded=false,pendingBackgroundRender=false;
+  let openCalendarInput=null;
 
   const esc=(value)=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   const plural=(count,word)=>`${Number(count||0).toLocaleString()} ${word}${Number(count)===1?"":word==="box"?"es":"s"}`;
@@ -59,6 +60,7 @@
     check:'<path d="m6 12 4 4 8-9"/><circle cx="12" cy="12" r="9"/>',
     search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
     download:'<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/>',
+    calendar:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8 14h2M14 14h2M8 17h2M14 17h2"/>',
     shield:'<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/><path d="m9 12 2 2 4-4"/>',
   };return `<svg aria-hidden="true" viewBox="0 0 24 24">${paths[name]||""}</svg>`}
 
@@ -84,7 +86,8 @@
   function periodOptions(){return PERIOD_OPTIONS.map(([value,label])=>`<option value="${value}" ${period===value?"selected":""}>${label}</option>`).join("")}
   function periodLabel(){return PERIOD_OPTIONS.find(([value])=>value===period)?.[1]||"Today"}
   function backButton(action,label,extraClass=""){return `<button type="button" class="receiver-nav-back ${extraClass}" data-action="${esc(action)}"><span class="receiver-nav-back-icon" aria-hidden="true">←</span><span>${esc(label)}</span></button>`}
-  function toolbarMarkup(){return `<div class="receiver-toolbar"><label class="receiver-search">${icon("search")}<input type="search" data-receiver-search value="${esc(search)}" placeholder="Search customer, invoice, IF, or sales order" autocomplete="off"></label><label class="receiver-period"><span class="sr-only">Reporting period</span><select data-receiver-period aria-label="Reporting period">${periodOptions()}</select></label><label class="receiver-sort"><span class="sr-only">Sort reports</span><select data-receiver-sort>${sortOptions()}</select></label>${period==="custom"?`<div class="receiver-custom-range"><label><span>From</span><input type="date" data-receiver-custom-start value="${esc(customStart)}" aria-label="Custom range start date"></label><label><span>Through</span><input type="date" data-receiver-custom-end value="${esc(customEnd)}" aria-label="Custom range end date"></label></div>`:""}</div>`}
+  function dateControlMarkup(kind,label,value){return `<label><span>${label}</span><span class="receiver-date-control"><input type="date" data-receiver-custom-${kind} value="${esc(value)}" aria-label="Custom range ${kind} date"><button type="button" data-action="toggle-calendar" data-calendar-target="${kind}" aria-label="Open or close ${label.toLowerCase()} date calendar">${icon("calendar")}</button></span></label>`}
+  function toolbarMarkup(){return `<div class="receiver-toolbar"><label class="receiver-search">${icon("search")}<input type="search" data-receiver-search value="${esc(search)}" placeholder="Search customer, invoice, IF, or sales order" autocomplete="off"></label><label class="receiver-period"><span class="sr-only">Reporting period</span><select data-receiver-period aria-label="Reporting period">${periodOptions()}</select></label><label class="receiver-sort"><span class="sr-only">Sort reports</span><select data-receiver-sort>${sortOptions()}</select></label>${period==="custom"?`<div class="receiver-custom-range">${dateControlMarkup("start","From",customStart)}${dateControlMarkup("end","Through",customEnd)}</div>`:""}</div>`}
   function rowMarkup(record){const snap=snapshot(record),totals=recordTotals(record);return `<tr><td data-label="Date completed"><span class="receiver-date-check">✓</span>${dateTime(record.office_completed_at)}</td><td data-label="Customer"><strong>${esc(snap.customerName||"—")}</strong></td><td data-label="Invoice">${esc(snap.invoiceNumber||"—")}</td><td data-label="IF Number">${esc(snap.ifNumber||"—")}</td><td data-label="Sales order">${esc(snap.salesOrderNumber||"—")}</td><td data-label="Pallets / boxes">${plural(totals.pallets,"pallet")} · ${plural(totals.boxes,"box")}</td><td data-label="Actions"><div class="receiver-row-actions"><button type="button" class="receiver-view" data-action="open" data-id="${esc(record.id)}">VIEW</button><button type="button" class="receiver-small-action" data-action="download" data-id="${esc(record.id)}" aria-label="Download ${esc(snap.invoiceNumber||"COC")}">${icon("download")}</button></div></td></tr>`}
   function pageButtons(){const pages=Math.max(1,Math.ceil(total/PAGE_SIZE)),start=Math.max(1,Math.min(page-2,pages-4)),end=Math.min(pages,start+4);let items=`<button type="button" data-action="page" data-page="${page-1}" ${page<=1?"disabled":""} aria-label="Previous page">‹</button>`;for(let number=start;number<=end;number+=1)items+=`<button type="button" data-action="page" data-page="${number}" class="${number===page?"is-active":""}">${number}</button>`;if(end<pages)items+=`<span>…</span>`;items+=`<button type="button" data-action="page" data-page="${page+1}" ${page>=pages?"disabled":""} aria-label="Next page">›</button>`;return items}
   function reportsPanel(){const from=total?((page-1)*PAGE_SIZE)+1:0,to=Math.min(page*PAGE_SIZE,total),dateHeading=sort==="oldest"?"DATE COMPLETED ↑":sort==="newest"?"DATE COMPLETED ↓":"DATE COMPLETED",emptyMessage=search?`No completed COCs match this search for ${periodLabel().toLowerCase()}.`:`No completed COCs for ${periodLabel().toLowerCase()}.`;return `<section class="receiver-report-panel"><div class="receiver-panel-title"><div><span class="receiver-eyebrow">OFFICE HISTORY</span><h2>COMPLETED COCs</h2><p>Completed reports stay available here and can be filtered by date.</p></div></div>${toolbarMarkup()}<div class="receiver-table-wrap"><table><thead><tr><th>${dateHeading}</th><th>CUSTOMER</th><th>INVOICE</th><th>IF NUMBER</th><th>SALES ORDER</th><th>PALLETS / BOXES</th><th>ACTIONS</th></tr></thead><tbody>${completedDeliveries.length?completedDeliveries.map(rowMarkup).join(""):`<tr><td colspan="7"><div class="receiver-table-empty">${emptyMessage}</div></td></tr>`}</tbody></table></div><footer class="receiver-pagination"><span>Showing ${from}–${to} of ${total.toLocaleString()} ${periodLabel().toLowerCase()} completed COCs</span><nav aria-label="Report pages">${pageButtons()}</nav></footer></section>`}
@@ -128,6 +131,7 @@
   function noticeMarkup(){return notice?`<div class="receiver-notice is-${notice.tone||"success"}" role="status">${esc(notice.text)}</div>`:""}
   function retentionMarkup(){return credentials&&!selected?`<div class="receiver-retention">${icon("shield")}<span>Completed COCs remain available through the date filters.</span></div>`:""}
   function render(){root.innerHTML=(!credentials?pairingMarkup():completionState?completionMarkup():selected?officialPreviewMarkup():inboxMarkup())+(completionState?"":retentionMarkup()+noticeMarkup());window.requestAnimationFrame?.(()=>window.AtlasCocExcel?.fitOfficialWorkbookPreviews?.(root))}
+  function toggleCalendarPicker(kind){const input=root.querySelector(`[data-receiver-custom-${kind}]`);if(!input)return;if(openCalendarInput===input){openCalendarInput=null;input.blur();return}openCalendarInput=input;input.focus({preventScroll:true});try{input.showPicker?.()}catch{input.click()}}
   function positionOfficialPreview(){
     const place=()=>{if(!selected||!preview||revisionState.step!=="preview")return;const back=root.querySelector('.receiver-nav-back[data-action="back-detail"]');if(!back)return;const current=window.scrollY||document.scrollingElement?.scrollTop||0;const top=Math.max(0,current+back.getBoundingClientRect().top-16);window.scrollTo({top,left:0,behavior:"auto"})};
     window.requestAnimationFrame?.(()=>window.requestAnimationFrame?.(place));
@@ -321,6 +325,7 @@
 
   root.addEventListener("click",async(event)=>{
     const button=event.target.closest("[data-action]");if(!button)return;const action=button.dataset.action,id=button.dataset.id;
+    if(action==="toggle-calendar"){toggleCalendarPicker(button.dataset.calendarTarget);return}
     if(action==="start-pairing")startPairing();
     if(action==="open"){selected=[...activeDeliveries,...completedDeliveries].find((item)=>item.id===id)||null;previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();if(selected)await openOfficialPreview(selected.id);else render()}
     if(action==="back"){selected=null;preview=false;previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();render()}
@@ -343,6 +348,7 @@
     if(action==="page"){page=Math.max(1,Number(button.dataset.page||1));render();loadInbox({foreground:true})}
     if(action==="download"){const completesWorkflow=button.dataset.completeWorkflow==="true",saved=await download(button);if(saved&&completesWorkflow)finishReceiverWorkflow()}
   });
+  root.addEventListener("pointerdown",(event)=>{if(event.target.closest?.('[data-action="toggle-calendar"]'))event.preventDefault()});
   root.addEventListener("input",(event)=>{
     const input=event.target;
     if(input.matches("[data-receiver-search]")){search=input.value;page=1;clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadInbox({foreground:true}),260);return}
@@ -377,6 +383,7 @@
   });
   root.addEventListener("focusin",(event)=>{if(event.target.matches?.("[data-receiver-sku-input]"))showReceiverSkuSuggestions(event.target)});
   root.addEventListener("focusout",(event)=>{
+    if(event.target===openCalendarInput){const input=event.target;window.setTimeout(()=>{if(openCalendarInput===input&&!input.matches(":focus"))openCalendarInput=null},0)}
     window.setTimeout(flushBackgroundRender,0);
     if(!event.target.matches?.("[data-receiver-sku-input]"))return;
     const input=event.target;
@@ -402,8 +409,8 @@
   root.addEventListener("change",(event)=>{
     if(event.target.matches("[data-receiver-period]")){period=PERIOD_VALUES.has(event.target.value)?event.target.value:"today";if(period==="custom"){const today=reportingDateKey();customStart||=today;customEnd||=today}reportingDayKey=reportingDateKey();page=1;render();loadInbox({foreground:true});return}
     if(event.target.matches("[data-receiver-sort]")){sort=event.target.value;writePreference("sort",sort);page=1;render();loadInbox({foreground:true});return}
-    if(event.target.matches("[data-receiver-custom-start]")){customStart=event.target.value;if(customEnd&&customStart>customEnd)customEnd=customStart;page=1;render();loadInbox({foreground:true});return}
-    if(event.target.matches("[data-receiver-custom-end]")){customEnd=event.target.value;if(customStart&&customEnd<customStart)customStart=customEnd;page=1;render();loadInbox({foreground:true})}
+    if(event.target.matches("[data-receiver-custom-start]")){openCalendarInput=null;customStart=event.target.value;if(customEnd&&customStart>customEnd)customEnd=customStart;page=1;render();loadInbox({foreground:true});return}
+    if(event.target.matches("[data-receiver-custom-end]")){openCalendarInput=null;customEnd=event.target.value;if(customStart&&customEnd<customStart)customStart=customEnd;page=1;render();loadInbox({foreground:true})}
   });
   root.addEventListener("submit",async(event)=>{
     if(event.target.matches("[data-receiver-sign-in]")){
