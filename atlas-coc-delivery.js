@@ -31,14 +31,14 @@
   function activeStationKey() {
     const requested = requestedWarehouseCode();
     return cachedWarehouseContext?.selectedWarehouse?.code === requested
-      ? cachedWarehouseContext.station?.key
+      ? stationKeyFromContext(cachedWarehouseContext)
       : stationKeyForWarehouse(requested);
   }
 
   function activeStationName() {
     const requested = requestedWarehouseCode();
     return cachedWarehouseContext?.selectedWarehouse?.code === requested
-      ? cachedWarehouseContext.station?.displayName
+      ? stationNameFromContext(cachedWarehouseContext)
       : stationNameForWarehouse(requested);
   }
 
@@ -48,6 +48,25 @@
 
   function stationNameForWarehouse(code) {
     return clean(code, 8).toUpperCase() === "TX" ? "Texas Office COC Receiver" : "California Office COC Receiver";
+  }
+
+  function stationKeyFromContext(context) {
+    return clean(
+      context?.station?.key
+        || context?.station?.stationKey
+        || context?.station?.station_key
+        || stationKeyForWarehouse(context?.selectedWarehouse?.code || requestedWarehouseCode()),
+      80,
+    );
+  }
+
+  function stationNameFromContext(context) {
+    return clean(
+      context?.station?.displayName
+        || context?.station?.display_name
+        || stationNameForWarehouse(context?.selectedWarehouse?.code || requestedWarehouseCode()),
+      160,
+    );
   }
 
   const receiverSettingKey = (stationKey = activeStationKey()) => `${RECEIVER_SETTING_PREFIX}:${clean(stationKey, 80)}`;
@@ -177,7 +196,7 @@
     return edgeRequest("coc-receiver", {
       action: "station-status",
       warehouseCode: context.selectedWarehouse.code,
-      stationKey: context.station?.key || stationKeyForWarehouse(context.selectedWarehouse.code),
+      stationKey: stationKeyFromContext(context),
     });
   }
 
@@ -221,7 +240,7 @@
     });
     global.sessionStorage?.setItem("atlas-coc-pairing-pending", JSON.stringify({
       pairingSessionId: result.pairingSessionId,
-      stationKey: result.stationKey || context.station.key,
+      stationKey: result.stationKey || stationKeyFromContext(context),
       warehouseCode: context.selectedWarehouse.code,
       devicePublicId,
       deviceSecret,
@@ -268,12 +287,13 @@
 
   async function receiverCredentials() {
     const context = await warehouseContext();
-    const key = receiverSettingKey(context.station.key);
+    const contextStationKey = stationKeyFromContext(context);
+    const key = receiverSettingKey(contextStationKey);
     let stored = await global.AtlasCocStorage?.getSetting(key);
     if (!stored?.value && context.selectedWarehouse.code === "CA") {
       const legacy = await global.AtlasCocStorage?.getSetting(RECEIVER_SETTING_PREFIX);
       if (legacy?.value) {
-        const migrated = { ...legacy.value, stationKey: context.station.key, warehouseCode: "CA" };
+        const migrated = { ...legacy.value, stationKey: contextStationKey, warehouseCode: "CA" };
         await global.AtlasCocStorage?.setSetting(key, migrated);
         stored = { value: migrated };
       }
@@ -449,6 +469,8 @@
     activeStationName,
     stationKeyForWarehouse,
     stationNameForWarehouse,
+    stationKeyFromContext,
+    stationNameFromContext,
     loadOfficialTemplate,
     stationStatus,
     submitCoc,
