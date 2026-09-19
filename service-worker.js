@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v328-receiver-pairing-persistence";
+const VERSION = "atlas-pwa-v329-background-refresh-and-filters";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=170",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=182",
+  "./atlas-dashboard.js?v=183",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=6",
   "./atlas-coc.css?v=68",
@@ -23,18 +23,18 @@ const APP_SHELL = [
   "./atlas-coc.js?v=81",
   "./coc-receiver/index.html",
   "./coc-receiver/coc-receiver-favicon-32.png?v=2",
-  "./coc-receiver/receiver.css?v=35",
-  "./coc-receiver/receiver.js?v=41",
+  "./coc-receiver/receiver.css?v=36",
+  "./coc-receiver/receiver.js?v=42",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
   "./atlas-restock.js?v=3",
   "./atlas-delete-approval.js?v=1",
-  "./atlas-desktop.css?v=151",
+  "./atlas-desktop.css?v=152",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",
-  "./atlas-desktop.js?v=132",
+  "./atlas-desktop.js?v=133",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106",
   "./pallet-guides.json?v=20260831-thick-wall-aliases-v7",

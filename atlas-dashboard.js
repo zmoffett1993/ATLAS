@@ -2407,6 +2407,7 @@
       if (view === "access" && state.currentProfile?.role !== "admin") return;
       if (view === "cocs" && !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
       state.view = ["access", "cocs"].includes(view) ? view : "operations";
+      if (state.view === "access") state.accountWarehouseFilter = state.selectedWarehouse?.code || "CA";
       state.accountModal = null;
       state.cocSelected = null;
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
@@ -2626,6 +2627,7 @@
       const code = String(event.target.value || "").toUpperCase();
       localStorage.setItem(WAREHOUSE_SELECTION_KEY, code);
       state.selectedWarehouse = state.warehouses.find((warehouse) => warehouse.code === code) || state.selectedWarehouse;
+      state.accountWarehouseFilter = code;
       cocRequestSequence += 1;
       scannerRequestSequence += 1;
       state.skus = [];

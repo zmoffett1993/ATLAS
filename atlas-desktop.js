@@ -17,6 +17,13 @@
   let clockTimer = null;
   let syncQueued = false;
   let sidebarCollapsed = readSidebarPreference();
+  const syncSearchPlaceholder = (desktop) => {
+    document
+      .querySelectorAll('input[placeholder="Search SKU or scan printed SKU"], input[placeholder="Search SKU"]')
+      .forEach((input) => {
+        input.placeholder = desktop ? "Search SKU" : "Search SKU or scan printed SKU";
+      });
+  };
 
   const icons = {
     search:
@@ -432,6 +439,7 @@
 
     const topbar = ensureTopbar();
     ensureDesktopSidebar();
+    syncSearchPlaceholder(true);
     const title = topbar.querySelector("[data-desktop-page-title]");
     if (title) title.textContent = meta.title;
     const status = topbar.querySelector("[data-desktop-status]");
@@ -533,6 +541,7 @@
     restoreMobileSidebar();
     document.querySelector("[data-atlas-sidebar-toggle]")?.remove();
     document.querySelector(".atlas-desktop-topbar")?.remove();
+    syncSearchPlaceholder(false);
     observer?.disconnect();
     observer = null;
     if (clockTimer) window.clearInterval(clockTimer);

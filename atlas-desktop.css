@@ -1411,3 +1411,5 @@
     justify-content: flex-end;
   }
 }
+/* The desktop command bar already communicates connection state. */
+.atlas-desktop .brand-top > .connection{display:none!important}
