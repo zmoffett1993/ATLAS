@@ -13,7 +13,7 @@
   ];
   const PERIOD_OPTIONS=[
     ["today","Today"],["week","This Week"],["month","This Month"],
-    ["7d","Last 7 Days"],["30d","Last 30 Days"],["all","All Time"],
+    ["7d","Last 7 Days"],["30d","Last 30 Days"],["custom","Custom Range"],["all","All Time"],
   ];
   const SORT_VALUES=new Set(SORT_OPTIONS.map(([value])=>value));
   const PERIOD_VALUES=new Set(PERIOD_OPTIONS.map(([value])=>value));
@@ -24,12 +24,13 @@
   const workbookCache=new Map();
   let connection="reconnecting",pairing=null,pollTimer=null,subscription=null,lastSynced=null;
   const savedSort=readPreference("sort");
-  let search="",sort=SORT_VALUES.has(savedSort)?savedSort:"newest",period="today",page=1,total=0;
+  let search="",sort=SORT_VALUES.has(savedSort)?savedSort:"newest",period="today",customStart="",customEnd="",page=1,total=0;
   let reportingDayKey="";
   let metrics={awaiting:0,receivedToday:0,completedToday:0};
   let notice=null,loading=true,searchTimer=null,loadSequence=0;
   let completionState=null;
   let signInState={loading:false,error:""},receiverAuthSequence=0;
+  let inboxLoaded=false,pendingBackgroundRender=false;
 
   const esc=(value)=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   const plural=(count,word)=>`${Number(count||0).toLocaleString()} ${word}${Number(count)===1?"":word==="box"?"es":"s"}`;
@@ -46,7 +47,8 @@
   const shiftCalendarDate=(parts,days)=>{const shifted=new Date(Date.UTC(parts.year,parts.month-1,parts.day+days));return{year:shifted.getUTCFullYear(),month:shifted.getUTCMonth()+1,day:shifted.getUTCDate()}};
   const zonedMidnightUtc=(parts,timeZone)=>{const target=Date.UTC(parts.year,parts.month-1,parts.day,0,0,0);let guess=target;for(let attempt=0;attempt<4;attempt+=1){const actual=zonedDateParts(new Date(guess),timeZone,true),actualAsUtc=Date.UTC(actual.year,actual.month-1,actual.day,actual.hour,actual.minute,actual.second),adjustment=target-actualAsUtc;guess+=adjustment;if(!adjustment)break}return guess};
   const reportingDateKey=(date=new Date())=>{const parts=zonedDateParts(date,warehouseTimeZone());return`${parts.year}-${String(parts.month).padStart(2,"0")}-${String(parts.day).padStart(2,"0")}`};
-  function reportingPeriodBounds(selectedPeriod=period,date=new Date()){const timeZone=warehouseTimeZone(),today=zonedDateParts(date,timeZone);let startParts=null;if(selectedPeriod==="today")startParts=today;else if(selectedPeriod==="week"){const weekday=new Date(Date.UTC(today.year,today.month-1,today.day)).getUTCDay();startParts=shiftCalendarDate(today,-((weekday+6)%7))}else if(selectedPeriod==="month")startParts={year:today.year,month:today.month,day:1};else if(selectedPeriod==="7d")startParts=shiftCalendarDate(today,-6);else if(selectedPeriod==="30d")startParts=shiftCalendarDate(today,-29);return startParts?{periodStart:new Date(zonedMidnightUtc(startParts,timeZone)).toISOString(),periodEnd:new Date(zonedMidnightUtc(shiftCalendarDate(today,1),timeZone)).toISOString()}:{periodStart:"",periodEnd:""}}
+  const inputDateParts=(value)=>{const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||""));return match?{year:Number(match[1]),month:Number(match[2]),day:Number(match[3])}:null};
+  function reportingPeriodBounds(selectedPeriod=period,date=new Date()){const timeZone=warehouseTimeZone(),today=zonedDateParts(date,timeZone);let startParts=null,endParts=shiftCalendarDate(today,1);if(selectedPeriod==="today")startParts=today;else if(selectedPeriod==="week"){const weekday=new Date(Date.UTC(today.year,today.month-1,today.day)).getUTCDay();startParts=shiftCalendarDate(today,-((weekday+6)%7))}else if(selectedPeriod==="month")startParts={year:today.year,month:today.month,day:1};else if(selectedPeriod==="7d")startParts=shiftCalendarDate(today,-6);else if(selectedPeriod==="30d")startParts=shiftCalendarDate(today,-29);else if(selectedPeriod==="custom"){startParts=inputDateParts(customStart);const selectedEnd=inputDateParts(customEnd);if(!startParts||!selectedEnd)return{periodStart:"",periodEnd:""};endParts=shiftCalendarDate(selectedEnd,1)}return startParts?{periodStart:new Date(zonedMidnightUtc(startParts,timeZone)).toISOString(),periodEnd:new Date(zonedMidnightUtc(endParts,timeZone)).toISOString()}:{periodStart:"",periodEnd:""}}
   function resetReportingPeriodAtMidnight(date=new Date()){const current=reportingDateKey(date);if(!reportingDayKey){reportingDayKey=current;return false}if(reportingDayKey===current)return false;reportingDayKey=current;period="today";search="";page=1;return true}
   function freshRevision(){return{step:"preview",loading:false,error:"",editor:null,filePreviewHtml:"",generatedBytes:null,candidate:null,currentRevision:null,revisions:[]}}
   function readPreference(key){try{return localStorage.getItem(`atlas-coc-receiver-${key}`)||""}catch{return""}}
@@ -82,7 +84,7 @@
   function periodOptions(){return PERIOD_OPTIONS.map(([value,label])=>`<option value="${value}" ${period===value?"selected":""}>${label}</option>`).join("")}
   function periodLabel(){return PERIOD_OPTIONS.find(([value])=>value===period)?.[1]||"Today"}
   function backButton(action,label,extraClass=""){return `<button type="button" class="receiver-nav-back ${extraClass}" data-action="${esc(action)}"><span class="receiver-nav-back-icon" aria-hidden="true">←</span><span>${esc(label)}</span></button>`}
-  function toolbarMarkup(){return `<div class="receiver-toolbar"><label class="receiver-search">${icon("search")}<input type="search" data-receiver-search value="${esc(search)}" placeholder="Search customer, invoice, IF, or sales order" autocomplete="off"></label><label class="receiver-period"><span class="sr-only">Reporting period</span><select data-receiver-period aria-label="Reporting period">${periodOptions()}</select></label><label class="receiver-sort"><span class="sr-only">Sort reports</span><select data-receiver-sort>${sortOptions()}</select></label></div>`}
+  function toolbarMarkup(){return `<div class="receiver-toolbar"><label class="receiver-search">${icon("search")}<input type="search" data-receiver-search value="${esc(search)}" placeholder="Search customer, invoice, IF, or sales order" autocomplete="off"></label><label class="receiver-period"><span class="sr-only">Reporting period</span><select data-receiver-period aria-label="Reporting period">${periodOptions()}</select></label><label class="receiver-sort"><span class="sr-only">Sort reports</span><select data-receiver-sort>${sortOptions()}</select></label>${period==="custom"?`<div class="receiver-custom-range"><label><span>From</span><input type="date" data-receiver-custom-start value="${esc(customStart)}" aria-label="Custom range start date"></label><label><span>Through</span><input type="date" data-receiver-custom-end value="${esc(customEnd)}" aria-label="Custom range end date"></label></div>`:""}</div>`}
   function rowMarkup(record){const snap=snapshot(record),totals=recordTotals(record);return `<tr><td data-label="Date completed"><span class="receiver-date-check">✓</span>${dateTime(record.office_completed_at)}</td><td data-label="Customer"><strong>${esc(snap.customerName||"—")}</strong></td><td data-label="Invoice">${esc(snap.invoiceNumber||"—")}</td><td data-label="IF Number">${esc(snap.ifNumber||"—")}</td><td data-label="Sales order">${esc(snap.salesOrderNumber||"—")}</td><td data-label="Pallets / boxes">${plural(totals.pallets,"pallet")} · ${plural(totals.boxes,"box")}</td><td data-label="Actions"><div class="receiver-row-actions"><button type="button" class="receiver-view" data-action="open" data-id="${esc(record.id)}">VIEW</button><button type="button" class="receiver-small-action" data-action="download" data-id="${esc(record.id)}" aria-label="Download ${esc(snap.invoiceNumber||"COC")}">${icon("download")}</button></div></td></tr>`}
   function pageButtons(){const pages=Math.max(1,Math.ceil(total/PAGE_SIZE)),start=Math.max(1,Math.min(page-2,pages-4)),end=Math.min(pages,start+4);let items=`<button type="button" data-action="page" data-page="${page-1}" ${page<=1?"disabled":""} aria-label="Previous page">‹</button>`;for(let number=start;number<=end;number+=1)items+=`<button type="button" data-action="page" data-page="${number}" class="${number===page?"is-active":""}">${number}</button>`;if(end<pages)items+=`<span>…</span>`;items+=`<button type="button" data-action="page" data-page="${page+1}" ${page>=pages?"disabled":""} aria-label="Next page">›</button>`;return items}
   function reportsPanel(){const from=total?((page-1)*PAGE_SIZE)+1:0,to=Math.min(page*PAGE_SIZE,total),dateHeading=sort==="oldest"?"DATE COMPLETED ↑":sort==="newest"?"DATE COMPLETED ↓":"DATE COMPLETED",emptyMessage=search?`No completed COCs match this search for ${periodLabel().toLowerCase()}.`:`No completed COCs for ${periodLabel().toLowerCase()}.`;return `<section class="receiver-report-panel"><div class="receiver-panel-title"><div><span class="receiver-eyebrow">OFFICE HISTORY</span><h2>COMPLETED COCs</h2><p>Completed reports stay available here and can be filtered by date.</p></div></div>${toolbarMarkup()}<div class="receiver-table-wrap"><table><thead><tr><th>${dateHeading}</th><th>CUSTOMER</th><th>INVOICE</th><th>IF NUMBER</th><th>SALES ORDER</th><th>PALLETS / BOXES</th><th>ACTIONS</th></tr></thead><tbody>${completedDeliveries.length?completedDeliveries.map(rowMarkup).join(""):`<tr><td colspan="7"><div class="receiver-table-empty">${emptyMessage}</div></td></tr>`}</tbody></table></div><footer class="receiver-pagination"><span>Showing ${from}–${to} of ${total.toLocaleString()} ${periodLabel().toLowerCase()} completed COCs</span><nav aria-label="Report pages">${pageButtons()}</nav></footer></section>`}
@@ -136,12 +138,17 @@
     window.requestAnimationFrame?.(()=>window.requestAnimationFrame?.(place));
     window.setTimeout(place,140);
   }
-  function renderBackgroundUpdate(){if(!(selected&&preview&&previewState.status==="ready"))render()}
+  function inboxSignature(){return JSON.stringify({active:activeDeliveries,completed:completedDeliveries,total,metrics,page,period,search,sort})}
+  function updateReceiverStatus(){const status=root.querySelector(".receiver-status");if(!status)return;status.classList.toggle("is-offline",connection!=="connected");const strong=status.querySelector("strong"),small=status.querySelector("small");if(strong)strong.textContent=`● ${connection==="connected"?"CONNECTED · READY":connection==="reconnecting"?"RECONNECTING…":"OFFLINE"}`;if(small)small.textContent=`Last synced ${lastSynced?time(lastSynced):"—"}`}
+  function focusedReceiverControl(){const active=document.activeElement;return Boolean(active&&root.contains(active)&&active.matches?.("input, select, button, summary"))}
+  function renderPreservingView(){const scrollTop=window.scrollY||document.scrollingElement?.scrollTop||0,active=document.activeElement;let selector="",selectionStart=null,selectionEnd=null;if(active&&root.contains(active)){if(active.matches("[data-receiver-search]"))selector="[data-receiver-search]";else if(active.matches("[data-receiver-period]"))selector="[data-receiver-period]";else if(active.matches("[data-receiver-sort]"))selector="[data-receiver-sort]";else if(active.matches("[data-receiver-custom-start]"))selector="[data-receiver-custom-start]";else if(active.matches("[data-receiver-custom-end]"))selector="[data-receiver-custom-end]";selectionStart=active.selectionStart;selectionEnd=active.selectionEnd}render();window.requestAnimationFrame?.(()=>{window.scrollTo({top:scrollTop,left:0,behavior:"auto"});const replacement=selector?root.querySelector(selector):null;if(replacement){replacement.focus({preventScroll:true});if(selectionStart!==null&&replacement.setSelectionRange)replacement.setSelectionRange(selectionStart,selectionEnd)}})}
+  function flushBackgroundRender(){if(!pendingBackgroundRender||focusedReceiverControl()||selected||completionState)return;pendingBackgroundRender=false;renderPreservingView()}
+  function renderBackgroundUpdate(dataChanged=false,{foreground=false}={}){updateReceiverStatus();if(!dataChanged||selected||completionState)return;if(!foreground&&focusedReceiverControl()){pendingBackgroundRender=true;return}pendingBackgroundRender=false;renderPreservingView()}
 
   function sortCompletedRecords(records){return [...records].sort((left,right)=>{const leftTime=new Date(left?.office_completed_at||0).valueOf()||0,rightTime=new Date(right?.office_completed_at||0).valueOf()||0;if(sort==="oldest")return leftTime-rightTime;if(sort==="customer-asc"){const customerOrder=String(snapshot(left).customerName||"").localeCompare(String(snapshot(right).customerName||""),undefined,{sensitivity:"base"});return customerOrder||rightTime-leftTime}return rightTime-leftTime})}
   async function loadReportList(section){
     if(period==="all")return Delivery.receiverInbox(credentials,{section,withMeta:true,page,pageSize:PAGE_SIZE,search,sort});
-    const bounds=reportingPeriodBounds(),start=new Date(bounds.periodStart).valueOf(),end=new Date(bounds.periodEnd).valueOf(),records=[];
+    const bounds=reportingPeriodBounds();if(!bounds.periodStart||!bounds.periodEnd)return{deliveries:[],total:0,page,pageSize:PAGE_SIZE};const start=new Date(bounds.periodStart).valueOf(),end=new Date(bounds.periodEnd).valueOf(),records=[];
     let remotePage=1;
     while(true){
       const result=await Delivery.receiverInbox(credentials,{section,withMeta:true,page:remotePage,pageSize:PERIOD_FETCH_PAGE_SIZE,search,sort:"newest"}),batch=Array.isArray(result.deliveries)?result.deliveries:[];
@@ -154,10 +161,10 @@
     return{deliveries:ordered.slice(offset,offset+PAGE_SIZE),total:ordered.length,page,pageSize:PAGE_SIZE};
   }
 
-  async function loadInbox(){
+  async function loadInbox({foreground=false}={}){
     if(!credentials)return;const sequence=++loadSequence;loading=true;
     try{
-      resetReportingPeriodAtMidnight();
+      const periodReset=resetReportingPeriodAtMidnight(),previousSignature=inboxSignature();
       const section="completed";
       const todayBounds=reportingPeriodBounds("today");
       let [activeResult,listResult,metricResult]=await Promise.all([
@@ -170,15 +177,15 @@
       if(sent.length){await Promise.all(sent.map((item)=>Delivery.acknowledgeDelivery(item.id,credentials)));activeResult=await Delivery.receiverInbox(credentials,{section:"active",withMeta:true})}
       activeDeliveries=activeResult.deliveries||[];completedDeliveries=listResult.deliveries||[];total=Number(listResult.total||0);
       metrics={awaiting:Number(metricResult.awaiting||activeDeliveries.length),receivedToday:Number(metricResult.receivedToday||0),completedToday:Number(metricResult.completedToday||0)};
-      const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));if(page>pages){page=pages;return loadInbox()}
-      connection=navigator.onLine?"connected":"offline";lastSynced=new Date();renderBackgroundUpdate();
-    }catch(error){connection=navigator.onLine?"reconnecting":"offline";notice={tone:"error",text:error?.message||"The COC Receiver could not refresh."};renderBackgroundUpdate()}
+      const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));if(page>pages){page=pages;return loadInbox({foreground})}
+      connection=navigator.onLine?"connected":"offline";lastSynced=new Date();const currentSignature=inboxSignature(),dataChanged=!inboxLoaded||periodReset||previousSignature!==currentSignature;inboxLoaded=true;renderBackgroundUpdate(dataChanged,{foreground});
+    }catch(error){connection=navigator.onLine?"reconnecting":"offline";notice={tone:"error",text:error?.message||"The COC Receiver could not refresh."};updateReceiverStatus()}
     finally{loading=false}
   }
   async function startPairing(){try{branchContext=await Delivery.warehouseContext();pairing=await Delivery.createPairing();render();pollPairing()}catch(error){pairing={status:error.message||"Pairing could not start."};render()}}
   async function pollPairing(){if(!pairing?.pairingSessionId)return;for(let attempt=0;attempt<120&&!credentials;attempt+=1){await new Promise((resolve)=>setTimeout(resolve,2500));try{const result=await Delivery.pairingStatus(pairing.pairingSessionId);pairing={...pairing,...result};if(result.status==="PAIRED"){credentials=result.credentials;render();connect();return}render()}catch(error){pairing={...pairing,status:error.message};render();return}}}
-  function syncReceiverConnection(){Delivery.heartbeat(credentials).then((result)=>{connection="connected";lastSynced=new Date(result?.at||Date.now());renderBackgroundUpdate()}).catch((error)=>{if(error?.status===401||error?.status===403){void refreshReceiverAuth();return}connection=navigator.onLine?"reconnecting":"offline";renderBackgroundUpdate()});loadInbox()}
-  function connect(){clearInterval(pollTimer);subscription?.close?.();const stationFilter=credentials?.stationId?`station_id=eq.${credentials.stationId}`:"";subscription=Delivery.subscribeToDeliveries({filter:stationFilter,onChange:loadInbox,onState:(state)=>{connection=state;renderBackgroundUpdate()}});pollTimer=setInterval(syncReceiverConnection,10000);syncReceiverConnection()}
+  function syncReceiverConnection(){Delivery.heartbeat(credentials).then((result)=>{connection="connected";lastSynced=new Date(result?.at||Date.now());updateReceiverStatus()}).catch((error)=>{if(error?.status===401||error?.status===403){void refreshReceiverAuth();return}connection=navigator.onLine?"reconnecting":"offline";updateReceiverStatus()});loadInbox()}
+  function connect(){clearInterval(pollTimer);subscription?.close?.();const stationFilter=credentials?.stationId?`station_id=eq.${credentials.stationId}`:"";subscription=Delivery.subscribeToDeliveries({filter:stationFilter,onChange:()=>loadInbox(),onState:(state)=>{connection=state;updateReceiverStatus()}});pollTimer=setInterval(syncReceiverConnection,10000);syncReceiverConnection()}
   function showNotice(text,tone="success"){notice={text,tone};render();setTimeout(()=>{notice=null;render()},2600)}
   async function loadWorkbook(id){if(workbookCache.has(id))return workbookCache.get(id);const workbook=await Delivery.downloadOfficeWorkbook(id,credentials);workbook.fileName=officialFileName(recordById(id),workbook.fileName);workbookCache.set(id,workbook);return workbook}
   async function loadRevisionStatus(id){try{const result=await Delivery.cocWorkbookRevision("status",{deliveryId:id},branchCode());if(!selected||selected.id!==id)return;revisionState.currentRevision=result.currentRevision||null;revisionState.revisions=Array.isArray(result.revisions)?result.revisions:[];revisionState.error=""}catch(error){if(selected?.id===id)revisionState.error=revisionError(error,"Workbook revision history is unavailable.")}}
@@ -333,12 +340,12 @@
     if(action==="revision-approve")await approveRevision();
     if(action==="approve-existing")await approveExisting();
     if(action==="revision-return"){revisionState={...revisionState,step:"preview",loading:false,error:"",editor:null,candidate:null,filePreviewHtml:"",generatedBytes:null};render();positionOfficialPreview()}
-    if(action==="page"){page=Math.max(1,Number(button.dataset.page||1));render();loadInbox()}
+    if(action==="page"){page=Math.max(1,Number(button.dataset.page||1));render();loadInbox({foreground:true})}
     if(action==="download"){const completesWorkflow=button.dataset.completeWorkflow==="true",saved=await download(button);if(saved&&completesWorkflow)finishReceiverWorkflow()}
   });
   root.addEventListener("input",(event)=>{
     const input=event.target;
-    if(input.matches("[data-receiver-search]")){search=input.value;page=1;clearTimeout(searchTimer);searchTimer=setTimeout(loadInbox,260);return}
+    if(input.matches("[data-receiver-search]")){search=input.value;page=1;clearTimeout(searchTimer);searchTimer=setTimeout(()=>loadInbox({foreground:true}),260);return}
     if(!input.closest?.("[data-native-editor]"))return;
     clearReceiverFieldError(input);
     const row=input.closest?.("[data-native-line]");
@@ -370,6 +377,7 @@
   });
   root.addEventListener("focusin",(event)=>{if(event.target.matches?.("[data-receiver-sku-input]"))showReceiverSkuSuggestions(event.target)});
   root.addEventListener("focusout",(event)=>{
+    window.setTimeout(flushBackgroundRender,0);
     if(!event.target.matches?.("[data-receiver-sku-input]"))return;
     const input=event.target;
     window.setTimeout(()=>{if(!input.closest(".receiver-edit-model-cell")?.contains(document.activeElement))closeReceiverSkuSuggestions(input)},120);
@@ -392,8 +400,10 @@
     if(event.key==="Escape"){event.preventDefault();closeReceiverSkuSuggestions(input)}
   });
   root.addEventListener("change",(event)=>{
-    if(event.target.matches("[data-receiver-period]")){period=PERIOD_VALUES.has(event.target.value)?event.target.value:"today";reportingDayKey=reportingDateKey();page=1;render();loadInbox();return}
-    if(event.target.matches("[data-receiver-sort]")){sort=event.target.value;writePreference("sort",sort);page=1;render();loadInbox()}
+    if(event.target.matches("[data-receiver-period]")){period=PERIOD_VALUES.has(event.target.value)?event.target.value:"today";if(period==="custom"){const today=reportingDateKey();customStart||=today;customEnd||=today}reportingDayKey=reportingDateKey();page=1;render();loadInbox({foreground:true});return}
+    if(event.target.matches("[data-receiver-sort]")){sort=event.target.value;writePreference("sort",sort);page=1;render();loadInbox({foreground:true});return}
+    if(event.target.matches("[data-receiver-custom-start]")){customStart=event.target.value;if(customEnd&&customStart>customEnd)customEnd=customStart;page=1;render();loadInbox({foreground:true});return}
+    if(event.target.matches("[data-receiver-custom-end]")){customEnd=event.target.value;if(customStart&&customEnd<customStart)customStart=customEnd;page=1;render();loadInbox({foreground:true})}
   });
   root.addEventListener("submit",async(event)=>{
     if(event.target.matches("[data-receiver-sign-in]")){
@@ -409,6 +419,6 @@
   async function resolveReceiverAuthorization(){const saved=await Delivery.receiverCredentials().catch(()=>null);try{return await Delivery.verifyReceiver()}catch(error){return saved?{paired:true,credentials:saved,deferred:true}:{paired:false,error}}}
   async function refreshReceiverAuth(){const sequence=++receiverAuthSequence;credentials=null;branchContext=await Delivery.warehouseContext({force:true}).catch(()=>null);const verified=await resolveReceiverAuthorization();if(sequence!==receiverAuthSequence)return;credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};signInState={loading:false,error:""};render();if(credentials)connect()}
   window.addEventListener("atlas-auth-changed",()=>{void refreshReceiverAuth()});
-  window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";renderBackgroundUpdate()});
+  window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";updateReceiverStatus()});
   (async()=>{branchContext=await Delivery.warehouseContext().catch(()=>null);const verified=await resolveReceiverAuthorization();credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};render();if(credentials)connect()})();
 })();
