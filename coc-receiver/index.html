@@ -11,7 +11,7 @@
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
-      const refreshKey = "atlas-coc-receiver-v325-refreshed";
+      const refreshKey = "atlas-coc-receiver-v328-refreshed";
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (refreshing || sessionStorage.getItem(refreshKey)) return;
@@ -22,7 +22,7 @@
       window.addEventListener("load", async () => {
         try {
           const registration = await navigator.serviceWorker.register(
-            "../service-worker.js?v=257",
+            "../service-worker.js?v=258",
             { updateViaCache: "none" },
           );
           const activate = (worker) => worker?.postMessage({ type: "SKIP_WAITING" });
@@ -48,9 +48,9 @@
   <script src="../atlas-coc-references.js?v=2"></script>
   <script src="../atlas-jszip.min.js?v=1"></script>
   <script src="../atlas-coc-storage.js?v=5"></script>
-  <script src="../atlas-coc-delivery.js?v=11"></script>
+  <script src="../atlas-coc-delivery.js?v=12"></script>
   <script src="../atlas-coc-excel.js?v=20"></script>
   <script src="../atlas-coc-case-quantities.js?v=4"></script>
-  <script src="./receiver.js?v=40"></script>
+  <script src="./receiver.js?v=41"></script>
 </body>
 </html>
