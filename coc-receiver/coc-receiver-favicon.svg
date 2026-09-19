@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Incoming desktop">
+  <rect width="32" height="32" fill="#fff"/>
+  <path fill="#0d2d59" fill-rule="evenodd" d="M5 3h23a2 2 0 0 1 2 2v17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v17h23V5H5Z"/>
+  <path fill="#fff" d="M2 12h4v8H2z"/>
+  <path fill="#0d2d59" d="M14 24h5v4h-5zM11 28h11a1 1 0 0 1 1 1v1H10v-1a1 1 0 0 1 1-1Z"/>
+  <path fill="#0878f9" d="M1 14h11v-3l9 5-9 5v-3H1z"/>
+</svg>

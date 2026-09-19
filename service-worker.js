@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v331-coc-receiver-favicon";
+const VERSION = "atlas-pwa-v332-coc-receiver-incoming-desktop";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -22,8 +22,9 @@ const APP_SHELL = [
   "./atlas-coc-excel.js?v=20",
   "./atlas-coc.js?v=81",
   "./coc-receiver/index.html",
-  "./coc-receiver/coc-receiver-favicon-16.png?v=3",
-  "./coc-receiver/coc-receiver-favicon-32.png?v=3",
+  "./coc-receiver/coc-receiver-favicon.svg?v=4",
+  "./coc-receiver/coc-receiver-favicon-16.png?v=4",
+  "./coc-receiver/coc-receiver-favicon-32.png?v=4",
   "./coc-receiver/receiver.css?v=37",
   "./coc-receiver/receiver.js?v=43",
   "./atlas-guided-workflows.css?v=4",

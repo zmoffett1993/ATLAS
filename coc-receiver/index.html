@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#071f43">
   <title>ATLAS COC Receiver</title>
-  <link rel="icon" type="image/png" sizes="16x16" href="./coc-receiver-favicon-16.png?v=3">
-  <link rel="icon" type="image/png" sizes="32x32" href="./coc-receiver-favicon-32.png?v=3">
+  <link rel="icon" type="image/svg+xml" href="./coc-receiver-favicon.svg?v=4">
+  <link rel="icon" type="image/png" sizes="16x16" href="./coc-receiver-favicon-16.png?v=4">
+  <link rel="icon" type="image/png" sizes="32x32" href="./coc-receiver-favicon-32.png?v=4">
   <link rel="stylesheet" href="./receiver.css?v=37">
   <link rel="stylesheet" href="../atlas-auth.css?v=3">
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
-      const refreshKey = "atlas-coc-receiver-v331-refreshed";
+      const refreshKey = "atlas-coc-receiver-v332-refreshed";
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (refreshing || sessionStorage.getItem(refreshKey)) return;
