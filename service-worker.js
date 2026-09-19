@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v321-equal-coc-action-buttons";
+const VERSION = "atlas-pwa-v323-coc-receiver-cache-refresh";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -22,8 +22,9 @@ const APP_SHELL = [
   "./atlas-coc-excel.js?v=20",
   "./atlas-coc.js?v=81",
   "./coc-receiver/index.html",
+  "./coc-receiver/coc-receiver-favicon-32.png?v=1",
   "./coc-receiver/receiver.css?v=34",
-  "./coc-receiver/receiver.js?v=38",
+  "./coc-receiver/receiver.js?v=39",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",
@@ -112,6 +113,9 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   const isNavigation = request.mode === "navigate";
+  const isReceiverAsset =
+    url.origin === self.location.origin &&
+    url.pathname.includes("/coc-receiver/");
   const isSupabaseRead =
     url.hostname.endsWith(".supabase.co") &&
     url.pathname.startsWith("/rest/v1/");
@@ -126,7 +130,7 @@ self.addEventListener("fetch", (event) => {
       networkFirst(
         request,
         SHELL_CACHE,
-        caches.match(url.pathname.startsWith("/coc-receiver")
+        caches.match(url.pathname.includes("/coc-receiver/")
           ? "./coc-receiver/index.html"
           : "./index.html"),
       ),
@@ -155,6 +159,13 @@ self.addEventListener("fetch", (event) => {
         if (response.ok) await cache.put(request, response.clone());
         return response;
       }),
+    );
+    return;
+  }
+
+  if (isReceiverAsset) {
+    event.respondWith(
+      networkFirst(request, SHELL_CACHE, caches.match(request)),
     );
     return;
   }
