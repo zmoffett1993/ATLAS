@@ -28,7 +28,7 @@ function fixture(){
   };
   const context=vm.createContext({window,document,fetch,MutationObserver:class{observe(){}},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null},Intl,URL,Date,console,Map,Set});
   vm.runInContext(fs.readFileSync(path.join(root,'atlas-login.js'),'utf8'),context);
-  vm.runInContext(source.replace('window.atlasOpenDashboard = openDashboard;','window.atlasOpenDashboard = openDashboard; window.testApi = {state,loadData,loadAdminUsers,startDashboardRefresh,flushBackgroundRender,render,renderAccountModal,renderAccessManagement,handleClick,handleSubmit,handleChange,syncReceiverIdentity};'),context);
+  vm.runInContext(source.replace('window.atlasOpenDashboard = openDashboard;','window.atlasOpenDashboard = openDashboard; window.testApi = {state,loadData,loadAdminUsers,startDashboardRefresh,flushBackgroundRender,render,renderAccountModal,renderAccessManagement,handleClick,handleSubmit,handleChange,syncReceiverIdentity,renderCocOversight,renderDashboard,scannerApi,loadScannerData};'),context);
   const api=window.testApi;
   Object.assign(api.state,{mounted:true,open:true,view:'access',currentProfile:{role:'admin'},session,warehouses,selectedWarehouse:warehouses[0],skus:[{id:'s'}]});
   const tick=async ms=>{const until=now+ms;while(true){const next=[...timers].filter(([,timer])=>timer.time<=until).sort((a,b)=>a[1].time-b[1].time)[0];if(!next)break;const [key,timer]=next;now=timer.time;if(timer.interval)timer.time+=timer.interval;else timers.delete(key);timer.fn();for(let i=0;i<25;i++)await Promise.resolve();}now=until;};
@@ -136,9 +136,9 @@ test('all APP_SHELL assets exist and modified HTML asset versions match',()=>{
     for(const name of ['atlas-login.js','atlas-auth.js','atlas-dashboard.js','atlas-dashboard.css','atlas-auth.css']){
       const match=html.match(new RegExp(name.replaceAll('.','\\.')+'\\?v=([0-9]+)'));if(match)assert.ok(shell.includes(`./${name}?v=${match[1]}`),`${file}: ${name}`);
     }
-    assert.match(html,/service-worker.js\?v=270/);
+    assert.match(html,/service-worker.js\?v=271/);
   }
-  assert.match(sw,/atlas-pwa-v357-receiver-login-names/);
+  assert.match(sw,/atlas-pwa-v358-scanner-admin-access/);
 });
 
 for(const code of ['CA','TX'])test(code+' Office Receiver form synchronizes names without replacing account UUID',()=>{
@@ -154,4 +154,15 @@ test('Receiver name drift is blocked before account submission',async()=>{
  const values={role:'office_receiver',warehouse_code:'TX',display_name:'TX COC Receiver',login_name:'tampered',password:'synthetic-only'};
  const form={elements:Object.fromEntries(Object.entries(values).map(([k,value])=>[k,{value}])),matches:s=>s==='[data-account-create]',querySelector:s=>s==='[data-account-message]'?message:null};
  f.api.handleSubmit({target:form,preventDefault(){}});for(let i=0;i<10;i++)await Promise.resolve();assert.equal(f.requests.length,0);assert.match(message.textContent,/identical/);
+});
+
+for(const role of ['supervisor','admin'])test('COC Operations label and Scanner Intelligence access: '+role,async()=>{
+ const f=fixture();Object.assign(f.api.state,{view:'cocs',currentProfile:{role},cocWorkspace:'scanner'});
+ const html=f.api.renderDashboard();assert.match(html,/COC<br>Operations/);assert.ok(html.includes('>COC Operations</button>'));assert.doesNotMatch(html,/COC Oversight|COC<br>Oversight/);
+ assert.equal(html.includes('data-coc-workspace="scanner"'),role==='admin');
+ if(role==='supervisor'){
+  assert.equal(f.api.state.cocWorkspace,'operations');assert.doesNotMatch(html,/Scanner Intelligence/);
+  await f.api.loadScannerData();assert.equal(f.requests.length,0);
+  await assert.rejects(f.api.scannerApi('metrics'),/Administrator access/);assert.equal(f.requests.length,0);
+ }else{await f.api.loadScannerData();assert.equal(f.requests.filter(r=>r.url.includes('scanner-intelligence')).length,2);}
 });
