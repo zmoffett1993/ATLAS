@@ -300,8 +300,11 @@
     });
   }
 
-  async function receiverCredentials() {
-    const context = await warehouseContext();
+  async function receiverCredentials({ localOnly = false } = {}) {
+    if (RECEIVER_MODE && localOnly && !global.AtlasCocStorage?.getSetting) throw new Error("RECEIVER_STORAGE_UNAVAILABLE");
+    const context = RECEIVER_MODE && localOnly
+      ? { selectedWarehouse: { code: requestedWarehouseCode() } }
+      : await warehouseContext();
     const contextStationKey = stationKeyFromContext(context);
     const key = receiverSettingKey(contextStationKey);
     let stored = await global.AtlasCocStorage?.getSetting(key);
@@ -316,18 +319,26 @@
     return stored?.value || null;
   }
 
-  async function verifyReceiver() {
+  async function verifyReceiver(savedCredentials) {
     const userId = currentUser()?.id;
-    const credentials = await receiverCredentials();
+    const credentials = savedCredentials || await receiverCredentials();
     if (!credentials) return { paired: false };
     try {
       const result = await edgeRequest("coc-receiver", {
         action: "verify-receiver",
         stationKey: credentials.stationKey,
       }, { receiverCredentials: credentials });
+      if (RECEIVER_MODE && (result.revoked === true || result.paired === false)) return { paired: false, revoked: true };
       bindReceiverWarehouse(credentials, userId);
       return { ...result, paired: true, credentials };
     } catch (error) {
+      // Receiver startup must not discard pairing on an expired session or an
+      // ambiguous service failure. The deployed service also uses
+      // RECEIVER_NOT_AUTHORIZED for database lookup errors.
+      if (RECEIVER_MODE) {
+        if (error.status === 401 && error.message === "RECEIVER_CREDENTIALS_REQUIRED") return { paired: false, invalid: true };
+        throw error;
+      }
       if ((error.status === 401 || error.status === 403) && userId === currentUser()?.id) {
         await global.AtlasCocStorage?.deleteSetting(receiverSettingKey(credentials.stationKey));
         return { paired: false, revoked: true };
