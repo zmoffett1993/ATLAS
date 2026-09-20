@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v356-owned-coc-drafts";
+const VERSION = "atlas-pwa-v357-receiver-login-names";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,9 +7,10 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=171",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=186",
+  "./atlas-dashboard.js?v=187",
   "./atlas-auth.css?v=4",
-  "./atlas-auth.js?v=7",
+  "./atlas-login.js?v=1",
+  "./atlas-auth.js?v=8",
   "./atlas-coc.css?v=68",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",

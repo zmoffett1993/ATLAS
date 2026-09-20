@@ -1793,6 +1793,7 @@
     }
     const isCreate = mode === "create";
     const selectedWarehouseCode = isCreate ? (state.selectedWarehouse?.code || "") : (user.warehouse_code || "");
+    const receiverIdentity = !isCreate && user.role === "office_receiver" ? window.AtlasLogin.receiverName(selectedWarehouseCode) : "";
     const homeOptions = warehouseSelectOptions();
     if (!homeOptions.some((option) => option.value === selectedWarehouseCode)) {
       homeOptions.unshift({ value: selectedWarehouseCode, label: selectedWarehouseCode || "Unassigned — select a warehouse" });
@@ -1807,12 +1808,13 @@
           <form class="atlas-account-form" data-${isCreate ? "account-create" : "account-update"}>
             ${isCreate ? "" : `<input type="hidden" name="user_id" value="${escapeHtml(user.id)}">`}
             <div class="atlas-account-form-grid">
-              <label><span>Display name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required><small>The name shown on ATLAS records and activity.</small></label>
-              <label><span>Sign-in name</span><input type="text" name="login_name" value="${escapeHtml(isCreate ? "" : user.login_name)}" autocomplete="off" placeholder="Example: Zach" required><small>The simple name this employee enters with their password.</small></label>
+              <label><span>Display name</span><input type="text" name="display_name" value="${escapeHtml(receiverIdentity || (isCreate ? "" : user.display_name))}" autocomplete="off" maxlength="60" ${receiverIdentity ? "readonly" : ""} required><small>The name shown on ATLAS records and activity.</small></label>
+              <label><span>Sign-in name</span><input type="text" name="login_name" value="${escapeHtml(receiverIdentity || (isCreate ? "" : user.login_name))}" autocomplete="off" maxlength="60" ${receiverIdentity ? "readonly" : ""} placeholder="Example: Zach" required><small>The simple name this employee enters with their password.</small></label>
               <div class="atlas-account-field atlas-account-field--role"><span>ATLAS role</span>${renderPremiumSelect({ name: "role", value: isCreate ? "picker" : user.role, options: roleSelectOptions(), ariaLabel: "Select ATLAS role", className: "atlas-premium-select--role" })}<small>Choose the employee’s ATLAS permissions.</small></div>
               <div class="atlas-account-field atlas-account-field--warehouse"><span>Home warehouse</span>${renderPremiumSelect({ name: "warehouse_code", value: selectedWarehouseCode, options: homeOptions, ariaLabel: "Select home warehouse", className: "atlas-premium-select--warehouse" })}<small>Employees and supervisors are locked to this warehouse. Administrators can view both.</small></div>
               ${isCreate ? `<label><span>Password</span>${passwordField({ autocomplete: "new-password", minlength: 10 })}<small>At least 10 characters</small></label>` : ""}
             </div>
+            <p data-receiver-identity-note ${receiverIdentity ? "" : "hidden"}>${receiverIdentity ? `Office Receiver home: ${escapeHtml(selectedWarehouseCode)}. Saving sets both names to ${escapeHtml(receiverIdentity)}; the account and password are preserved.` : ""}</p>
             <p class="atlas-account-form-message" data-account-message></p>
             <div class="atlas-account-modal-actions">
               <button type="button" class="atlas-dashboard-button" data-account-close>Cancel</button>
@@ -2625,7 +2627,22 @@
     if (typeof start === "number") input?.setSelectionRange(start, end, direction || "none");
   };
 
+  const syncReceiverIdentity = form => {
+    if (!form?.elements?.role) return;
+    const receiver = form.elements.role.value === "office_receiver";
+    const code = form.elements.warehouse_code.value;
+    const name = receiver ? window.AtlasLogin.receiverName(code) : "";
+    for (const field of [form.elements.display_name, form.elements.login_name]) {
+      field.readOnly = receiver;
+      if (receiver) field.value = name;
+    }
+    const note = form.querySelector("[data-receiver-identity-note]");
+    if (note) { note.hidden = !receiver; note.textContent = name ? `Office Receiver home: ${code}. Both names are ${name}; the account and password are preserved.` : "Select CA or TX for this Office Receiver."; }
+  };
+
   const handleChange = (event) => {
+    const accountForm = event.target.closest?.("[data-account-create], [data-account-update]");
+    if (accountForm && ["role", "warehouse_code"].includes(event.target.name)) { syncReceiverIdentity(accountForm); return; }
     if (event.target.matches("[data-coc-revision-file]")) {
       const file = event.target.files?.[0] || null;
       state.cocRevision.error = "";
@@ -2819,7 +2836,7 @@
         : await api("/auth/v1/token?grant_type=password", {
           token: null,
           method: "POST",
-          body: { email: form.elements.login_name.value.trim(), password: form.elements.password.value },
+          body: { email: window.AtlasLogin.identity(form.elements.login_name.value).key + "@users.atlas.invalid", password: form.elements.password.value },
         });
       state.session = payload;
       state.accessRequired = false;
@@ -2884,6 +2901,10 @@
     state.adminError = "";
     try {
       if (action === "create" || action === "update") {
+        if (payload.role === "office_receiver") {
+          const expectedName = window.AtlasLogin.receiverName(payload.warehouse_code);
+          if (!expectedName || payload.display_name !== expectedName || payload.login_name !== expectedName) throw new Error("Select a home warehouse and keep both Office Receiver names identical.");
+        }
         // Keep only the operation ID on the live form; never persist a password.
         form.atlasOperationId ||= window.crypto.randomUUID();
         payload.operation_id = form.atlasOperationId;

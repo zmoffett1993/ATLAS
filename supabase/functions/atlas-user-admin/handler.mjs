@@ -1,8 +1,24 @@
+import "../../../atlas-login.js";
+const login = globalThis.AtlasLogin;
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,apikey,content-type,x-atlas-receiver-id,x-atlas-receiver-secret" };
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
-const problem = (message, status = 400) => Object.assign(new Error(message), { status });
+const problem = (message, status = 400) => Object.assign(new Error(message), { status, publicMessage: true });
 const clean = (value, maximum = 120) => String(value ?? "").trim().slice(0, maximum);
-const normalizeLoginName = value => clean(value, 80).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9._-]+/g, "").slice(0, 48);
+const classify = error => {
+  const code = String(error?.code || ""), message = String(error?.message || "");
+  const known = [
+    [/email_exists|user_already_exists|LOGIN_NAME_IN_USE/i,"login_name_in_use","That sign-in name is already in use.",409],
+    [/LOGIN_KEY_COLLISION/i,"login_key_collision","That sign-in name conflicts with another account.",409],
+    [/ASSIGNMENT_REVISION_CONFLICT|40001|This account changed/i,"stale_revision","This account changed. Reload the account list before saving.",409],
+    [/WAREHOUSE_/i,"invalid_warehouse","Select a valid, active home warehouse.",400],
+    [/LOGIN_NAME_INVALID|LOGIN_KEY_INVALID/i,"invalid_login_name","Enter a valid sign-in name; email addresses are not allowed.",400],
+    [/ACCOUNT_NOT_FOUND|user_not_found/i,"account_not_found","The account was not found.",404],
+    [/ADMINISTRATOR_REQUIRED|42501/i,"administrator_required","Administrator authorization is required.",403],
+  ];
+  for (const [pattern,category,messageText,status] of known) if(pattern.test(code+" "+message)) return {category,message:messageText,status};
+  if (error?.publicMessage && error.status && error.status < 500) return {category:"validation",message:error.message,status:error.status};
+  return {category:code === "unexpected_failure" ? "auth_transaction_failure" : "unconfirmed",status:503};
+};
 const checked = result => { if (result.error) throw result.error; return result.data; };
 const uuid = value => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const revision = user => Number(user?.app_metadata?.atlas_assignment_revision || 0);
@@ -14,10 +30,12 @@ async function assignment(db, body) {
   const code = typeof body.warehouse_code === "string" ? body.warehouse_code.trim().toUpperCase() : "";
   if (!/^[A-Z]{2,8}$/.test(code)) throw problem("WAREHOUSE_REQUIRED_OR_INVALID");
   const displayName = clean(body.display_name, 60);
-  const loginName = normalizeLoginName(body.login_name);
+  let identity;
+  try { identity = login.identity(body.login_name); } catch { throw problem("Enter a valid sign-in name; email addresses are not allowed."); }
+  const loginName = identity.name;
   if (!displayName) throw problem("DISPLAY_NAME_REQUIRED");
-  if (loginName.length < 2) throw problem("Enter at least two characters for the sign-in name.");
-  return { role, warehouse_code: code, display_name: displayName, login_name: loginName };
+  if (role === "office_receiver" && (!login.receiverName(code) || displayName !== login.receiverName(code) || loginName !== displayName)) throw problem("Office Receiver names must both match the selected warehouse: CA COC Receiver or TX COC Receiver.");
+  return { role, warehouse_code: code, display_name: displayName, login_name: loginName, login_key: identity.key };
 }
 
 export function createHandler(service) {
@@ -59,7 +77,7 @@ export function createHandler(service) {
         }
         const home = checked(await db.from("warehouses").select("id,code,active").eq("active",true));
         if (!home.some(row => row.code === value.warehouse_code)) throw problem("WAREHOUSE_INACTIVE_OR_UNKNOWN");
-        if (users.some(user => user.id !== body.user_id && normalizeLoginName(user.login_name) === value.login_name)) {
+        if (users.some(user => user.id !== body.user_id && (() => { try { return login.identity(user.login_name).key === value.login_key; } catch { return false; } })())) {
           throw problem("That sign-in name is already in use.",409);
         }
         const marker = { ...value, actor_id: actor.id, operation_id: body.operation_id,
@@ -68,13 +86,13 @@ export function createHandler(service) {
           if (action === "create") {
             const password = String(body.password || "");
             if (password.length < 10) throw problem("PASSWORD_TOO_SHORT");
-            checked(await db.auth.admin.createUser({email:value.login_name+"@users.atlas.invalid",password,email_confirm:true,
+            checked(await db.auth.admin.createUser({email:value.login_key+"@users.atlas.invalid",password,email_confirm:true,
               app_metadata:{atlas_assignment_request:marker}}));
           } else {
             const current = checked(await db.auth.admin.getUserById(body.user_id)).user;
             if (!current || current.deleted_at) throw problem("ACCOUNT_NOT_FOUND",404);
             if (revision(current) !== body.expected_revision) throw problem("This account changed. Reload the account list before saving.",409);
-            checked(await db.auth.admin.updateUserById(body.user_id,{email:value.login_name+"@users.atlas.invalid",email_confirm:true,
+            checked(await db.auth.admin.updateUserById(body.user_id,{email:value.login_key+"@users.atlas.invalid",email_confirm:true,
               app_metadata:{atlas_assignment_request:marker}}));
           }
         } catch(error) {
@@ -82,7 +100,20 @@ export function createHandler(service) {
           // record resolves that ambiguity; never compensate with separate writes.
           const saved = await reconcile();
           if (saved) return json(saved);
-          if (error.status && error.status < 500) throw error;
+          // Auth may wrap a concurrent unique-key rejection in a generic 500.
+          // Reconcile again after a fresh conflicting identity becomes visible.
+          if (!error?.publicMessage && Number(error?.status || 500) >= 500) {
+            const latest = await snapshot(db, actor.id);
+            const conflict = latest.some(user => user.id !== body.user_id && (() => { try { return login.identity(user.login_name).key === value.login_key; } catch { return false; } })());
+            if (conflict) {
+              const confirmed = await reconcile();
+              if (confirmed) return json(confirmed);
+              throw problem("That sign-in name is already in use.",409);
+            }
+          }
+          const safe = classify(error);
+          console.error(JSON.stringify({event:"atlas_account_assignment_failed",action,category:safe.category,status:Number(error?.status)||500}));
+          if (safe.status < 500) throw problem(safe.message,safe.status);
           throw problem("The save could not be confirmed. Retry this same form to check its outcome.",503);
         }
         const saved = await reconcile();
@@ -108,7 +139,7 @@ export function createHandler(service) {
       const forbidden = error?.code === "42501";
       const status = forbidden ? 403 : Number(error?.status) || 500;
       // Never forward database/SDK diagnostics, which may contain account details.
-      return json({error:forbidden ? "ADMINISTRATOR_REQUIRED" : error instanceof Error && error.status ?
+      return json({error:forbidden ? "ADMINISTRATOR_REQUIRED" : error?.publicMessage ?
         error.message : "ACCOUNT_REQUEST_FAILED"},status);
     }
   };

@@ -13,7 +13,7 @@
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
-      const refreshKey = "atlas-coc-receiver-v356-refreshed";
+      const refreshKey = "atlas-coc-receiver-v357-refreshed";
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         // Apply background updates on the next page load, without interrupting office work.
@@ -26,7 +26,7 @@
       window.addEventListener("load", async () => {
         try {
           const registration = await navigator.serviceWorker.register(
-            "../service-worker.js?v=269",
+            "../service-worker.js?v=270",
             { updateViaCache: "none" },
           );
           const activate = (worker) => worker?.postMessage({ type: "SKIP_WAITING" });
@@ -54,7 +54,8 @@
     </section>
   </main>
   <script>window.atlasSupabaseConfig={url:"https://dwrrbpiprcmajfyronlf.supabase.co",key:"sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa"};</script>
-  <script src="../atlas-auth.js?v=7"></script>
+  <script src="../atlas-login.js?v=1"></script>
+  <script src="../atlas-auth.js?v=8"></script>
   <script src="../atlas-coc-references.js?v=2"></script>
   <script src="../atlas-jszip.min.js?v=1"></script>
   <script src="../atlas-coc-storage.js?v=5"></script>

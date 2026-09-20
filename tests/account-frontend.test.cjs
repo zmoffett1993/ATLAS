@@ -27,7 +27,8 @@ function fixture(){
     return {ok:true,status:200,json:async()=>payload};
   };
   const context=vm.createContext({window,document,fetch,MutationObserver:class{observe(){}},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null},Intl,URL,Date,console,Map,Set});
-  vm.runInContext(source.replace('window.atlasOpenDashboard = openDashboard;','window.atlasOpenDashboard = openDashboard; window.testApi = {state,loadData,loadAdminUsers,startDashboardRefresh,flushBackgroundRender,render,renderAccountModal,renderAccessManagement,handleClick,handleSubmit};'),context);
+  vm.runInContext(fs.readFileSync(path.join(root,'atlas-login.js'),'utf8'),context);
+  vm.runInContext(source.replace('window.atlasOpenDashboard = openDashboard;','window.atlasOpenDashboard = openDashboard; window.testApi = {state,loadData,loadAdminUsers,startDashboardRefresh,flushBackgroundRender,render,renderAccountModal,renderAccessManagement,handleClick,handleSubmit,handleChange,syncReceiverIdentity};'),context);
   const api=window.testApi;
   Object.assign(api.state,{mounted:true,open:true,view:'access',currentProfile:{role:'admin'},session,warehouses,selectedWarehouse:warehouses[0],skus:[{id:'s'}]});
   const tick=async ms=>{const until=now+ms;while(true){const next=[...timers].filter(([,timer])=>timer.time<=until).sort((a,b)=>a[1].time-b[1].time)[0];if(!next)break;const [key,timer]=next;now=timer.time;if(timer.interval)timer.time+=timer.interval;else timers.delete(key);timer.fn();for(let i=0;i<25;i++)await Promise.resolve();}now=until;};
@@ -132,10 +133,25 @@ test('all APP_SHELL assets exist and modified HTML asset versions match',()=>{
   for(const url of shell)assert.ok(fs.existsSync(path.join(root,url.split('?')[0])),url);
   for(const file of ['index.html','coc-receiver/index.html']){
     const html=fs.readFileSync(path.join(root,file),'utf8');
-    for(const name of ['atlas-dashboard.js','atlas-dashboard.css','atlas-auth.css']){
+    for(const name of ['atlas-login.js','atlas-auth.js','atlas-dashboard.js','atlas-dashboard.css','atlas-auth.css']){
       const match=html.match(new RegExp(name.replaceAll('.','\\.')+'\\?v=([0-9]+)'));if(match)assert.ok(shell.includes(`./${name}?v=${match[1]}`),`${file}: ${name}`);
     }
-    assert.match(html,/service-worker.js\?v=269/);
+    assert.match(html,/service-worker.js\?v=270/);
   }
-  assert.match(sw,/atlas-pwa-v356-owned-coc-drafts/);
+  assert.match(sw,/atlas-pwa-v357-receiver-login-names/);
+});
+
+for(const code of ['CA','TX'])test(code+' Office Receiver form synchronizes names without replacing account UUID',()=>{
+ const f=fixture(),note={};const elements={role:{value:'office_receiver'},warehouse_code:{value:code},display_name:{value:'Old display'},login_name:{value:'oldkey'}};
+ const form={elements,querySelector:()=>note};f.api.syncReceiverIdentity(form);
+ assert.equal(elements.display_name.value,code+' COC Receiver');assert.equal(elements.login_name.value,code+' COC Receiver');assert.equal(elements.login_name.readOnly,true);assert.match(note.textContent,new RegExp('home: '+code));
+ elements.warehouse_code.value=code==='CA'?'TX':'CA';f.api.handleChange({target:{name:'warehouse_code',closest:()=>form}});assert.equal(elements.login_name.value,elements.warehouse_code.value+' COC Receiver');
+ f.api.state.adminUsers=[{id:'original-id',role:'office_receiver',display_name:'Old display',login_name:'oldkey',warehouse_code:code}];f.api.state.accountModal={mode:'edit',userId:'original-id'};
+ const html=f.api.renderAccountModal();assert.match(html,/name="user_id" value="original-id"/);assert.equal((html.match(new RegExp('value="'+code+' COC Receiver"','g'))||[]).length,2);assert.doesNotMatch(html,/value="oldkey"/);
+});
+test('Receiver name drift is blocked before account submission',async()=>{
+ const f=fixture();f.api.state.accountModal={mode:'create'};const message={};
+ const values={role:'office_receiver',warehouse_code:'TX',display_name:'TX COC Receiver',login_name:'tampered',password:'synthetic-only'};
+ const form={elements:Object.fromEntries(Object.entries(values).map(([k,value])=>[k,{value}])),matches:s=>s==='[data-account-create]',querySelector:s=>s==='[data-account-message]'?message:null};
+ f.api.handleSubmit({target:form,preventDefault(){}});for(let i=0;i<10;i++)await Promise.resolve();assert.equal(f.requests.length,0);assert.match(message.textContent,/identical/);
 });

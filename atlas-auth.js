@@ -23,21 +23,9 @@
     try { return JSON.parse(value || "null"); } catch { return null; }
   };
 
-  const normalizeLoginName = (value) => String(value || "")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "")
-    .slice(0, 48);
+  const normalizeLoginName = value => global.AtlasLogin.identity(value).key;
 
-  const internalEmail = (loginName) => {
-    const legacyEmail = String(loginName || "").trim().toLowerCase();
-    if (legacyEmail.includes("@")) return legacyEmail;
-    const normalized = normalizeLoginName(loginName);
-    if (normalized.length < 2) throw new Error("Enter your ATLAS name.");
-    return `${normalized}@${INTERNAL_DOMAIN}`;
-  };
+  const internalEmail = loginName => `${normalizeLoginName(loginName)}@${INTERNAL_DOMAIN}`;
 
   const parseSession = (raw) => {
     const parsed = typeof raw === "string" ? safeJson(raw) : raw;
@@ -160,7 +148,8 @@
     if (session?.access_token) request(scope === "local" ? "/auth/v1/logout?scope=local" : "/auth/v1/logout", {}, session.access_token).catch(() => {});
   };
 
-  const displayName = (session = getSession()) => session?.user?.user_metadata?.display_name
+  const displayName = (session = getSession()) => (session?.user?.app_metadata?.role === "office_receiver" && session?.user?.app_metadata?.login_key ? session.user.app_metadata.login_name : "")
+    || session?.user?.user_metadata?.display_name
     || session?.user?.app_metadata?.display_name
     || session?.user?.app_metadata?.login_name
     || "ATLAS user";
