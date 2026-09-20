@@ -11,6 +11,7 @@
 .atlas-auth-modal input:focus{outline:3px solid rgba(17,112,235,.17);border-color:#1170eb}
 .atlas-auth-password-field{position:relative;display:block;min-width:0}
 .atlas-auth-password-field>input{padding-right:54px}
+.atlas-auth-password-field>input::-ms-reveal,.atlas-auth-password-field>input::-ms-clear{display:none}
 .atlas-auth-password-toggle{position:absolute;top:50%;right:7px;width:40px;height:40px;padding:0;display:grid;place-items:center;color:#60748e;border:0;border-radius:10px;background:transparent;cursor:pointer;transform:translateY(-50%)}
 .atlas-auth-password-toggle:hover{color:#0b5bc3;background:#edf5ff}
 .atlas-auth-password-toggle:focus-visible{outline:2px solid rgba(17,112,235,.34);outline-offset:0}

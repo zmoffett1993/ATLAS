@@ -15,6 +15,9 @@
   }
 
   const ACTIVE_KEY = "atlas-coc-active-v1";
+  const OWNED_ACTIVE_PREFIX = "atlas-coc-active-v2";
+  let draftContextKey = "";
+  let accountGeneration = 0;
   const DEVICE_KEY = "atlas-coc-device-id-v1";
   const SCANNER_RELEASE_VERSION = "1.0.0";
   const SCANNER_STATES = Object.freeze({
@@ -202,26 +205,114 @@
     return id;
   };
 
+  function activeDraftKey() {
+    const userId = currentUserId();
+    const warehouse = Delivery.requestedWarehouseCode();
+    return userId && ["CA", "TX"].includes(warehouse)
+      ? `${OWNED_ACTIVE_PREFIX}:${userId}:${warehouse}` : "";
+  }
+
+  function currentOperation() {
+    const generation = accountGeneration;
+    const key = draftContextKey;
+    return () => Boolean(key && generation === accountGeneration && key === activeDraftKey());
+  }
+
   function readSession() {
+    draftContextKey = activeDraftKey();
+    session = null;
+    if (!draftContextKey) return;
     try {
-      const raw = localStorage.getItem(ACTIVE_KEY);
-      session = raw ? Core.sanitize(JSON.parse(raw)) : null;
+      const raw = localStorage.getItem(draftContextKey);
+      const saved = raw ? JSON.parse(raw) : null;
+      if (closedDrafts().some((entry) => entry.id === saved?.snapshot?.id)) return;
+      if (saved?.ownerUserId === currentUserId() &&
+          saved?.warehouseCode === Delivery.requestedWarehouseCode() &&
+          saved?.snapshot?.warehouseCode === saved.warehouseCode) {
+        session = Core.sanitize(saved.snapshot);
+      }
     } catch (error) {
       console.error("ATLAS protected an invalid COC draft.", error);
-      const broken = localStorage.getItem(ACTIVE_KEY);
-      if (broken) localStorage.setItem(`${ACTIVE_KEY}-recovery-${Date.now()}`, broken);
-      localStorage.removeItem(ACTIVE_KEY);
-      session = null;
+      // Leave the original untouched for recovery, including storage failures.
     }
   }
 
+  function storeActiveDraft() {
+    if (!draftContextKey || draftContextKey !== activeDraftKey() ||
+        session?.warehouseCode !== Delivery.requestedWarehouseCode()) return false;
+    localStorage.setItem(draftContextKey, JSON.stringify({
+      ownerUserId: currentUserId(), warehouseCode: session.warehouseCode,
+      snapshot: Core.sanitize(session),
+    }));
+    return true;
+  }
+
+  function removeActiveDraft() {
+    if (draftContextKey && draftContextKey === activeDraftKey()) localStorage.removeItem(draftContextKey);
+  }
+
+  function closedDrafts() {
+    return JSON.parse(localStorage.getItem(`${draftContextKey}:closed`) || "[]");
+  }
+
+  function rememberClosedDraft(snapshot) {
+    const entries = closedDrafts();
+    if (!entries.some((entry) => entry.id === snapshot.id)) {
+      entries.push({ id: snapshot.id, deviceId: snapshot.deviceId, warehouseCode: snapshot.warehouseCode, pending: true });
+      localStorage.setItem(`${draftContextKey}:closed`, JSON.stringify(entries));
+    }
+  }
+
+  async function flushClosedDrafts() {
+    if (!draftContextKey || !navigator.onLine || !apiConfig() || !Delivery.getAuthSession()?.access_token) return;
+    const isCurrent = currentOperation();
+    for (const entry of closedDrafts().filter((item) => item.pending)) {
+      if (!isCurrent()) return;
+      await cloudRpc("atlas_close_owned_coc_session", {
+        p_session_id: entry.id, p_device_id: entry.deviceId, p_warehouse_code: entry.warehouseCode,
+      });
+      if (!isCurrent()) return;
+      const entries = closedDrafts();
+      const saved = entries.find((item) => item.id === entry.id);
+      if (saved) saved.pending = false;
+      localStorage.setItem(`${draftContextKey}:closed`, JSON.stringify(entries));
+    }
+  }
+
+  function resetDraftContext() {
+    if (draftContextKey === activeDraftKey()) return false;
+    accountGeneration += 1;
+    window.clearTimeout(cloudTimer);
+    activeTimingStartedAt = null;
+    cancelScanSession();
+    stopReceiverQrScanner();
+    session = null;
+    capture = freshCapture();
+    scanMetricPending = false;
+    modal = null;
+    startFormDraft = null;
+    completedRecords = [];
+    selectedCompleted = null;
+    workbookPreview = { status: "idle", html: "", error: "", cocId: "" };
+    draftWorkbookPreview = { status: "idle", html: "", error: "", cocId: "" };
+    exportInProgress = false;
+    resendInProgress = false;
+    clearCompletedInProgress = false;
+    stationPresenceRequest += 1;
+    sendState = { phase: "ready" };
+    workflowView = "landing";
+    readSession();
+    return true;
+  }
+
   function persist({ cloud = true } = {}) {
+    if (!draftContextKey || draftContextKey !== activeDraftKey()) return false;
     draftWorkbookPreview = { status: "idle", html: "", error: "", cocId: "" };
     if (session) {
       session = Core.sanitize(session);
       session.updatedAt = new Date().toISOString();
       try {
-        localStorage.setItem(ACTIVE_KEY, JSON.stringify(session));
+        if (!storeActiveDraft()) return false;
         storageFailure = false;
       } catch (error) {
         storageFailure = true;
@@ -232,7 +323,7 @@
       }
       if (cloud) scheduleCloudSync();
     } else {
-      localStorage.removeItem(ACTIVE_KEY);
+      removeActiveDraft();
     }
     renderAll();
     return true;
@@ -247,7 +338,7 @@
   function saveSessionMetricsLocally() {
     if (!session) return;
     try {
-      localStorage.setItem(ACTIVE_KEY, JSON.stringify(Core.sanitize(session)));
+      storeActiveDraft();
     } catch (error) {
       console.error("ATLAS could not preserve COC performance metrics.", error);
     }
@@ -414,12 +505,17 @@
 
   function scheduleCloudSync() {
     window.clearTimeout(cloudTimer);
+    const isCurrent = currentOperation();
     cloudTimer = window.setTimeout(async () => {
-      if (!session) return;
+      if (!session || !isCurrent()) return;
       try {
-        await cloudRpc("atlas_save_coc_snapshot", { p_session: session });
+        await flushClosedDrafts();
+        if (!session || !isCurrent()) return;
+        await cloudRpc("atlas_save_owned_coc_snapshot", { p_session: { ...session, ownerUserId: currentUserId() } });
+        if (!isCurrent()) return;
         document.documentElement.classList.remove("atlas-coc-sync-pending");
       } catch (error) {
+        if (!isCurrent()) return;
         document.documentElement.classList.add("atlas-coc-sync-pending");
         console.info("COC remains safely stored on this device.", error.message);
       }
@@ -427,10 +523,17 @@
   }
 
   async function restoreFromCloud() {
-    if (session || !navigator.onLine) return;
+    if (session || !navigator.onLine || !draftContextKey) return;
+    const isCurrent = currentOperation();
     try {
-      const remote = await cloudRpc("atlas_get_device_coc", { p_device_id: getDeviceId() });
-      if (remote && typeof remote === "object") {
+      await flushClosedDrafts();
+      if (!isCurrent() || session) return;
+      const remote = await cloudRpc("atlas_get_owned_device_coc", {
+        p_device_id: getDeviceId(), p_warehouse_code: Delivery.requestedWarehouseCode(),
+      });
+      if (!isCurrent() || session) return;
+      if (closedDrafts().some((entry) => entry.id === remote?.id)) return;
+      if (remote?.ownerUserId === currentUserId() && remote.warehouseCode === Delivery.requestedWarehouseCode()) {
         session = Core.sanitize(remote);
         persist({ cloud: false });
       }
@@ -664,6 +767,7 @@
     const activeCopy = session?.status === "report" ? "Review Report" : "Resume COC";
     return `<div class="atlas-coc-page">
       <header class="atlas-coc-page-head"><span>WORKFLOWS</span><h1>Warehouse Workflows</h1><p>Focused tools for accurate warehouse work.</p></header>
+      ${localStorage.getItem(ACTIVE_KEY) ? `<p class="atlas-coc-warning">An older COC draft is preserved on this computer. Ask your ATLAS administrator to verify its owner before recovery.</p>` : ""}
       <section class="atlas-coc-launch-card">
         <div class="atlas-coc-launch-icon" aria-hidden="true">✓</div>
         <div class="atlas-coc-launch-copy"><span>CERTIFICATE OF COMPLIANCE</span><h2>COC</h2>
@@ -733,6 +837,7 @@
   }
 
   async function openCompletedWorkbookPreview() {
+    const isCurrent = currentOperation();
     const record = selectedCompleted;
     if (!record) return;
     const cocId = record.cocId;
@@ -743,9 +848,10 @@
     try {
       if (!record.workbookBlob?.size) throw new Error("The saved Official COC workbook is unavailable on this device.");
       const html = await Excel.renderOfficialWorkbookPreview(record.workbookBlob);
-      if (selectedCompleted?.cocId !== cocId || workflowView !== "official-preview") return;
+      if (!isCurrent() || selectedCompleted?.cocId !== cocId || workflowView !== "official-preview") return;
       workbookPreview = { status: "ready", html, error: "", cocId };
     } catch (error) {
+      if (!isCurrent()) return;
       workbookPreview = { status: "error", html: "", error: error?.message || "The Official COC could not be opened.", cocId };
     }
     renderAll();
@@ -764,6 +870,7 @@
   }
 
   async function openDraftWorkbookPreview() {
+    const isCurrent = currentOperation();
     if (!session) return;
     const cocId = session.id;
     draftWorkbookPreview = { status: "loading", html: "", error: "", cocId };
@@ -777,10 +884,12 @@
       const generated = await Excel.generateCompanyCoc(previewSession, {
         saveGeneratedWorkbook: async () => {},
       });
+      if (!isCurrent()) return;
       const html = await Excel.renderOfficialWorkbookPreview(generated.bytes);
-      if (session?.id !== cocId || workflowView !== "draft-official-preview") return;
+      if (!isCurrent() || session?.id !== cocId || workflowView !== "draft-official-preview") return;
       draftWorkbookPreview = { status: "ready", html, error: "", cocId };
     } catch (error) {
+      if (!isCurrent()) return;
       const requiresAuth = error?.message === "ATLAS_AUTH_REQUIRED";
       draftWorkbookPreview = {
         status: "error",
@@ -1149,27 +1258,32 @@
   }
 
   async function refreshCompletedHistory() {
-    completedRecords = currentUserId() ? await Storage.listCompleted(currentUserId()) : [];
+    const isCurrent = currentOperation();
+    const records = currentUserId() ? await Storage.listCompleted(currentUserId()) : [];
+    if (!isCurrent()) return;
+    completedRecords = records.filter((record) => record.reportSnapshot?.warehouseCode === Delivery.requestedWarehouseCode());
     if (workflowView === "history") renderAll();
   }
 
   async function clearCompletedOnDevice() {
+    const isCurrent = currentOperation();
     const userId = currentUserId();
     if (!userId || clearCompletedInProgress) return;
     clearCompletedInProgress = true;
     renderAll();
     try {
       await Storage.clearCompletedForUser(userId);
+      if (!isCurrent()) return;
       completedRecords = [];
       selectedCompleted = null;
       workbookPreview = { status: "idle", html: "", error: "", cocId: "" };
       modal = null;
     } catch (error) {
+      if (!isCurrent()) return;
       console.error("ATLAS could not clear completed COCs from this device.", error);
       showToast("Stored COCs could not be cleared. Nothing was removed.", "warning");
     } finally {
-      clearCompletedInProgress = false;
-      renderAll();
+      if (isCurrent()) { clearCompletedInProgress = false; renderAll(); }
     }
   }
 
@@ -1416,12 +1530,16 @@
   }
 
   async function pollReceipt(deliveryId, userId) {
+    const isCurrent = currentOperation();
     for (let attempt = 0; attempt < 60 && sendState.deliveryId === deliveryId; attempt += 1) {
       await new Promise((resolve) => window.setTimeout(resolve, 3000));
+      if (!isCurrent()) return;
       try {
         const record = (await Delivery.deliveryStatuses([deliveryId]))[0];
+        if (!isCurrent()) return;
         if (!record) continue;
         await Storage.updateDeliveryStatus(session?.id || sendState.cocId, userId, record);
+        if (!isCurrent()) return;
         if (record.status === "OFFICE_COMPLETED") {
           sendState = { ...sendState, phase: "office_completed", officeCompletedAt: record.office_completed_at };
           renderAll(); return;
@@ -1437,6 +1555,8 @@
   async function sendCompletedCoc() {
     if (!session || session.status !== "report" || exportInProgress) return;
     const userId = currentUserId();
+    const isCurrent = currentOperation();
+    const snapshot = Core.sanitize(session);
     if (!userId) {
       sendState = { phase: "failed", error: "Sign in to ATLAS before sending this compliance report." };
       workflowView = "send-status"; renderAll(); return;
@@ -1445,30 +1565,41 @@
     sendState = { phase: "preparing", cocId: session.id, invoiceNumber: session.invoiceNumber, customerName: session.customerName, palletCount: session.pallets.length, totalBoxes: Core.sessionTotal(session), warehouseCode: session.warehouseCode || Delivery.requestedWarehouseCode(), stationName: Delivery.stationNameForWarehouse(session.warehouseCode || Delivery.requestedWarehouseCode()) };
     workflowView = "send-status"; renderAll();
     try {
-      const generated = await Excel.generateCompanyCoc(session, { saveGeneratedWorkbook: async () => {} });
+      const generated = await Excel.generateCompanyCoc(snapshot, { saveGeneratedWorkbook: async () => {} });
+      if (!isCurrent()) return;
       const workbookBlob = new Blob([generated.bytes], { type: Delivery.MIME_XLSX });
       const idempotencyKey = `coc:${session.id}:office:${Delivery.stationKeyForWarehouse(session.warehouseCode || Delivery.requestedWarehouseCode())}`;
       await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, salesOrderNumber: session.salesOrderNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "WAREHOUSE_COMPLETE" });
+      if (!isCurrent()) return;
       await Storage.putPending({ cocId: session.id, userId, idempotencyKey, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob });
+      if (!isCurrent()) return;
       sendState = { ...sendState, phase: "sending" }; renderAll();
       const receipt = await Delivery.submitCoc({ cocId: session.id, idempotencyKey, snapshot: session, workbookBytes: generated.bytes, workbookFileName: generated.fileName });
-      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, salesOrderNumber: session.salesOrderNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: "SENT", officeTransferId: receipt.deliveryId, sentAt: receipt.sentAt });
+      if (!isCurrent()) return;
+      await Storage.upsertCompleted({ cocId: session.id, userId, customerName: session.customerName, invoiceNumber: session.invoiceNumber, ifNumber: session.ifNumber, salesOrderNumber: session.salesOrderNumber, completedAt: session.completedAt, palletCount: session.pallets.length, totalConfirmedBoxes: Core.sessionTotal(session), modelCount: session.models.length, reportSnapshot: session, workbookFileName: generated.fileName, workbookBlob, officeTransferStatus: receipt.status, officeTransferId: receipt.deliveryId, sentAt: receipt.sentAt, receivedAt: receipt.receivedAt, officeCompletedAt: receipt.officeCompletedAt });
+      if (!isCurrent()) return;
       await Storage.deletePending(session.id);
-      sendState = { ...sendState, phase: "sent", deliveryId: receipt.deliveryId, sentAt: receipt.sentAt };
-      localStorage.removeItem(ACTIVE_KEY);
+      if (!isCurrent()) return;
+      rememberClosedDraft(snapshot);
+      sendState = { ...sendState, phase: receipt.status === "OFFICE_COMPLETED" ? "office_completed" : receipt.status === "RECEIVED" ? "received" : "sent", deliveryId: receipt.deliveryId, sentAt: receipt.sentAt, receivedAt: receipt.receivedAt, officeCompletedAt: receipt.officeCompletedAt };
+      window.clearTimeout(cloudTimer);
+      flushClosedDrafts().catch(() => {});
+      removeActiveDraft();
       session = null;
       renderAll();
-      pollReceipt(receipt.deliveryId, userId);
+      if (receipt.status !== "OFFICE_COMPLETED") pollReceipt(receipt.deliveryId, userId);
     } catch (error) {
       console.error("ATLAS COC office transfer failed.", error);
+      if (!isCurrent()) return;
       sendState = { ...sendState, phase: "failed", error: error?.message === "COC_TEMPLATE_SIGNATURE_MISMATCH" ? "The official workbook failed its integrity check. Nothing was sent." : error?.message === "ATLAS_AUTH_REQUIRED" ? "Sign in to ATLAS before sending this compliance report." : "The office transfer was not accepted. Your completed COC remains open; try again when the phone can reach Supabase." };
       renderAll();
-    } finally { exportInProgress = false; }
+    } finally { if (isCurrent()) exportInProgress = false; }
   }
 
   async function resendCompletedCoc() {
     const record = selectedCompleted;
     const userId = currentUserId();
+    const isCurrent = currentOperation();
     if (!record || resendInProgress) return;
     if (!userId) {
       showToast("Sign in to ATLAS before resending this COC.", "warning");
@@ -1482,6 +1613,7 @@
     renderAll();
     try {
       const workbookBytes = new Uint8Array(await record.workbookBlob.arrayBuffer());
+      if (!isCurrent()) return;
       const workbookFileName = officialFileNameForRecord(record);
       const idempotencyKey = `coc:${record.cocId}:office:${record.reportSnapshot?.warehouseCode === "TX" ? "OFFICE_COC_TX" : "OFFICE_COC_01"}`;
       const receipt = await Delivery.submitCoc({
@@ -1492,6 +1624,7 @@
         workbookFileName,
         forceResend: true,
       });
+      if (!isCurrent()) return;
       await Storage.upsertCompleted({
         ...record,
         workbookFileName,
@@ -1501,11 +1634,15 @@
         receivedAt: null,
         officeCompletedAt: null,
       });
-      selectedCompleted = await Storage.getCompleted(record.cocId, userId);
+      if (!isCurrent()) return;
+      const updated = await Storage.getCompleted(record.cocId, userId);
+      if (!isCurrent()) return;
+      selectedCompleted = updated;
       modal = null;
       showToast(`COC resent to ${Delivery.stationNameForWarehouse(record.reportSnapshot?.warehouseCode || Delivery.requestedWarehouseCode())}`);
     } catch (error) {
       console.error("ATLAS COC resend failed.", error);
+      if (!isCurrent()) return;
       const message = error?.message === "COC_ALREADY_COMPLETED_AT_OFFICE"
         ? "This COC is already completed at the office and cannot be resent."
         : error?.message === "ATLAS_AUTH_REQUIRED"
@@ -1513,8 +1650,7 @@
           : "The resend was not accepted. The saved COC is unchanged; check the connection and try again.";
       showToast(message, "warning");
     } finally {
-      resendInProgress = false;
-      renderAll();
+      if (isCurrent()) { resendInProgress = false; renderAll(); }
     }
   }
 
@@ -1571,6 +1707,12 @@
   }
 
   function startCocSession(details) {
+    resetDraftContext();
+    if (!draftContextKey) {
+      showToast("Sign in to ATLAS before starting a COC.", "warning");
+      return;
+    }
+    accountGeneration += 1;
     session = Core.createSession({
       customerName: details.customerName,
       invoiceNumber: details.invoiceNumber,
@@ -2145,6 +2287,7 @@
   }
 
   function renderAll() {
+    resetDraftContext();
     syncActiveTiming();
     document.documentElement.classList.toggle("atlas-coc-work-mode", isWorkflowSection());
     document.documentElement.classList.toggle("atlas-coc-has-active", Boolean(session));
@@ -2927,9 +3070,12 @@
   }
 
   function discardActiveCoc() {
+    if (!session || !draftContextKey || draftContextKey !== activeDraftKey()) return;
+    try { rememberClosedDraft(session); }
+    catch { showToast("The COC could not be safely discarded. Your draft is still saved.", "warning"); return; }
+    accountGeneration += 1;
+    window.clearTimeout(cloudTimer);
     const wasCompleted = session?.status === "report";
-    const id = session?.id;
-    const deviceId = session?.deviceId;
     finishScanMetricAttempt("canceled");
     commitActiveTiming();
     cancelScanSession();
@@ -2941,10 +3087,7 @@
     workflowView = "landing";
     sendState = { phase: "ready" };
     persist({ cloud: false });
-    cloudRpc("atlas_close_coc_session", {
-      p_session_id: id,
-      p_device_id: deviceId,
-    }, { keepalive: true }).catch(() => {});
+    flushClosedDrafts().catch(() => {});
     showToast(wasCompleted ? "Completed COC discarded · ready to start over" : "Unfinished COC discarded", "info");
   }
 
@@ -2983,11 +3126,20 @@
     }
     if (action === "coc-back") { backWithinCoc(); return; }
     if (action === "back-to-verified-pallet") { backToVerifiedPallet(); return; }
-    if (action === "start-setup") { startFormDraft = null; workflowView = "setup"; renderAll(); return; }
+    if (action === "start-setup") {
+      resetDraftContext();
+      if (!draftContextKey) { window.AtlasAuth?.open?.(); showToast("Sign in to ATLAS before starting a COC.", "warning"); return; }
+      startFormDraft = null; workflowView = "setup"; renderAll(); return;
+    }
     if (action === "show-completed") { workflowView = "history"; selectedCompleted = null; workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "review-clear-completed") { if (completedRecords.length) { modal = "clear-completed"; renderAll(); } return; }
     if (action === "confirm-clear-completed") { await clearCompletedOnDevice(); return; }
-    if (action === "open-completed") { selectedCompleted = await Storage.getCompleted(button.dataset.cocId, currentUserId()); workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; workflowView = "history-detail"; renderAll(); return; }
+    if (action === "open-completed") {
+      const isCurrent = currentOperation();
+      const record = await Storage.getCompleted(button.dataset.cocId, currentUserId());
+      if (!isCurrent() || record?.reportSnapshot?.warehouseCode !== Delivery.requestedWarehouseCode()) return;
+      selectedCompleted = record; workbookPreview = { status: "idle", html: "", error: "", cocId: "" }; workflowView = "history-detail"; renderAll(); return;
+    }
     if (action === "download-completed") { if (selectedCompleted) Storage.downloadBlob(selectedCompleted.workbookBlob, officialFileNameForRecord(selectedCompleted)); return; }
     if (action === "view-completed-official") { await openCompletedWorkbookPreview(); return; }
     if (action === "close-completed-official") { workflowView = "history-detail"; renderAll(); return; }
@@ -3395,7 +3547,7 @@
     }
     if (action === "send-to-office") { await sendCompletedCoc(); return; }
     if (action === "return-to-report") { workflowView = "session"; sendState = { phase: "ready" }; refreshStationPresence(); renderAll(); scrollWorkflowToTop(); return; }
-    if (action === "finish-transfer") { session = null; localStorage.removeItem(ACTIVE_KEY); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); return; }
+    if (action === "finish-transfer") { session = null; removeActiveDraft(); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); return; }
     if (action === "retry-save") {
       if (persist()) { modal = null; renderAll(); showToast("COC saved on this device"); }
       return;
@@ -3834,12 +3986,21 @@
   });
 
   window.addEventListener("storage", (event) => {
-    if (event.key !== ACTIVE_KEY) return;
+    if (event.key === "atlas-selected-warehouse-v1") {
+      resetDraftContext(); renderAll(); restoreFromCloud(); return;
+    }
+    if (event.key !== draftContextKey) return;
     readSession();
     if (!session) workflowView = "landing";
     renderAll();
   });
+  document.addEventListener("change", (event) => {
+    if (!event.target?.matches?.("[data-warehouse-selector]")) return;
+    // The dashboard stores the new selection in its change handler first.
+    queueMicrotask(() => { resetDraftContext(); renderAll(); restoreFromCloud(); });
+  });
   window.addEventListener("online", () => scheduleCloudSync());
+  window.addEventListener("online", () => flushClosedDrafts().catch(() => {}));
   window.addEventListener("online", () => scheduleScannerQueue());
   window.addEventListener("online", () => Catalog.loadRemote());
   window.addEventListener("online", () => {
@@ -3850,7 +4011,9 @@
     if (session?.status === "report" && workflowView === "session") renderAll();
   });
   window.addEventListener("atlas-auth-changed", (event) => {
+    if (resetDraftContext()) renderAll();
     if (!event.detail?.session) return;
+    restoreFromCloud();
     Catalog.loadRemote();
     if (
       workflowView === "draft-official-preview" &&

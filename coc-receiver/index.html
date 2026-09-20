@@ -9,11 +9,11 @@
   <link rel="icon" type="image/png" sizes="16x16" href="./coc-receiver-favicon-16.png?v=4">
   <link rel="icon" type="image/png" sizes="32x32" href="./coc-receiver-favicon-32.png?v=4">
   <link rel="stylesheet" href="./receiver.css?v=39">
-  <link rel="stylesheet" href="../atlas-auth.css?v=3">
+  <link rel="stylesheet" href="../atlas-auth.css?v=4">
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
-      const refreshKey = "atlas-coc-receiver-v336-refreshed";
+      const refreshKey = "atlas-coc-receiver-v356-refreshed";
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         // Apply background updates on the next page load, without interrupting office work.
@@ -26,7 +26,7 @@
       window.addEventListener("load", async () => {
         try {
           const registration = await navigator.serviceWorker.register(
-            "../service-worker.js?v=263",
+            "../service-worker.js?v=269",
             { updateViaCache: "none" },
           );
           const activate = (worker) => worker?.postMessage({ type: "SKIP_WAITING" });
@@ -59,7 +59,7 @@
   <script src="../atlas-jszip.min.js?v=1"></script>
   <script src="../atlas-coc-storage.js?v=5"></script>
   <script>window.ATLAS_COC_RECEIVER_MODE = true;</script>
-  <script src="../atlas-coc-delivery.js?v=14"></script>
+  <script src="../atlas-coc-delivery.js?v=16"></script>
   <script src="../atlas-coc-excel.js?v=20"></script>
   <script src="../atlas-coc-case-quantities.js?v=4"></script>
   <script src="./receiver.js?v=46"></script>

@@ -1,0 +1,13 @@
+# Approved ATLAS account and COC release
+
+Base: 15865701ea63299bca09a0955264912c8988663d. Database operation: atlas_account_coc_reliability. Exact SQL and checksum are recorded in account-coc-release.json for hosted MCP application, not a Supabase CLI-generated migration file.
+
+Apply the recorded database operation atomically, then deploy atlas-user-admin (JWT gateway verification false, handler getUser validation) and coc-receiver (JWT gateway verification true), then merge the frontend branch into main for GitHub Pages. Preserve the current deployed function source as an external local recovery artifact before deployment.
+
+Public inventory SELECT remains unchanged. Only location write operations gain the warehouse restriction; activity/history gain the tested warehouse restriction. Account assignment becomes atomic; new COC drafts become account/warehouse owned. Existing accounts, grants, Receiver records, completed deliveries and legacy draft contents are not rewritten. The owner approved preserving the September 3 legacy draft for recovery rather than automatic reopening. Do not infer its owner from an employee name or device ID.
+
+Validation: 67 local tests and 14 Receiver startup cases passed; targeted deployed CA/TX status isolation passed; actual staging COC delivery/revision/workbook/session journeys passed with subsequent corrections verified; browser shell/cache/refresh checks passed. Public inventory and command-specific warehouse write policy delta tested in staging with writes rolled back. Physical demo devices, native Excel visual inspection and historical full suite remain unavailable.
+
+Recovery: before frontend publication, an Edge failure can be recovered by redeploying its captured original source. Keep new additive database structures and all user data. After users create managed accounts or owned drafts, do not restore old account/draft writers or undo ownership guards blindly. Prefer a forward fix; a frontend rollback needs a fresh cache version and must retain the new owned-draft/account protocol or disable those actions until repaired. No destructive down-migration is authorized by this release. An automatic rollback of the entire release has not been rehearsed.
+
+Publication allowlist: eight modified application files, current backend implementation and shared source, local regression tests/support, and this release manifest/document. Staging seed/test endpoints, fixture migrations, repair proposals, previous audit reports, workbook artifacts and confidential data are excluded. The official master and core/Excel exporter are unchanged.
