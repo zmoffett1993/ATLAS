@@ -13,6 +13,14 @@ button:disabled{cursor:not-allowed;opacity:.45}
 svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
+.receiver-startup{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:radial-gradient(ellipse at 50% 38%,#123e72,#071f43 65%);color:#bcd9f5}
+.receiver-startup img{width:76px;height:76px;object-fit:contain}
+.receiver-startup>span{font-size:.67rem;font-weight:750;letter-spacing:.18em}
+.receiver-startup-line{width:160px;height:3px;overflow:hidden;border-radius:3px;background:rgba(136,187,244,.17)}
+.receiver-startup-line::after{content:"";display:block;width:55%;height:100%;background:#55aaff;border-radius:inherit;animation:receiver-startup-progress 1.2s ease-in-out infinite alternate}
+@keyframes receiver-startup-progress{from{transform:translateX(-40%);opacity:.5}to{transform:translateX(125%);opacity:1}}
+@media(prefers-reduced-motion:reduce){.receiver-startup-line::after{animation:none;width:100%}}
+
 .receiver-shell{width:min(calc(100% - 56px),1380px);margin:0 auto;padding:30px 0 72px;overflow-anchor:none}
 .receiver-head{position:relative;isolation:isolate;min-height:204px;padding:42px 50px;border:1px solid rgba(98,165,239,.24);border-radius:28px;overflow:hidden;background:linear-gradient(115deg,#03162f 0%,#082e61 52%,#0b61c7 100%);color:#fff;display:grid;grid-template-columns:minmax(245px,1fr) auto minmax(245px,1fr);align-items:center;gap:32px;box-shadow:0 22px 52px rgba(3,25,54,.19)}
 .receiver-head::before{content:"";position:absolute;inset:-70% -10% auto 39%;z-index:-1;width:58%;height:245%;transform:rotate(25deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}

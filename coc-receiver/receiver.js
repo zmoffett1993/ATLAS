@@ -19,6 +19,8 @@
   const PERIOD_VALUES=new Set(PERIOD_OPTIONS.map(([value])=>value));
   let credentials=null,activeDeliveries=[],completedDeliveries=[],selected=null,preview=false;
   let branchContext=null;
+  let receiverAuthState="initializing",authorizationPending=false,authorizationRetryTimer=null;
+  const initializationMarkup=root.innerHTML;
   let previewState={status:"idle",html:"",error:"",id:""};
   let revisionState=freshRevision();
   const workbookCache=new Map();
@@ -142,7 +144,7 @@
   function completionMarkup(){const item=completionState||{};return `<div class="receiver-shell">${header()}<section class="receiver-workflow-complete" role="status" aria-live="assertive"><div class="receiver-workflow-complete-mark" aria-hidden="true">✓</div><span class="receiver-eyebrow">WORKFLOW COMPLETE</span><h1>COC COMPLETE</h1><p><strong>${esc(item.customerName||"Official COC")}</strong>${item.invoiceNumber?` · ${esc(item.invoiceNumber)}`:""}</p><small>The workbook is saved and ready for your compliance e-mail.</small><div class="receiver-workflow-return"><i aria-hidden="true"></i><span>Returning to COC Receiver…</span></div></section></div>`}
   function noticeMarkup(){return notice?`<div class="receiver-notice is-${notice.tone||"success"}" role="status">${esc(notice.text)}</div>`:""}
   function retentionMarkup(){return credentials&&!selected?`<div class="receiver-retention">${icon("shield")}<span>Completed COCs remain available through the date filters.</span></div>`:""}
-  function render(){closeAccountMenu();root.innerHTML=(!credentials?pairingMarkup():completionState?completionMarkup():selected?officialPreviewMarkup():inboxMarkup())+(completionState?"":retentionMarkup()+noticeMarkup());window.requestAnimationFrame?.(()=>window.AtlasCocExcel?.fitOfficialWorkbookPreviews?.(root))}
+  function render(){closeAccountMenu();root.innerHTML=(receiverAuthState==="initializing"?initializationMarkup:receiverAuthState==="temporarily-offline"&&!credentials?`<section class="receiver-pair"><span class="receiver-eyebrow">COC RECEIVER</span><h1>Reconnecting…</h1><p>Your saved Receiver pairing will be checked when the connection returns.</p><button type="button" class="receiver-outline" data-action="retry-authorization">TRY AGAIN</button>${pairingAccountMarkup()}</section>`:!credentials?pairingMarkup():completionState?completionMarkup():selected?officialPreviewMarkup():inboxMarkup())+(completionState?"":retentionMarkup()+noticeMarkup());window.requestAnimationFrame?.(()=>window.AtlasCocExcel?.fitOfficialWorkbookPreviews?.(root))}
   function toggleCalendarPicker(kind){const input=root.querySelector(`[data-receiver-custom-${kind}]`);if(!input)return;if(openCalendarInput===input){openCalendarInput=null;input.blur();return}openCalendarInput=input;input.focus({preventScroll:true});try{input.showPicker?.()}catch{input.click()}}
   function positionOfficialPreview(){
     const place=()=>{if(!selected||!preview||revisionState.step!=="preview")return;const back=root.querySelector('.receiver-nav-back[data-action="back-detail"]');if(!back)return;const current=window.scrollY||document.scrollingElement?.scrollTop||0;const top=Math.max(0,current+back.getBoundingClientRect().top-16);window.scrollTo({top,left:0,behavior:"auto"})};
@@ -200,9 +202,14 @@
     finally{loading=false}
   }
   async function startPairing(){const sequence=receiverAuthSequence;try{const context=await Delivery.warehouseContext();if(sequence!==receiverAuthSequence)return;const result=await Delivery.createPairing();if(sequence!==receiverAuthSequence)return;branchContext=context;pairing=result;render();pollPairing()}catch(error){if(sequence!==receiverAuthSequence)return;pairing={status:error.message||"Pairing could not start."};render()}}
-  async function pollPairing(){const sequence=receiverAuthSequence;if(!pairing?.pairingSessionId)return;for(let attempt=0;attempt<120&&!credentials;attempt+=1){await new Promise((resolve)=>setTimeout(resolve,2500));if(sequence!==receiverAuthSequence)return;try{const result=await Delivery.pairingStatus(pairing.pairingSessionId);if(sequence!==receiverAuthSequence)return;pairing={...pairing,...result};if(result.status==="PAIRED"){credentials=result.credentials;render();connect();return}render()}catch(error){if(sequence!==receiverAuthSequence)return;pairing={...pairing,status:error.message};render();return}}}
-  function syncReceiverConnection(){Delivery.heartbeat(credentials).then((result)=>{connection="connected";lastSynced=new Date(result?.at||Date.now());updateReceiverStatus()}).catch((error)=>{if(error?.status===401||error?.status===403){void refreshReceiverAuth();return}connection=navigator.onLine?"reconnecting":"offline";updateReceiverStatus()});loadInbox()}
-  function connect(){if(!credentials||!Delivery.getAuthSession())return;clearInterval(pollTimer);subscription?.close?.();const stationFilter=credentials?.stationId?`station_id=eq.${credentials.stationId}`:"";subscription=Delivery.subscribeToDeliveries({filter:stationFilter,onChange:()=>loadInbox(),onState:(state)=>{connection=state;updateReceiverStatus()}});pollTimer=setInterval(syncReceiverConnection,10000);syncReceiverConnection()}
+  async function pollPairing(){const sequence=receiverAuthSequence;if(!pairing?.pairingSessionId)return;for(let attempt=0;attempt<120&&!credentials;attempt+=1){await new Promise((resolve)=>setTimeout(resolve,2500));if(sequence!==receiverAuthSequence)return;try{const result=await Delivery.pairingStatus(pairing.pairingSessionId);if(sequence!==receiverAuthSequence)return;pairing={...pairing,...result};if(result.status==="PAIRED"){credentials=result.credentials;receiverAuthState="paired";render();connect();return}render()}catch(error){if(sequence!==receiverAuthSequence)return;pairing={...pairing,status:error.message};render();return}}}
+  function syncReceiverConnection(){
+    if(!credentials)return;
+    if(receiverAuthState==="temporarily-offline"){void refreshReceiverAuth();return}
+    const current=credentials;
+    Delivery.heartbeat(current).then((result)=>{if(current!==credentials)return;connection="connected";lastSynced=new Date(result?.at||Date.now());updateReceiverStatus()}).catch((error)=>{if(current!==credentials)return;connection=navigator.onLine?"reconnecting":"offline";updateReceiverStatus();if(error?.status===401||error?.status===403)void refreshReceiverAuth()});loadInbox();
+  }
+  function connect(){if(!credentials||!Delivery.getAuthSession())return;clearInterval(pollTimer);subscription?.close?.();const stationFilter=credentials?.stationId?`station_id=eq.${credentials.stationId}`:"";subscription=Delivery.subscribeToDeliveries({filter:stationFilter,onChange:()=>{if(receiverAuthState==="paired")loadInbox()},onState:(state)=>{if(receiverAuthState==="paired")connection=state;updateReceiverStatus()}});pollTimer=setInterval(syncReceiverConnection,10000);if(receiverAuthState==="paired")syncReceiverConnection()}
   function showNotice(text,tone="success"){notice={text,tone};render();setTimeout(()=>{notice=null;render()},2600)}
   async function loadWorkbook(id){if(workbookCache.has(id))return workbookCache.get(id);const workbook=await Delivery.downloadOfficeWorkbook(id,credentials);workbook.fileName=officialFileName(recordById(id),workbook.fileName);workbookCache.set(id,workbook);return workbook}
   async function loadRevisionStatus(id){try{const result=await Delivery.cocWorkbookRevision("status",{deliveryId:id},branchCode());if(!selected||selected.id!==id)return;revisionState.currentRevision=result.currentRevision||null;revisionState.revisions=Array.isArray(result.revisions)?result.revisions:[];revisionState.error=""}catch(error){if(selected?.id===id)revisionState.error=revisionError(error,"Workbook revision history is unavailable.")}}
@@ -338,6 +345,7 @@
 
   root.addEventListener("click",async(event)=>{
     const button=event.target.closest("[data-action]");if(!button)return;const action=button.dataset.action,id=button.dataset.id;
+    if(action==="retry-authorization"){void refreshReceiverAuth();return}
     if(action==="account-menu"){toggleAccountMenu();return}
     if(action==="sign-out"){if(!window.confirm("Sign out of this office computer? The saved Receiver pairing will remain available for the correct account."))return;closeAccountMenu();await window.AtlasAuth.signOut({scope:"local"});return}
     if(action==="toggle-calendar"){toggleCalendarPicker(button.dataset.calendarTarget);return}
@@ -438,22 +446,61 @@
     }
     if(!event.target.matches("[data-native-editor]"))return;event.preventDefault();if(!validateNativeEditor(event.target))return;stageNativeRevision(event.target)
   });
-  async function resolveReceiverAuthorization(){const saved=await Delivery.receiverCredentials().catch(()=>null);try{return await Delivery.verifyReceiver()}catch(error){return saved?{paired:true,credentials:saved,deferred:true}:{paired:false,error}}}
-  async function refreshReceiverAuth(){
-    const sequence=++receiverAuthSequence,userId=Delivery.currentUser()?.id||null;
-    ++loadSequence;clearInterval(pollTimer);subscription?.close?.();credentials=null;
-    if(userId!==receiverAccountId||!userId){
-      pairing=null;selected=null;completionState=null;activeDeliveries=[];completedDeliveries=[];workbookCache.clear();
-      previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();notice=null;branchContext=null;inboxLoaded=false;
-      search="";page=1;total=0;metrics={awaiting:0,receivedToday:0,completedToday:0};lastSynced=null;
-    }
-    receiverAccountId=userId;render();if(!userId)return;
-    const context=await Delivery.warehouseContext({force:true}).catch(()=>null);if(sequence!==receiverAuthSequence)return;
-    branchContext=context;const verified=await resolveReceiverAuthorization();if(sequence!==receiverAuthSequence)return;
-    credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};
-    signInState={loading:false,error:""};render();if(credentials)connect();
+  async function resolveReceiverAuthorization(){
+    let saved=credentials;
+    try{
+      saved=await Delivery.receiverCredentials({localOnly:true});
+      const context=await Delivery.warehouseContext({force:true});
+      const verified=saved?await Delivery.verifyReceiver(saved):{paired:false};
+      return {...verified,context};
+    }catch(error){return {paired:Boolean(saved),credentials:saved,deferred:true,error}}
   }
-  window.addEventListener("atlas-auth-changed",()=>{closeAccountMenu();if((Delivery.currentUser()?.id||null)!==receiverAccountId)void refreshReceiverAuth()});
-  window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";updateReceiverStatus()});
+  function clearReceiverAccount(){
+    ++loadSequence;clearInterval(pollTimer);pollTimer=null;subscription?.close?.();subscription=null;credentials=null;
+    pairing=null;selected=null;completionState=null;activeDeliveries=[];completedDeliveries=[];workbookCache.clear();
+    previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();notice=null;branchContext=null;inboxLoaded=false;
+    search="";page=1;total=0;metrics={awaiting:0,receivedToday:0,completedToday:0};lastSynced=null;
+  }
+  async function refreshReceiverAuth(){
+    if(authorizationPending||pairing?.pairingSessionId&&!credentials)return;
+    authorizationPending=true;const sequence=++receiverAuthSequence;
+    clearTimeout(authorizationRetryTimer);
+    try{
+      const session=await window.AtlasAuth.getValidSession();if(sequence!==receiverAuthSequence)return;
+      const userId=session?.user?.id||null;
+      if(!userId){clearReceiverAccount();receiverAccountId=null;receiverAuthState="signed-out";signInState={loading:false,error:""};render();return}
+      if(receiverAccountId&&userId!==receiverAccountId)clearReceiverAccount();
+      receiverAccountId=userId;
+      const keepPage=Boolean(credentials),verified=await resolveReceiverAuthorization();if(sequence!==receiverAuthSequence)return;
+      if(verified.context)branchContext=verified.context;
+      if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};
+      if(verified.deferred){
+        receiverAuthState="temporarily-offline";credentials=verified.credentials||credentials;connection=navigator.onLine?"reconnecting":"offline";
+        if(keepPage)updateReceiverStatus();else render();
+        if(credentials&&!pollTimer)connect();
+        authorizationRetryTimer=setTimeout(()=>void refreshReceiverAuth(),10000);return;
+      }
+      if(!verified.paired){
+        clearInterval(pollTimer);pollTimer=null;subscription?.close?.();subscription=null;credentials=null;
+        receiverAuthState="unpaired";signInState={loading:false,error:""};if(keepPage){clearReceiverAccount();branchContext=verified.context||null}render();return;
+      }
+      credentials=verified.credentials;receiverAuthState="paired";connection="connected";signInState={loading:false,error:""};
+      if(keepPage)updateReceiverStatus();else render();
+      if(!pollTimer)connect();
+    }catch(error){
+      if(sequence!==receiverAuthSequence)return;
+      receiverAuthState="temporarily-offline";connection=navigator.onLine?"reconnecting":"offline";
+      if(credentials)updateReceiverStatus();else render();
+      authorizationRetryTimer=setTimeout(()=>void refreshReceiverAuth(),10000);
+    }finally{if(sequence===receiverAuthSequence)authorizationPending=false}
+  }
+  window.addEventListener("atlas-auth-changed",()=>{
+    const userId=Delivery.currentUser()?.id||null;
+    if(userId===receiverAccountId&&receiverAuthState!=="initializing"||receiverAuthState==="initializing"&&authorizationPending&&userId)return;
+    ++receiverAuthSequence;authorizationPending=false;clearTimeout(authorizationRetryTimer);clearReceiverAccount();receiverAccountId=null;
+    receiverAuthState="signed-out";signInState={loading:Boolean(userId),error:""};render();void refreshReceiverAuth();
+  });
+  window.addEventListener("online",()=>{void refreshReceiverAuth()});
+  window.addEventListener("offline",()=>{connection="offline";updateReceiverStatus()});
   void refreshReceiverAuth();
 })();
