@@ -99,10 +99,11 @@
     if (!session?.refresh_token) return null;
     if (refreshPromise) return refreshPromise;
     refreshPromise = request("/auth/v1/token?grant_type=refresh_token", { refresh_token: session.refresh_token })
-      .then(persist)
+      .then((refreshed) => storedSession()?.refresh_token === session.refresh_token ? persist(refreshed) : null)
       .catch((error) => {
         // Only an invalid/revoked refresh token should forget this device.
         // Wi-Fi, rate-limit, and server failures keep the saved login and retry.
+        if (storedSession()?.refresh_token !== session.refresh_token) return null;
         if (permanentRefreshFailure(error)) clearSession();
         else scheduleRefresh(session, REFRESH_RETRY_MS);
         return null;
@@ -153,10 +154,10 @@
     syncMenu();
   }
 
-  const signOut = async () => {
+  const signOut = async ({ scope = "global" } = {}) => {
     const session = storedSession();
     clearSession();
-    if (session?.access_token) request("/auth/v1/logout", {}, session.access_token).catch(() => {});
+    if (session?.access_token) request(scope === "local" ? "/auth/v1/logout?scope=local" : "/auth/v1/logout", {}, session.access_token).catch(() => {});
   };
 
   const displayName = (session = getSession()) => session?.user?.user_metadata?.display_name

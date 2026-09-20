@@ -13,7 +13,7 @@
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
-      const refreshKey = "atlas-coc-receiver-v332-refreshed";
+      const refreshKey = "atlas-coc-receiver-v334-refreshed";
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (refreshing || sessionStorage.getItem(refreshKey)) return;
@@ -24,7 +24,7 @@
       window.addEventListener("load", async () => {
         try {
           const registration = await navigator.serviceWorker.register(
-            "../service-worker.js?v=260",
+            "../service-worker.js?v=261",
             { updateViaCache: "none" },
           );
           const activate = (worker) => worker?.postMessage({ type: "SKIP_WAITING" });
@@ -46,13 +46,14 @@
 <body>
   <main id="receiver-root" aria-live="polite"></main>
   <script>window.atlasSupabaseConfig={url:"https://dwrrbpiprcmajfyronlf.supabase.co",key:"sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa"};</script>
-  <script src="../atlas-auth.js?v=6"></script>
+  <script src="../atlas-auth.js?v=7"></script>
   <script src="../atlas-coc-references.js?v=2"></script>
   <script src="../atlas-jszip.min.js?v=1"></script>
   <script src="../atlas-coc-storage.js?v=5"></script>
-  <script src="../atlas-coc-delivery.js?v=12"></script>
+  <script>window.ATLAS_COC_RECEIVER_MODE = true;</script>
+  <script src="../atlas-coc-delivery.js?v=13"></script>
   <script src="../atlas-coc-excel.js?v=20"></script>
   <script src="../atlas-coc-case-quantities.js?v=4"></script>
-  <script src="./receiver.js?v=43"></script>
+  <script src="./receiver.js?v=44"></script>
 </body>
 </html>

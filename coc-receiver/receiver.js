@@ -29,7 +29,7 @@
   let metrics={awaiting:0,receivedToday:0,completedToday:0};
   let notice=null,loading=true,searchTimer=null,loadSequence=0;
   let completionState=null;
-  let signInState={loading:false,error:""},receiverAuthSequence=0;
+  let signInState={loading:false,error:""},receiverAuthSequence=0,receiverAccountId=null;
   let inboxLoaded=false,pendingBackgroundRender=false;
   let openCalendarInput=null;
 
@@ -70,13 +70,14 @@
     return svg.replace(/^<svg\b/i,'<svg class="receiver-qr-symbol" role="img" aria-label="Pairing QR code"');
   }
 
-  function branchCode(){return branchContext?.selectedWarehouse?.code||branchContext?.warehouse?.code||credentials?.warehouseCode||"CA"}
+  function branchCode(){return branchContext?.selectedWarehouse?.code||branchContext?.warehouse?.code||credentials?.warehouseCode||Delivery.requestedWarehouseCode()}
   function branchName(){return branchContext?.selectedWarehouse?.display_name||branchContext?.warehouse?.display_name||`${branchCode()} Warehouse`}
-  function header(){return `<header class="receiver-head"><div class="receiver-atlas-lockup" aria-label="ATLAS Warehouse Management"><img src="../atlas-brand-mark-dark.svg?v=97" alt="" aria-hidden="true"><span><b>ATLAS</b><small>WAREHOUSE MANAGEMENT</small></span></div><div class="receiver-brand-title"><h1>COC RECEIVER</h1><p>${esc(branchName())}</p></div><div class="receiver-status ${connection==="connected"?"":"is-offline"}"><strong>● ${connection==="connected"?"CONNECTED · READY":connection==="reconnecting"?"RECONNECTING…":"OFFLINE"}</strong><small>Last synced ${lastSynced?time(lastSynced):"—"}</small></div></header>`}
+  function signOutMarkup(){return `<button type="button" class="receiver-outline" data-action="sign-out">SIGN OUT / SWITCH ACCOUNT</button>`}
+  function header(){return `<header class="receiver-head"><div class="receiver-atlas-lockup" aria-label="ATLAS Warehouse Management"><img src="../atlas-brand-mark-dark.svg?v=97" alt="" aria-hidden="true"><span><b>ATLAS</b><small>WAREHOUSE MANAGEMENT</small></span></div><div class="receiver-brand-title"><h1>COC RECEIVER</h1><p>${esc(branchName())}</p></div><div class="receiver-status ${connection==="connected"?"":"is-offline"}"><strong>● ${connection==="connected"?"CONNECTED · READY":connection==="reconnecting"?"RECONNECTING…":"OFFLINE"}</strong><small>Last synced ${lastSynced?time(lastSynced):"—"}</small>${signOutMarkup()}</div></header>`}
   function pairingMarkup(){
     if(!Delivery.getAuthSession())return `<section class="receiver-pair receiver-sign-in"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>Sign in to the COC Receiver</h1><p>Use the name and password assigned to this office station.</p><form data-receiver-sign-in><label><span>ATLAS name</span><input name="login_name" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Enter station name" required ${signInState.loading?"disabled":""}></label><label><span>Password</span><input name="password" type="password" autocomplete="current-password" placeholder="Enter password" required ${signInState.loading?"disabled":""}></label><p class="receiver-sign-in-error" role="alert">${esc(signInState.error)}</p><button class="receiver-primary" type="submit" ${signInState.loading?"disabled":""}>${signInState.loading?"SIGNING IN…":"SIGN IN"}</button></form></section>`;
-    if(!pairing)return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>Pair this computer</h1><p>This browser needs supervisor approval before it can receive compliance reports.</p><button class="receiver-primary" data-action="start-pairing">Create Pairing Code</button></section>`;
-    return `<section class="receiver-pair"><span class="receiver-eyebrow">PAIRING REQUEST</span><h1>Approve on a warehouse phone</h1><p>Workflows → Office COC Receiver</p><div class="receiver-code">${esc(pairing.pairingCode)}</div><div class="receiver-qr">${pairingQrMarkup()}</div><p>Expires ${time(pairing.expiresAt)}</p><p>${esc(pairing.status||"Waiting for supervisor approval…")}</p></section>`;
+    if(!pairing)return `<section class="receiver-pair"><span class="receiver-eyebrow">OFFICE COC STATION</span><h1>Pair this computer</h1><p><strong>WAREHOUSE: ${esc(branchCode())}</strong></p><p>This browser needs supervisor approval before it can receive compliance reports.</p><button class="receiver-primary" data-action="start-pairing">Create Pairing Code</button><p>${signOutMarkup()}</p></section>`;
+    return `<section class="receiver-pair"><span class="receiver-eyebrow">PAIRING REQUEST</span><h1>Approve on a warehouse phone</h1><p><strong>WAREHOUSE: ${esc(branchCode())}</strong></p><p>Workflows → Office COC Receiver</p><div class="receiver-code">${esc(pairing.pairingCode)}</div><div class="receiver-qr">${pairingQrMarkup()}</div><p>Expires ${time(pairing.expiresAt)}</p><p>${esc(pairing.status||"Waiting for supervisor approval…")}</p><p>${signOutMarkup()}</p></section>`;
   }
   function metricCard(kind,label,value,copy=""){return `<article class="receiver-metric is-${kind}"><i>${icon(kind==="awaiting"?"clipboard":kind==="received"?"inbox":"check")}</i><span><small>${label}</small><strong>${Number(value||0).toLocaleString()}</strong>${copy?`<b>${copy}</b>`:""}</span></article>`}
   function metricsMarkup(){return `<section class="receiver-metrics" aria-label="COC summary">${metricCard("awaiting","AWAITING",metrics.awaiting,"Requires office review")}${metricCard("received","RECEIVED TODAY",metrics.receivedToday)}${metricCard("completed","COMPLETED TODAY",metrics.completedToday)}</section>`}
@@ -179,6 +180,7 @@
       if(sequence!==loadSequence)return;
       const sent=(activeResult.deliveries||[]).filter((item)=>item.status==="SENT");
       if(sent.length){await Promise.all(sent.map((item)=>Delivery.acknowledgeDelivery(item.id,credentials)));activeResult=await Delivery.receiverInbox(credentials,{section:"active",withMeta:true})}
+      if(sequence!==loadSequence)return;
       activeDeliveries=activeResult.deliveries||[];completedDeliveries=listResult.deliveries||[];total=Number(listResult.total||0);
       metrics={awaiting:Number(metricResult.awaiting||activeDeliveries.length),receivedToday:Number(metricResult.receivedToday||0),completedToday:Number(metricResult.completedToday||0)};
       const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));if(page>pages){page=pages;return loadInbox({foreground})}
@@ -186,10 +188,10 @@
     }catch(error){connection=navigator.onLine?"reconnecting":"offline";notice={tone:"error",text:error?.message||"The COC Receiver could not refresh."};updateReceiverStatus()}
     finally{loading=false}
   }
-  async function startPairing(){try{branchContext=await Delivery.warehouseContext();pairing=await Delivery.createPairing();render();pollPairing()}catch(error){pairing={status:error.message||"Pairing could not start."};render()}}
-  async function pollPairing(){if(!pairing?.pairingSessionId)return;for(let attempt=0;attempt<120&&!credentials;attempt+=1){await new Promise((resolve)=>setTimeout(resolve,2500));try{const result=await Delivery.pairingStatus(pairing.pairingSessionId);pairing={...pairing,...result};if(result.status==="PAIRED"){credentials=result.credentials;render();connect();return}render()}catch(error){pairing={...pairing,status:error.message};render();return}}}
+  async function startPairing(){const sequence=receiverAuthSequence;try{const context=await Delivery.warehouseContext();if(sequence!==receiverAuthSequence)return;const result=await Delivery.createPairing();if(sequence!==receiverAuthSequence)return;branchContext=context;pairing=result;render();pollPairing()}catch(error){if(sequence!==receiverAuthSequence)return;pairing={status:error.message||"Pairing could not start."};render()}}
+  async function pollPairing(){const sequence=receiverAuthSequence;if(!pairing?.pairingSessionId)return;for(let attempt=0;attempt<120&&!credentials;attempt+=1){await new Promise((resolve)=>setTimeout(resolve,2500));if(sequence!==receiverAuthSequence)return;try{const result=await Delivery.pairingStatus(pairing.pairingSessionId);if(sequence!==receiverAuthSequence)return;pairing={...pairing,...result};if(result.status==="PAIRED"){credentials=result.credentials;render();connect();return}render()}catch(error){if(sequence!==receiverAuthSequence)return;pairing={...pairing,status:error.message};render();return}}}
   function syncReceiverConnection(){Delivery.heartbeat(credentials).then((result)=>{connection="connected";lastSynced=new Date(result?.at||Date.now());updateReceiverStatus()}).catch((error)=>{if(error?.status===401||error?.status===403){void refreshReceiverAuth();return}connection=navigator.onLine?"reconnecting":"offline";updateReceiverStatus()});loadInbox()}
-  function connect(){clearInterval(pollTimer);subscription?.close?.();const stationFilter=credentials?.stationId?`station_id=eq.${credentials.stationId}`:"";subscription=Delivery.subscribeToDeliveries({filter:stationFilter,onChange:()=>loadInbox(),onState:(state)=>{connection=state;updateReceiverStatus()}});pollTimer=setInterval(syncReceiverConnection,10000);syncReceiverConnection()}
+  function connect(){if(!credentials||!Delivery.getAuthSession())return;clearInterval(pollTimer);subscription?.close?.();const stationFilter=credentials?.stationId?`station_id=eq.${credentials.stationId}`:"";subscription=Delivery.subscribeToDeliveries({filter:stationFilter,onChange:()=>loadInbox(),onState:(state)=>{connection=state;updateReceiverStatus()}});pollTimer=setInterval(syncReceiverConnection,10000);syncReceiverConnection()}
   function showNotice(text,tone="success"){notice={text,tone};render();setTimeout(()=>{notice=null;render()},2600)}
   async function loadWorkbook(id){if(workbookCache.has(id))return workbookCache.get(id);const workbook=await Delivery.downloadOfficeWorkbook(id,credentials);workbook.fileName=officialFileName(recordById(id),workbook.fileName);workbookCache.set(id,workbook);return workbook}
   async function loadRevisionStatus(id){try{const result=await Delivery.cocWorkbookRevision("status",{deliveryId:id},branchCode());if(!selected||selected.id!==id)return;revisionState.currentRevision=result.currentRevision||null;revisionState.revisions=Array.isArray(result.revisions)?result.revisions:[];revisionState.error=""}catch(error){if(selected?.id===id)revisionState.error=revisionError(error,"Workbook revision history is unavailable.")}}
@@ -325,6 +327,7 @@
 
   root.addEventListener("click",async(event)=>{
     const button=event.target.closest("[data-action]");if(!button)return;const action=button.dataset.action,id=button.dataset.id;
+    if(action==="sign-out"){await window.AtlasAuth.signOut({scope:"local"});return}
     if(action==="toggle-calendar"){toggleCalendarPicker(button.dataset.calendarTarget);return}
     if(action==="start-pairing")startPairing();
     if(action==="open"){selected=[...activeDeliveries,...completedDeliveries].find((item)=>item.id===id)||null;previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();if(selected)await openOfficialPreview(selected.id);else render()}
@@ -424,8 +427,21 @@
     if(!event.target.matches("[data-native-editor]"))return;event.preventDefault();if(!validateNativeEditor(event.target))return;stageNativeRevision(event.target)
   });
   async function resolveReceiverAuthorization(){const saved=await Delivery.receiverCredentials().catch(()=>null);try{return await Delivery.verifyReceiver()}catch(error){return saved?{paired:true,credentials:saved,deferred:true}:{paired:false,error}}}
-  async function refreshReceiverAuth(){const sequence=++receiverAuthSequence;credentials=null;branchContext=await Delivery.warehouseContext({force:true}).catch(()=>null);const verified=await resolveReceiverAuthorization();if(sequence!==receiverAuthSequence)return;credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};signInState={loading:false,error:""};render();if(credentials)connect()}
-  window.addEventListener("atlas-auth-changed",()=>{void refreshReceiverAuth()});
+  async function refreshReceiverAuth(){
+    const sequence=++receiverAuthSequence,userId=Delivery.currentUser()?.id||null;
+    ++loadSequence;clearInterval(pollTimer);subscription?.close?.();credentials=null;
+    if(userId!==receiverAccountId||!userId){
+      pairing=null;selected=null;completionState=null;activeDeliveries=[];completedDeliveries=[];workbookCache.clear();
+      previewState={status:"idle",html:"",error:"",id:""};revisionState=freshRevision();notice=null;branchContext=null;inboxLoaded=false;
+      search="";page=1;total=0;metrics={awaiting:0,receivedToday:0,completedToday:0};lastSynced=null;
+    }
+    receiverAccountId=userId;render();if(!userId)return;
+    const context=await Delivery.warehouseContext({force:true}).catch(()=>null);if(sequence!==receiverAuthSequence)return;
+    branchContext=context;const verified=await resolveReceiverAuthorization();if(sequence!==receiverAuthSequence)return;
+    credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};
+    signInState={loading:false,error:""};render();if(credentials)connect();
+  }
+  window.addEventListener("atlas-auth-changed",()=>{if((Delivery.currentUser()?.id||null)!==receiverAccountId)void refreshReceiverAuth()});
   window.addEventListener("online",connect);window.addEventListener("offline",()=>{connection="offline";updateReceiverStatus()});
-  (async()=>{branchContext=await Delivery.warehouseContext().catch(()=>null);const verified=await resolveReceiverAuthorization();credentials=verified.paired?verified.credentials:null;if(verified.warehouse)branchContext={...(branchContext||{}),warehouse:verified.warehouse};render();if(credentials)connect()})();
+  void refreshReceiverAuth();
 })();
