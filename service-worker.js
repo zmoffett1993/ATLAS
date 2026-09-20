@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v357-receiver-login-names";
+const VERSION = "atlas-pwa-v358-scanner-admin-access";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=171",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=187",
+  "./atlas-dashboard.js?v=188",
   "./atlas-auth.css?v=4",
   "./atlas-login.js?v=1",
   "./atlas-auth.js?v=8",

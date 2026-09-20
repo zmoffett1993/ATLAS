@@ -544,11 +544,14 @@
     return messages.find(([pattern]) => pattern.test(raw))?.[1] || fallback;
   };
 
-  const scannerApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") =>
-    api("/functions/v1/scanner-intelligence", {
+  const canViewScannerIntelligence = () => state.currentProfile?.role === "admin";
+  const scannerApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") => {
+    if (!canViewScannerIntelligence()) return Promise.reject(new Error("Administrator access is required for Scanner Intelligence."));
+    return api("/functions/v1/scanner-intelligence", {
       method: "POST",
       body: { action, warehouseCode, ...payload },
     });
+  };
 
   const scannerGlobalFilters = () => ({
     range: state.scannerRange,
@@ -932,7 +935,7 @@
   };
 
   const loadScannerData = async ({ background = false, warehouseCode = state.selectedWarehouse?.code || "CA" } = {}) => {
-    if (!state.session?.access_token || !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
+    if (!state.session?.access_token || !canViewScannerIntelligence()) return;
     const requestedWarehouseCode = String(warehouseCode || "CA").toUpperCase();
     const requestId = ++scannerRequestSequence;
     state.scannerLoading = true;
@@ -968,6 +971,7 @@
   };
 
   const loadScannerCorrection = async (attemptId) => {
+    if (!canViewScannerIntelligence()) return;
     state.scannerSelected = state.scannerCorrections.find((item) => item.id === attemptId) || { id: attemptId };
     state.scannerLoading = true;
     render();
@@ -2168,7 +2172,7 @@
       <article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">ACCURACY TREND</p><h2>Scanner Performance</h2><span>Exact confirmation and character-level accuracy over time</span></div></header>${renderScannerTrend()}</article>
       <article class="atlas-scanner-panel atlas-scanner-workflow-context"><header><div><p class="atlas-dashboard-eyebrow">WORKFLOW CONTEXT</p><h2>COC Processing Time</h2><span>Operational timing for ${escapeHtml(rangeLabel.toLowerCase())}</span></div></header><div class="atlas-scanner-context-metrics">${renderScannerMetric("Average COC Time", formatCocDuration(workflow.averageActiveDurationMs), workflow.completionSamples ? `${cocPlural(workflow.completionSamples, "COC")} measured` : "Timing begins after a completed COC", "blue")}${renderScannerMetric("Median COC Time", formatCocDuration(workflow.medianActiveDurationMs), "Typical active processing time", "green")}${renderScannerMetric("Completed COCs Analyzed", Number(workflow.completionSamples || 0).toLocaleString(), "Used to calculate average and median completion time", "slate")}</div></article>
       <div class="atlas-scanner-split"><article class="atlas-scanner-panel atlas-scanner-capture-panel"><header><div><h2>Capture Method</h2><span>Performance by the way the lot was captured</span></div></header><div class="atlas-scanner-table">${(data.byCaptureMethod || []).map((item) => `<div><strong>${escapeHtml(item.name)}</strong><span>${item.attempts.toLocaleString()} attempts</span><b>${scannerPercent(item.exactRate)}</b><small>${scannerPercent(item.characterAccuracy)} characters</small></div>`).join("") || `<div>No capture activity yet.</div>`}</div></article>
-      <article class="atlas-scanner-panel"><header><div><h2>Recent Corrections</h2><span>${Number(summary.unreviewed || 0)} awaiting supervisor review</span></div><button type="button" data-scanner-view="review">Review Queue</button></header><div class="atlas-scanner-mini-list">${(data.recentCorrections || []).map((item) => `<button type="button" data-scanner-correction="${escapeHtml(item.id)}"><span>${escapeHtml(item.sku || "SKU")}</span><strong>${escapeHtml(item.scanner_original_lot || "—")} → ${escapeHtml(item.confirmed_lot || "—")}</strong><small>${Number(item.edit_distance || 0)} character edit${Number(item.edit_distance) === 1 ? "" : "s"}</small></button>`).join("") || `<p>No corrected scans in this period.</p>`}</div></article></div>
+      <article class="atlas-scanner-panel"><header><div><h2>Recent Corrections</h2><span>${Number(summary.unreviewed || 0)} awaiting administrator review</span></div><button type="button" data-scanner-view="review">Review Queue</button></header><div class="atlas-scanner-mini-list">${(data.recentCorrections || []).map((item) => `<button type="button" data-scanner-correction="${escapeHtml(item.id)}"><span>${escapeHtml(item.sku || "SKU")}</span><strong>${escapeHtml(item.scanner_original_lot || "—")} → ${escapeHtml(item.confirmed_lot || "—")}</strong><small>${Number(item.edit_distance || 0)} character edit${Number(item.edit_distance) === 1 ? "" : "s"}</small></button>`).join("") || `<p>No corrected scans in this period.</p>`}</div></article></div>
     </div>`;
     const review = `<div class="atlas-scanner-review-layout"><article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">PRIVATE EVIDENCE QUEUE</p><h2>Correction Review</h2><span>Only scans changed by an employee preserve a cropped label image. Employee detail is limited to this review workspace.</span></div></header><div class="atlas-scanner-review-extra"><label>Employee<select data-scanner-filter="employee">${scannerFilterOptions(data.filters?.employees, state.scannerEmployee, "All employees", (item) => [item.id, item.name])}</select></label><label>Review status<select data-scanner-filter="review"><option value="" ${!state.scannerReviewStatus ? "selected" : ""}>All statuses</option><option value="unreviewed" ${state.scannerReviewStatus === "unreviewed" ? "selected" : ""}>Unreviewed</option><option value="reviewed" ${state.scannerReviewStatus === "reviewed" ? "selected" : ""}>Reviewed</option><option value="excluded" ${state.scannerReviewStatus === "excluded" ? "selected" : ""}>Excluded</option></select></label><label>Correction size<select data-scanner-filter="size"><option value="">All sizes</option><option value="1-2" ${state.scannerCorrectionSize === "1-2" ? "selected" : ""}>1–2 characters</option><option value="3+" ${state.scannerCorrectionSize === "3+" ? "selected" : ""}>3+ characters</option></select></label></div><div class="atlas-scanner-correction-list">${renderScannerCorrectionRows()}</div><footer><button type="button" data-scanner-page="${state.scannerPage - 1}" ${state.scannerPage <= 1 ? "disabled" : ""}>‹</button><strong>${state.scannerPage} / ${scannerPages}</strong><button type="button" data-scanner-page="${state.scannerPage + 1}" ${state.scannerPage >= scannerPages ? "disabled" : ""}>›</button></footer></article></div>`;
     const patterns = `<div class="atlas-scanner-split"><article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">RECOGNITION PATTERNS</p><h2>Most Common Character Changes</h2></div></header><div class="atlas-scanner-patterns">${(data.characterChanges || []).map((item, index) => `<div><b>${index + 1}</b><strong>${escapeHtml(item.from)} <i>→</i> ${escapeHtml(item.to)}</strong><span>${item.count.toLocaleString()} times</span></div>`).join("") || `<p>No corrections in this period.</p>`}</div></article><article class="atlas-scanner-panel"><header><div><p class="atlas-dashboard-eyebrow">SKU QUALITY</p><h2>Products Needing Attention</h2></div></header><div class="atlas-scanner-table">${(data.bySku || []).filter((item) => item.corrected || item.failures).slice(0, 12).map((item) => `<div><strong>${escapeHtml(item.name)}</strong><span>${item.corrected} corrected · ${item.failures} failed</span><b>${scannerPercent(item.exactRate)}</b><small>${scannerPercent(item.characterAccuracy)} characters</small></div>`).join("") || `<div>No problematic SKUs found.</div>`}</div></article></div>`;
@@ -2186,10 +2190,11 @@
   </div>`;
 
   const renderCocOversight = () => {
+    if (!canViewScannerIntelligence()) state.cocWorkspace = "operations";
     if (state.cocSelected) return `${renderCocDetail(state.cocSelected)}${renderCocDeleteModal()}`;
     return `<section class="atlas-dashboard-coc-center">
       ${state.cocNotice ? `<div class="atlas-dashboard-coc-notice">${escapeHtml(state.cocNotice)}</div>` : ""}${state.cocError ? `<div class="atlas-dashboard-coc-error">${escapeHtml(state.cocError)}</div>` : ""}
-      <nav class="atlas-coc-workspace-tabs" aria-label="COC oversight workspaces">${[["operations","COC Operations"],["scanner","Scanner Intelligence"]].map(([value,label]) => `<button type="button" data-coc-workspace="${value}" class="${state.cocWorkspace === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
+      <nav class="atlas-coc-workspace-tabs" aria-label="COC operations workspaces">${(canViewScannerIntelligence() ? [["operations","COC Operations"],["scanner","Scanner Intelligence"]] : [["operations","COC Operations"]]).map(([value,label]) => `<button type="button" data-coc-workspace="${value}" class="${state.cocWorkspace === value ? "is-active" : ""}">${label}</button>`).join("")}</nav>
       ${state.cocWorkspace === "scanner" ? renderScannerIntelligence() : renderCocOperations()}
       ${renderCocDeleteModal()}
     </section>`;
@@ -2210,7 +2215,7 @@
     const notifications = dashboardNotifications();
     const accessView = state.view === "access" && isAdmin;
     const cocView = state.view === "cocs" && canViewNotifications;
-    const title = accessView ? "Access<br>Management" : cocView ? "COC<br>Oversight" : "Operations<br>Dashboard";
+    const title = accessView ? "Access<br>Management" : cocView ? "COC<br>Operations" : "Operations<br>Dashboard";
     const subtitle = accessView
       ? "Manage employee identities, passwords, roles, and dashboard permissions securely from ATLAS."
       : cocView
@@ -2231,7 +2236,7 @@
           ${state.session ? `<button class="atlas-dashboard-button" type="button" data-sign-out title="${escapeHtml(sessionName)}">Sign out</button>` : ""}
         </div>
       </header>
-      ${canViewNotifications ? `<nav class="atlas-dashboard-tabs" aria-label="Dashboard sections"><button type="button" data-dashboard-view="operations" class="${!accessView && !cocView ? "is-active" : ""}">Operations</button><button type="button" data-dashboard-view="cocs" class="${cocView ? "is-active" : ""}">COC Oversight</button>${isAdmin ? `<button type="button" data-dashboard-view="access" class="${accessView ? "is-active" : ""}">Access Management</button>` : ""}</nav>` : ""}
+      ${canViewNotifications ? `<nav class="atlas-dashboard-tabs" aria-label="Dashboard sections"><button type="button" data-dashboard-view="operations" class="${!accessView && !cocView ? "is-active" : ""}">Operations</button><button type="button" data-dashboard-view="cocs" class="${cocView ? "is-active" : ""}">COC Operations</button>${isAdmin ? `<button type="button" data-dashboard-view="access" class="${accessView ? "is-active" : ""}">Access Management</button>` : ""}</nav>` : ""}
       <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : cocView ? state.cocLoading && !state.cocLoaded ? `Loading ${escapeHtml(state.selectedWarehouse?.code || "CA")} COC data…` : `Live COC data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}` : `Live data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}`}</span></div>`;
     if (accessView) return `${header}${renderAccessManagement()}`;
     if (cocView) return `${header}${renderCocOversight()}${renderNotificationCenter(notifications)}`;
@@ -2441,6 +2446,7 @@
       }
       startDashboardRefresh();
     } else if (button.matches("[data-coc-workspace]")) {
+      if (button.dataset.cocWorkspace === "scanner" && !canViewScannerIntelligence()) return;
       const currentTop = currentPageScrollTop();
       const tabsTop = button.closest(".atlas-coc-workspace-tabs")?.getBoundingClientRect().top;
       state.cocWorkspace = button.dataset.cocWorkspace || "operations";
@@ -2974,6 +2980,7 @@
   };
 
   const saveScannerReview = async (form, { exclude = false } = {}) => {
+    if (!canViewScannerIntelligence()) return;
     const submit = form.querySelector('button[type="submit"]');
     const message = form.querySelector("[data-scanner-review-error]");
     const data = new FormData(form);

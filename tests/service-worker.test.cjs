@@ -39,5 +39,5 @@ test('cache quota failure does not hide successful live data',async()=>{
 });
 test('activation removes obsolete ATLAS cache versions and preserves unrelated caches',async()=>{
  const f=fixture();f.stores.set('atlas-pwa-v353-account-transaction-warehouse-data',new Map());f.stores.set('unrelated-cache',new Map());await f.read();await f.activate();
- assert.equal(f.stores.has('atlas-pwa-v353-account-transaction-warehouse-data'),false);assert.equal(f.stores.has('unrelated-cache'),true);assert.ok([...f.stores.keys()].some(k=>k.includes('v357')));
+ assert.equal(f.stores.has('atlas-pwa-v353-account-transaction-warehouse-data'),false);assert.equal(f.stores.has('unrelated-cache'),true);assert.ok([...f.stores.keys()].some(k=>k.includes('v358')));
 });
