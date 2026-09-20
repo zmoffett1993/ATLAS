@@ -12,6 +12,25 @@
 
   const clean = (value, maximum = 240) => String(value ?? "").trim().slice(0, maximum);
   let cachedWarehouseContext = null;
+  let authGeneration = 0;
+  let authUserId = currentUser()?.id || "";
+  global.addEventListener?.("atlas-auth-changed", () => {
+    const nextUserId = currentUser()?.id || "";
+    if (nextUserId !== authUserId) {
+      authGeneration += 1;
+      authUserId = nextUserId;
+      cachedWarehouseContext = null;
+    }
+  });
+
+  function accountGuard() {
+    const userId = currentUser()?.id;
+    const generation = authGeneration;
+    return () => {
+      if (!userId || userId !== currentUser()?.id || generation !== authGeneration)
+        throw new Error("ATLAS_AUTH_REQUIRED");
+    };
+  }
 
   function requestedWarehouseCode() {
     const user = currentUser();
@@ -33,9 +52,11 @@
   }
 
   async function warehouseContext({ force = false, warehouseCode = "" } = {}) {
+    const guard = accountGuard();
     const requested = clean(warehouseCode || requestedWarehouseCode(), 8).toUpperCase();
     if (!force && cachedWarehouseContext?.selectedWarehouse?.code === requested) return cachedWarehouseContext;
     const result = await edgeRequest("coc-receiver", { action: "warehouse-context", warehouseCode: requested });
+    guard();
     cachedWarehouseContext = result;
     return result;
   }
@@ -149,7 +170,9 @@
   }
 
   async function edgeRequest(functionName, body, { receiverCredentials = null, responseType = "json" } = {}) {
+    const guard = accountGuard();
     let session = await requireValidSession();
+    guard();
     const { url, key } = config();
     const send = (accessToken) => {
       const headers = {
@@ -166,9 +189,11 @@
       });
     };
     let response = await send(session.access_token);
+    guard();
     if (response.status === 401 && global.AtlasAuth?.getValidSession) {
       const failedToken = session.access_token;
       session = await requireValidSession({ forceRefresh: true });
+      guard();
       if (session.access_token !== failedToken) response = await send(session.access_token);
     }
     if (!response.ok) {
@@ -177,8 +202,9 @@
       error.status = response.status;
       throw error;
     }
-    if (responseType === "arrayBuffer") return response.arrayBuffer();
-    return response.json();
+    const result = await (responseType === "arrayBuffer" ? response.arrayBuffer() : response.json());
+    guard();
+    return result;
   }
 
   function bytesToBase64(value) {
@@ -213,8 +239,10 @@
   }
 
   async function submitCoc({ cocId, idempotencyKey, snapshot, workbookBytes, workbookFileName, forceResend = false }) {
+    const guard = accountGuard();
     const submissionWarehouse = clean(snapshot?.warehouseCode || DEFAULT_WAREHOUSE_CODE, 8).toUpperCase();
     const context = await warehouseContext({ warehouseCode: submissionWarehouse });
+    guard();
     const databaseSnapshot = global.AtlasCocReferences?.normalizeSnapshot?.(snapshot) || { ...snapshot };
     const result = await edgeRequest("submit-coc-to-office", {
       cocId,
@@ -226,7 +254,8 @@
       workbookMimeType: MIME_XLSX,
       forceResend: Boolean(forceResend),
     });
-    if (!result?.deliveryId || result?.status !== "SENT") throw new Error("COC_SEND_NOT_CONFIRMED");
+    if (!result?.deliveryId || !["SENT", "RECEIVED", "OFFICE_COMPLETED"].includes(result?.status))
+      throw new Error("COC_SEND_NOT_CONFIRMED");
     return result;
   }
 

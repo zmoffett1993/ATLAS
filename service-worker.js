@@ -1,14 +1,14 @@
-const VERSION = "atlas-pwa-v336-receiver-startup";
+const VERSION = "atlas-pwa-v356-owned-coc-drafts";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./atlas-dashboard.css?v=170",
+  "./atlas-dashboard.css?v=171",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=183",
-  "./atlas-auth.css?v=3",
+  "./atlas-dashboard.js?v=186",
+  "./atlas-auth.css?v=4",
   "./atlas-auth.js?v=7",
   "./atlas-coc.css?v=68",
   "./atlas-zxing-browser.min.js?v=1",
@@ -18,9 +18,9 @@ const APP_SHELL = [
   "./atlas-coc-core.js?v=23",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=5",
-  "./atlas-coc-delivery.js?v=14",
+  "./atlas-coc-delivery.js?v=16",
   "./atlas-coc-excel.js?v=20",
-  "./atlas-coc.js?v=81",
+  "./atlas-coc.js?v=83",
   "./coc-receiver/index.html",
   "./coc-receiver/coc-receiver-favicon.svg?v=4",
   "./coc-receiver/coc-receiver-favicon-16.png?v=4",
@@ -109,6 +109,28 @@ async function networkFirst(request, cacheName, fallback) {
   }
 }
 
+async function warehouseRead(request, unavailable) {
+  // Cache API URL matching does not isolate Authorization headers by itself.
+  // Include the full request-header context (session, schema, range, etc.) in an
+  // opaque key. Never persist raw bearer tokens in the cached Request headers.
+  const context = JSON.stringify([...request.headers.entries()].sort());
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(context));
+  const fingerprint = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  const url = new URL(request.url);
+  url.searchParams.set("__atlas_cache_context", fingerprint);
+  const key = new Request(url.href);
+  const cache = await caches.open(DATA_CACHE);
+  let response;
+  try {
+    response = await fetch(request);
+  } catch {
+    return (await cache.match(key)) || unavailable;
+  }
+  if (response.ok) await cache.put(key, response.clone()).catch(() => {});
+  else if (response.status === 401 || response.status === 403) await cache.delete(key);
+  return response;
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -148,7 +170,7 @@ self.addEventListener("fetch", (event) => {
       }),
       { status: 503, headers: { "Content-Type": "application/json" } },
     );
-    event.respondWith(networkFirst(request, DATA_CACHE, unavailable));
+    event.respondWith(warehouseRead(request, unavailable));
     return;
   }
 

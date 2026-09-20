@@ -1292,6 +1292,11 @@ html.atlas-dashboard-open {
   padding-right: 48px !important;
 }
 
+.atlas-password-field > input::-ms-reveal,
+.atlas-password-field > input::-ms-clear {
+  display: none;
+}
+
 .atlas-password-toggle {
   position: absolute;
   top: 50%;

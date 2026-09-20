@@ -1,0 +1,3 @@
+[functions.atlas-user-admin]
+# Matches deployed v21. The handler validates every token with Auth getUser.
+verify_jwt = false

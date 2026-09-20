@@ -126,6 +126,8 @@
   const cocWorkbookCache = new Map();
   let cocSearchTimer = null;
   let dashboardRequestSequence = 0;
+  let adminRequestSequence = 0;
+  let accountSessionSequence = 0;
   let cocRequestSequence = 0;
   let scannerRequestSequence = 0;
   let dashboardPointerActive = false;
@@ -831,6 +833,7 @@
     const active = document.activeElement;
     return Boolean(
       dashboardPointerActive
+      || state.accountModal
       || dashboard?.querySelector("[data-atlas-select].is-open")
       || (active && dashboard?.contains(active) && active.matches?.("input, textarea, select, [contenteditable='true']")),
     );
@@ -1286,7 +1289,8 @@
     state.loading = true;
     state.error = "";
     state.accessRequired = false;
-    renderPreservingScroll();
+    if (state.accountModal) requestBackgroundRender();
+    else renderPreservingScroll();
     const token = state.session?.access_token;
     try {
       const warehouseContext = suppliedWarehouseContext || await window.AtlasCocDelivery?.warehouseContext?.({
@@ -1405,14 +1409,20 @@
     } finally {
       if (requestId !== dashboardRequestSequence) return;
       state.loading = false;
-      renderPreservingScroll();
+      if (state.accountModal) requestBackgroundRender();
+      else renderPreservingScroll();
     }
   };
 
   const loadAdminUsers = async ({ preserveNotice = false, anchorViewportTop = null, anchorScrollTop = null } = {}) => {
     if (state.adminLoading || state.currentProfile?.role !== "admin") return;
+    const requestId = ++adminRequestSequence;
     const preserveTabsAnchor = Number.isFinite(Number(anchorViewportTop));
     const renderAdminState = () => {
+      if (state.accountModal) {
+        requestBackgroundRender();
+        return;
+      }
       if (!preserveTabsAnchor) {
         renderPreservingScroll();
         return;
@@ -1426,13 +1436,16 @@
     renderAdminState();
     try {
       const result = await adminApi("list");
+      if (requestId !== adminRequestSequence) return;
       state.adminUsers = (result.users || []).sort((left, right) =>
         String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name)),
       );
       state.adminUsersLoaded = true;
     } catch (error) {
+      if (requestId !== adminRequestSequence) return;
       state.adminError = error instanceof Error ? error.message : "ATLAS accounts could not be loaded.";
     } finally {
+      if (requestId !== adminRequestSequence) return;
       state.adminLoading = false;
       renderAdminState();
     }
@@ -1779,7 +1792,11 @@
         </div>`;
     }
     const isCreate = mode === "create";
-    const selectedWarehouseCode = isCreate ? (state.selectedWarehouse?.code || "CA") : (user.warehouse_code || "CA");
+    const selectedWarehouseCode = isCreate ? (state.selectedWarehouse?.code || "") : (user.warehouse_code || "");
+    const homeOptions = warehouseSelectOptions();
+    if (!homeOptions.some((option) => option.value === selectedWarehouseCode)) {
+      homeOptions.unshift({ value: selectedWarehouseCode, label: selectedWarehouseCode || "Unassigned — select a warehouse" });
+    }
     return `
       <div class="atlas-account-modal-backdrop" data-account-modal-backdrop>
         <section class="atlas-account-modal" role="dialog" aria-modal="true" aria-labelledby="atlasAccountModalTitle">
@@ -1793,7 +1810,7 @@
               <label><span>Display name</span><input type="text" name="display_name" value="${escapeHtml(isCreate ? "" : user.display_name)}" autocomplete="off" required><small>The name shown on ATLAS records and activity.</small></label>
               <label><span>Sign-in name</span><input type="text" name="login_name" value="${escapeHtml(isCreate ? "" : user.login_name)}" autocomplete="off" placeholder="Example: Zach" required><small>The simple name this employee enters with their password.</small></label>
               <div class="atlas-account-field atlas-account-field--role"><span>ATLAS role</span>${renderPremiumSelect({ name: "role", value: isCreate ? "picker" : user.role, options: roleSelectOptions(), ariaLabel: "Select ATLAS role", className: "atlas-premium-select--role" })}<small>Choose the employee’s ATLAS permissions.</small></div>
-              <div class="atlas-account-field atlas-account-field--warehouse"><span>Home warehouse</span>${renderPremiumSelect({ name: "warehouse_code", value: selectedWarehouseCode, options: warehouseSelectOptions(), ariaLabel: "Select home warehouse", className: "atlas-premium-select--warehouse" })}<small>Employees and supervisors are locked to this warehouse. Administrators can view both.</small></div>
+              <div class="atlas-account-field atlas-account-field--warehouse"><span>Home warehouse</span>${renderPremiumSelect({ name: "warehouse_code", value: selectedWarehouseCode, options: homeOptions, ariaLabel: "Select home warehouse", className: "atlas-premium-select--warehouse" })}<small>Employees and supervisors are locked to this warehouse. Administrators can view both.</small></div>
               ${isCreate ? `<label><span>Password</span>${passwordField({ autocomplete: "new-password", minlength: 10 })}<small>At least 10 characters</small></label>` : ""}
             </div>
             <p class="atlas-account-form-message" data-account-message></p>
@@ -1822,13 +1839,13 @@
     const admins = state.adminUsers.filter((user) => user.active && user.role === "admin").length;
     const search = state.accountSearch.trim().toLowerCase();
     const filteredUsers = state.adminUsers.filter((user) => {
-      if (state.accountWarehouseFilter !== "all" && (user.warehouse_code || "CA") !== state.accountWarehouseFilter) return false;
+      if (state.accountWarehouseFilter !== "all" && (user.warehouse_code || "") !== state.accountWarehouseFilter) return false;
       if (state.accountRoleFilter !== "all" && user.role !== state.accountRoleFilter) return false;
       if (search && !`${user.display_name || ""} ${user.login_name || ""}`.toLowerCase().includes(search)) return false;
       return true;
     }).sort((left, right) => {
       if (state.accountSort === "role") return roleLabel(left.role).localeCompare(roleLabel(right.role)) || String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name));
-      if (state.accountSort === "warehouse") return String(left.warehouse_code || "CA").localeCompare(String(right.warehouse_code || "CA")) || String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name));
+      if (state.accountSort === "warehouse") return String(left.warehouse_code || "").localeCompare(String(right.warehouse_code || "")) || String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name));
       if (state.accountSort === "recent") return (parseDate(right.last_sign_in_at)?.getTime() || 0) - (parseDate(left.last_sign_in_at)?.getTime() || 0);
       return String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name));
     });
@@ -1837,7 +1854,7 @@
         <span class="atlas-dashboard-avatar">${escapeHtml(initials(user.display_name || user.login_name))}</span>
         <span class="atlas-account-identity"><strong>${escapeHtml(user.display_name || "Unnamed account")}${user.is_current ? " <small>(You)</small>" : ""}</strong><span>${escapeHtml(roleLabel(user.role))} account</span></span>
         <span class="atlas-account-role is-${escapeHtml(user.role)}">${escapeHtml(roleLabel(user.role))}</span>
-        <span class="atlas-account-warehouse" title="Home warehouse: ${escapeHtml(user.warehouse_code || "CA")}">${escapeHtml(user.role === "admin" && Array.isArray(user.warehouse_access) && user.warehouse_access.length > 1 ? user.warehouse_access.join(" + ") : user.warehouse_code || "CA")}</span>
+        <span class="atlas-account-warehouse" title="Home warehouse: ${escapeHtml(user.warehouse_code || "Unassigned")}">${escapeHtml(user.warehouse_code ? (Array.isArray(user.warehouse_access) && user.warehouse_access.length ? user.warehouse_access.join(" + ") : `${user.warehouse_code} · access unassigned`) : "Unassigned")}</span>
         <span class="atlas-account-status"><i class="${user.active ? "is-active" : ""}"></i>${user.active ? "Active" : "Inactive (legacy)"}</span>
         <span class="atlas-account-last"><small>Last sign-in</small><strong>${escapeHtml(accountDate(user.last_sign_in_at))}</strong></span>
         <button type="button" class="atlas-dashboard-button" data-account-edit data-user-id="${escapeHtml(user.id)}">Manage</button>
@@ -2541,7 +2558,8 @@
       state.adminError = "";
       render();
     } else if (button.matches("[data-account-edit]")) {
-      state.accountModal = { mode: "edit", userId: button.dataset.userId };
+      state.accountModal = { mode: "edit", userId: button.dataset.userId,
+        expectedRevision: state.adminUsers.find((user) => user.id === button.dataset.userId)?.assignment_revision };
       state.adminError = "";
       render();
     } else if (button.matches("[data-account-close]")) {
@@ -2853,6 +2871,7 @@
 
   const runAdminAction = async (action, payload, form = null) => {
     if (state.adminLoading) return;
+    const actorSession = accountSessionSequence;
     const message = form?.querySelector("[data-account-message]");
     const submit = form?.querySelector('button[type="submit"]');
     if (message) message.textContent = "";
@@ -2864,7 +2883,14 @@
     state.adminLoading = true;
     state.adminError = "";
     try {
+      if (action === "create" || action === "update") {
+        // Keep only the operation ID on the live form; never persist a password.
+        form.atlasOperationId ||= window.crypto.randomUUID();
+        payload.operation_id = form.atlasOperationId;
+        if (action === "update") payload.expected_revision = state.accountModal?.expectedRevision;
+      }
       const result = await adminApi(action, payload);
+      if (accountSessionSequence !== actorSession) return;
       state.adminNotice = result.message || "The ATLAS account was updated.";
       state.accountModal = null;
       state.adminLoading = false;
@@ -2872,6 +2898,7 @@
       await loadData();
     } catch (error) {
       const text = error instanceof Error ? error.message : "The account change could not be completed.";
+      if (accountSessionSequence !== actorSession) return;
       state.adminError = text;
       if (message) message.textContent = text;
       if (submit) {
@@ -2879,12 +2906,13 @@
         submit.textContent = submit.dataset.originalText || "Save";
       }
       state.adminLoading = false;
-      render();
+      if (!form) render();
     }
   };
 
   const deleteAdminAccount = async (userId) => {
     if (state.adminLoading || !userId) return;
+    const actorSession = accountSessionSequence;
     const target = state.adminUsers.find((user) => user.id === userId);
     state.adminLoading = true;
     state.adminError = "";
@@ -2892,6 +2920,7 @@
     render();
     try {
       const result = await adminApi("delete", { user_id: userId, preserve_history: true });
+      if (accountSessionSequence !== actorSession) return;
       state.adminUsers = state.adminUsers.filter((user) => user.id !== userId);
       state.adminUsersLoaded = true;
       state.accountModal = null;
@@ -2902,6 +2931,7 @@
       await loadData({ force: true });
     } catch (error) {
       const raw = error instanceof Error ? error.message : "The account could not be deleted.";
+      if (accountSessionSequence !== actorSession) return;
       state.adminLoading = false;
       state.accountDeleteError = /database error deleting user|foreign key|still referenced|violates/i.test(raw)
         ? "This account is linked to protected ATLAS history. The account-deletion server update must be deployed before it can be removed safely."
@@ -3042,6 +3072,20 @@
     connectMenu();
   });
   window.addEventListener("atlas-auth-changed", (event) => {
+    if (state.session?.user?.id !== event.detail?.session?.user?.id) {
+      ++accountSessionSequence;
+      ++adminRequestSequence;
+      ++dashboardRequestSequence;
+      state.adminUsers = [];
+      state.adminUsersLoaded = false;
+      state.adminLoading = false;
+      state.adminError = "";
+      state.adminNotice = "";
+      state.accountModal = null;
+      state.accountDeleteError = "";
+      state.currentProfile = null;
+      state.loading = false;
+    }
     state.session = event.detail?.session || null;
     state.skus = [];
     state.locations = [];
