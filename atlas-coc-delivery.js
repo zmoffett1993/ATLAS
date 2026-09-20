@@ -3,6 +3,8 @@
 
   const DEFAULT_WAREHOUSE_CODE = "CA";
   const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v1";
+  const RECEIVER_WAREHOUSE_KEY = "atlas-coc-receiver-warehouse-v1";
+  const RECEIVER_MODE = global.ATLAS_COC_RECEIVER_MODE === true;
   const PROJECT_REF = "dwrrbpiprcmajfyronlf";
   const AUTH_STORAGE_KEY = `sb-${PROJECT_REF}-auth-token`;
   const RECEIVER_SETTING_PREFIX = "office-coc-receiver-credentials";
@@ -16,8 +18,18 @@
     const roles = userRoles(user);
     const metadata = user?.app_metadata || {};
     const home = clean(metadata.home_warehouse_code || metadata.warehouse_code || DEFAULT_WAREHOUSE_CODE, 8).toUpperCase();
+    if (RECEIVER_MODE) {
+      const bound = global.localStorage?.getItem(`${RECEIVER_WAREHOUSE_KEY}:${user?.id}`);
+      return ["CA", "TX"].includes(bound) ? bound : home;
+    }
     if (!["admin", "administrator"].some((role) => roles.has(role))) return home;
     return clean(global.localStorage?.getItem(WAREHOUSE_SELECTION_KEY) || home, 8).toUpperCase();
+  }
+
+  function bindReceiverWarehouse(credentials, userId = currentUser()?.id) {
+    if (!RECEIVER_MODE || !userId || userId !== currentUser()?.id) return;
+    const code = credentials?.warehouseCode;
+    if (["CA", "TX"].includes(code)) global.localStorage?.setItem(`${RECEIVER_WAREHOUSE_KEY}:${userId}`, code);
   }
 
   async function warehouseContext({ force = false, warehouseCode = "" } = {}) {
@@ -249,6 +261,7 @@
   }
 
   async function pairingStatus(pairingSessionId) {
+    const userId = currentUser()?.id;
     const pending = JSON.parse(global.sessionStorage?.getItem("atlas-coc-pairing-pending") || "null");
     if (!pending || pending.pairingSessionId !== pairingSessionId) throw new Error("PAIRING_SESSION_MISSING");
     const result = await edgeRequest("coc-receiver", {
@@ -257,6 +270,7 @@
       devicePublicId: pending.devicePublicId,
     });
     if (result?.status === "PAIRED") {
+      if (!userId || userId !== currentUser()?.id) throw new Error("ATLAS_AUTH_REQUIRED");
       const credentials = {
         stationKey: pending.stationKey || result.stationKey || activeStationKey(),
         warehouseCode: pending.warehouseCode || requestedWarehouseCode(),
@@ -267,6 +281,7 @@
         pairedAt: result.pairedAt,
       };
       await global.AtlasCocStorage?.setSetting(receiverSettingKey(credentials.stationKey), credentials);
+      bindReceiverWarehouse(credentials, userId);
       global.sessionStorage?.removeItem("atlas-coc-pairing-pending");
       return { ...result, credentials };
     }
@@ -302,6 +317,7 @@
   }
 
   async function verifyReceiver() {
+    const userId = currentUser()?.id;
     const credentials = await receiverCredentials();
     if (!credentials) return { paired: false };
     try {
@@ -309,9 +325,10 @@
         action: "verify-receiver",
         stationKey: credentials.stationKey,
       }, { receiverCredentials: credentials });
+      bindReceiverWarehouse(credentials, userId);
       return { ...result, paired: true, credentials };
     } catch (error) {
-      if (error.status === 401 || error.status === 403) {
+      if ((error.status === 401 || error.status === 403) && userId === currentUser()?.id) {
         await global.AtlasCocStorage?.deleteSetting(receiverSettingKey(credentials.stationKey));
         return { paired: false, revoked: true };
       }
