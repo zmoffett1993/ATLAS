@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v334-receiver-warehouse-isolation";
+const VERSION = "atlas-pwa-v335-receiver-account-menu";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -25,8 +25,8 @@ const APP_SHELL = [
   "./coc-receiver/coc-receiver-favicon.svg?v=4",
   "./coc-receiver/coc-receiver-favicon-16.png?v=4",
   "./coc-receiver/coc-receiver-favicon-32.png?v=4",
-  "./coc-receiver/receiver.css?v=37",
-  "./coc-receiver/receiver.js?v=44",
+  "./coc-receiver/receiver.css?v=38",
+  "./coc-receiver/receiver.js?v=45",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

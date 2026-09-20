@@ -8,12 +8,12 @@
   <link rel="icon" type="image/svg+xml" href="./coc-receiver-favicon.svg?v=4">
   <link rel="icon" type="image/png" sizes="16x16" href="./coc-receiver-favicon-16.png?v=4">
   <link rel="icon" type="image/png" sizes="32x32" href="./coc-receiver-favicon-32.png?v=4">
-  <link rel="stylesheet" href="./receiver.css?v=37">
+  <link rel="stylesheet" href="./receiver.css?v=38">
   <link rel="stylesheet" href="../atlas-auth.css?v=3">
   <script>
     (() => {
       if (!("serviceWorker" in navigator)) return;
-      const refreshKey = "atlas-coc-receiver-v334-refreshed";
+      const refreshKey = "atlas-coc-receiver-v335-refreshed";
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (refreshing || sessionStorage.getItem(refreshKey)) return;
@@ -24,7 +24,7 @@
       window.addEventListener("load", async () => {
         try {
           const registration = await navigator.serviceWorker.register(
-            "../service-worker.js?v=261",
+            "../service-worker.js?v=262",
             { updateViaCache: "none" },
           );
           const activate = (worker) => worker?.postMessage({ type: "SKIP_WAITING" });
@@ -54,6 +54,6 @@
   <script src="../atlas-coc-delivery.js?v=13"></script>
   <script src="../atlas-coc-excel.js?v=20"></script>
   <script src="../atlas-coc-case-quantities.js?v=4"></script>
-  <script src="./receiver.js?v=44"></script>
+  <script src="./receiver.js?v=45"></script>
 </body>
 </html>
