@@ -180,5 +180,68 @@
       return data;
     } finally { bitmap.close(); }
   }
-  return { parsePage, combinePages, preparePhoto };
+  // Capture is independent of network latency. One reader runs at a time;
+  // sealing a group never waits for OCR before the next order can be captured.
+  function createPhotoQueue({ read, accept, changed = () => {} }) {
+    let jobs = [], generation = 0, running = false;
+    let controller = new AbortController();
+    const notify = () => changed(jobs);
+    async function pump() {
+      if (running) return;
+      running = true;
+      const version = generation, signal = controller.signal;
+      try {
+        while (version === generation) {
+          const job = jobs.find(item => item.status === "reading" && (item.pages.length < item.photos.length || item.sealed));
+          if (!job) break;
+          try {
+            if (job.pages.length < job.photos.length) {
+              const page = await read(job.photos[job.pages.length], signal);
+              if (version !== generation) return;
+              job.pages.push(page); notify();
+            } else {
+              job.result = combinePages(job.pages);
+              job.status = "checking"; notify();
+              await accept(job, () => version === generation && !signal.aborted);
+              if (version !== generation) return;
+              if (job.status === "checking") job.status = "review";
+              notify();
+            }
+          } catch (error) {
+            if (version !== generation) return;
+            job.status = "review"; job.message = error.message || "Photo reading needs review."; notify();
+          }
+        }
+      } finally { if (version === generation) running = false; }
+    }
+    return {
+      jobs: () => jobs,
+      add(photos, context, job = null) {
+        if (!photos.length) return job;
+        if (jobs.reduce((count, item) => count + item.photos.length, 0) + photos.length > 30 ||
+            (job?.photos.length || 0) + photos.length > 20 || (!job && jobs.length >= 10)) throw new Error("Finish this batch before adding more photos (30 photos, 10 orders maximum).");
+        if (photos.some(photo => !photo.file || photo.file.size > 15 * 1024 * 1024 || !/^image\/(?:jpeg|png|webp|heic|heif)$/i.test(photo.file.type))) throw new Error("Use JPEG, PNG, WebP or HEIC photos smaller than 15 MB.");
+        if (job && (!jobs.includes(job) || job.sealed)) throw new Error("This order is already queued. Start the next order.");
+        if (!job) { job = { ...context, photos: [], pages: [], sealed: false, status: "reading", message: "" }; jobs.push(job); }
+        job.photos.push(...photos); job.status = "reading"; job.message = ""; notify(); void pump(); return job;
+      },
+      seal(job) { if (job && jobs.includes(job)) { job.sealed = true; notify(); void pump(); } },
+      reset() { generation++; controller.abort(); controller = new AbortController(); jobs = []; running = false; notify(); },
+    };
+  }
+
+  function quickReadingIssues(result, pages, catalog, core) {
+    const issues = [...(result?.issues || [])];
+    if (!result || result.mixedOrders || ![result.orderNumber, result.customer, result.address, result.city].every(Boolean) || !result.lines.length) issues.push("Confirm the order number, Ship To address, SKU and boxes.");
+    // Auto-add requires confidence for the entire reading, not just its SKU.
+    if (!pages.length || pages.some(page => !page.words?.length || page.words.some(word => !Number.isFinite(word.confidence) || word.confidence < 0.85))) issues.push("Some text is uncertain. Check the photo before adding this order.");
+    for (const line of result?.lines || []) {
+      const match = core.selectSpecification(catalog, line.sku);
+      if (match.status !== "found" || !Number.isSafeInteger(line.caseQty) || line.caseQty < 1 || line.caseQty > 1000000 || line.uncertain) issues.push(`${line.sku}: confirm the SKU and box count.`);
+      const units = Number(match.row?.caseQty);
+      if (line.itemQty != null && (!Number.isSafeInteger(line.itemQty) || line.itemQty < 1 || line.itemQty > 1000000000 || (units > 0 && line.caseQty * units !== line.itemQty))) issues.push(`${line.sku}: check units against the box count.`);
+    }
+    return [...new Set(issues)];
+  }
+  return { parsePage, combinePages, preparePhoto, createPhotoQueue, quickReadingIssues };
 });

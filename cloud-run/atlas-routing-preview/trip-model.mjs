@@ -51,10 +51,12 @@ export function buildPlannerTrip(input, depot, now = Date.now()) {
     startTimeWindows: [{ startTime: departure, endTime: departure }], endTimeWindows: [{ startTime: departure, endTime: returnBy }],
     loadLimits: { pallets: { maxLoad: String(input.palletTarget) } }, costPerHour: 100 };
   if (input.lunch) {
-    keys(input.lunch, ["start", "end"]);
+    keys(input.lunch, ["start", "end", "latestStart"]);
     const from = time(input.lunch.start), to = time(input.lunch.end);
+    const latest = input.lunch.latestStart === undefined ? from : time(input.lunch.latestStart);
     if (Date.parse(to) - Date.parse(from) !== 3600000 || Date.parse(from) < start || Date.parse(to) > end) invalid("INVALID_LUNCH");
-    vehicle.breakRule = { breakRequests: [{ earliestStartTime: from, latestStartTime: from, minDuration: "3600s" }] };
+    if (Date.parse(latest) < Date.parse(from) || Date.parse(latest) + 3600000 > end) invalid("INVALID_LUNCH");
+    vehicle.breakRule = { breakRequests: [{ earliestStartTime: from, latestStartTime: latest, minDuration: "3600s" }] };
   }
   const model = { globalStartTime: departure, globalEndTime: returnBy, shipments, vehicles: [vehicle] };
   if (input.preserveOrder) model.precedenceRules = shipments.slice(1).map((_, index) => ({ firstIndex: index, firstIsDelivery: true, secondIndex: index + 1, secondIsDelivery: true }));

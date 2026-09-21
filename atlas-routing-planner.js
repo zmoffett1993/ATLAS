@@ -95,7 +95,11 @@
     for (let index = 0; index < loads.length; index++) {
       check(); const load = loads[index], driver = drivers[load.driver];
       const vehicleId = load.vehicleId || (load.vehicle === "van" ? "van1" : "truck");
-      const lunchStart = Date.parse(timestamp(date, lunchMinutes));
+      // Bubba has no fixed lunch start. Reserve an hour within 11 AM–3 PM;
+      // Google can place it between visits, or we use a vehicle-waiting gap.
+      const flexibleLunch = load.driver === "Bubba";
+      const lunchStart = Date.parse(timestamp(date, flexibleLunch ? 660 : lunchMinutes));
+      const latestLunchStart = Date.parse(timestamp(date, flexibleLunch ? 840 : lunchMinutes));
       let depart = driver.ready;
       let lunchDone = driver.lunchDone, lunchPeriod = driver.lunch;
       const loadingMinutes = driver.trips ? reloadMinutes : 30;
@@ -109,10 +113,10 @@
           lunchDone = true; waitingMinutes -= 60;
           lunchPeriod = { start: new Date(waitingLunchStart).toISOString(), end: new Date(waitingLunchStart + 60 * MINUTE).toISOString() };
         }
-        const reload = addWork(loadingStart, loadingMinutes, lunchStart, lunchDone);
+        const reload = addWork(loadingStart, loadingMinutes, latestLunchStart, lunchDone);
         depart = reload.end;
         if (reload.lunch) { lunchDone = true; lunchPeriod = reload.lunch; }
-      } else if (depart >= lunchStart && !lunchDone) {
+      } else if (depart >= latestLunchStart && !lunchDone) {
         lunchPeriod = { start: new Date(depart).toISOString(), end: new Date(depart + 60 * MINUTE).toISOString() };
         depart += 60 * MINUTE; lunchDone = true;
       }
@@ -128,7 +132,11 @@
         stops.push({ location: locations.get(order.id).location, pallets: shipment.palletSpaces, serviceMinutes: order.serviceMinutes, ...(window ? { timeWindow: window } : {}) });
       }
       if (!stops.length) { onUpdate(output); continue; }
-      const lunch = !lunchDone && depart <= lunchStart ? { start: timestamp(date, lunchMinutes), end: timestamp(date, lunchMinutes + 60) } : null;
+      const lunch = !lunchDone && depart <= latestLunchStart ? {
+        start: new Date(Math.max(depart, lunchStart)).toISOString(),
+        end: new Date(Math.max(depart, lunchStart) + 60 * MINUTE).toISOString(),
+        ...(flexibleLunch ? { latestStart: new Date(latestLunchStart).toISOString() } : {}),
+      } : null;
       onProgress(`Calculating trip ${index + 1} of ${loads.length} with traffic…`);
       const result = await route({ action: "planTrip", warehouse: "CA", driver: load.driver, vehicle: load.vehicle, palletTarget: load.palletTarget,
         departure: new Date(depart).toISOString(), returnBy: timestamp(date, 1200), preserveOrder, stops, ...(lunch ? { lunch } : {}) }, { signal, onProgress });
@@ -149,13 +157,22 @@
       const returned = Date.parse(result.returnTime);
       if (!Number.isFinite(returned) || returned < depart || result.visits.some((visit) => Date.parse(visit.arrival) < depart || Date.parse(visit.arrival) > returned)) throw new Error("Google returned an invalid trip schedule.");
       let breakMinutes = 0;
-      if (lunch && returned > lunchStart) {
-        const realBreak = result.breaks?.find((item) => Date.parse(item.start) === lunchStart && item.durationSeconds >= 3600);
-        if (!realBreak || returned < Date.parse(lunch.end)) throw new Error("The trip crosses lunch without a confirmed break. Schedule review is needed.");
-        lunchDone = true; lunchPeriod = lunch; breakMinutes = 60;
+      if (lunch) {
+        const realBreak = result.breaks?.find((item) => {
+          const start = Date.parse(item.start), end = start + item.durationSeconds * 1000;
+          return start >= Date.parse(lunch.start) && start <= latestLunchStart && item.durationSeconds === 3600 && end <= returned &&
+            !result.visits.some((visit) => {
+              const arrival = Date.parse(visit.arrival);
+              return start < arrival + stops[visit.stopIndex].serviceMinutes * MINUTE && end > arrival;
+            });
+        });
+        if (realBreak) {
+          lunchDone = true; breakMinutes = 60;
+          lunchPeriod = { start: realBreak.start, end: new Date(Date.parse(realBreak.start) + 60 * MINUTE).toISOString() };
+        } else if (returned > latestLunchStart) throw new Error("The trip crosses lunch without a confirmed break. Schedule review is needed.");
       }
       const trip = { ...load, tripIndex: index, ...result, shipments, locations: shipments.map((shipment) => locations.get(shipment.orderId)),
-        overtime: returned > Date.parse(timestamp(date, SHIFTS[load.driver].end)), lunch: breakMinutes ? lunch : null };
+        overtime: returned > Date.parse(timestamp(date, SHIFTS[load.driver].end)), lunch: breakMinutes ? lunchPeriod : null };
       output.trips.push(trip);
       driver.lunchDone = lunchDone; driver.lunch = lunchPeriod;
       driver.workMinutes += loadingMinutes + waitingMinutes + (returned - depart) / MINUTE - breakMinutes;
@@ -168,7 +185,10 @@
     }
     for (const [name, driver] of Object.entries(drivers)) {
       if (!driver.trips) continue;
-      if (!driver.lunchDone) driver.lunch = { start: timestamp(date, lunchMinutes), end: timestamp(date, lunchMinutes + 60) };
+      if (!driver.lunchDone) {
+        const start = Math.max(driver.ready, Date.parse(timestamp(date, name === "Bubba" ? 660 : lunchMinutes)));
+        driver.lunch = { start: new Date(start).toISOString(), end: new Date(start + 60 * MINUTE).toISOString() };
+      }
       driver.utilizationPercent = Math.round(driver.workMinutes / 480 * 100);
       driver.shiftEnd = timestamp(date, SHIFTS[name].end);
     }

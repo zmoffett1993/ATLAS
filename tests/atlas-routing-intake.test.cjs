@@ -1,6 +1,62 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { parsePage, combinePages, preparePhoto } = require('../atlas-routing-intake.js');
+const { createPhotoQueue, quickReadingIssues } = require('../atlas-routing-intake.js');
+const core = require('../atlas-routing-core.js');
+const tick = () => new Promise(resolve => setImmediate(resolve));
+const photo = name => ({ file: { type: 'image/jpeg', size: 100, name }, name });
+
+test('capture advances before reading completes, groups pages, and never doubles quantities', async () => {
+  let release, started = 0, accepted = [];
+  const queue = createPhotoQueue({ read: async file => { if (++started === 1) await new Promise(resolve => { release = resolve; }); return document({ id: file.name === 'second' ? 'SO-US-98765' : undefined }); },
+    accept: async job => { accepted.push(job.result); job.status = 'added'; } });
+  const first = queue.add([photo('first')], { date: '2026-09-21' });
+  queue.add([photo('invoice')], {}, first); queue.seal(first);
+  const second = queue.add([photo('second')], { date: '2026-09-22' }); queue.seal(second);
+  assert.equal(queue.jobs().length, 2); assert.equal(started, 1); assert.equal(accepted.length, 0);
+  release(); await tick();
+  assert.equal(accepted.length, 2); assert.equal(accepted[0].lines[0].caseQty, 100);
+  assert.equal(accepted[1].orderNumber, 'SO-US-98765'); assert.equal(second.date, '2026-09-22');
+});
+
+test('unsealed readings are never added; failures preserve photos and let the next order proceed', async () => {
+  const accepted = [], queue = createPhotoQueue({ read: async file => { if (file.name === 'bad') throw Error('Offline'); return document(); }, accept: async job => { accepted.push(job); job.status = 'added'; } });
+  const bad = queue.add([photo('bad')], {}); queue.seal(bad);
+  const good = queue.add([photo('good')], {}); await tick();
+  assert.equal(bad.status, 'review'); assert.equal(bad.photos.length, 1); assert.equal(accepted.length, 0);
+  queue.seal(good); await tick(); assert.equal(accepted.length, 1);
+  assert.throws(() => queue.add([photo('extra')], {}, good), /queued/);
+});
+
+test('account reset aborts pending reading and discards late results', async () => {
+  let release, signal, accepted = 0;
+  const queue = createPhotoQueue({ read: async (_, value) => { signal = value; await new Promise(resolve => { release = resolve; }); return document(); }, accept: async () => accepted++ });
+  const job = queue.add([photo('first')], {}); queue.seal(job);
+  queue.reset(); assert.equal(signal.aborted, true); release(); await tick();
+  assert.equal(accepted, 0); assert.equal(queue.jobs().length, 0);
+});
+
+test('capture is bounded and rejects oversized or non-image files before reading', () => {
+  const queue = createPhotoQueue({ read: async () => document(), accept: async () => {} });
+  assert.throws(() => queue.add([{ file: { type: 'text/plain', size: 1 } }], {}), /photos/);
+  assert.throws(() => queue.add([{ file: { type: 'image/jpeg', size: 16 * 1024 * 1024 } }], {}), /photos/);
+  assert.throws(() => queue.add(Array.from({ length: 21 }, () => photo('a')), {}), /batch/);
+  queue.reset();
+});
+
+test('auto-add requires clear text, known SKU and consistent box/unit counts; TBA is retained for load review', () => {
+  const catalog = [{ model: 'CGST1-95MM', caseQty: 300, boxesPerPallet: 'TBA', caseDimensions: 'TBA' }], page = document();
+  assert.deepEqual(quickReadingIssues(combinePages([page]), [page], catalog, core), []);
+  assert.ok(quickReadingIssues(combinePages([page]), [page], [], core).length);
+  for (const confidence of [0.7, undefined]) {
+    const unclear = structuredClone(page); unclear.words[5].confidence = confidence;
+    assert.ok(quickReadingIssues(combinePages([unclear]), [unclear], catalog, core).length);
+  }
+  const mismatch = document({ units: '20,000' });
+  assert.ok(quickReadingIssues(combinePages([mismatch]), [mismatch], catalog, core).length);
+  const conflict = [document(), document({ cases: '50' })];
+  assert.ok(quickReadingIssues(combinePages(conflict), conflict, catalog, core).length);
+});
 
 function document(overrides = {}) {
   const words = [];

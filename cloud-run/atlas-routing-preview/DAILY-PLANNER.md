@@ -23,14 +23,49 @@ approved adding only the exact Cloud Shell preview referrer; the two original
 localhost referrers and API restrictions were preserved. The backend still
 uses keyless Google service-account authentication.
 
-Cloud Run revision: `atlas-routing-preview-00004-dtv`.
-Image: `us-central1-docker.pkg.dev/project-6a63ee65-40cb-4d53-b32/atlas-routing-preview/preview@sha256:c1f92d09d8df25c4adb65a831874bc16fbbeb32394ca3d5cd7eff9038887e36a`.
+Cloud Run revision: `atlas-routing-preview-00006-64t`.
+Image: `us-central1-docker.pkg.dev/project-6a63ee65-40cb-4d53-b32/atlas-routing-preview/preview@sha256:fb574884d2a92ce153eeb39fa4da5715726420d2f9cca64b43592546c94b64eb`.
 The existing identity, environment, resource limits, concurrency 4, timeout 60s
 and maximum one instance were verified unchanged. No public invokers are
 granted; anonymous backend health requests still return 403. Only this private
 preview was deployed. Old images, revisions and source backups were retained.
 
 ## Planning behavior
+
+### Private mobile capture update (deployed)
+
+Add Orders opens the phone camera. Add Page keeps another sales order,
+packing-list or invoice photo in the same order; Next Order seals that group
+and opens the next camera capture without waiting for text extraction. Done
+seals the final order and returns to Deliveries without reopening the camera;
+pending readings and saves continue while routing stays open. Done also works
+when there are no photos, without creating an empty order. A sequential background queue prevents
+simultaneous OCR requests and caps a batch at 10 orders/30 photos (20 per order).
+The day is assigned from the first photo using the existing Pacific noon and
+weekday cutoff, even when reading completes later.
+
+Clear, complete readings with known SKUs and consistent quantities are added
+and saved through the existing revision-checked saved-day connection. Repeated
+documents never sum their quantities. Uncertain text, mixed orders, duplicate
+order numbers, unknown SKUs, mismatched quantities and service failures remain
+in Needs review. Reviewing and adding a queued order also saves its details.
+TBA specifications still allow known order details and retain load-fit warnings.
+Save failures remain explicitly unsaved; there is no automatic conflict retry.
+Manual entry remains available. Dismiss Reading removes only a temporary queued
+reading, not a saved order. Account changes abort and clear the temporary queue.
+Photos and OCR responses stay in memory and are never included in saved days.
+
+Verified with synthetic Node tests and a 390x844 isolated Chromium browser:
+multi-page grouping, next-order capture while reading is pending, automatic
+saves, duplicate prevention, review/edit/save, save failures, account reset,
+and a delayed Friday-before-noon reading alongside a Monday-bound noon order.
+Actual iPhone/Android camera handoff, mobile background suspension and real-photo
+recognition still require device testing. The user wants the quickest practical
+capture workflow; the earlier 3–5 seconds was illustrative, not a timing target.
+This change does not add durable background uploads: keep routing open until
+processing finishes. No new schema or Edge Function changes are needed.
+
+### Daily scheduling
 
 - Use the current order-list sequence to allocate loads. Google optimizes
   stops within each assigned load; this is not a global fleet optimizer.
@@ -41,9 +76,16 @@ preview was deployed. Old images, revisions and source backups were retained.
   trips. The same supplied cargo dimensions/80% target apply to both vans.
 - Bubba defaults to 6:30 AM departure after 30 minutes of loading; Achmad's
   first van departure is estimated at 8:30 AM after 30 minutes of loading.
-- Reload time defaults to 40 minutes. Lunch is one hour, initially 12–1 PM,
-  with its start adjustable between 11 AM and 1 PM. Reloads pause for lunch;
-  waiting for a vehicle can accommodate lunch without counting it twice.
+- Reload time defaults to 40 minutes. Bubba has a flexible one-hour lunch:
+  Google chooses a start from 11 AM to 2 PM around visits, with the hour
+  finishing by his normal 3 PM shift end. This is a planning window, not an
+  instruction to the driver. A break after an early return is carried forward
+  to later trips; vehicle waiting can accommodate lunch without counting it
+  twice. Reloads only pause if the remaining lunch window would be missed.
+  Achmad retains his separate noon default (adjustable 11 AM–1 PM). The saved
+  lunch field now applies only to Achmad; saved-day formats are unchanged.
+  Flexible lunch and its matching Cloud Run trip adapter are deployed together
+  in the private preview.
 - Google considers road traffic and customer windows. Window end times allow
   the stop's service duration before closing. Blank windows impose no customer
   window; ambiguous text requires correction rather than silent omission.
@@ -73,6 +115,46 @@ exceeding a preview limit keeps the load list and asks for review. The backend
 has a 100-pallet input-abuse bound, not a physical truck-capacity assertion.
 
 ## Verification
+
+### September 20 capture/lunch deployment
+
+`node tools/run-regressions.cjs`: 197 passed, zero failures or skips.
+These are the available focused regressions, not the missing full historical
+COC/workbook suite described below. No packages were installed.
+
+The deployment started from revision `atlas-routing-preview-00005-qqh`.
+SHA-256 comparison of its six runtime modules found only `trip-model.mjs`
+different from the release source. The new OCI image retains that revision's
+Linux/amd64 runtime and adds only the verified adapter file, owned by `node`.
+Published configuration, layer and manifest bytes were verified against their
+hashes. The new revision serves 100% of private backend traffic. Service
+identity, environment, resources, concurrency, timeout, security/scaling
+annotations and invocation IAM were verified unchanged.
+
+Cloud Shell's full image download was interrupted because it was unusually
+slow. A Cloud Build attempt could not read its uploaded source with the
+existing default build identity. No permissions were added; the verified OCI
+layer update used the existing Artifact Registry authorization instead.
+
+The private frontend runs from `~/atlas-capture-done-20260920` using the existing
+external runtime configuration and the same approved preview hostname.
+All 16 static assets served by the bridge match the tested source hashes and
+use `Cache-Control: no-store`. The main ATLAS entry point and service worker
+remain local branch changes; they were not published to GitHub Pages.
+No Supabase configuration, schema, Edge Function or saved-day data was modified
+by this deployment. Cloud Shell remains temporary hosting.
+
+The signed-in browser loaded the existing September 21 synthetic saved day
+(version 1, five orders, 23 pallet spaces, 122 specification rows). Three real
+Google planner requests completed: two Bubba truck trips and Achmad's Van 2
+trip. Bubba's second trip received an 11 AM–noon lunch, with the afternoon stop
+at 1 PM. The map rendered all five stops; totals were 114 driving minutes and
+53.2 miles. No orders were dispatched or saved during verification.
+Add Orders displayed the new capture controls; Done returned to Deliveries
+with the same five orders and saved version 1. No photo was selected or sent.
+Actual phone-camera and real-photo OCR checks remain outstanding.
+
+### Original planner verification
 
 All 75 available routing tests passed:
 

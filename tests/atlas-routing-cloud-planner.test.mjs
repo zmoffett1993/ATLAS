@@ -46,6 +46,18 @@ test("daily adapter validates driver, van, target, duration, actual dates and an
   for (const patch of [{ driver: "Unknown" }, { driver: "Achmad" }, { palletTarget: 0 }, { palletTarget: 11 }, { preserveOrder: "yes" }, { departure: "2026-02-30T06:30:00-08:00" }, { customer: "private" }]) assert.throws(() => buildPlannerTrip({ ...input(), ...patch }, depot, NOW));
   const body = input(); body.stops[0].serviceMinutes = 0; assert.throws(() => buildPlannerTrip(body, depot, NOW));
 });
+
+test("lunch accepts a flexible start window while preserving older fixed-time requests", () => {
+  const body = input();
+  body.lunch.latestStart = "2026-09-21T14:00:00-07:00";
+  const rule = buildPlannerTrip(body, depot, NOW).model.vehicles[0].breakRule.breakRequests[0];
+  assert.equal(rule.earliestStartTime, "2026-09-21T19:00:00.000Z");
+  assert.equal(rule.latestStartTime, "2026-09-21T21:00:00.000Z");
+  assert.equal(rule.minDuration, "3600s");
+  for (const latestStart of ["2026-09-21T11:00:00-07:00", "2026-09-21T19:30:00-07:00", "invalid"]) {
+    assert.throws(() => buildPlannerTrip({ ...body, lunch: { ...body.lunch, latestStart } }, depot, NOW));
+  }
+});
 test("daily adapter estimates beyond normal shift without permitting arbitrary overnight planning", () => {
   assert.doesNotThrow(() => buildPlannerTrip({ ...input(), departure: "2026-09-21T16:00:00-07:00", lunch: null }, depot, NOW));
   assert.throws(() => buildPlannerTrip({ ...input(), returnBy: "2026-09-22T08:00:00-07:00" }, depot, NOW));
