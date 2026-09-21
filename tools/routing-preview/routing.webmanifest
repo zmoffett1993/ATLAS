@@ -1,0 +1,14 @@
+{
+  "id": "/",
+  "name": "ATLAS Private Delivery Routing",
+  "short_name": "ATLAS Routing",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#071b40",
+  "icons": [
+    { "src": "/atlas-icon-v2-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/atlas-icon-v2-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en" class="atlas-routing-standalone"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ATLAS · Private Routing Preview</title>
+<link rel="stylesheet" href="/preview.css"><link rel="stylesheet" href="/atlas-auth.css"><link rel="stylesheet" href="/atlas-routing.css">
+<script src="/atlas-jszip.min.js" defer></script><script src="/atlas-routing-core.js" defer></script><script src="/atlas-routing-planner.js" defer></script><script src="/atlas-routing-catalog.js" defer></script><script src="/atlas-routing-intake.js" defer></script><script src="/atlas-routing-storage.js" defer></script><script src="/atlas-routing-notifications.js" defer></script><script src="/atlas-routing.js" defer></script><script type="module" src="/preview.mjs"></script>
+</head><body><main id="root"><img class="brand" src="/atlas-brand-landscape-dark.svg" alt="ATLAS"><p class="eyebrow">PRIVATE DELIVERY ROUTING PREVIEW</p>
+<h1>Your private routing preview.</h1><p>Sign in with your existing ATLAS account. This preview is separate from live ATLAS.</p>
+<div class="actions"><button id="sign-in" disabled>Sign into ATLAS</button><button id="open-planner" disabled>Open planning preview</button></div>
+<section><h2>Google connection test</h2><p>One sample trip: Fullerton warehouse → Fullerton City Hall → warehouse. It uses one test pallet and a 25-minute stop. No customer order or photo is sent, and no delivery is scheduled.</p>
+<p id="sample-time"></p><button id="test-route" disabled>Test Google connection</button><p id="status" role="status">Loading secure preview…</p><div id="result" hidden></div></section>
+<section><h2>Preview connection check</h2><p>This checks the browser connection without using your ATLAS credentials or requesting a route.</p><button id="check-connection">Check preview connection</button><p id="connection-status" role="status"></p></section>
+<p class="note">Photo reading, daily routing, and Save Day are available for private testing. Saved days contain reviewed details only; photos are not stored. This temporary preview is available while the Cloud Shell session is running.</p>
+</main></body></html>

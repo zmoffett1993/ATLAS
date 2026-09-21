@@ -1,0 +1,256 @@
+/* Delivery Routing stays isolated from the established ATLAS views. */
+html.atlas-routing-standalone.atlas-routing-open body { padding: 0 !important; background: #f4f7fb; overflow-x: hidden; }
+html.atlas-routing-open #root,
+html.atlas-routing-open .atlas-dashboard,
+html.atlas-routing-standalone.atlas-routing-open .premium-drawer-backdrop.atlas-menu-backdrop,
+html.atlas-routing-standalone.atlas-routing-open .atlas-desktop-topbar { display: none !important; }
+.atlas-route[hidden] { display: none !important; }
+.atlas-route { --navy: #09294c; --blue: #1765c9; --line: #dce6f1; --ink: #152d4b; --muted: #687a91; min-height: 100dvh; display: grid; grid-template-columns: 190px minmax(0, 1fr); color: var(--ink); background: #f2f7fc; font-family: "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; margin: 0; padding: 0; border: 0; }
+.atlas-route * { box-sizing: border-box; }
+.atlas-route button, .atlas-route input { font: inherit; }
+.atlas-route button:not(:disabled) { cursor: pointer; }
+.atlas-route svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.atlas-route-sidebar { min-height: 100dvh; color: #dceaff; background: #102c43; position: relative; overflow: hidden; padding: 21px 8px; display: flex; flex-direction: column; }
+.atlas-route-logo { min-height: 58px; margin: 0 5px 16px; }
+.atlas-route-logo img { display: block; width: 164px; max-width: 100%; max-height: 53px; object-fit: contain; object-position: left center; }
+.atlas-route-sidebar nav { display: grid; gap: 3px; }
+.atlas-route-sidebar nav button { display: flex; align-items: center; gap: 14px; width: 100%; border: 0; border-radius: 6px; padding: 11px 12px; color: #bdd1e9; background: transparent; text-align: left; white-space: nowrap; }
+.atlas-route-sidebar nav button:hover, .atlas-route-sidebar nav button:focus-visible { color: #fff; background: #224d7a; }
+.atlas-route-sidebar nav button.is-active { color: #fff; background: linear-gradient(100deg,#1661b3,#244e83); font-weight: 750; box-shadow: 0 3px 10px #031b3144; }
+.atlas-route-sidebar-note { margin: auto 12px 5px; color: #b4cce6; position: relative; padding: 100px 0 18px; font-size: 10px; letter-spacing: .3em; line-height: 1.55; }
+.atlas-route-main { min-width: 0; width: 100%; max-width: 1800px; padding: 17px 12px 24px; }
+.atlas-route-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 0 4px 12px; }
+.atlas-route-eyebrow { color: #4e79aa !important; font-size: 10px !important; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 3px !important; }
+.atlas-route-header h1 { margin: 0; font-size: clamp(23px,1.85vw,29px); letter-spacing: -.035em; line-height: 1.16; color: #122b4d; }
+.atlas-route-header p { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+.atlas-route-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px; }
+.atlas-route-date, .atlas-route-button { min-height: 35px; border: 1px solid #d2deed; border-radius: 5px; background: #fff; color: #1a365a; padding: 7px 11px; font-weight: 650; box-shadow: 0 2px 5px #0d2f5310; }
+.atlas-route-date { display: flex; align-items: center; gap: 7px; }
+.atlas-route-date input { border: 0; color: inherit; background: transparent; max-width: 130px; }
+.atlas-route-button:disabled { opacity: .68; cursor: not-allowed; }
+.atlas-route-primary { color: #fff; border-color: #1259b4; background: linear-gradient(#1a77d8,#1357b5); }
+.atlas-route-notice { margin: 0 3px 11px; padding: 7px 11px; display: flex; flex-wrap: wrap; gap: 6px 12px; border: 1px solid #d4e4f4; border-radius: 5px; color: #275180; background: #eef6ff; font-size: 12px; }
+.atlas-route-grid { display: grid; grid-template-columns: minmax(0,1.56fr) minmax(330px,1fr); gap: 10px; align-items: start; }
+.atlas-route-column { min-width: 0; display: grid; gap: 10px; }
+.atlas-route-card { min-width: 0; margin: 0; padding: 13px 11px; border: 1px solid #dce5f0; border-radius: 7px; background: #fff; box-shadow: 0 2px 6px #122e5010; }
+.atlas-route-card h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 11px; color: #153357; font-size: 18px; line-height: 1.25; font-weight: 750; }
+.atlas-route-card h2 svg { color: #315d8c; }
+.atlas-route-fields { display: grid; grid-template-columns: repeat(12,minmax(0,1fr)); gap: 17px 14px; border: 1px solid #e1e8f1; border-radius: 6px; padding: 10px; }
+.atlas-route-field { grid-column: span 3; display: grid; align-content: start; gap: 5px; min-width: 0; }
+.atlas-route-field > span { display: flex; align-items: center; gap: 4px; color: #1b385a; font-size: 11px; font-weight: 700; }
+.atlas-route-field > span svg { width: 14px; height: 14px; }
+.atlas-route-field strong, .atlas-route-field > input { display: block; border: 1px solid #d5e1ed; border-radius: 4px; background: #fff; padding: 6px 8px; color: #1b3455; font-size: 12px; font-weight: 600; min-height: 32px; box-shadow: inset 0 1px 2px #18334f05; }
+.atlas-route-field small { color: #61748b; font-size: 10px; line-height: 1.25; }
+.atlas-route-field:nth-child(-n+3) { grid-column: span 4; }
+.atlas-route-card-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -2px 0 8px; color: var(--muted); font-size: 11px; }
+.atlas-route-card-tools button { white-space: nowrap; }
+.atlas-route-table-scroll { overflow-x: auto; }
+.atlas-route table { border-collapse: collapse; width: 100%; min-width: 585px; color: #203958; }
+.atlas-route th, .atlas-route td { text-align: left; border: 1px solid #e1e8f1; padding: 10px 9px; }
+.atlas-route th { color: #234768; background: #eef5fd; font-size: 11px; }
+.atlas-route td { font-size: 12px; }
+.atlas-route td.atlas-route-empty { height: 175px; padding: 30px 10px; text-align: center; color: var(--muted); }
+.atlas-route-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 0; margin-top: 8px; border: 1px solid #e1ebf5; border-radius: 5px; background: #f8fbff; }
+.atlas-route-summary > div { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 10px; }
+.atlas-route-summary > div + div { border-left: 1px solid #dce7f4; }
+.atlas-route-summary svg { width: 31px; height: 31px; color: #39658e; }
+.atlas-route-summary span, .atlas-route-kpis span { display: grid; gap: 3px; color: #64778c; font-size: 11px; }
+.atlas-route-summary strong { color: #173858; font-size: 18px; }
+.atlas-route-summary > div:nth-child(3) strong { font-size: 11px; }
+.atlas-route-plan-empty { border: 1px dashed #9bc8e9; border-radius: 6px; padding: 23px 15px; background: #f6fbff; color: #244766; text-align: center; }
+.atlas-route-plan-empty p { margin: 7px auto 0; max-width: 500px; color: #667e98; font-size: 11px; }
+.atlas-route-map-card { padding-bottom: 10px; }
+.atlas-route-map { position: relative; min-height: 515px; display: grid; place-items: center; overflow: hidden; border-radius: 5px; border: 1px solid #d4e2ee; background: linear-gradient(130deg,#e8f2ed,#eef4f9 53%,#dce9f3); }
+.atlas-route-map-grid { position: absolute; inset: 0; opacity: .45; background-image: linear-gradient(42deg,transparent 48%,#fff 49%,#fff 51%,transparent 52%),linear-gradient(127deg,transparent 48%,#fff 49%,#fff 51%,transparent 52%); background-size: 84px 105px; }
+.atlas-route-map-pin { position: relative; display: grid; justify-items: center; gap: 2px; padding: 9px 12px; border-radius: 8px; color: #153f72; background: #fff; box-shadow: 0 3px 13px #224b7540; }
+.atlas-route-map-pin svg { color: #1765c9; }
+.atlas-route-map-pin small { font-size: 10px; }
+.atlas-route-map > p { position: absolute; bottom: 10px; left: 10px; right: 10px; margin: 0; padding: 7px; border-radius: 4px; background: #ffffffdb; color: #456786; text-align: center; font-size: 11px; }
+.atlas-route-kpis { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.atlas-route-kpis > div { display: flex; align-items: center; gap: 11px; min-height: 68px; padding: 10px 12px; border: 1px solid #dae5f0; border-radius: 6px; background: #fff; }
+.atlas-route-kpis svg { width: 40px; height: 40px; padding: 9px; border-radius: 50%; color: #2b5d8e; background: #edf4fb; }
+.atlas-route-kpis strong { font-size: 19px; color: #163757; }
+.atlas-route-relief { display: flex; flex-direction: column; gap: 10px; padding-left: 32px; }
+.atlas-route-relief strong { align-self: flex-start; color: #128865; border-radius: 999px; padding: 4px 9px; background: #e8f7f1; white-space: nowrap; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
+.atlas-route-relief p { margin: 3px 0 0; color: #516882; font-size: 11px; }
+.atlas-route-checklist { margin: 0; padding: 0 0 0 21px; display: grid; gap: 7px; color: #395670; font-size: 11px; }
+.atlas-route-checklist { list-style: none; padding-left: 32px; }
+.atlas-route-checklist li { position: relative; line-height: 1.5; }
+.atlas-route-checklist li::before { content: "✓"; position: absolute; left: -21px; top: 1px; width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; color: white; background: #14996a; font-size: 10px; font-weight: 800; }
+.atlas-route-intake { width: min(94vw, 720px); max-height: 92dvh; overflow-y: auto; border: 1px solid #ceddec; border-radius: 10px; padding: 24px; color: #1a3556; box-shadow: 0 20px 80px #06213d77; }
+.atlas-route-intake::backdrop { background: #061c36a8; }
+.atlas-route-intake form { display: grid; gap: 13px; }
+.atlas-route-intake h2 { margin: 0; }
+.atlas-route-intake p { margin: 0; color: #5d7188; }
+.atlas-route-close { position: absolute; top: 12px; right: 14px; border: 0; background: transparent; font-size: 26px !important; }
+.atlas-route-upload { display: grid; gap: 8px; padding: 16px; border: 2px dashed #a7c7e8; border-radius: 8px; color: #145fae; font-weight: 700; }
+.atlas-route-upload input { max-width: 100%; }
+.atlas-route-preview { display: flex; gap: 8px; overflow-x: auto; }
+.atlas-route-preview img { height: 100px; max-width: 130px; object-fit: contain; background: #f1f5fa; }
+.atlas-route-intake-note { font-size: 12px; }
+.atlas-route-catalog-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; font-size: 11px; color: #5d7188; }
+.atlas-route-catalog-bar label { position: relative; cursor: pointer; flex-shrink: 0; max-width: 100%; }
+.atlas-route-file-input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.atlas-route-catalog-bar label:focus-within { outline: 2px solid #1765c9; outline-offset: 3px; }
+.atlas-route-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.atlas-route-form-grid label, .atlas-route-form-label, .atlas-route-line label { display: grid; gap: 5px; color: #254361; font-size: 12px; font-weight: 650; }
+.atlas-route-form-wide { grid-column: 1 / -1; }
+.atlas-route-intake input:not([type="file"]):not([type="checkbox"]), .atlas-route-intake textarea { width: 100%; min-width: 0; padding: 8px; border: 1px solid #bdcde0; border-radius: 4px; color: #183552; background: white; font: inherit; }
+.atlas-route-check-option { display: flex; align-items: center; gap: 8px; color: #83511c; font-size: 12px; font-weight: 750; }
+.atlas-route-order-lines { display: grid; gap: 8px; }
+.atlas-route-line { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 25px; align-items: end; gap: 8px; }
+.atlas-route-line > button { border: 0; padding: 7px 0; background: transparent; color: #8d3541; font-size: 20px; }
+.atlas-route-form-error { color: #ab2335 !important; font-size: 12px; }
+.atlas-route td small { display: block; font-size: 10px; margin-top: 4px; color: #61778d; }
+.atlas-route-order-link { border: 0; padding: 0; background: none; text-align: left; color: #155bb1; font-weight: 700; }
+.atlas-route-order-link:hover { text-decoration: underline; }
+.atlas-route-order-position span { cursor: grab; white-space: nowrap; }
+.atlas-route-order-position button { border: 0; padding: 2px 4px; background: #edf4fb; color: #245788; }
+.atlas-route-order-position button:disabled { opacity: .3; }
+.atlas-route-order-position button[data-route-drag] { touch-action: none; cursor: grab; white-space: nowrap; padding: 5px 2px; background: transparent; }
+.atlas-route-order-position button[data-route-drag]:active { cursor: grabbing; }
+.atlas-route tr.is-drop-target { outline: 2px solid #1765c9; outline-offset: -2px; background: #eef6ff; }
+.atlas-route-warning { color: #925616 !important; }
+.atlas-route-check-badge { display: block; width: fit-content; margin: 3px 0; color: #805311; background: #fff0cd; padding: 3px 5px; border-radius: 3px; font-size: 10px; }
+.atlas-route td details { max-width: 210px; margin-top: 6px; color: #8b551f; }
+.atlas-route td details p { margin: 5px 0; }
+.atlas-route-plan-banner { display: flex; align-items: center; gap: 12px; border: 1px solid #b3d4e9; background: #f0f7fc; border-radius: 5px; color: #205d49; padding: 12px; margin-bottom: 10px; }
+.atlas-route-plan-banner p { margin: 5px 0 0; font-size: 11px; }
+.atlas-route-trip { display: flex; gap: 11px; padding: 12px; border: 1px solid #d5e2ee; border-radius: 8px; margin: 9px 0; box-shadow: 0 2px 4px #12314a0c; }
+.atlas-route-trip-number { display: grid; place-items: center; align-self: start; width: 34px; height: 34px; font-size: 17px; font-weight: 750; border-radius: 50%; color: #fff; background: #1765c9; flex: none; }
+.atlas-route-trip > div { min-width: 0; flex: 1; }
+.atlas-route-trip header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px; font-size: 12px; }
+.atlas-route-trip p { font-size: 11px; line-height: 1.65; margin: 8px 0 0; }
+.atlas-route-unscheduled { background: #fff7ea; border: 1px solid #f0d2a8; padding: 12px; border-radius: 5px; color: #805322; }
+.atlas-route-unscheduled p { margin: 5px 0; font-size: 11px; }
+.atlas-route-sidebar nav, .atlas-route-logo { position: relative; z-index: 1; }
+.atlas-route-warehouse { position: absolute; top: 300px; left: 0; width: 100% !important; height: calc(100% - 430px) !important; min-height: 440px; opacity: .58; stroke: none !important; -webkit-mask-image: linear-gradient(transparent,black 12%,black 68%,transparent); mask-image: linear-gradient(transparent,black 12%,black 68%,transparent); }
+.atlas-route-sidebar-note::after { content: ""; display: block; margin-top: 16px; width: 40px; height: 3px; background: #2388d4; }
+.atlas-route-sidebar nav button { min-height: 44px; font-size: 14px; font-weight: 450; }
+.atlas-route-sidebar nav button.is-active { border-left: 2px solid #26b9ff; border-radius: 5px; }
+.atlas-route-sidebar nav svg { width: 18px; height: 18px; }
+.atlas-route-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.atlas-route-button svg { width: 16px; height: 16px; }
+.atlas-route-account { display: flex; align-items: center; gap: 8px; border: 0; padding: 0 2px; color: #173352; background: transparent; text-align: left; }
+.atlas-route-account > span:nth-child(2) { display: grid; gap: 2px; }
+.atlas-route-account strong { font-size: 12px; }
+.atlas-route-account small { font-size: 10px; color: var(--muted); }
+.atlas-route-account > svg { width: 12px; }
+.atlas-route-avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #2764a5; color: white; font-size: 12px; font-weight: 650; }
+.atlas-route-field small { min-height: 12px; }
+.atlas-route-card h2 > svg { width: 23px; height: 23px; }
+.atlas-route-map-label { margin-left: auto; color: #68809a; border: 1px solid #dce6ef; border-radius: 4px; padding: 4px 8px; font-size: 10px; font-weight: 500; }
+.atlas-route-map-pin { gap: 4px; padding: 14px 18px; border: 1px solid #d3dfeb; }
+.atlas-route-map-pin svg { width: 26px; height: 26px; }
+.atlas-route-map > p { padding: 10px; }
+.atlas-route-relief strong svg { width: 14px; height: 14px; }
+.atlas-route-plan-empty { min-height: 205px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-style: solid; border-color: #e2ebf3; background: linear-gradient(#f7fbfe,#fff); }
+.atlas-route-empty-icon { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: #e9f2fb; color: #2e6396; margin-bottom: 13px; }
+.atlas-route-plan-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #2f739d; color: white; flex: none; }
+.atlas-route-plan-banner strong { font-size: 16px; color: #184c6b; }
+.atlas-route-plan-banner > div { flex: 1; }
+.atlas-route-plan-status { max-width: 230px; border-left: 1px solid #bdd5e5; padding-left: 14px; color: #47677d; }
+.atlas-route-trip header { align-items: center; }
+.atlas-route-trip-stats { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; }
+.atlas-route-trip-path { display: flex; align-items: start; gap: 8px; color: #48627d; }
+.atlas-route-trip-path svg { width: 16px; height: 19px; }
+.atlas-route button:focus-visible, .atlas-route input:focus-visible { outline: 2px solid #168bea; outline-offset: 3px; }
+@media (max-width: 1270px) { .atlas-route-header { align-items: flex-start; } .atlas-route-account > span:nth-child(2) { display: none; } .atlas-route-fields { gap: 12px 8px; } .atlas-route-summary > div { padding: 9px 6px; gap: 5px; } .atlas-route-summary svg { width: 24px; height: 24px; } }
+@media (max-width: 1080px) { .atlas-route-grid { grid-template-columns: minmax(0,1fr); } .atlas-route-map { min-height: 270px; } }
+@media (max-width: 750px) { .atlas-route { display: block; } .atlas-route-sidebar { min-height: 0; padding: 10px; } .atlas-route-logo, .atlas-route-sidebar-note { display: none; } .atlas-route-sidebar nav { display: flex; overflow-x: auto; } .atlas-route-sidebar nav button { width: auto; padding: 8px; gap: 6px; } .atlas-route-sidebar nav button svg { width: 17px; } .atlas-route-main { padding: 14px 10px 22px; } .atlas-route-header { display: block; } .atlas-route-header-actions { justify-content: flex-start; margin-top: 12px; } .atlas-route-fields { grid-template-columns: repeat(2,minmax(0,1fr)); } .atlas-route-field, .atlas-route-field:nth-child(-n+3) { grid-column: auto; } .atlas-route-warehouse { display: none; } .atlas-route-account { margin-left: auto; } .atlas-route-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } .atlas-route-summary > div:nth-child(3) { border-left: 0; border-top: 1px solid #dce7f4; } .atlas-route-summary > div:nth-child(4) { border-top: 1px solid #dce7f4; } }
+@media (max-width: 430px) { .atlas-route-fields { grid-template-columns: 1fr; } .atlas-route-card-tools { align-items: start; flex-direction: column; } .atlas-route-relief { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .atlas-route-catalog-bar { flex-direction: column; align-items: start; } .atlas-route-form-grid { grid-template-columns: 1fr; } .atlas-route-line { grid-template-columns: 1fr 1fr 25px; } .atlas-route-line label:first-child { grid-column: 1 / -1; } }
+
+.atlas-route-field > input { width: 100%; min-width: 0; font: inherit; }
+.atlas-route-capacity { margin: 10px 0; padding: 12px; border: 1px solid #c6dbef; border-radius: 7px; background: #f0f7ff; color: #163a60; overflow-wrap: anywhere; }
+.atlas-route-capacity > strong { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.atlas-route-capacity > strong svg { width: 22px; height: 22px; flex-shrink: 0; }
+.atlas-route-capacity p { margin: 6px 0; font-size: 12px; }
+.atlas-route-capacity meter { display: block; width: 100%; height: 14px; }
+.atlas-route-capacity small { font-size: 11px; }
+.atlas-route-capacity.needs-review { background: #fff8ec; border-color: #ecd2a3; color: #805322; }
+.atlas-route-intake [data-route-entry-status]:not(:empty) { padding: 10px; border-left: 3px solid #1765c9; background: #f0f7ff; color: #163a60; }
+.atlas-route-planning-review { margin: 8px 0; padding: 8px 11px; border: 1px solid #ecd2a3; border-radius: 5px; background: #fff8ec; color: #805322; font-size: 11px; }
+.atlas-route-planning-review p { margin: 4px 0; }
+.atlas-route-planner-options{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:8px}
+.atlas-route-planner-options label{display:flex;gap:6px;align-items:center;font-size:12px;color:#365573}
+.atlas-route-planner-options input[type=number]{width:65px}
+.atlas-route-planner-options input[type=time]{width:100px}
+.atlas-route-planner-options input:not([type=checkbox]),.atlas-route-assignment select{padding:6px;border:1px solid #d6e1eb;border-radius:5px;background:#fff;color:#123457}
+.atlas-route-assignment{display:flex;gap:5px;align-items:center;font-size:11px}
+.atlas-route-arrivals{padding-left:20px;font-size:13px;line-height:1.7}
+.atlas-route-arrivals time{font-weight:700;margin-right:6px}
+.atlas-route-arrivals small{display:block;color:#59718a;font-size:11px}
+.atlas-route [data-route-progress]{font-size:13px;color:#224c78}
+.atlas-route [data-route-map]{min-height:440px}
+.atlas-route [data-route-utilization]{font-size:16px}
+
+.atlas-route [hidden]{display:none!important}
+
+/* Embedded routing reuses the ATLAS menu, including its existing colors. */
+html:not(.atlas-routing-standalone) .atlas-route { grid-template-columns: minmax(0,1fr); }
+html:not(.atlas-routing-standalone) .atlas-route-sidebar { display: none; }
+html.atlas-desktop:not(.atlas-routing-standalone) .atlas-route { padding-top: var(--atlas-desktop-topbar); }
+html.atlas-routing-standalone [data-route-host-menu], html.atlas-desktop [data-route-host-menu] { display: none; }
+.atlas-route-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.atlas-route-preview figure { margin: 0; display: grid; gap: 5px; justify-items: start; }
+.atlas-route-preview figure img { width: 100px; height: 120px; object-fit: contain; }
+.atlas-route-photo-review { border: 1px solid #bfd5ec; border-radius: 7px; background: #f3f8fe; padding: 14px; margin: 12px 0; }
+.atlas-route-photo-review[hidden] { display: none; }
+.atlas-route-photo-review dl { display: grid; grid-template-columns: 95px minmax(0,1fr); gap: 5px; }
+.atlas-route-photo-review dd { margin: 0; overflow-wrap: anywhere; }
+.atlas-route-photo-review ul { padding-left: 20px; color: #785312; }
+
+.atlas-route-photo-actions label { position: relative; overflow: hidden; cursor: pointer; }
+
+.atlas-route-intake { font: 13px "Segoe UI", ui-sans-serif, system-ui, sans-serif; }
+.atlas-route-history { width: min(760px, 94vw); }
+.atlas-route-history-result { border: 1px solid #d6e1eb; border-radius: 8px; padding: 14px; margin: 12px 0; overflow-wrap: anywhere; }
+.atlas-route-history-result h3 { margin-top: 0; color: #123457; }
+.atlas-route-history select { font: inherit; padding: 9px; border: 1px solid #d6e1eb; border-radius: 5px; }
+.atlas-route-delivery-confirmation { margin: 16px 0; padding: 14px; border: 1px solid #d6e1eb; border-radius: 8px; }
+.atlas-route-delivery-confirmation > label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.atlas-route-delivery-confirmation textarea { width: 100%; }
+.atlas-route-delivery-confirmation p { color: #59718a; font-size: 12px; }
+
+.atlas-route-reminders { width: min(560px, 94vw); line-height: 1.5; }
+.atlas-route-reminders p { margin: 12px 0; }
+.atlas-route-reminders [data-route-reminder-status] { padding: 12px; border-radius: 6px; background: #f0f6fc; color: #123457; }
+.atlas-route-reminders button:disabled { opacity: .55; cursor: not-allowed; }
+
+.atlas-route-trip-sheet { width: min(820px, 94vw); color: #152d4b; line-height: 1.5; }
+.atlas-route-trip-sheet p { margin: 10px 0; color: inherit; }
+.atlas-route-sheet-actions { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 20px; }
+.atlas-route-sheet-header { border-bottom: 3px solid #1765c9; padding-bottom: 14px; }
+.atlas-route-sheet-logo { display: block; width: 230px; max-width: 100%; height: auto; }
+.atlas-route-sheet-header > span { display: block; margin: 6px 0 16px; font-size: 14px; font-weight: 700; }
+.atlas-route-sheet-header h1 { font-size: 27px; margin: 6px 0; }
+.atlas-route-sheet-header p { margin: 0; }
+.atlas-route-sheet-summary { display: flex; flex-wrap: wrap; gap: 16px 32px; padding: 14px; background: #f0f6fc; border: 1px solid #d6e1eb; border-radius: 6px; }
+.atlas-route-sheet-summary span, .atlas-route-sheet-summary strong { display: block; }
+.atlas-route-sheet-note { font-size: 11px; color: #526983; }
+.atlas-route-sheet-review { border-left: 3px solid #946514; padding: 8px 12px; background: #fff8ec; }
+.atlas-route-sheet-review p { margin: 5px 0; }
+.atlas-route-sheet-stop { border-top: 2px solid #cbd8e6; margin-top: 20px; padding-top: 8px; overflow-wrap: anywhere; break-inside: avoid; }
+.atlas-route-sheet-stop:first-of-type { border-top-color: transparent; }
+.atlas-route-sheet-stop h2 { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 19px; margin: 8px 0; }
+.atlas-route-sheet-stop h2 span { font-size: 15px; }
+.atlas-route-sheet-address, .atlas-route-sheet-notes { white-space: pre-wrap; }
+.atlas-route-sheet-check { display: inline-block; margin: 4px 0; padding: 5px 12px; border: 2px solid currentColor; font-weight: 800; }
+.atlas-route-sheet-stop dl { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 4px 12px; }
+.atlas-route-sheet-stop dt { font-weight: 600; }
+.atlas-route-sheet-stop dd { margin: 0; }
+.atlas-route-sheet-stop table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
+.atlas-route-sheet-stop th, .atlas-route-sheet-stop td { padding: 5px 8px; text-align: left; border: 1px solid #cbd8e6; }
+.atlas-route-sheet-stop th:last-child, .atlas-route-sheet-stop td:last-child { width: 80px; text-align: right; }
+.atlas-route-sheet-return { border-top: 3px solid #1765c9; padding-top: 14px; margin-top: 24px; }
+@media print {
+  html.atlas-routing-print-sheet, html.atlas-routing-print-sheet body { height: auto !important; overflow: visible !important; background: white !important; }
+  html.atlas-routing-print-sheet body > :not(#atlasDeliveryRouting),
+  html.atlas-routing-print-sheet #atlasDeliveryRouting > :not(.atlas-route-trip-sheet),
+  html.atlas-routing-print-sheet .atlas-route-sheet-actions { display: none !important; }
+  html.atlas-routing-print-sheet #atlasDeliveryRouting { display: block !important; position: static !important; padding: 0 !important; margin: 0 !important; min-height: 0; background: white; }
+  html.atlas-routing-print-sheet .atlas-route-trip-sheet[open] { display: block !important; position: static; width: auto; max-width: none; height: auto; max-height: none; overflow: visible; margin: 0; padding: 0; border: 0; box-shadow: none; color: #111; font-size: 11pt; }
+  html.atlas-routing-print-sheet .atlas-route-trip-sheet::backdrop { display: none; }
+  html.atlas-routing-print-sheet .atlas-route-sheet-stop h2 { break-after: avoid; }
+}

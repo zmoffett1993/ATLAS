@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v336-receiver-startup";
+const VERSION = "atlas-pwa-v366-routing-trip-locks";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./atlas-dashboard.css?v=170",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=183",
+  "./atlas-dashboard.js?v=184",
   "./atlas-auth.css?v=3",
   "./atlas-auth.js?v=7",
   "./atlas-coc.css?v=68",
@@ -36,7 +36,15 @@ const APP_SHELL = [
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",
-  "./atlas-desktop.js?v=133",
+  "./atlas-desktop.js?v=135",
+  "./atlas-routing.css?v=13",
+  "./atlas-routing-core.js?v=11",
+  "./atlas-routing-planner.js?v=5",
+  "./atlas-routing-catalog.js?v=2",
+  "./atlas-routing-intake.js?v=3",
+  "./atlas-routing-storage.js?v=3",
+  "./atlas-routing-notifications.js?v=2",
+  "./atlas-routing.js?v=26",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106",
   "./pallet-guides.json?v=20260831-thick-wall-aliases-v7",
@@ -109,6 +117,28 @@ async function networkFirst(request, cacheName, fallback) {
   }
 }
 
+async function warehouseRead(request, unavailable) {
+  // Cache API URL matching does not isolate Authorization headers by itself.
+  // Include the full request-header context (session, schema, range, etc.) in an
+  // opaque key. Never persist raw bearer tokens in the cached Request headers.
+  const context = JSON.stringify([...request.headers.entries()].sort());
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(context));
+  const fingerprint = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  const url = new URL(request.url);
+  url.searchParams.set("__atlas_cache_context", fingerprint);
+  const key = new Request(url.href);
+  const cache = await caches.open(DATA_CACHE);
+  let response;
+  try {
+    response = await fetch(request);
+  } catch {
+    return (await cache.match(key)) || unavailable;
+  }
+  if (response.ok) await cache.put(key, response.clone()).catch(() => {});
+  else if (response.status === 401 || response.status === 403) await cache.delete(key);
+  return response;
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -148,7 +178,7 @@ self.addEventListener("fetch", (event) => {
       }),
       { status: 503, headers: { "Content-Type": "application/json" } },
     );
-    event.respondWith(networkFirst(request, DATA_CACHE, unavailable));
+    event.respondWith(warehouseRead(request, unavailable));
     return;
   }
 

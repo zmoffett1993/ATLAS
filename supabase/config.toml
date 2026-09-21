@@ -1,0 +1,2 @@
+[functions.atlas-routing-preview]
+verify_jwt = true

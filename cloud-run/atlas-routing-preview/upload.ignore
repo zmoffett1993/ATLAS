@@ -1,0 +1,18 @@
+# Use explicitly as gcloud builds submit --ignore-file=... from repository root.
+# No .git, workbooks, catalog, frontend, credentials, or customer documents.
+**
+!supabase/
+!supabase/functions/
+!supabase/functions/atlas-routing-preview/
+!supabase/functions/atlas-routing-preview/handler.mjs
+!cloud-run/
+!cloud-run/atlas-routing-preview/
+!cloud-run/atlas-routing-preview/server.mjs
+!cloud-run/atlas-routing-preview/planner-handler.mjs
+!cloud-run/atlas-routing-preview/trip-model.mjs
+!cloud-run/atlas-routing-preview/Dockerfile
+!cloud-run/atlas-routing-preview/Dockerfile.dockerignore
+!cloud-run/atlas-routing-preview/cloudbuild.yaml
+!cloud-run/atlas-routing-preview/upload.ignore
+!cloud-run/atlas-routing-preview/preview-access.mjs
+!cloud-run/atlas-routing-preview/photo-handler.mjs
