@@ -1,3 +1,4 @@
+let lastRoutingCall = 0;
 export function sampleTrip(now = new Date()) {
   const localDay = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
   const tomorrow = new Date(`${localDay}T12:00:00Z`); tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
@@ -64,32 +65,12 @@ export async function requestPhoto({ session, image, signal, fetchImpl = fetch }
   return data;
 }
 
-async function mount() {
-  const status = document.getElementById("status"), result = document.getElementById("result");
-  const signIn = document.getElementById("sign-in"), planner = document.getElementById("open-planner"), test = document.getElementById("test-route");
-  let controller = null, generation = 0, pending = false;
-  const check = document.getElementById("check-connection"), connectionStatus = document.getElementById("connection-status");
-  check.addEventListener("click", async () => {
-    check.disabled = true; connectionStatus.textContent = "Checking preview connection…";
-    try { connectionStatus.textContent = await checkPreviewConnection(); }
-    finally { check.disabled = false; }
-  });
-  const sync = () => {
-    generation++; controller?.abort(); pending = false; result.hidden = true; result.textContent = "";
-    const session = window.AtlasAuth?.getSession();
-    planner.disabled = test.disabled = !session?.user?.id;
-    signIn.textContent = session ? "ATLAS account" : "Sign into ATLAS";
-    status.textContent = session ? `Signed in as ${window.AtlasAuth.displayName(session)}. Ready to open the planning preview.` : "Sign into ATLAS to test the connection.";
-  };
-  try {
-    const configResponse = await fetch("/runtime-config.json", { cache: "no-store", credentials: "same-origin" });
-    if (!configResponse.ok) throw new Error("Configuration unavailable");
-    const config = await configResponse.json();
+export async function connectRouting(config) {
     window.atlasSupabaseConfig = { url: config.url, key: config.key };
     window.atlasRoutingSavedDays = window.atlasRoutingStorage.createClient({ enabled: config.storageEnabled === true, key: config.key,
       getSession: () => window.AtlasAuth?.getSession(), getValidSession: () => window.AtlasAuth.getValidSession() });
     const maps = await import("./maps.mjs");
-    let lastRoutingCall = 0, lastPhotoCall = 0;
+    let lastPhotoCall = 0;
     window.atlasRoutingConnection = {
       available: Boolean(config.mapsBrowserKey),
       photoAvailable: config.photoEnabled === true,
@@ -129,6 +110,30 @@ async function mount() {
         return requestTrip({ session, payload, signal: AbortSignal.any([signal, AbortSignal.timeout(55000)].filter(Boolean)) });
       },
     };
+}
+
+async function mount() {
+  const status = document.getElementById("status"), result = document.getElementById("result");
+  const signIn = document.getElementById("sign-in"), planner = document.getElementById("open-planner"), test = document.getElementById("test-route");
+  let controller = null, generation = 0, pending = false;
+  const check = document.getElementById("check-connection"), connectionStatus = document.getElementById("connection-status");
+  check.addEventListener("click", async () => {
+    check.disabled = true; connectionStatus.textContent = "Checking preview connection…";
+    try { connectionStatus.textContent = await checkPreviewConnection(); }
+    finally { check.disabled = false; }
+  });
+  const sync = () => {
+    generation++; controller?.abort(); pending = false; result.hidden = true; result.textContent = "";
+    const session = window.AtlasAuth?.getSession();
+    planner.disabled = test.disabled = !session?.user?.id;
+    signIn.textContent = session ? "ATLAS account" : "Sign into ATLAS";
+    status.textContent = session ? `Signed in as ${window.AtlasAuth.displayName(session)}. Ready to open the planning preview.` : "Sign into ATLAS to test the connection.";
+  };
+  try {
+    const configResponse = await fetch("/runtime-config.json", { cache: "no-store", credentials: "same-origin" });
+    if (!configResponse.ok) throw new Error("Configuration unavailable");
+    const config = await configResponse.json();
+    await connectRouting(config);
     // Reuse the existing ATLAS sign-in UI unchanged; credentials go directly to Supabase.
     await new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = "/atlas-auth.js"; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
     signIn.disabled = false;
@@ -163,4 +168,4 @@ async function mount() {
     });
   } catch { status.textContent = "The private preview could not load its configuration."; }
 }
-if (typeof window !== "undefined") mount();
+if (typeof window !== "undefined" && document.getElementById("open-planner")) mount();

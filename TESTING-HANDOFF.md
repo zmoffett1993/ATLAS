@@ -38,11 +38,14 @@ COC generator modules remain unchanged.
 The existing permanent routing preview is:
 https://atlas-routing-app-tbcotacnuq-uc.a.run.app/
 
-That host serves the standalone routing preview, not the complete ATLAS site.
-Creating this combined branch/ZIP does not update a deployed service. The full
-ATLAS entry point includes the routing UI, but its Google/photo/saved-day
-connection wiring still lives in the private preview bootstrap. Do not assume
-opening index.html alone reproduces all connected preview services.
+The permanent-host source now serves the complete ATLAS interface and connects
+its Delivery Routing tab through the existing private Google/photo/saved-day
+adapter. The host injects that connection only when serving the testing site;
+opening index.html directly does not reproduce the connected hosting setup.
+See cloud-run/atlas-routing-app/FULL-SITE.md for deployment and verification.
+Check the current release report before assuming a source ZIP is deployed.
+The testing site uses the existing ATLAS warehouse/account data; it is not a
+cloned database. Routing retains its private CA saved-day permissions.
 
 Cloud Run identities, runtime configuration, Google API restrictions, Supabase
 schemas/data, uploaded product catalogs, browser state and saved orders are

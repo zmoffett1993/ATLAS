@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
+import { fullSiteFiles, fullSitePage, fullSiteWorker } from "../../cloud-run/atlas-routing-app/full-site.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const BACKEND = "https://atlas-routing-preview-340839522237.us-central1.run.app";
@@ -23,17 +24,19 @@ const STATIC = new Map([
 const exec = promisify(execFile);
 const mintOperatorToken = async () => (await exec("gcloud", ["auth", "print-identity-token"], { timeout: 15000, maxBuffer: 16384 })).stdout.trim();
 
-export function createPreviewBridge({ origin, publishableKey, browserKey = publishableKey, mapsBrowserKey = "", photoEnabled = false, storageEnabled = false, permanent = false, notificationsEnabled = false, authorizeCaller, getGoogleToken = mintOperatorToken, fetchImpl = fetch, now = Date.now }) {
+export function createPreviewBridge({ origin, publishableKey, browserKey = publishableKey, mapsBrowserKey = "", photoEnabled = false, storageEnabled = false, permanent = false, fullAtlas = false, notificationsEnabled = false, authorizeCaller, getGoogleToken = mintOperatorToken, fetchImpl = fetch, now = Date.now }) {
   const parsed = new URL(origin);
   const validHost = permanent ? /^atlas-routing-app-[a-z0-9-]+(?:\.[a-z0-9-]+)?\.run\.app$/.test(parsed.hostname) : /^18766-[a-z0-9-]+\.cs-[a-z0-9-]+\.cloudshell\.dev$/.test(parsed.hostname);
   if (parsed.protocol !== "https:" || !validHost || parsed.origin !== origin) throw new Error("Approved preview origin required");
   if (permanent && (getGoogleToken === mintOperatorToken || typeof authorizeCaller !== "function")) throw new Error("Permanent hosting requires a workload identity and caller authorization.");
+  if (fullAtlas && !permanent) throw new Error("Full-site testing requires the permanent workload host.");
   const staticFiles = new Map(STATIC);
   if (permanent) {
     for (const file of ["notification-binding.mjs", "notification-client.mjs", "notification-worker.mjs", "routing-notification-sw.mjs"]) staticFiles.set(`/tools/routing-preview/${file}`, [`tools/routing-preview/${file}`, "text/javascript"]);
     for (const file of ["atlas-icon-v2-192.png", "atlas-icon-v2-512.png", "atlas-icon-v2-180.png"]) staticFiles.set(`/${file}`, [file,"image/png"]);
     staticFiles.set("/routing.webmanifest", ["tools/routing-preview/routing.webmanifest", "application/manifest+json"]);
   }
+  if (fullAtlas) for (const [url, entry] of fullSiteFiles) staticFiles.set(url, entry);
   if (!/^sb_publishable_[A-Za-z0-9_-]+$/.test(publishableKey || "")) throw new Error("Publishable configuration required");
   // Existing ATLAS Auth sends its application key as a bearer on sign-in.
   // Preserve that module using the existing anon key; the backend uses modern keys.
@@ -53,6 +56,10 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
     };
     const send = (status, body, type = "application/json") => { res.writeHead(status, { ...headers, "Content-Type": type }); res.end(type === "application/json" ? JSON.stringify(body) : body); };
     const reject = (status, error) => send(status, { error });
+    if (fullAtlas) {
+      // Existing ATLAS uses inline/dynamic styles, locally bundled scripts and product images.
+      headers["Content-Security-Policy"] = `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://maps.googleapis.com https://maps.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' blob: data: ${SUPABASE} https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.googleusercontent.com; connect-src 'self' ${SUPABASE} wss://dwrrbpiprcmajfyronlf.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; frame-src 'self' blob: https://*.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`;
+    }
     try {
       const host = req.headers.host;
       // Cloud Shell may preserve the external host or forward to its local port.
@@ -61,15 +68,18 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
       const path = new URL(req.url, origin).pathname;
       // Google sign-in returns through a cross-site top-level navigation. Allow
       // only the static entry page; configuration and API requests stay guarded.
-      const entryNavigation = req.method === "GET" && path === "/" && !req.headers.origin
+      const entryNavigation = req.method === "GET" && (path === "/" || (fullAtlas && ["/index.html", "/coc-receiver/", "/coc-receiver/index.html"].includes(path))) && !req.headers.origin
         && req.headers["sec-fetch-mode"] === "navigate" && req.headers["sec-fetch-dest"] === "document";
       if (req.headers["sec-fetch-site"] === "cross-site" && !entryNavigation) return reject(403, "ORIGIN_NOT_ALLOWED");
       if (req.method === "GET" && staticFiles.has(path)) {
         const [file, type] = staticFiles.get(path);
         let content = await readFile(resolve(ROOT, file));
-        if (permanent && type === "text/html") content = content.toString().replace("</head>", '<link rel="manifest" href="/routing.webmanifest"><link rel="apple-touch-icon" href="/atlas-icon-v2-180.png"><meta name="theme-color" content="#071b40"></head>').replace("This temporary preview is available while the Cloud Shell session is running.", "This private routing preview uses permanent hosting; live ATLAS remains separate.");
+        if (permanent && !fullAtlas && type === "text/html") content = content.toString().replace("</head>", '<link rel="manifest" href="/routing.webmanifest"><link rel="apple-touch-icon" href="/atlas-icon-v2-180.png"><meta name="theme-color" content="#071b40"></head>').replace("This temporary preview is available while the Cloud Shell session is running.", "This private routing preview uses permanent hosting; live ATLAS remains separate.");
         if (permanent && path === "/tools/routing-preview/routing-notification-sw.mjs") headers["Service-Worker-Allowed"] = "/";
-        if (type === "text/html") content = content.toString().replaceAll("<script ", `<script nonce="${nonce}" `).replace("</head>", `<style nonce="${nonce}"></style></head>`);
+        if (type === "text/html") content = fullAtlas ? fullSitePage(content.toString(), nonce, path.startsWith('/coc-receiver/')) : content.toString().replaceAll("<script ", `<script nonce="${nonce}" `).replace("</head>", `<style nonce="${nonce}"></style></head>`);
+        if (fullAtlas && path === "/service-worker.js") content = fullSiteWorker(content.toString());
+        if (fullAtlas && path === "/tools/routing-preview/routing-notification-sw.mjs") content = 'import "/service-worker.js";\n' + content.toString();
+        if (fullAtlas && path === "/manifest.webmanifest") { const manifest = JSON.parse(content); manifest.name = "ATLAS Testing"; manifest.short_name = "ATLAS Test"; content = JSON.stringify(manifest); }
         return send(200, content, type);
       }
       if (req.url === "/runtime-config.json" && req.method === "GET") return send(200, { url: SUPABASE, key: browserKey, mapsBrowserKey, photoEnabled: photoEnabled === true, storageEnabled: storageEnabled === true,

@@ -76,7 +76,7 @@ test("permanent host serves a root-scope worker and manifest while hiding sender
   assert.equal(worker.status,200);assert.equal(worker.headers.get('Service-Worker-Allowed'),'/');assert.match(await worker.text(),/notificationclick/);
   const manifest=await invoke('/routing.webmanifest');assert.equal((await manifest.json()).scope,'/');
   const config=await (await invoke('/runtime-config.json')).json();assert.equal(config.notificationsEnabled,true);assert.equal(config.notificationOrigin,ORIGIN);assert.equal(JSON.stringify(config).includes(USER),false);
-  for(const p of ['/tools/routing-preview/notification-dispatcher.mjs','/cloud-run/atlas-routing-reminders/job.mjs','/.env','/AGENTS.md','/api/send','/service-worker.js'])assert.equal((await invoke(p)).status,404);
+  for(const p of ['/tools/routing-preview/notification-dispatcher.mjs','/cloud-run/atlas-routing-reminders/job.mjs','/.env','/AGENTS.md','/api/send','/NEW%20COC%202.xlsx'])assert.equal((await invoke(p)).status,404);
 });
 test("permanent host rejects foreign Origin/Host and unapproved account without requesting Google credentials",async t=>{
   const calls=[];const invoke=await hostFixture(t,async url=>{calls.push(url);return Response.json({id:OTHER});});
