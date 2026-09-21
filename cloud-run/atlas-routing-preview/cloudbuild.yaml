@@ -1,0 +1,13 @@
+# Build only. No deploy step and no repository or live-site connection.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=cloud-run/atlas-routing-preview/Dockerfile
+      - --tag=us-central1-docker.pkg.dev/$PROJECT_ID/atlas-routing-preview/preview:$_REVIEW_TAG
+      - .
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/atlas-routing-preview/preview:$_REVIEW_TAG
+timeout: 600s
+options:
+  logging: CLOUD_LOGGING_ONLY

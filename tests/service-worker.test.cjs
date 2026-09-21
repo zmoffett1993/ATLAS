@@ -1,3 +1,4 @@
+// Reused from commit 53e3845. Synthetic fixtures only; no external requests.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const crypto=require('node:crypto').webcrypto;
 const source=fs.readFileSync(require('node:path').join(__dirname,'../service-worker.js'),'utf8');
@@ -39,5 +40,5 @@ test('cache quota failure does not hide successful live data',async()=>{
 });
 test('activation removes obsolete ATLAS cache versions and preserves unrelated caches',async()=>{
  const f=fixture();f.stores.set('atlas-pwa-v353-account-transaction-warehouse-data',new Map());f.stores.set('unrelated-cache',new Map());await f.read();await f.activate();
- assert.equal(f.stores.has('atlas-pwa-v353-account-transaction-warehouse-data'),false);assert.equal(f.stores.has('unrelated-cache'),true);assert.ok([...f.stores.keys()].some(k=>k.includes('v358')));
+ assert.equal(f.stores.has('atlas-pwa-v353-account-transaction-warehouse-data'),false);assert.equal(f.stores.has('unrelated-cache'),true);assert.ok([...f.stores.keys()].some(k=>k.startsWith(source.match(/const VERSION = "([^"]+)"/)[1])));
 });

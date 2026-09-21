@@ -1,0 +1,191 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { parsePage, combinePages, preparePhoto } = require('../atlas-routing-intake.js');
+const { createPhotoQueue, quickReadingIssues } = require('../atlas-routing-intake.js');
+const core = require('../atlas-routing-core.js');
+const tick = () => new Promise(resolve => setImmediate(resolve));
+const photo = name => ({ file: { type: 'image/jpeg', size: 100, name }, name });
+
+test('capture advances before reading completes, groups pages, and never doubles quantities', async () => {
+  let release, started = 0, accepted = [];
+  const queue = createPhotoQueue({ read: async file => { if (++started === 1) await new Promise(resolve => { release = resolve; }); return document({ id: file.name === 'second' ? 'SO-US-98765' : undefined }); },
+    accept: async job => { accepted.push(job.result); job.status = 'added'; } });
+  const first = queue.add([photo('first')], { date: '2026-09-21' });
+  queue.add([photo('invoice')], {}, first); queue.seal(first);
+  const second = queue.add([photo('second')], { date: '2026-09-22' }); queue.seal(second);
+  assert.equal(queue.jobs().length, 2); assert.equal(started, 1); assert.equal(accepted.length, 0);
+  release(); await tick();
+  assert.equal(accepted.length, 2); assert.equal(accepted[0].lines[0].caseQty, 100);
+  assert.equal(accepted[1].orderNumber, 'SO-US-98765'); assert.equal(second.date, '2026-09-22');
+});
+
+test('unsealed readings are never added; failures preserve photos and let the next order proceed', async () => {
+  const accepted = [], queue = createPhotoQueue({ read: async file => { if (file.name === 'bad') throw Error('Offline'); return document(); }, accept: async job => { accepted.push(job); job.status = 'added'; } });
+  const bad = queue.add([photo('bad')], {}); queue.seal(bad);
+  const good = queue.add([photo('good')], {}); await tick();
+  assert.equal(bad.status, 'review'); assert.equal(bad.photos.length, 1); assert.equal(accepted.length, 0);
+  queue.seal(good); await tick(); assert.equal(accepted.length, 1);
+  assert.throws(() => queue.add([photo('extra')], {}, good), /queued/);
+});
+
+test('account reset aborts pending reading and discards late results', async () => {
+  let release, signal, accepted = 0;
+  const queue = createPhotoQueue({ read: async (_, value) => { signal = value; await new Promise(resolve => { release = resolve; }); return document(); }, accept: async () => accepted++ });
+  const job = queue.add([photo('first')], {}); queue.seal(job);
+  queue.reset(); assert.equal(signal.aborted, true); release(); await tick();
+  assert.equal(accepted, 0); assert.equal(queue.jobs().length, 0);
+});
+
+test('capture is bounded and rejects oversized or non-image files before reading', () => {
+  const queue = createPhotoQueue({ read: async () => document(), accept: async () => {} });
+  assert.throws(() => queue.add([{ file: { type: 'text/plain', size: 1 } }], {}), /photos/);
+  assert.throws(() => queue.add([{ file: { type: 'image/jpeg', size: 16 * 1024 * 1024 } }], {}), /photos/);
+  assert.throws(() => queue.add(Array.from({ length: 21 }, () => photo('a')), {}), /batch/);
+  queue.reset();
+});
+
+test('auto-add requires clear text, known SKU and consistent box/unit counts; TBA is retained for load review', () => {
+  const catalog = [{ model: 'CGST1-95MM', caseQty: 300, boxesPerPallet: 'TBA', caseDimensions: 'TBA' }], page = document();
+  assert.deepEqual(quickReadingIssues(combinePages([page]), [page], catalog, core), []);
+  assert.ok(quickReadingIssues(combinePages([page]), [page], [], core).length);
+  for (const confidence of [0.7, undefined]) {
+    const unclear = structuredClone(page); unclear.words[5].confidence = confidence;
+    assert.ok(quickReadingIssues(combinePages([unclear]), [unclear], catalog, core).length);
+  }
+  const mismatch = document({ units: '20,000' });
+  assert.ok(quickReadingIssues(combinePages([mismatch]), [mismatch], catalog, core).length);
+  const conflict = [document(), document({ cases: '50' })];
+  assert.ok(quickReadingIssues(combinePages(conflict), conflict, catalog, core).length);
+});
+
+function document(overrides = {}) {
+  const words = [];
+  const at = (text, x, y, w = .05) => words.push({ text, x, y, w, h: .012, confidence: .98 });
+  at('Bill', .1, .20); at('To', .14, .20); at('Ship', .4, .20); at('To', .45, .20);
+  at('Wrong Billing Customer', .1, .22, .22); at('Test Receiver', .4, .22, .16);
+  at('999 Wrong Street', .1, .24, .22); at('123 Example Street', .4, .24, .2);
+  at('Austin TX 78701', .1, .26, .20); at('Fullerton CA 92835', .4, .26, .2);
+  if (overrides.hours) at(overrides.hours, .4, .28, .2);
+  at('Pmt Method', .1, .32, .1); at('COD', .1, .34);
+  at('Item', .1, .40); at('Item', .5, .40, .03); at('Qty', .535, .40, .03);
+  at('Case', .63, .40, .03); at('Qty', .665, .40, .03);
+  at('CGST1-95MM-0401', .1, .43, .2);
+  if (!overrides.noUnits) at(overrides.units || '30,000', .508, .442, .04);
+  if (!overrides.noCases) at(overrides.cases || '100', .648, .442, .03);
+  if (overrides.repeat) { at('CGST1-95MM-0401', .1, .50, .2); at('30,000', .508, .50, .04); at('100', .648, .50, .03); }
+  const text = `${overrides.id || 'SO-US-64939'}\n${words.map(w => w.text).join('\n')}\n${overrides.note || ''}`;
+  return { words, text };
+}
+
+test('reads Ship To instead of Bill To; Case Qty is boxes and full color SKU is retained', () => {
+  const result = parsePage(document());
+  assert.equal(result.orderNumber, 'SO-US-64939'); assert.equal(result.customer, 'Test Receiver');
+  assert.equal(result.address, '123 Example Street, Fullerton CA 92835'); assert.equal(result.city, 'Fullerton');
+  assert.equal(result.timeWindow, ''); assert.equal(result.checkOnDelivery, false);
+  assert.deepEqual(result.lines[0], { sku: 'CGST1-95MM-0401', caseQty: 100, itemQty: 30000, source: 1 });
+});
+test('only explicit CHECK ON DELIVERY sets collection; hours come from Ship To', () => {
+  const result = parsePage(document({ note: 'CHECK\nON DELIVERY', hours: '8:00 AM - 3:00 PM' }));
+  assert.equal(result.checkOnDelivery, true); assert.equal(result.timeWindow, '8:00 AM - 3:00 PM');
+  assert.equal(parsePage(document({ note: 'COD' })).checkOnDelivery, false);
+});
+test('never substitutes unit quantities for unreadable boxes', () => {
+  const result = parsePage(document({ noCases: true }));
+  assert.equal(result.lines[0].caseQty, null); assert.equal(result.lines[0].itemQty, 30000); assert.ok(result.issues.length);
+});
+test('sales order, invoice and packing list duplicates are counted once', () => {
+  const result = combinePages([document(), document({ note: 'CHECK ON DELIVERY' }), document()]);
+  assert.equal(result.lines.length, 1); assert.equal(result.lines[0].caseQty, 100); assert.equal(result.checkOnDelivery, true);
+  assert.deepEqual(result.lines[0].sources, [1, 2, 3]);
+});
+test('conflicting counts and repeated SKU lines require manual complete-order quantities', () => {
+  for (const pages of [[document(), document({ cases: '50' })], [document({ repeat: true })]]) {
+    const result = combinePages(pages); assert.equal(result.lines[0].caseQty, null); assert.ok(result.issues.some(s => s.includes('conflicting')));
+  }
+});
+test('missing readings are completed by another document without adding quantities, in either order', () => {
+  for (const partial of [{ noCases: true }, { noUnits: true }, { noCases: true, noUnits: true }]) {
+    for (const pages of [[document(partial), document()], [document(), document(partial)]]) {
+      const result = combinePages(pages);
+      assert.equal(result.lines.length, 1);
+      assert.equal(result.lines[0].caseQty, 100);
+      assert.equal(result.lines[0].itemQty, 30000);
+      assert.equal(result.lines[0].uncertain, false);
+      assert.deepEqual(result.lines[0].sources, [1, 2]);
+    }
+  }
+});
+test('complementary documents retain boxes and units while preserving photo review warnings', () => {
+  const result = combinePages([document({ noCases: true }), document({ noUnits: true })]);
+  assert.equal(result.lines[0].caseQty, 100); assert.equal(result.lines[0].itemQty, 30000);
+  assert.ok(result.issues.some(s => s.includes('Photo 1:') && s.includes('Case Qty')));
+});
+test('unreadable boxes stay blank while known units remain available for review', () => {
+  const result = combinePages([document({ noCases: true }), document({ noCases: true, noUnits: true })]);
+  assert.equal(result.lines[0].caseQty, null); assert.equal(result.lines[0].itemQty, 30000);
+  assert.equal(result.lines[0].uncertain, true);
+});
+test('later agreement or missing values never erase a real quantity conflict', () => {
+  for (const conflict of [{ cases: '50' }, { units: '15,000' }]) {
+    const pages = [document(), document(conflict), document({ noCases: true, noUnits: true }), document()];
+    for (const order of [pages, [...pages].reverse()]) {
+      const result = combinePages(order);
+      assert.equal(result.lines[0].caseQty, null); assert.equal(result.lines[0].itemQty, null);
+      assert.equal(result.lines[0].uncertain, true);
+      assert.ok(result.issues.some(s => s.includes('conflicting')));
+    }
+  }
+});
+test('a repeated SKU on one photo cannot be resolved by an agreeing second photo', () => {
+  for (const pages of [[document({ repeat: true }), document()], [document(), document({ repeat: true })]]) {
+    const result = combinePages(pages);
+    assert.equal(result.lines[0].caseQty, null); assert.equal(result.lines[0].itemQty, null);
+  }
+});
+test('a notes-only invoice adds CHECK ON DELIVERY without removing recognized order lines', () => {
+  const result = combinePages([document(), { text: 'Invoice\nSO-US-64939\nCHECK ON DELIVERY', words: [] }]);
+  assert.equal(result.lines[0].caseQty, 100); assert.equal(result.checkOnDelivery, true);
+  assert.equal(result.mixedOrders, false);
+  const unrelated = combinePages([document(), { text: 'Invoice SO-US-12345 CHECK ON DELIVERY', words: [] }]);
+  assert.equal(unrelated.mixedOrders, true); assert.deepEqual(unrelated.lines, []);
+});
+test('multiple order IDs prevent document merging; missing headers do not infer an address', () => {
+  const result = combinePages([document(), document({ id: 'SO-US-99999' })]);
+  assert.equal(result.mixedOrders, true); assert.deepEqual(result.lines, []); assert.equal(result.address, '');
+  assert.equal(parsePage({ text: 'Bill To\n123 Wrong Street', words: [] }).address, '');
+});
+test('disagreeing addresses stay blank and low-confidence product text is flagged', () => {
+  const a = document(), b = document(); b.words.find(w => w.text === '123 Example Street').text = '456 Other Street';
+  assert.equal(combinePages([a, b]).address, '');
+  a.words.find(w => w.text === '100').confidence = .3;
+  assert.ok(parsePage(a).issues.some(s => s.includes('uncertain')));
+});
+module.exports = { document };
+test('active SVG documents and oversized files are rejected before image decoding', async () => {
+  for (const file of [{ type: 'image/svg+xml', size: 100 }, { type: 'image/jpeg', size: 16 * 1024 * 1024 }]) {
+    await assert.rejects(preparePhoto(file), /photo smaller/);
+  }
+});
+test('OCR-split hyphens rejoin the full printed SKU without borrowing quantity columns', () => {
+  for (const split of [['CGST1-95MM', '-0401'], ['CGST1', '-', '95MM', '-', '0401']]) {
+    const page = document(); page.words = page.words.filter(w => w.text !== 'CGST1-95MM-0401');
+    let x = .1;
+    for (const text of split) { const w = text.length * .008; page.words.push({ text, x, y: .43, w, h: .012, confidence: .98 }); x += w + .002; }
+    const result = parsePage(page); assert.equal(result.lines[0].sku, 'CGST1-95MM-0401'); assert.equal(result.lines[0].caseQty, 100);
+  }
+});
+test('skewed color suffix uses only an unambiguous full printed SKU; base quantities are retained', () => {
+  const page = document(); page.words.find(w => w.text === 'CGST1-95MM-0401').text = 'CGST1-95MM';
+  page.words.push({ text: '-', x: .303, y: .43, w: .005, h: .012 });
+  assert.equal(parsePage(page).lines[0].sku, 'CGST1-95MM-0401');
+  page.text += '\nCGST1-95MM-0502';
+  const uncertain = parsePage(page); assert.equal(uncertain.lines[0].sku, 'CGST1-95MM');
+  assert.equal(uncertain.lines[0].caseQty, 100); assert.ok(uncertain.issues.some(s => s.includes('color suffix')));
+});
+
+test('explicit invoice and Item Fulfillment numbers attach to one sales order without inferring unlabeled digits',()=>{
+ const r=combinePages([document({note:'Invoice # INV-US-12345\nItem Fulfillment number IF-US-45678'}),document({note:'INV-US-12345\nIF-US-67890'})]);
+ assert.deepEqual(r.invoiceNumbers,['INV-US-12345']);assert.deepEqual(r.fulfillmentNumbers,['IF-US-45678','IF-US-67890']);assert.equal(r.orderNumber,'SO-US-64939');
+ const noIds=parsePage(document({note:'Invoice\nTotal 12345\nItem Fulfillment\nAmount 45678'}));assert.deepEqual(noIds.invoiceNumbers,[]);assert.deepEqual(noIds.fulfillmentNumbers,[]);
+ const mixed=combinePages([document({note:'INV-US-12345'}),document({id:'SO-US-99999',note:'IF-US-67890'})]);assert.deepEqual(mixed.invoiceNumbers,[]);assert.deepEqual(mixed.fulfillmentNumbers,[]);
+});

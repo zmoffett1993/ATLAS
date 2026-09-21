@@ -26029,6 +26029,13 @@ Error generating stack: ` +
           <span class="atlas-menu-label">DASHBOARD</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-action="routing">
+          <span class="atlas-menu-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M3 7h11v9H3zM14 10h3l4 3v3h-7z"/><circle cx="7" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>
+          </span>
+          <span class="atlas-menu-label">DELIVERY ROUTING</span>
+          <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
+        </button>
         <button class="premium-drawer-link atlas-menu-item" type="button" data-action="about" data-atlas-navigation-key="about">
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><circle cx="12" cy="12" r="8.75"/><path d="M12 10.75v6M12 7.25h.01"/></svg>
@@ -26194,6 +26201,12 @@ Error generating stack: ` +
           }),
         );
         backdrop
+          .querySelector('[data-action="routing"]')
+          .addEventListener("click", () => {
+            window.atlasOpenRouting?.();
+            close(false);
+          });
+        backdrop
           .querySelector('[data-action="about"]')
           .addEventListener("click", () => {
             openAtlasAbout();
@@ -26256,7 +26269,7 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=271",
+              "./service-worker.js?v=272",
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });
@@ -36508,10 +36521,11 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <link rel="stylesheet" href="./atlas-mobile-menu.css?v=2" />
+    <link rel="stylesheet" href="./atlas-routing.css?v=14" />
     <script src="./atlas-login.js?v=1" defer></script>
     <script src="./atlas-auth.js?v=8" defer></script>
     <script src="./atlas-coc-references.js?v=2" defer></script>
-    <script src="./atlas-dashboard.js?v=188" defer></script>
+    <script src="./atlas-dashboard.js?v=189" defer></script>
     <script src="./atlas-guided-workflows.js?v=4" defer></script>
     <script src="./atlas-restock.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
@@ -36525,7 +36539,14 @@ Error generating stack: ` +
     <script src="./atlas-coc-delivery.js?v=16" defer></script>
     <script src="./atlas-coc-excel.js?v=20" defer></script>
     <script src="./atlas-coc.js?v=83" defer></script>
-  <script src="./atlas-desktop.js?v=133" defer></script>
+  <script src="./atlas-desktop.js?v=135" defer></script>
+  <script src="./atlas-routing-core.js?v=11" defer></script>
+    <script src="./atlas-routing-planner.js?v=6" defer></script>
+  <script src="./atlas-routing-catalog.js?v=2" defer></script>
+  <script src="./atlas-routing-intake.js?v=4" defer></script>
+  <script src="./atlas-routing-storage.js?v=3" defer></script>
+  <script src="./atlas-routing-notifications.js?v=2" defer></script>
+    <script src="./atlas-routing.js?v=28" defer></script>
 
 </body>
 </html>

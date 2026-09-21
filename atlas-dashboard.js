@@ -3087,6 +3087,7 @@
       const navigation = event.target.closest?.(".premium-drawer-link");
       if (!navigation || !state.open) return;
       if (navigation.dataset.action === "dashboard") return;
+      if (navigation.dataset.action === "routing") closeDashboard();
       if (navigation.dataset.nav) closeDashboard();
     },
     true,
