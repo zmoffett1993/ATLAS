@@ -24,11 +24,14 @@ export async function connectNotifications(config, host = window) {
   const policy = host.atlasRoutingNotifications;
   const bindingStore = createBindingStore(host.indexedDB);
   const auth = host.AtlasAuth;
+  const live = host.location.origin === "https://zmoffett1993.github.io" && /^\/ATLAS(?:\/|$)/.test(host.location.pathname);
+  const scope = live ? "/ATLAS/" : "/";
+  const worker = live ? "/ATLAS/atlas-routing-worker.mjs" : "/tools/routing-preview/routing-notification-sw.mjs";
   const rpc = createNotificationRpc({ key: config.key, getSession: () => auth.getSession(), getValidSession: () => auth.getValidSession() });
   let eligible = false, active = null, account = auth.getSession()?.user?.id || null, generation = 0;
   const registration = async () => {
-    const result = await host.navigator.serviceWorker.getRegistration("/");
-    if (!result?.active || result.active.scriptURL !== new URL("/tools/routing-preview/routing-notification-sw.mjs", host.location.origin).href) throw new Error("Reminder worker not ready.");
+    const result = await host.navigator.serviceWorker.getRegistration(scope);
+    if (!result?.active || new URL(result.active.scriptURL).pathname !== worker || result.scope !== new URL(scope, host.location.origin).href) throw new Error("Reminder worker not ready.");
     return result;
   };
   const supported = () => Boolean(host.Notification && host.PushManager && host.navigator.serviceWorker && host.indexedDB);
@@ -43,8 +46,8 @@ export async function connectNotifications(config, host = window) {
       return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Uint8Array.from(decoded, c => c.charCodeAt(0)) });
     },
     bind: async binding => { active = { binding, owner: auth.getSession()?.user?.id }; await bindingStore.write(active); },
-    clear: async () => { await bindingStore.clear(); const reg = await host.navigator.serviceWorker.getRegistration("/"); for (const notification of await reg?.getNotifications() || []) notification.close(); },
-    unsubscribe: async () => { const reg = await host.navigator.serviceWorker.getRegistration("/"); const sub = await reg?.pushManager.getSubscription(); if (sub && await sub.unsubscribe() !== true) throw new Error("Could not unsubscribe."); },
+    clear: async () => { await bindingStore.clear(); const reg = await host.navigator.serviceWorker.getRegistration(scope); for (const notification of await reg?.getNotifications() || []) notification.close(); },
+    unsubscribe: async () => { const reg = await host.navigator.serviceWorker.getRegistration(scope); const sub = await reg?.pushManager.getSubscription(); if (sub && await sub.unsubscribe() !== true) throw new Error("Could not unsubscribe."); },
   };
   const backend = {
     prepare: async () => { if (active?.binding) await rpc("revoke", {binding:active.binding}); active = null; return rpc("prepare"); },
@@ -71,7 +74,7 @@ export async function connectNotifications(config, host = window) {
       if (current !== generation || auth.getSession()?.user?.id !== owner) return;
       eligible = status?.eligible === true && status.userId === owner && status.warehouse === "CA";
       if (!eligible) { await controller.reset(); active = null; return; }
-      await host.navigator.serviceWorker.register("/tools/routing-preview/routing-notification-sw.mjs", {type:"module",scope:"/"});
+      if (!live) await host.navigator.serviceWorker.register(worker, {type:"module",scope});
       const reg = await host.navigator.serviceWorker.ready;
       if (current !== generation || auth.getSession()?.user?.id !== owner) return;
       const subscribed = Boolean(await reg.pushManager.getSubscription());

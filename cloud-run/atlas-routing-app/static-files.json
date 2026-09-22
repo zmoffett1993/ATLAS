@@ -86,5 +86,6 @@
   "pallet-guides.json",
   "product-images.json",
   "product-images/cgasb1-60ml-cnl-owh.png",
-  "service-worker.js"
+  "service-worker.js",
+  "atlas-routing-worker.mjs"
 ]

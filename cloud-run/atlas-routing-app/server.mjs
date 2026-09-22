@@ -14,6 +14,7 @@ export function createPermanentHost({env=name=>process.env[name],fetchImpl=fetch
   if(!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(recipient||""))throw Error("One approved preview account required.");
   const call=(url,options={})=>fetchImpl(url,{...options,redirect:"error",signal:AbortSignal.timeout(10000)});
   return createPreviewBridge({permanent:true,fullAtlas:true,origin:env("ATLAS_ROUTING_APP_ORIGIN"),publishableKey:key,browserKey:env("ATLAS_PREVIEW_BROWSER_ANON_KEY")||key,
+    liveEnabled:env("ATLAS_ROUTING_LIVE_ENABLED")==="true",
     mapsBrowserKey:env("ATLAS_PREVIEW_MAPS_BROWSER_KEY")||"",photoEnabled:env("ATLAS_ROUTING_PHOTO_ENABLED")==="true",storageEnabled:true,
     notificationsEnabled:env("ATLAS_NOTIFICATIONS_ENABLED")==="true",podEnabled:env("ATLAS_POD_ENABLED")==="true",fetchImpl,
     authorizeCaller:async authorization=>{

@@ -108,6 +108,7 @@
 !product-images.json
 !product-images/cgasb1-60ml-cnl-owh.png
 !service-worker.js
+!atlas-routing-worker.mjs
 !coc-receiver/coc-receiver-favicon.svg
 
 !atlas-routing-pod-core.js

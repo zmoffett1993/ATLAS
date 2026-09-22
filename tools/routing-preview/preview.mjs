@@ -1,4 +1,9 @@
 let lastRoutingCall = 0;
+const ROUTING_API = "https://atlas-routing-app-tbcotacnuq-uc.a.run.app";
+function apiUrl(path, base = "") {
+  if (base !== "" && base !== ROUTING_API) throw new Error("Unapproved routing connection.");
+  return base + path;
+}
 export function sampleTrip(now = new Date()) {
   const localDay = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
   const tomorrow = new Date(`${localDay}T12:00:00Z`); tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
@@ -11,15 +16,15 @@ export function sampleTrip(now = new Date()) {
     preserveOrder: true, stops: [{ location: { latitude: 33.8707996, longitude: -117.9294156 }, pallets: 1, serviceMinutes: 25 }] };
 }
 
-export async function requestTrip({ session, payload, fetchImpl = fetch, signal }) {
+export async function requestTrip({ session, payload, fetchImpl = fetch, signal, apiBase = "" }) {
   if (!session?.user?.id || !session.access_token) throw new Error("Sign into ATLAS first.");
   let response;
   try {
-    response = await fetchImpl(payload.action === "planTrip" ? "/api/plan-trip" : "/api/optimize-trip", { method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+    response = await fetchImpl(apiUrl(payload.action === "planTrip" ? "/api/plan-trip" : "/api/optimize-trip", apiBase), { method: "POST", credentials: apiBase ? "omit" : "same-origin", cache: "no-store", redirect: "error", signal,
       headers: { "Content-Type": "application/json", "X-Atlas-Authorization": `Bearer ${session.access_token}` }, body: JSON.stringify(payload) });
   } catch (error) {
     if (error.name === "AbortError") throw error;
-    throw new Error("The browser could not reach the private preview. Use Check preview connection below. No automatic retry was made.");
+    throw new Error("ATLAS could not reach the routing service. Check your connection and try again.");
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -47,9 +52,9 @@ export async function checkPreviewConnection(fetchImpl = fetch) {
   return results.join(" · ");
 }
 
-export async function requestPhoto({ session, image, signal, fetchImpl = fetch }) {
+export async function requestPhoto({ session, image, signal, fetchImpl = fetch, apiBase = "" }) {
   if (!session?.user?.id || !session.access_token) throw new Error("Sign into ATLAS first.");
-  const response = await fetchImpl("/api/read-order-photo", { method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+  const response = await fetchImpl(apiUrl("/api/read-order-photo", apiBase), { method: "POST", credentials: apiBase ? "omit" : "same-origin", cache: "no-store", redirect: "error", signal,
     headers: { "Content-Type": "application/json", "X-Atlas-Authorization": `Bearer ${session.access_token}` },
     body: JSON.stringify({ action: "readOrderPhoto", warehouse: "CA", image }) });
   const data = await response.json().catch(() => ({}));
@@ -85,7 +90,7 @@ export async function connectRouting(config) {
         const session = await window.AtlasAuth.getValidSession();
         if (!owner || session?.user?.id !== owner || signal?.aborted) throw new Error("Photo reading stopped because the account or order changed.");
         lastPhotoCall = Date.now();
-        return requestPhoto({ session, image, signal: AbortSignal.any([signal, AbortSignal.timeout(45000)].filter(Boolean)) });
+        return requestPhoto({ session, image, apiBase: config.apiBase, signal: AbortSignal.any([signal, AbortSignal.timeout(45000)].filter(Boolean)) });
       },
       showMap: (element) => maps.showMap(config.mapsBrowserKey, element),
       geocode: (address) => maps.locate(config.mapsBrowserKey, address),
@@ -107,7 +112,7 @@ export async function connectRouting(config) {
         const session = await window.AtlasAuth.getValidSession();
         if (!owner || session?.user?.id !== owner || signal?.aborted) throw new Error("The ATLAS account changed. Start planning again.");
         lastRoutingCall = Date.now();
-        return requestTrip({ session, payload, signal: AbortSignal.any([signal, AbortSignal.timeout(55000)].filter(Boolean)) });
+        return requestTrip({ session, payload, apiBase: config.apiBase, signal: AbortSignal.any([signal, AbortSignal.timeout(55000)].filter(Boolean)) });
       },
     };
 }

@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),{resolve}=require('node:path'),{pathT
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_PATH||'playwright');
 const repo=resolve(__dirname,'../..'),USER='11111111-1111-4111-8111-111111111111',host='atlas-routing-app-test-uc.a.run.app';
 const storage=require('../../atlas-routing-storage.js');
+const live=process.env.ATLAS_QA_LIVE==='true';
 const sampleDay=day=>storage.document({schemaVersion:3,date:day,orders:[['Anaheim Packaging','Anaheim',8],['Irvine Plastics','Irvine',5],['Santa Ana Supply','Santa Ana',4],['Ontario Containers','Ontario',6],['Riverside Molding','Riverside',3],['Fullerton Distribution','Fullerton',1]].map(([customer,city,pallets],i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,orderNumber:`SO-${68032+i}`,customer,address:`${100+i} Example Road, ${city}, CA`,city,timeWindow:i===0?'8:00 AM–11:00 AM':'',notes:'',checkOnDelivery:i===0,serviceMinutes:25,lines:[{sku:'CGSC1-8OZ-0401',caseQty:pallets*20,itemQty:null}]})),catalog:[{model:'CGSC1-8OZ',caseQty:'200',caseDimensions:'24X20X16',caseWeightLb:'25LB',boxesPerPallet:'20',palletDimensions:'49X41X81',sourceRow:24}],settings:{truckPalletTarget:11,dailyTripTarget:3,reloadMinutes:40,lunch:'12:00',preserveOrder:true},assignments:{},vanConfirmed:{},lockedTrips:[]});
 const binding={id:'33333333-3333-4333-8333-333333333333',driver_id:USER,driver_name:'Bubba',sales_order:'SO-68032',customer:'Anaheim Packaging',address:'100 Example Road, Anaheim, CA',trip_index:0,shipment_number:1,shipment_total:1,current:true,source_assignment:'Bubba:truck',source_shipment:{palletSpaces:4,boxAllocation:[{sku:'CGSC1-8OZ-0401',boxes:80}]},delivery:{timeWindow:'8:00 AM–2:00 PM',checkOnDelivery:true,notes:'Receiving door 3'}};
 (async()=>{
@@ -11,12 +12,21 @@ const binding={id:'33333333-3333-4333-8333-333333333333',driver_id:USER,driver_n
  const server=createPermanentHost({env:k=>config[k],fetchImpl:async()=>{throw Error('No upstream permitted');}});
  server.prependListener('request',req=>{req.headers.host=host;if(req.headers.origin?.startsWith('http://127.0.0.1:'))req.headers.origin='https://'+host;});await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({executablePath:process.env.ATLAS_BROWSER_PATH,headless:true});
- try{for(const [role,capability,width] of [['picker','driver',360],['picker','driver',390],['picker','driver',393],['picker','driver',430],['picker','driver',1440],['supervisor','viewer',1440],['admin','office',1440],['admin','office',390]]){
+ try{for(const [role,capability,width] of live?[['picker','driver',390],['admin','office',1440]]:[['picker','driver',360],['picker','driver',390],['picker','driver',393],['picker','driver',430],['picker','driver',1440],['supervisor','viewer',1440],['admin','office',1440],['admin','office',390]]){
   const context=await browser.newContext({viewport:{width,height:width===360?800:width===390?844:width===393?852:width===430?932:900},serviceWorkers:'block',hasTouch:width<750,isMobile:width<750});
   await context.addInitScript(({role,USER})=>localStorage.setItem('sb-dwrrbpiprcmajfyronlf-auth-token',JSON.stringify({access_token:'synthetic-token',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:USER,app_metadata:{role,home_warehouse_code:'CA'},user_metadata:{display_name:role==='picker'?'Bubba':'Office test'}}})),{role,USER});
   let loads=0,assignments=0,receipt=null,oneStop=false,split=false,submissions=0;
   await context.route('**/*',async route=>{
-   const req=route.request(),url=new URL(req.url());if(url.hostname==='127.0.0.1')return route.continue();if(!url.hostname.endsWith('.supabase.co'))return route.abort();
+   const req=route.request(),url=new URL(req.url());if(url.hostname==='127.0.0.1')return route.continue();
+   if(live&&url.origin==='https://zmoffett1993.github.io'){
+    assert.ok(url.pathname.startsWith('/ATLAS/'));const file=url.pathname.slice('/ATLAS/'.length)||'index.html';
+    const {readFileSync}=require('node:fs');const type={html:'text/html',js:'text/javascript',mjs:'text/javascript',css:'text/css',json:'application/json',svg:'image/svg+xml',png:'image/png',webmanifest:'application/manifest+json'}[file.split('.').pop()]||'application/octet-stream';
+    return route.fulfill({status:200,contentType:type,body:readFileSync(resolve(repo,file))});
+   }
+   if(live&&url.origin==='https://atlas-routing-app-tbcotacnuq-uc.a.run.app'){
+    assert.equal(url.pathname,'/runtime-config.json');return route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'https://zmoffett1993.github.io'},body:JSON.stringify({url:'https://dwrrbpiprcmajfyronlf.supabase.co',key:'sb_publishable_synthetic',storageEnabled:true,podEnabled:true,photoEnabled:true,notificationsEnabled:false})});
+   }
+   if(!url.hostname.endsWith('.supabase.co'))return route.abort();
    let body=[];const p=url.pathname;
    if(p.endsWith('/atlas_pod_driver_access'))body={capability,canEdit:role==='admin'};
    else if(p.endsWith('/atlas_pod_driver_roster'))body={revision:1,drivers:[{id:USER,name:'Bubba'},{id:'22222222-2222-4222-8222-222222222222',name:'Backup worker'}],trips:[{index:0,stops:2,pallets:6,driver_name:null}]};
@@ -32,10 +42,18 @@ const binding={id:'33333333-3333-4333-8333-333333333333',driver_id:USER,driver_n
    else if(p.endsWith('/auth/v1/user'))body={id:USER,app_metadata:{role,home_warehouse_code:'CA'}};
    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body),headers:{'Access-Control-Allow-Origin':'*'}});
   });
-  const page=await context.newPage();page.on('pageerror',e=>console.error(e.message));await page.goto(`http://127.0.0.1:${server.address().port}`);
+  const page=await context.newPage();page.on('pageerror',e=>console.error(e.message));await page.goto(live?'https://zmoffett1993.github.io/ATLAS/':`http://127.0.0.1:${server.address().port}`);
   const shot=async name=>{assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow');if(process.env.ATLAS_QA_OUTPUT){await page.screenshot({path:resolve(process.env.ATLAS_QA_OUTPUT,`driver-mobile-${name}-${width}.png`),fullPage:true});await page.screenshot({path:resolve(process.env.ATLAS_QA_OUTPUT,`driver-mobile-${name}-${width}-viewport.png`)});}};
   await page.waitForFunction(()=>document.documentElement.dataset.atlasRoutingConnection==='ready');
-  if(width<1024)await page.locator('.premium-menu-button').click();await page.locator('[data-action="routing"]').click();
+  if(width<1024)await page.locator('.premium-menu-button').click();
+  assert.equal(await page.locator('.atlas-menu-nav [data-action="dashboard"]').isVisible(),width>=1024,'Dashboard remains desktop-only');
+  assert.equal(await page.locator('.atlas-menu-nav [data-nav="Workflows"] .atlas-menu-label').innerText(),'COC');
+  assert.match(await page.locator('.bottom-nav [data-nav="Workflows"]').textContent(),/COC/);
+  await page.locator('.atlas-menu-nav [data-nav="Workflows"]').click();
+  await page.locator('#atlas-coc-workflows-root').waitFor();
+  if(width<1024)await page.locator('.bottom-nav button').filter({hasText:'Home'}).click();
+  if(width<1024)await page.locator('.premium-menu-button').click();
+  await page.locator('[data-action="routing"]').click();
   if(role==='picker'){
    await page.locator('.atlas-driver-overview').first().waitFor();
    await page.locator('.premium-toast').waitFor({state:'hidden'});

@@ -11,6 +11,7 @@ import { fullSiteFiles, fullSitePage, fullSiteWorker } from "../../cloud-run/atl
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const BACKEND = "https://atlas-routing-preview-340839522237.us-central1.run.app";
 const SUPABASE = "https://dwrrbpiprcmajfyronlf.supabase.co";
+const LIVE_ORIGIN = "https://zmoffett1993.github.io";
 const STATIC = new Map([
   ["/", ["tools/routing-preview/index.html", "text/html"]],
   ["/preview.mjs", ["tools/routing-preview/preview.mjs", "text/javascript"]],
@@ -24,12 +25,13 @@ const STATIC = new Map([
 const exec = promisify(execFile);
 const mintOperatorToken = async () => (await exec("gcloud", ["auth", "print-identity-token"], { timeout: 15000, maxBuffer: 16384 })).stdout.trim();
 
-export function createPreviewBridge({ origin, publishableKey, browserKey = publishableKey, mapsBrowserKey = "", photoEnabled = false, storageEnabled = false, permanent = false, fullAtlas = false, notificationsEnabled = false, podEnabled = false, authorizeCaller, getGoogleToken = mintOperatorToken, fetchImpl = fetch, now = Date.now }) {
+export function createPreviewBridge({ origin, publishableKey, browserKey = publishableKey, mapsBrowserKey = "", photoEnabled = false, storageEnabled = false, permanent = false, fullAtlas = false, liveEnabled = false, notificationsEnabled = false, podEnabled = false, authorizeCaller, getGoogleToken = mintOperatorToken, fetchImpl = fetch, now = Date.now }) {
   const parsed = new URL(origin);
   const validHost = permanent ? /^atlas-routing-app-[a-z0-9-]+(?:\.[a-z0-9-]+)?\.run\.app$/.test(parsed.hostname) : /^18766-[a-z0-9-]+\.cs-[a-z0-9-]+\.cloudshell\.dev$/.test(parsed.hostname);
   if (parsed.protocol !== "https:" || !validHost || parsed.origin !== origin) throw new Error("Approved preview origin required");
   if (permanent && (getGoogleToken === mintOperatorToken || typeof authorizeCaller !== "function")) throw new Error("Permanent hosting requires a workload identity and caller authorization.");
   if (fullAtlas && !permanent) throw new Error("Full-site testing requires the permanent workload host.");
+  if (liveEnabled && (!permanent || !fullAtlas)) throw new Error("Live ATLAS requires the permanent workload host.");
   const staticFiles = new Map(STATIC);
   if (permanent) {
     for (const file of ["notification-binding.mjs", "notification-client.mjs", "notification-worker.mjs", "routing-notification-sw.mjs"]) staticFiles.set(`/tools/routing-preview/${file}`, [`tools/routing-preview/${file}`, "text/javascript"]);
@@ -64,13 +66,26 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
       const host = req.headers.host;
       // Cloud Shell may preserve the external host or forward to its local port.
       if (![parsed.host, ...(permanent ? [] : ["localhost:18766", "127.0.0.1:18766"])].includes(host)) return reject(403, "HOST_NOT_ALLOWED");
-      if (req.headers.origin && req.headers.origin !== origin) return reject(403, "ORIGIN_NOT_ALLOWED");
       const path = new URL(req.url, origin).pathname;
+      const apiPath = ["/api/optimize-trip", "/api/plan-trip", "/api/read-order-photo"].includes(req.url);
+      const liveRequest = liveEnabled && req.headers.origin === LIVE_ORIGIN && (apiPath || req.url === "/runtime-config.json");
+      if (req.headers.origin && req.headers.origin !== origin && !liveRequest) return reject(403, "ORIGIN_NOT_ALLOWED");
+      if (liveRequest) Object.assign(headers, {
+        "Access-Control-Allow-Origin": LIVE_ORIGIN, "Vary": "Origin",
+        "Access-Control-Allow-Methods": apiPath ? "POST, OPTIONS" : "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "content-type,x-atlas-authorization",
+      });
       // Google sign-in returns through a cross-site top-level navigation. Allow
       // only the static entry page; configuration and API requests stay guarded.
       const entryNavigation = req.method === "GET" && (path === "/" || (fullAtlas && ["/index.html", "/coc-receiver/", "/coc-receiver/index.html"].includes(path))) && !req.headers.origin
         && req.headers["sec-fetch-mode"] === "navigate" && req.headers["sec-fetch-dest"] === "document";
-      if (req.headers["sec-fetch-site"] === "cross-site" && !entryNavigation) return reject(403, "ORIGIN_NOT_ALLOWED");
+      if (req.headers["sec-fetch-site"] === "cross-site" && !entryNavigation && !liveRequest) return reject(403, "ORIGIN_NOT_ALLOWED");
+      if (req.method === "OPTIONS" && liveRequest) {
+        const method = req.headers["access-control-request-method"];
+        const requested = String(req.headers["access-control-request-headers"] || "").toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
+        if (method !== (apiPath ? "POST" : "GET") || requested.some(h => !["content-type", "x-atlas-authorization"].includes(h))) return reject(403, "ORIGIN_NOT_ALLOWED");
+        res.writeHead(204, headers); return res.end();
+      }
       if (req.method === "GET" && staticFiles.has(path)) {
         const [file, type] = staticFiles.get(path);
         let content = await readFile(resolve(ROOT, file));
@@ -91,7 +106,7 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
       if (photo && photoEnabled !== true) return reject(503, "PHOTO_READING_DISABLED");
       const limit = photo ? 2800200 : 32768;
       if (req.method !== "POST") return reject(405, "METHOD_NOT_ALLOWED");
-      if (req.headers.origin !== origin) return reject(403, "ORIGIN_NOT_ALLOWED");
+      if (req.headers.origin !== origin && !liveRequest) return reject(403, "ORIGIN_NOT_ALLOWED");
       // Cloud Shell's Google gateway consumes Authorization before this bridge.
       // Carry ATLAS credentials separately, then translate for the fixed backend.
       const atlasAuthorization = req.headers["x-atlas-authorization"];

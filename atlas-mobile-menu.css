@@ -2,6 +2,9 @@
    Intentionally inert on the fine-pointer desktop layout. */
 
 @media (max-width: 1023px), (hover: none), (pointer: coarse) {
+  /* Keep mobile navigation focused; the desktop Dashboard remains available. */
+  .atlas-menu-drawer .premium-drawer-nav .premium-drawer-link.atlas-menu-item[data-action="dashboard"] { display:none !important; }
+
   :root {
     --atlas-mobile-menu-width: min(86vw, 360px);
   }

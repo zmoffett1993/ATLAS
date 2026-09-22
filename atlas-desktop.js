@@ -98,7 +98,7 @@
     const active = [...document.querySelectorAll(".bottom-nav button")].find(
       (button) => button.classList.contains("active"),
     );
-    const label = active?.textContent?.trim().toLowerCase() || "home";
+    const label = (active?.dataset.nav || active?.textContent)?.trim().toLowerCase() || "home";
     if (label.includes("browse")) {
       return { key: "aisles", title: "Browse Warehouse Aisles" };
     }
@@ -169,7 +169,7 @@
             ? "Workflows"
             : "Home";
     const button = [...document.querySelectorAll(".bottom-nav button")].find(
-      (item) => item.textContent?.trim().toLowerCase().includes(label.toLowerCase()),
+      (item) => (item.dataset.nav || item.textContent)?.trim().toLowerCase().includes(label.toLowerCase()),
     );
     button?.click();
     if (target === "search") {
@@ -383,7 +383,7 @@
     });
 
     home.querySelector(".atlas-menu-label").textContent = "Search SKU";
-    workflows.querySelector(".atlas-menu-label").textContent = "Workflows";
+    workflows.querySelector(".atlas-menu-label").textContent = "COC";
     dashboard.querySelector(".atlas-menu-label").textContent = "Dashboard";
     routing.querySelector(".atlas-menu-label").textContent = "Delivery Routing";
     about.querySelector(".atlas-menu-label").textContent = "About ATLAS";
@@ -403,7 +403,7 @@
     nav.replaceChildren(home, inventory, browse, workflows, dashboard, routing, about);
     home.querySelector(".atlas-menu-label").textContent = "SEARCH SKU";
     browse.querySelector(".atlas-menu-label").textContent = "BROWSE AISLES";
-    workflows.querySelector(".atlas-menu-label").textContent = "WORKFLOWS";
+    workflows.querySelector(".atlas-menu-label").textContent = "COC";
     dashboard.querySelector(".atlas-menu-label").textContent = "DASHBOARD";
     routing.querySelector(".atlas-menu-label").textContent = "DELIVERY ROUTING";
     about.querySelector(".atlas-menu-label").textContent = "ABOUT";

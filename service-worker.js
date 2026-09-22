@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v377-driver-mobile-ui";
+const VERSION = "atlas-pwa-v379-routing-live-connection";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -36,8 +36,8 @@ const APP_SHELL = [
   "./atlas-desktop.css?v=154",
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
-  "./atlas-mobile-menu.css?v=2",
-  "./atlas-desktop.js?v=135",
+  "./atlas-mobile-menu.css?v=3",
+  "./atlas-desktop.js?v=136",
   "./atlas-routing.css?v=20",
   "./atlas-routing-core.js?v=12",
   "./atlas-routing-planner.js?v=6",
@@ -49,6 +49,13 @@ const APP_SHELL = [
   "./atlas-routing-pod-queue.js?v=1",
   "./atlas-routing-pod.js?v=6",
   "./atlas-routing.js?v=34",
+  "./tools/routing-preview/full-site-client.mjs?v=2",
+  "./tools/routing-preview/preview.mjs",
+  "./tools/routing-preview/maps.mjs",
+  "./tools/routing-preview/notification-client.mjs",
+  "./tools/routing-preview/notification-binding.mjs",
+  "./tools/routing-preview/notification-worker.mjs",
+  "./tools/routing-preview/routing-notification-sw.mjs",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106",
   "./pallet-guides.json?v=20260831-thick-wall-aliases-v7",

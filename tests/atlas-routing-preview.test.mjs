@@ -194,7 +194,7 @@ test("standard bearer alone cannot authorize the bridge; app bearer remains subj
 
 test("browser network errors offer a safe diagnostic message and do not retry", async () => {
   let calls = 0;
-  await assert.rejects(requestTrip({ session: { user: { id: "test" }, access_token: TOKEN }, payload: {}, fetchImpl: async () => { calls++; throw new TypeError("Failed to fetch private detail"); } }), /Check preview connection/);
+  await assert.rejects(requestTrip({ session: { user: { id: "test" }, access_token: TOKEN }, payload: {}, fetchImpl: async () => { calls++; throw new TypeError("Failed to fetch private detail"); } }), /Check your connection/);
   assert.equal(calls, 1);
 });
 

@@ -1,6 +1,10 @@
-import { connectRouting } from "/preview.mjs";
+import { connectRouting } from "./preview.mjs";
 
-// Loaded only by the private full-site host. Reuse ATLAS auth and dashboard navigation.
+export const LIVE_ORIGIN = "https://zmoffett1993.github.io";
+export const ROUTING_API = "https://atlas-routing-app-tbcotacnuq-uc.a.run.app";
+const live = location.origin === LIVE_ORIGIN && /^\/ATLAS(?:\/|$)/.test(location.pathname);
+
+// Both hosts reuse the existing ATLAS session; no redirect or second sign-in.
 async function connect() {
   const button = document.querySelector('[data-action="routing"]');
   const open = window.atlasOpenRouting;
@@ -12,9 +16,11 @@ async function connect() {
   };
   if (button) button.setAttribute("aria-busy", "true");
   try {
-    const response = await fetch("/runtime-config.json", { cache: "no-store", credentials: "same-origin", redirect: "error", signal: AbortSignal.timeout(15000) });
+    const response = await fetch(`${live ? ROUTING_API : ""}/runtime-config.json`, { cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw Error("Configuration unavailable");
     const config = await response.json();
+    config.apiBase = live ? ROUTING_API : "";
+    if (live) config.notificationOrigin = LIVE_ORIGIN;
     window.atlasRoutingPOD?.configure({ enabled: config.podEnabled === true });
     await connectRouting(config);
     if (config.notificationsEnabled === true) {
@@ -27,7 +33,7 @@ async function connect() {
   } catch {
     document.documentElement.dataset.atlasRoutingConnection = "unavailable";
     // Leave other ATLAS screens available; never silently save to a different store.
-    if (open) window.atlasOpenRouting = () => window.alert("Delivery Routing could not connect. Reconnect to the internet and refresh this testing site. Your saved days have not changed.");
+    if (open) window.atlasOpenRouting = () => window.alert("Delivery Routing could not connect. Reconnect to the internet and refresh ATLAS. Your saved days have not changed.");
   } finally {
     button?.removeAttribute("aria-busy");
   }
