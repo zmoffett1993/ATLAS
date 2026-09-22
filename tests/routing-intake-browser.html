@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><base href="/"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ATLAS intake — isolated browser checks</title>
 <link rel="stylesheet" href="../atlas-routing.css">
 <style>body{margin:0;font-family:system-ui;background:#f4f7fa}#fixture-tools{position:fixed;bottom:90px;right:8px;z-index:100;background:#fff8d9;border:1px solid #e4ca86;padding:8px;border-radius:10px;font-size:11px;max-width:220px}#fixture-tools button{min-height:36px;margin:3px}#fixture-results{white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto}.atlas-routing-open #fixture-tools{display:block}</style>
-<div id="fixture-tools"><strong>LOCAL TEST · no external services</strong><br><button id="run-checks">Run workflow checks</button><button id="sample">Sample order</button><button id="open-orders">Review orders</button><pre id="fixture-results" role="status"></pre></div>
+<details id="fixture-tools" open><summary>LOCAL TEST · no external services</summary><button id="run-checks">Run workflow checks</button><button id="dashboard-checks">Dashboard checks</button><button id="dashboard-example">Saved example</button><button id="sample">Sample order</button><button id="open-orders">Review orders</button><pre id="fixture-results" role="status"></pre></details>
 <script src="../atlas-routing-core.js"></script><script src="../atlas-routing-planner.js"></script><script src="../atlas-routing-storage.js"></script><script src="../atlas-routing-notifications.js"></script><script src="../atlas-routing-intake.js"></script>
 <script>
 // Real UI/parser/storage validation; entirely synthetic auth, OCR, routes and saves.
@@ -54,9 +54,45 @@ document.querySelector('#run-checks').onclick=async()=>{
   act('another');mode='clear';await photo();act('add');await wait(()=>document.querySelector('.atlas-document-error[role=alert]')?.textContent.includes('already'));check(document.querySelector('[data-route-total-orders]').textContent==='1','Duplicate sales order is rejected');
   act('back');await wait(()=>!document.querySelector('.atlas-document-flow').open);await new Promise(r=>setTimeout(r,40));click('[data-manager-tab="orders"]');act('optimize');await wait(()=>screen()==='ROUTE_READY');check(document.querySelector('.atlas-document-trip')?.textContent.includes('Sample Supply'),'Route Ready uses actual planner callback');
   act('save');await wait(()=>screen()==='SAVED');check(saves===1,'Save Route uses existing saved-day connection');check(!JSON.stringify([...records.values()]).includes('blob:'),'Saved record contains no photos');
-  act('back');act('back');await wait(()=>!document.querySelector('.atlas-document-flow').open);await new Promise(r=>setTimeout(r,40));click('[data-route-intake]');mode='slow';const pending=photo();await wait(()=>screen()==='READING');actor=null;window.dispatchEvent(new CustomEvent('atlas-auth-changed',{detail:{session:null}}));slowResolve();await pending.catch(()=>{});check(!document.querySelector('.atlas-document-flow').open,'Sign-out closes intake and rejects late reading');
+  act('back');act('back');await wait(()=>!document.querySelector('.atlas-document-flow').open);await new Promise(r=>setTimeout(r,40));click('[data-route-intake]');mode='slow';const pending=photo();await wait(()=>screen()==='READING' && typeof slowResolve==='function');actor=null;window.dispatchEvent(new CustomEvent('atlas-auth-changed',{detail:{session:null}}));slowResolve();await pending.catch(()=>{});check(!document.querySelector('.atlas-document-flow').open,'Sign-out closes intake and rejects late reading');
   actor='11111111-1111-4111-8111-111111111111';mode='clear';await atlasOpenRouting();await wait(()=>!document.querySelector('#atlasDeliveryRouting').inert);outputs.textContent+=`\n${count} CHECKS PASSED · no external requests`;
  }catch(e){outputs.textContent+='\nFAIL: '+e.message;}
 };
+
+document.querySelector('#dashboard-example').onclick=async()=>{
+ const date='2099-01-05',o={id:'22222222-2222-4222-8222-222222999901',orderNumber:'SO-US-999901',customer:'Sample Supply',address:'123 Example Street, Fullerton CA 92835',city:'Fullerton, CA',timeWindow:'8:00 AM–2:00 PM',serviceMinutes:25,notes:'TEST DELIVERY',checkOnDelivery:false,invoiceNumbers:[],fulfillmentNumbers:[],lines:[{sku:'CGST1-95MM-0401',caseQty:12,itemQty:3600}]};
+ records.set(date,{revision:1,document:{date,version:3,orders:[o],catalog,settings,assignments:{},vanConfirmed:{},lockedTrips:[]}});
+ const input=document.querySelector('[data-route-mobile-date]');input.value=date;input.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('#fixture-tools').open=false;
+};
+document.querySelector('#dashboard-checks').onclick=async()=>{
+ let count=0;outputs.textContent='Dashboard checks…';const check=(yes,label)=>{if(!yes)throw Error(label);outputs.textContent+=`\nPASS ${++count}: ${label}`;};
+ const originalSave=atlasRoutingSavedDays.save, originalPlan=atlasRoutingPlanner.planDay;
+ const mobile=selector=>document.querySelector('[data-route-mobile-'+selector+']');
+ const changeDate=async date=>{const input=mobile('date');input.value=date;input.dispatchEvent(new Event('change',{bubbles:true}));await wait(()=>!document.querySelector('#atlasDeliveryRouting').inert && document.querySelector('[data-route-date]').value===date);};
+ const order=(id,customer)=>({id:'22222222-2222-4222-8222-222222'+id,orderNumber:'SO-US-'+id,customer,address:'123 Example Street, Fullerton CA 92835',city:'Fullerton, CA',timeWindow:'8:00 AM–2:00 PM',serviceMinutes:25,notes:'TEST DELIVERY',checkOnDelivery:false,invoiceNumbers:[],fulfillmentNumbers:[],lines:[{sku:'CGST1-95MM-0401',caseQty:12,itemQty:3600}]});
+ const a=order('999901','Sample Supply'),b=order('999902','<b>Second & Supply</b>');
+ const seed=(date,orders)=>records.set(date,{revision:1,document:{date,version:3,orders,catalog,settings,assignments:{},vanConfirmed:{},lockedTrips:[]}});
+ try{
+  seed('2099-01-05',[a,b]);seed('2099-01-06',[{...a,lines:[{sku:'UNKNOWN',caseQty:12}]}]);seed('2099-01-07',[]);
+  await changeDate('2099-01-05');check(mobile('save').textContent==='✓ Saved' && mobile('date-label').textContent==='Jan 5, 2099','Saved state and selected date are truthful');
+  check(mobile('headline').textContent==='2 deliveries ready' && mobile('totals').textContent==='2 pallets · Estimated 1 trip','Summary uses shared analyzed counts');
+  check(mobile('list').textContent.includes('<b>Second & Supply</b>')&&!mobile('list').querySelector('.atlas-route-mobile-order-info b'),'Customer markup is escaped');
+  click('[data-route-mobile-action="search"]');const query=mobile('query');query.value='999902';query.dispatchEvent(new Event('input',{bubbles:true}));check(mobile('list').querySelectorAll('article:not([hidden])').length===1,'Search filters the same orders');click('[data-route-mobile-action="search"]');
+  click('[data-route-mobile-reorder="22222222-2222-4222-8222-222222999902"]');click('[aria-label="Reorder delivery"] [data-route-move="-1"]:not(:disabled)');check(mobile('list').firstElementChild.dataset.routeRow==='22222222-2222-4222-8222-222222999902'&&document.querySelector('[data-route-orders] tr').dataset.routeRow==='22222222-2222-4222-8222-222222999902','Reorder updates mobile and desktop collection together');
+  check(mobile('save').textContent==='Save changes','Reordering exposes Save changes');
+  let finish;atlasRoutingSavedDays.save=()=>new Promise((resolve,reject)=>{finish=()=>reject(Error('Synthetic save failure'));});click('[data-route-mobile-action="save"]');check(mobile('save').textContent==='Saving…'&&mobile('save').disabled,'Saving disables duplicate requests');finish();await wait(()=>mobile('save').textContent==='Save failed · Retry');check(mobile('list').children.length===2,'Failed save preserves all local orders');
+  atlasRoutingSavedDays.save=originalSave;click('[data-route-mobile-action="save"]');await wait(()=>mobile('save').textContent==='✓ Saved');check(true,'Retry uses the existing saved-day command');
+  click('[data-route-mobile-action="add"]');check(screen()==='ADD_DOCUMENT','Mobile Add order opens photo-first intake');act('back');await wait(()=>!document.querySelector('.atlas-document-flow').open);
+  click('.atlas-route-mobile-open[data-route-edit="22222222-2222-4222-8222-222222999901"]');check(document.querySelector('[data-route-order-form]').elements.customer.value==='Sample Supply','Delivery card opens the correct existing editor');click('[data-route-cancel]');
+  click('[data-route-mobile-action="more"]');check(['save','history','load','reminders','confirm','manual'].every(a=>document.querySelector(`[data-manager-more="${a}"]`)),'All secondary actions remain in More');click('[data-manager-more="manual"]');check(document.querySelector('.atlas-route-intake').open,'Manual entry reaches the existing editor');click('[data-route-cancel]');
+  let calls=0;atlasRoutingPlanner.planDay=async args=>{calls++;return originalPlan(args);};click('[data-route-mobile-action="optimize"]');await wait(()=>!document.querySelector('[data-route-stop]').hidden===false);check(calls===1&&document.querySelector('#atlasDeliveryRouting').dataset.dispatchTab==='trips','Optimize runs once and reveals existing trip results');click('[data-manager-tab="home"]');
+  await changeDate('2099-01-06');check(mobile('totals').textContent==='Review required'&&document.querySelector('[data-route-mobile-action="optimize"]').disabled,'Unknown pallet data is review required and cannot optimize');
+  await changeDate('2099-01-07');check(mobile('headline').textContent==='No deliveries yet'&&document.querySelector('[data-route-mobile-action="optimize"]').disabled,'Empty day remains actionable without an empty load panel');
+  atlasRoutingSavedDays.enabled=false;click('[data-manager-tab="more"]');check(mobile('save').textContent==='Temporary session','Unavailable storage never claims Saved');click('[data-manager-more="close"]');atlasRoutingSavedDays.enabled=true;
+  await changeDate('2099-01-05');outputs.textContent+=`\n${count} DASHBOARD CHECKS PASSED · no external requests`;
+ }catch(e){outputs.textContent+='\nFAIL: '+e.message;}
+ finally{atlasRoutingSavedDays.save=originalSave;atlasRoutingPlanner.planDay=originalPlan;atlasRoutingSavedDays.enabled=true;}
+};
 atlasOpenRouting();
+if(new URLSearchParams(location.search).has('example'))wait(()=>document.querySelector('[data-route-mobile-date]')&&!document.querySelector('#atlasDeliveryRouting').inert).then(()=>document.querySelector('#dashboard-example').click());
 </script></html>
