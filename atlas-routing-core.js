@@ -346,6 +346,33 @@
     return { trips: loads, unscheduled, rollovers, warnings, targets: { truckPalletTarget, dailyTripTarget } };
   }
 
+  // Moves are represented by the existing saved order priority, not a second
+  // load store. Always return the actual repacked plan for review.
+  function previewPriorityMove(orders, options, orderId, tripIndex, displacedIds = []) {
+    const before = countTruckTrips(orders, options);
+    const target = before.trips[tripIndex];
+    const locked = new Set((options.lockedTrips || []).flatMap((trip) => trip.shipments.map((item) => item.orderId)));
+    const source = orders.find((order) => order.id === orderId);
+    if (!source || locked.has(orderId) || source.dispatchedOn || source.deliveredOn || !target || target.locked) throw new Error("Only orders and trips that have not been sent out can move.");
+    if (!Number.isSafeInteger(source.palletSpaces) || source.palletSpaces < 1) throw new Error("Review this order's pallet count before moving it.");
+    const targetIds = [...new Set(target.shipments.map((item) => item.orderId))];
+    const displaced = new Set(displacedIds);
+    if (displaced.has(orderId) || [...displaced].some((id) => !targetIds.includes(id) || locked.has(id) || orders.find((o) => o.id === id)?.dispatchedOn || orders.find((o) => o.id === id)?.deliveredOn)) throw new Error("Review the orders selected to return to the queue.");
+    // Never move just one part of an order by accidentally changing all parts.
+    if ([...displaced].some((id) => before.trips.filter((t) => t.shipments.some((s) => s.orderId === id)).length !== 1)) throw new Error("Split shipments need their complete allocation reviewed before moving.");
+    const first = orders.findIndex((o) => targetIds.includes(o.id));
+    const moved = new Set([orderId, ...targetIds]);
+    const prefix = orders.slice(0, first).filter((o) => !moved.has(o.id));
+    const keep = orders.filter((o) => targetIds.includes(o.id) && o.id !== orderId && !displaced.has(o.id));
+    const suffix = orders.slice(first).filter((o) => !moved.has(o.id));
+    const reordered = [...prefix, source, ...keep, ...orders.filter((o) => displaced.has(o.id)), ...suffix];
+    if (reordered.length !== orders.length || new Set(reordered.map((o) => o.id)).size !== orders.length) throw new Error("The move could not preserve every order.");
+    const after = countTruckTrips(reordered, options);
+    const actualTrip = after.trips.findIndex((t) => !t.locked && t.shipments.some((s) => s.orderId === orderId));
+    return { orders: reordered, before, after, actualTrip, requestedTrip: tripIndex,
+      displaced: targetIds.filter((id) => id !== orderId && !after.trips[tripIndex]?.shipments.some((s) => s.orderId === id)) };
+  }
+
   function estimateDriverWork(driverName, trips, options = {}) {
     const driver = DRIVERS[driverName];
     if (!driver) throw new Error("Unknown driver");
@@ -381,6 +408,6 @@
   return Object.freeze({
     BOX_TRUCK_PALLET_SPACES, PALLET_JACK_SPACES, USABLE_TRUCK_SPACES, VAN, DRIVERS,
     cleanModel, selectSpecification, analyzeOrder, assessVanLoad, assessVanShipments, resolveVanAssignment, allocateShipmentBoxes, countTruckTrips,
-    estimateDriverWork, hasCheckOnDelivery, intakeDeliveryDay,
+    estimateDriverWork, hasCheckOnDelivery, intakeDeliveryDay, previewPriorityMove,
   });
 });

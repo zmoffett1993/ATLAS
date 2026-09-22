@@ -24,7 +24,7 @@ const STATIC = new Map([
 const exec = promisify(execFile);
 const mintOperatorToken = async () => (await exec("gcloud", ["auth", "print-identity-token"], { timeout: 15000, maxBuffer: 16384 })).stdout.trim();
 
-export function createPreviewBridge({ origin, publishableKey, browserKey = publishableKey, mapsBrowserKey = "", photoEnabled = false, storageEnabled = false, permanent = false, fullAtlas = false, notificationsEnabled = false, authorizeCaller, getGoogleToken = mintOperatorToken, fetchImpl = fetch, now = Date.now }) {
+export function createPreviewBridge({ origin, publishableKey, browserKey = publishableKey, mapsBrowserKey = "", photoEnabled = false, storageEnabled = false, permanent = false, fullAtlas = false, notificationsEnabled = false, podEnabled = false, authorizeCaller, getGoogleToken = mintOperatorToken, fetchImpl = fetch, now = Date.now }) {
   const parsed = new URL(origin);
   const validHost = permanent ? /^atlas-routing-app-[a-z0-9-]+(?:\.[a-z0-9-]+)?\.run\.app$/.test(parsed.hostname) : /^18766-[a-z0-9-]+\.cs-[a-z0-9-]+\.cloudshell\.dev$/.test(parsed.hostname);
   if (parsed.protocol !== "https:" || !validHost || parsed.origin !== origin) throw new Error("Approved preview origin required");
@@ -85,7 +85,7 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
         return res.end(content);
       }
       if (req.url === "/runtime-config.json" && req.method === "GET") return send(200, { url: SUPABASE, key: browserKey, mapsBrowserKey, photoEnabled: photoEnabled === true, storageEnabled: storageEnabled === true,
-        ...(permanent ? {notificationsEnabled: notificationsEnabled === true, notificationOrigin: origin} : {}) });
+        ...(permanent ? {notificationsEnabled: notificationsEnabled === true, notificationOrigin: origin, podEnabled: fullAtlas && podEnabled === true} : {}) });
       if (!["/api/optimize-trip", "/api/plan-trip", "/api/read-order-photo"].includes(req.url)) return reject(404, "NOT_FOUND");
       const planning = req.url === "/api/plan-trip", photo = req.url === "/api/read-order-photo";
       if (photo && photoEnabled !== true) return reject(503, "PHOTO_READING_DISABLED");

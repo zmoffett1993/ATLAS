@@ -15,6 +15,7 @@ async function connect() {
     const response = await fetch("/runtime-config.json", { cache: "no-store", credentials: "same-origin", redirect: "error", signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw Error("Configuration unavailable");
     const config = await response.json();
+    window.atlasRoutingPOD?.configure({ enabled: config.podEnabled === true });
     await connectRouting(config);
     if (config.notificationsEnabled === true) {
       const { connectNotifications } = await import("./notification-client.mjs");

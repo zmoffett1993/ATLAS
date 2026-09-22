@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v369-consolidated-testing";
+const VERSION = "atlas-pwa-v373-pod-recovery";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -38,14 +38,17 @@ const APP_SHELL = [
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",
   "./atlas-desktop.js?v=135",
-  "./atlas-routing.css?v=14",
-  "./atlas-routing-core.js?v=11",
+  "./atlas-routing.css?v=17",
+  "./atlas-routing-core.js?v=12",
   "./atlas-routing-planner.js?v=6",
   "./atlas-routing-catalog.js?v=2",
   "./atlas-routing-intake.js?v=4",
   "./atlas-routing-storage.js?v=3",
   "./atlas-routing-notifications.js?v=2",
-  "./atlas-routing.js?v=28",
+  "./atlas-routing-pod-core.js?v=1",
+  "./atlas-routing-pod-queue.js?v=1",
+  "./atlas-routing-pod.js?v=2",
+  "./atlas-routing.js?v=32",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106",
   "./pallet-guides.json?v=20260831-thick-wall-aliases-v7",

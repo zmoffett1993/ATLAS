@@ -18,6 +18,8 @@
   let intakeRequest = null;
   let draftGeneration = 0;
   let captureQueue = null, captureJob = null, captureReviewJob = null, captureApplying = false;
+  let cancelOrderDrag = () => {};
+  const dispatchUI = { tab: "orders", query: "", move: null, lastPlan: null };
   const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const find = (selector) => document.getElementById("atlasDeliveryRouting")?.querySelector(selector);
   // Local SVG artwork keeps the routing UI crisp without external icon fonts.
@@ -76,12 +78,10 @@
       <main class="atlas-route-main">
         <header class="atlas-route-header">
           <div><button type="button" class="atlas-route-button" data-route-host-menu>ATLAS Menu</button><h1>Daily Route Optimizer</h1><p>Optimize deliveries with primary-driver-first logic</p></div>
-          <div class="atlas-route-header-actions"><label class="atlas-route-date">${icon("calendar")}<span>Planning day</span> <input type="date" data-route-date /></label><button type="button" class="atlas-route-button" disabled title="Templates require private order storage">${icon("template")}Save Template</button><button type="button" class="atlas-route-button atlas-route-primary" data-route-optimize disabled title="Add orders and connect the private Google preview">${icon("play")}Optimize Routes</button><button type="button" class="atlas-route-account" data-route-account aria-label="ATLAS account"><span class="atlas-route-avatar" data-route-avatar></span><span><strong data-route-user></strong><small>Delivery planning</small></span>${icon("chevron")}</button></div>
+          <div class="atlas-route-header-actions"><label class="atlas-route-date">${icon("calendar")}<span>Planning day</span> <input type="date" data-route-date /></label><button type="button" class="atlas-route-button" data-route-history>${icon("calendar")}Saved Routes</button><button type="button" class="atlas-route-button atlas-route-primary" data-route-optimize disabled title="Add orders and connect routing to calculate traffic and timing">${icon("play")}Optimize Routes</button><button type="button" class="atlas-route-account" data-route-account aria-label="ATLAS account"><span class="atlas-route-avatar" data-route-avatar></span><span><strong data-route-user></strong><small>Delivery planning</small></span>${icon("chevron")}</button></div>
         </header>
-        <div class="atlas-route-notice" role="status"><strong>Planning preview</strong><span>Clear photo readings are added and saved automatically; uncertain readings need review. Saved days keep order details, specifications and load assignments; photos are temporary. Recalculate routes for current traffic.</span></div>
-        <div class="atlas-route-card-tools"><span data-route-save-status role="status"></span><button type="button" class="atlas-route-button" data-route-history>${icon("calendar")}Saved Routes</button><button type="button" class="atlas-route-button" data-route-load-day>View Saved Day</button><button type="button" class="atlas-route-button atlas-route-primary" data-route-save-day>Save Day</button></div>
-        <div class="atlas-route-card-tools"><span>Delivery-day review · save changes with Save Day</span><button type="button" class="atlas-route-button" data-route-reminders>${icon("clock")}Delivery Reminders</button><button type="button" class="atlas-route-button" data-route-confirm-day>All Delivered</button></div>
-        <p class="atlas-route-intake-note">After 5 PM Pacific, sent-out orders without a reported issue show Assumed delivered. All Delivered records your confirmation. Future plans are never completed automatically.</p>
+        <div class="atlas-route-daybar"><span data-route-save-status role="status"></span><div class="atlas-route-day-actions"><button type="button" class="atlas-route-button" data-route-save-day>${icon("check")}Save Day</button><details class="atlas-route-day-menu"><summary>Day actions ${icon("chevron")}</summary><div><button type="button" class="atlas-route-button" data-route-load-day>View Saved Day</button><button type="button" class="atlas-route-button" data-route-reminders>${icon("clock")}Delivery Reminders</button><button type="button" class="atlas-route-button" data-route-confirm-day>All Delivered</button><p>All Delivered records your confirmation; select Save Day afterward. Sent-out orders without an issue are assumed delivered after 5 PM Pacific. Future plans are never completed automatically.</p></div></details></div></div>
+        <details class="atlas-route-help"><summary>About this planning preview</summary><p>Clear photo readings are added and saved automatically; uncertain readings need review. Saved days keep order details, specifications and load assignments; order-entry photos are temporary. Recalculate routes for current traffic.</p></details>
         <div class="atlas-route-notice" data-route-review-request hidden role="status"><span data-route-review-request-text></span><button type="button" class="atlas-route-button" data-route-review-request-open>Review Saved Deliveries</button></div>
         <div class="atlas-route-grid">
           <div class="atlas-route-column">
@@ -94,12 +94,12 @@
               <div class="atlas-route-field"><span>${icon("van")} Cargo Vans · 2 Available</span><strong>2 pallets or loose boxes each</strong><small>Matching Nissan NV · 80% target</small></div>
               <label class="atlas-route-field"><span>${icon("pallets")} Typical Trips</span><input type="number" min="1" step="1" value="3" data-route-trip-target /><small>Extra trips allowed when needed</small></label>
             </div><div class="atlas-route-catalog-bar"><span data-route-catalog-status>Load product specifications to calculate pallets and van estimates.</span><label class="atlas-route-button">${icon("upload")}Load Product Specifications<input type="file" accept=".xlsx" data-route-catalog class="atlas-route-file-input" /></label></div>`)}
-            ${card(`${icon("document")} Today's Deliveries`, `<div class="atlas-route-card-tools"><span>Sales orders, packing lists, and invoices for one delivery can be grouped together.</span><button type="button" class="atlas-route-button atlas-route-primary" data-route-intake>${icon("camera")}Add Orders</button><button type="button" class="atlas-route-button" data-route-manual-order>Enter Manually</button></div>
+            ${card(`${icon("document")} Today's Deliveries`, `<div class="atlas-route-card-tools atlas-route-order-tools"><span>Photograph an order to add a delivery.</span><button type="button" class="atlas-route-button atlas-route-primary" data-route-intake>${icon("camera")}Add Orders</button><button type="button" class="atlas-route-button" data-route-manual-order>Enter Manually</button></div>
               <div class="atlas-route-capture-summary" data-route-capture-summary hidden></div>
               <div class="atlas-route-capacity" data-route-capacity role="status"></div>
               <div class="atlas-route-table-scroll"><table><thead><tr><th>#</th><th>Customer</th><th>City</th><th>Pallets</th><th>Time Window</th><th>Notes</th></tr></thead><tbody data-route-orders></tbody></table></div>
               <div class="atlas-route-summary"><div>${icon("box")}<span>Total Deliveries<strong data-route-total-orders>0</strong></span></div><div>${icon("pallets")}<span>Total Pallets<strong data-route-total-pallets>—</strong></span></div><div>${icon("truck")}<span>Vehicles Available<strong>Box Truck + 2 Cargo Vans</strong></span></div><div>${icon("road")}<span>Estimated Trips<strong data-route-total-trips>—</strong></span></div></div>`)}
-            ${card(`${icon("route")} Optimized Plan`, `<div class="atlas-route-planner-options"><label><input type="checkbox" data-route-preserve /> Keep my stop order</label><label>Reload minutes<input type="number" min="0" max="120" value="40" data-route-reload /></label><label>Achmad lunch starts<input type="time" min="11:00" max="13:00" value="12:00" data-route-lunch /></label></div><p class="atlas-route-intake-note">Bubba: flexible one-hour lunch between stops or loads · Pacific time · Achmad’s first van departure is estimated at 8:30 AM.</p><div data-route-trip-controls></div><p data-route-progress role="status"></p><button type="button" class="atlas-route-button" data-route-stop hidden>Stop calculation</button><div data-route-plan></div>`)}
+            ${card(`${icon("route")} Optimized Plan`, `<details class="atlas-route-plan-settings"><summary>${icon("gear")}Planning settings</summary><div class="atlas-route-planner-options"><label><input type="checkbox" data-route-preserve /> Keep my stop order</label><label>Reload minutes<input type="number" min="0" max="120" value="40" data-route-reload /></label><label>Achmad lunch starts<input type="time" min="11:00" max="13:00" value="12:00" data-route-lunch /></label></div><p class="atlas-route-intake-note">Bubba: flexible one-hour lunch between stops or loads · Pacific time · Achmad’s first van departure is estimated at 8:30 AM.</p></details><div data-route-trip-controls></div><p data-route-progress role="status"></p><button type="button" class="atlas-route-button" data-route-stop hidden>Stop calculation</button><div data-route-plan></div>`)}
           </div>
           <div class="atlas-route-column">
             ${card(`${icon("map")} Route Map <span class="atlas-route-map-label">Preview</span>`, `<div class="atlas-route-map" data-route-map><div class="atlas-route-map-grid"></div><span class="atlas-route-map-pin">${icon("pin")}<strong>Chubby Gorilla</strong><small>Fullerton, CA</small></span><p>Google map loads when you calculate routes.</p></div>`, "atlas-route-map-card")}
@@ -109,8 +109,8 @@
         </div>
       </main>
       <dialog class="atlas-route-capture" data-route-capture aria-labelledby="atlasRouteCaptureTitle">
-        <h2 id="atlasRouteCaptureTitle">Photograph Orders</h2><p>Take a photo, then Add Page for the same order or Next Order. Tap Done when finished to return to Deliveries; reading continues in the background.</p>
-        <p class="atlas-route-intake-note">Clear readings are added and saved automatically. Unclear details stay in Needs review. Photos are temporary; keep ATLAS open until reading finishes.</p>
+        <div class="atlas-route-capture-heading"><span class="atlas-route-capture-icon">${icon("camera")}</span><div><p class="atlas-route-eyebrow">ORDER ENTRY</p><h2 id="atlasRouteCaptureTitle">Photograph Orders</h2></div></div><p>One order at a time. Add Page for more paperwork, Next Order to keep going, or Done to finish.</p>
+        <details class="atlas-route-help"><summary>How photo reading works</summary><p>Clear readings are added and saved automatically. Unclear details stay in Needs review. Photos are temporary; keep ATLAS open until reading finishes. Reading continues in the background after you tap Done.</p></details>
         <p data-route-capture-status role="status">Ready for the first order.</p>
         <div class="atlas-route-capture-buttons"><button type="button" class="atlas-route-button atlas-route-primary" data-route-capture-photo>Take Photo</button><button type="button" class="atlas-route-button" data-route-capture-next disabled>Next Order</button><button type="button" class="atlas-route-button" data-route-capture-done>Done</button></div>
         <input type="file" accept="image/*" capture="environment" data-route-quick-camera hidden /><input type="file" accept="image/*" multiple data-route-quick-files hidden />
@@ -137,6 +137,7 @@
         <p data-route-history-status role="status"></p><div data-route-history-results></div><div class="atlas-route-card-tools"><button class="atlas-route-button" type="button" data-route-history-prev disabled>Previous</button><button class="atlas-route-button" type="button" data-route-history-next disabled>Next</button></div>
       </dialog>`;
     document.body.appendChild(section);
+    initializeDispatchUI(section);
     const reminderDialog = document.createElement("dialog");
     reminderDialog.className = "atlas-route-intake atlas-route-reminders";
     reminderDialog.setAttribute("data-route-reminder-dialog", "");
@@ -151,6 +152,7 @@
     tripDialog.addEventListener("close", () => { if (!tripDialog.open) clearTripSheet(); });
     section.querySelector("[data-route-date]").value = new Date().toLocaleDateString("en-CA");
     section.addEventListener("click", (event) => {
+      if (event.target.closest(".atlas-route-day-menu button")) find(".atlas-route-day-menu").open = false;
       if (event.target.closest("[data-route-review-request-open]") && reminderDay && storage()?.enabled) {
         const form = find("[data-route-history-form]");
         form.elements.query.value = ""; form.elements.dateField.value = "delivered"; form.elements.from.value = form.elements.to.value = reminderDay;
@@ -264,6 +266,8 @@
       }
     });
     find("[data-route-date]").addEventListener("change", () => {
+      if (window.atlasRoutingPOD?.hasPending() && !window.confirm("These POD pages are still saving or could not be saved. Leave without saving them?")) { find("[data-route-date]").value = savedDay.day; return; }
+      window.atlasRoutingPOD?.reset();
       if (!storage()?.enabled) { renderOrders(); return; }
       if (savedDay.dirty && !window.confirm("This day has unsaved changes. Leave them and open the other day?")) { find("[data-route-date]").value = savedDay.day; return; }
       void loadDay();
@@ -309,31 +313,147 @@
       event.target.value = "";
       renderPhotos();
     });
-    section.addEventListener("pointerdown", (event) => {
-      const handle = event.target.closest("[data-route-drag]");
-      if (!handle || event.button !== 0 || isLockedOrder(handle.dataset.routeDrag)) return;
-      event.preventDefault();
-      handle.setPointerCapture(event.pointerId);
-      state.drag = { id: handle.dataset.routeDrag, target: handle.dataset.routeDrag, pointerId: event.pointerId };
-    });
-    section.addEventListener("pointermove", (event) => {
-      if (!state.drag || state.drag.pointerId !== event.pointerId) return;
-      const row = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-route-row]");
-      if (row) state.drag.target = row.dataset.routeRow;
-      section.querySelectorAll("[data-route-row]").forEach((item) => item.classList.toggle("is-drop-target", item.dataset.routeRow === state.drag.target && state.drag.id !== state.drag.target));
-    });
-    section.addEventListener("pointerup", (event) => {
-      if (!state.drag || state.drag.pointerId !== event.pointerId) return;
-      const { id, target } = state.drag;
-      state.drag = null;
-      moveOrder(id, target);
-      section.querySelectorAll(".is-drop-target").forEach((row) => row.classList.remove("is-drop-target"));
-    });
-    section.addEventListener("pointercancel", () => {
-      state.drag = null;
-      section.querySelectorAll(".is-drop-target").forEach((row) => row.classList.remove("is-drop-target"));
-    });
+    installOrderDragging(section);
     renderOrders({ dirty: false });
+  }
+
+  function initializeDispatchUI(section) {
+    const main = find(".atlas-route-main"), columns = [...main.querySelectorAll(".atlas-route-column")];
+    const setup = find("[data-route-truck-target]").closest(".atlas-route-card");
+    const orders = find("[data-route-orders]").closest(".atlas-route-card"); orders.dataset.dispatchOrders = "";
+    const plan = find("[data-route-plan]").closest(".atlas-route-card"); plan.dataset.dispatchTrips = "";
+    const settings = document.createElement("dialog"); settings.className = "atlas-route-intake atlas-dispatch-settings"; settings.dataset.dispatchSettings = "";
+    settings.innerHTML = '<button type="button" class="atlas-route-close" data-dispatch-close="settings" aria-label="Close settings">×</button><h2>Route settings</h2>';
+    settings.append(setup, find(".atlas-route-plan-settings"), find(".atlas-route-main > .atlas-route-help")); section.append(settings);
+    const map = document.createElement("dialog"); map.className = "atlas-route-intake atlas-dispatch-map"; map.dataset.dispatchMap = "";
+    map.innerHTML = '<button type="button" class="atlas-route-close" data-dispatch-close="map" aria-label="Close map">×</button><h2>Route map &amp; estimates</h2>';
+    map.append(find(".atlas-route-map-card"), find(".atlas-route-kpis"), find(".atlas-route-relief").closest(".atlas-route-card")); section.append(map);
+    const move = document.createElement("dialog"); move.className = "atlas-route-intake atlas-dispatch-move"; move.dataset.dispatchMove = ""; move.setAttribute("aria-label", "Review load move"); section.append(move);
+    const toolbar = document.createElement("div"); toolbar.className = "atlas-dispatch-toolbar";
+    toolbar.innerHTML = `<div class="atlas-dispatch-tabs" aria-label="Routing views">${[["orders","Orders","document"],["queue","Waiting loads","truck"],["trips","Trips","route"]].map(([id,label,name]) => `<button type="button" data-dispatch-tab="${id}" aria-pressed="${id === "orders"}">${icon(name)}<span>${label}</span></button>`).join("")}<button type="button" data-route-history>${icon("calendar")}<span>Saved</span></button><button type="button" data-dispatch-tab="pods" aria-pressed="false">${icon("document")}<span>PODs</span></button></div><div class="atlas-dispatch-tools"><button type="button" class="atlas-route-button" data-dispatch-show="map">${icon("map")}Map</button><button type="button" class="atlas-route-button" data-dispatch-show="settings">${icon("gear")}Settings</button></div>`;
+    find(".atlas-route-grid").before(find(".atlas-route-summary"), toolbar);
+    const filter = document.createElement("label"); filter.className = "atlas-dispatch-search";
+    filter.innerHTML = '<span>Find an order</span><input type="search" data-dispatch-query placeholder="Customer, city, SO, invoice or fulfillment" />';
+    orders.querySelector(".atlas-route-table-scroll").before(filter);
+    const queue = document.createElement("section"); queue.className = "atlas-route-card atlas-dispatch-queue"; queue.dataset.dispatchQueue = ""; queue.hidden = true; columns[0].append(queue);
+    const next = document.createElement("section"); next.className = "atlas-route-card atlas-dispatch-next"; next.dataset.dispatchNext = ""; columns[1].append(next, plan);
+    const pods = document.createElement("section"); pods.className = "atlas-route-card atlas-dispatch-pods"; pods.dataset.dispatchPods = ""; pods.hidden = true;
+    pods.innerHTML = `${icon("document")}<h2>Delivery documents</h2><p>POD submission is not connected yet.</p><p>Private document storage and driver-account assignments must be activated before signed documents can be saved here. Delivery status remains available in Saved Routes.</p><button type="button" class="atlas-route-button" data-route-history>Search saved deliveries</button>`; main.append(pods);
+    section.addEventListener("click", (event) => {
+      const tab = event.target.closest(".atlas-dispatch-tabs button[data-dispatch-tab]"); if (tab) { dispatchUI.tab = tab.dataset.dispatchTab; cancelOrderDrag(); applyDispatchTab(); if(dispatchUI.tab==="pods")void window.atlasRoutingPOD?.load(); }
+      const show = event.target.closest("[data-dispatch-show]"); if (show) find(`[data-dispatch-${show.dataset.dispatchShow}]`)?.showModal();
+      const close = event.target.closest("[data-dispatch-close]"); if (close) find(`[data-dispatch-${close.dataset.dispatchClose}]`)?.close();
+      const promote = event.target.closest("[data-dispatch-promote]"); if (promote) openDispatchMove(promote.dataset.dispatchPromote, state.lockedTrips.length);
+      const choose = event.target.closest("[data-dispatch-choose]"); if (choose) openDispatchMove(choose.dataset.dispatchChoose);
+      if (event.target.closest("[data-dispatch-apply]")) applyDispatchMove();
+    });
+    section.addEventListener("input", (event) => { if (event.target.matches("[data-dispatch-query]")) { dispatchUI.query = event.target.value; filterDispatchOrders(); } });
+    move.addEventListener("change", (event) => { if (event.target.matches("[data-dispatch-destination]")) { dispatchUI.move.trip = Number(event.target.value); dispatchUI.move.displaced = []; } else if (event.target.matches("[data-dispatch-displace]")) dispatchUI.move.displaced = [...move.querySelectorAll("[data-dispatch-displace]:checked")].map(el => el.value); renderDispatchMove(); });
+    move.addEventListener("close", () => { dispatchUI.move = null; move.replaceChildren(); });
+    window.atlasRoutingPOD?.mount(pods,()=>find("[data-route-date]").value);
+    applyDispatchTab();
+  }
+
+  function applyDispatchTab() {
+    const section = document.getElementById("atlasDeliveryRouting"); if (!section) return;
+    section.dataset.dispatchTab = dispatchUI.tab;
+    find(".atlas-route-header h1").textContent = dispatchUI.tab === "pods" ? "Delivery Documents" : "Daily Route Optimizer";
+    section.querySelectorAll(".atlas-dispatch-tabs button[data-dispatch-tab]").forEach(el => el.setAttribute("aria-pressed", String(el.dataset.dispatchTab === dispatchUI.tab)));
+    find("[data-dispatch-orders]").hidden = dispatchUI.tab !== "orders";
+    find("[data-dispatch-queue]").hidden = dispatchUI.tab !== "queue";
+    find("[data-dispatch-pods]").hidden = dispatchUI.tab !== "pods";
+    find(".atlas-route-grid").hidden = dispatchUI.tab === "pods";
+  }
+
+  function filterDispatchOrders() {
+    const q = dispatchUI.query.trim().toLowerCase();
+    find("[data-route-orders]")?.querySelectorAll("[data-route-row]").forEach(row => {
+      const o = dayOrders().find(item => item.id === row.dataset.routeRow);
+      row.hidden = !!q && ![o.customer,o.city,o.orderNumber,...(o.invoiceNumbers || []),...(o.fulfillmentNumbers || [])].join(" ").toLowerCase().includes(q);
+    });
+  }
+
+  function dispatchRows(shipments, { queue = false } = {}) {
+    return `<div class="atlas-route-table-scroll atlas-dispatch-load-table"><table><tbody>${shipments.map(shipment => {
+      const order = dayOrders().find(o => o.id === shipment.orderId); if (!order) return "";
+      const editable = canReorderOrder(order.id, true), tripIndices = state.loads.flatMap((t,i) => t.shipments.some(s => s.orderId === order.id) ? [i] : []);
+      const timed = state.planned?.trips.find(t => t.tripIndex === shipment.tripIndex);
+      const visit = timed?.visits.find(v => timed.shipments[v.stopIndex]?.orderId === order.id);
+      const date = find("[data-route-date]").value;
+      return `<tr data-route-row="${order.id}"><td class="atlas-route-order-position">${editable ? `<button type="button" data-route-drag="${order.id}" aria-label="Hold to move ${escape(order.customer)}">⠿</button>` : '<span aria-label="Sent-out load locked">●</span>'}</td><td><button type="button" class="atlas-route-order-link" data-route-edit="${order.id}">${escape(order.customer)}</button><small>${escape(order.orderNumber)} · ${escape(order.city)}</small><small>${escape(date)} · Trip ${shipment.tripIndex + 1}${tripIndices.length > 1 ? ` · Split: ${tripIndices.length} shipments` : ""}</small><small>${visit ? `Estimated ${displayTime(visit.arrival)}` : "Arrival estimate needs calculation"}</small>${order.timeWindow ? `<small>Hours · ${escape(order.timeWindow)}</small>` : ""}${order.checkOnDelivery ? '<small class="atlas-route-check-badge">CHECK ON DELIVERY</small>' : ""}<div class="atlas-dispatch-row-actions">${editable ? `${queue ? `<button type="button" class="atlas-route-button" data-dispatch-promote="${order.id}">Move to next load</button>` : ""}<button type="button" class="atlas-route-button" data-dispatch-choose="${order.id}">Move…</button>` : '<small>Locked or read-only</small>'}</div></td><td></td><td><strong>${shipment.palletSpaces ?? "—"}</strong></td><td></td><td></td></tr>`;
+    }).join("")}</tbody></table></div>`;
+  }
+
+  function renderDispatch() {
+    if (!find("[data-dispatch-next]")) return;
+    const nextIndex = state.lockedTrips.length, next = state.loads[nextIndex];
+    const assignment = state.assignments[nextIndex] || "Bubba:truck", isVan = assignment.includes(":van");
+    const capacity = !next ? "" : isVan ? (() => {
+      const fit = core.assessVanShipments(next.shipments, state.catalog);
+      const label = fit.status === "fits-estimate" ? "Likely fits" : fit.status === "does-not-fit" ? "Does not fit" : "Warehouse check needed";
+      return `<p class="atlas-dispatch-muted">Loose-box van load · ${label}${fit.percent == null || fit.percent <= 80 ? "" : ` · ${fit.percent}%`}</p>`;
+    })() : `<meter min="0" max="${state.truckPalletTarget}" value="${next.palletSpaces}" aria-label="Next load capacity"></meter><p class="atlas-dispatch-muted">${Math.max(0,state.truckPalletTarget-next.palletSpaces)} pallet spaces available · planning target</p>`;
+    find("[data-dispatch-next]").innerHTML = `<h2>${icon("truck")}Next load${next ? ` · Trip ${nextIndex + 1}` : ""}</h2>${next ? `<div class="atlas-dispatch-load-heading"><strong>${isVan ? `${next.palletSpaces} pallet equivalents` : `${next.palletSpaces} / ${state.truckPalletTarget} pallets`}</strong><span>${escape(assignment.replace(":truck", " · Box Truck").replace(":van", " · Van "))}</span></div>${capacity}${dispatchRows(next.shipments.map(s => ({...s,tripIndex:nextIndex})))}` : '<p class="atlas-dispatch-muted">No unsent load. Add orders to begin.</p>'}`;
+    find("[data-dispatch-next]").dataset.routeTripDrop = String(nextIndex);
+    const waiting = state.loads.flatMap((trip,i) => i > nextIndex ? trip.shipments.map(s => ({...s,tripIndex:i})) : []);
+    const unassigned = (state.loadPlan?.unscheduled || []).map(s => `<p>${escape(s.customer)} · ${escape(s.reason)}</p>`).join("");
+    find("[data-dispatch-queue]").innerHTML = `<h2>${icon("pallets")}Waiting loads <span class="atlas-dispatch-count">${waiting.length}</span></h2><p class="atlas-dispatch-muted">Planned after the next load · ${escape(find("[data-route-date]").value)}</p>${waiting.length ? dispatchRows(waiting, {queue:true}) : '<div class="atlas-route-plan-empty"><strong>No loads waiting</strong><p>Orders assigned beyond the next trip appear here.</p></div>'}${unassigned ? `<div class="atlas-route-planning-review"><strong>Allocation needs review</strong>${unassigned}</div>` : ""}`;
+    find("[data-route-plan]").querySelectorAll(".atlas-route-trip").forEach((article, position) => {
+      const index = state.planned ? state.planned.trips[position]?.tripIndex : position;
+      const trip = state.loads[index]; if (!trip || article.querySelector(".atlas-dispatch-trip-detail")) return;
+      article.dataset.routeTripDrop = String(index);
+      const content = article.children[1], header = content?.querySelector("header"); if (!content || !header) return;
+      const detail = document.createElement("details"); detail.className = "atlas-dispatch-trip-detail";
+      const summary = document.createElement("summary"); summary.textContent = `${trip.locked ? "Sent out · " : ""}${trip.shipments.length} stops · ${trip.palletSpaces} pallets · View details`;
+      detail.append(summary); while (header.nextSibling) detail.append(header.nextSibling);
+      const rows = document.createElement("div"); rows.innerHTML = dispatchRows(trip.shipments.map(s => ({...s,tripIndex:index}))); detail.append(rows); content.append(detail);
+    });
+    filterDispatchOrders(); applyDispatchTab();
+  }
+
+  function dispatchMovePreview() {
+    const move = dispatchUI.move;
+    return core.previewPriorityMove(state.analyzed.map(o => ({...o,palletSpaces:o.issues.some(issue=>issue.includes("item quantity")||issue.includes("case quantity"))?null:o.palletSpaces,dispatchedOn:o.source.dispatchedOn,deliveredOn:o.source.deliveredOn})), {truckPalletTarget:state.truckPalletTarget,dailyTripTarget:state.dailyTripTarget,lockedTrips:state.lockedTrips},move.id,move.trip,move.displaced);
+  }
+
+  function openDispatchMove(id, trip = state.lockedTrips.length) {
+    if (!canReorderOrder(id)) return;
+    dispatchUI.move = { id, trip, displaced: [], owner:state.ownerId, day:find("[data-route-date]").value, generation:state.planningGeneration };
+    const target=state.loads[trip],source=state.analyzed.find(o=>o.id===id);
+    if(target && !target.shipments.some(s=>s.orderId===id)) {
+      let excess=target.palletSpaces+(source?.palletSpaces||0)-state.truckPalletTarget;
+      const candidates=target.shipments.filter(s=>canReorderOrder(s.orderId)&&state.loads.filter(t=>t.shipments.some(x=>x.orderId===s.orderId)).length===1).sort((a,b)=>a.palletSpaces-b.palletSpaces);
+      const single=candidates.find(s=>s.palletSpaces>=excess);
+      for(const candidate of single?[single]:candidates.reverse()) { if(excess<=0)break;dispatchUI.move.displaced.push(candidate.orderId);excess-=candidate.palletSpaces; }
+      if(dispatchUI.move.displaced.length)dispatchUI.move.suggestion="Suggested by pallet capacity. Check customer hours before moving these orders later; traffic and return-time effects require recalculation.";
+    }
+    renderDispatchMove(); find("[data-dispatch-move]").showModal();
+  }
+
+  function renderDispatchMove() {
+    const move = dispatchUI.move; if (!move) return;
+    const order = dayOrders().find(o=>o.id===move.id), target = state.loads[move.trip];
+    let preview, error = ""; try { preview = dispatchMovePreview(); } catch (e) { error = e.message; }
+    const changed = preview?.before.trips.flatMap((trip,index) => trip.shipments.map(s=>({id:s.orderId,index}))).filter(({id,index}) => !preview.after.trips[index]?.shipments.some(s=>s.orderId===id));
+    const candidates = [...new Set(target?.shipments.map(s=>s.orderId))].filter(id=>id!==move.id&&canReorderOrder(id));
+    find("[data-dispatch-move]").innerHTML = `<h2>Move ${escape(order?.customer)}</h2><p>${escape(order?.orderNumber)} · Review the load changes before applying.</p><label>Move toward<select data-dispatch-destination>${state.loads.map((t,i)=>t.locked?"":`<option value="${i}" ${i===move.trip?"selected":""}>Trip ${i+1} · ${t.palletSpaces} pallets</option>`).join("")}</select></label>${move.suggestion?`<p class="atlas-route-planning-review">${escape(move.suggestion)}</p>`:""}<fieldset><legend>Move another order later, if needed</legend>${candidates.map(id=>{const o=dayOrders().find(o=>o.id===id);return `<label class="atlas-dispatch-choice"><input type="checkbox" data-dispatch-displace value="${id}" ${move.displaced.includes(id)?"checked":""}/><span>${escape(o.customer)} · ${state.analyzed.find(a=>a.id===id)?.palletSpaces ?? "—"} pallets<br/><small>${escape(o.city)}${o.timeWindow?` · Hours: ${escape(o.timeWindow)}`:""}</small></span></label>`;}).join("") || '<p>No other movable orders on this trip.</p>'}</fieldset>${error?`<p role="alert">${escape(error)}</p>`:`<div class="atlas-route-planning-review"><strong>Resulting loads</strong>${preview.after.trips.filter(t=>!t.locked).map(t=>`<p>Trip ${preview.after.trips.indexOf(t)+1} · ${t.palletSpaces} pallets · ${t.shipments.map(s=>escape(s.customer)).join(" → ")}</p>`).join("")}${preview.actualTrip!==move.trip?'<p>Order priority places this load on a different trip. Review the result below; no fixed trip assignment has been saved.</p>':""}${changed?.length?'<p>Other orders change trips as shown above.</p>':""}</div>`}<p>Arrival times and traffic must be recalculated after this move. Customer hours, shift finish and van fit still need review. Save Day keeps the updated priority.</p><div class="atlas-route-card-tools"><button type="button" class="atlas-route-button" data-dispatch-close="move">Cancel</button><button type="button" class="atlas-route-button atlas-route-primary" data-dispatch-apply ${error?"disabled":""}>Apply move</button></div>`;
+  }
+
+  function applyDispatchMove() {
+    const move = dispatchUI.move;
+    if (!move || !canReorderOrder(move.id) || move.owner!==state.ownerId || move.day!==find("[data-route-date]").value || move.generation!==state.planningGeneration) { find("[data-dispatch-move]").close(); return; }
+    try {
+      const preview = dispatchMovePreview(), orderMap = new Map(dayOrders().map(o=>[o.id,o]));
+      state.orders = [...state.orders.filter(o=>o.date!==move.day),...preview.orders.map(o=>orderMap.get(o.id))];
+      find("[data-route-preserve]").checked = true; find("[data-dispatch-move]").close(); renderOrders(); flashOrderPlacement(move.id);
+    } catch(e) { find("[data-route-progress]").textContent = e.message; }
+  }
+
+  function flashOrderPlacement(id) {
+    document.getElementById("atlasDeliveryRouting").querySelectorAll("[data-route-row]").forEach(row=>{
+      if(row.dataset.routeRow!==id)return;
+      const check=document.createElement("span");check.className="atlas-route-placement-check";check.textContent="✓ Moved";check.setAttribute("role","status");row.querySelector(".atlas-route-order-link")?.after(check);setTimeout(()=>check.remove(),2200);
+    });
   }
 
   function dayDocument() {
@@ -348,7 +468,7 @@
     find("[data-route-save-status]").textContent = !enabled ? "Orders are temporary. Shared saving is awaiting database approval and connection." : savedDay.message || (savedDay.dirty ? "Unsaved changes — select Save Day before leaving." : savedDay.revision ? `Saved version ${savedDay.revision} · recalculate routes for current traffic.` : "No saved orders for this day yet.");
     find("[data-route-save-day]").disabled = !enabled || !savedDay.ready || !savedDay.canEdit || savedDay.busy || Boolean(state.planningController);
     find("[data-route-load-day]").disabled = !enabled || savedDay.busy || Boolean(state.planningController);
-    find("[data-route-history]").disabled = !enabled || savedDay.busy || Boolean(state.planningController);
+    document.getElementById("atlasDeliveryRouting").querySelectorAll("[data-route-history]").forEach(button=>{button.disabled = !enabled || savedDay.busy || Boolean(state.planningController);});
     find("[data-route-confirm-day]").disabled = savedDay.busy || !dayOrders().length || (enabled && !savedDay.canEdit) || find("[data-route-date]").value > todayPacific();
     for (const selector of ["[data-route-lock-next]", "[data-route-reopen-last]"]) if (find(selector)) find(selector).disabled = savedDay.busy || !enabled || !savedDay.ready || !savedDay.canEdit || Boolean(state.planningController);
     find("[data-route-date]").disabled = savedDay.busy;
@@ -857,8 +977,87 @@
     if (input) input.value = "";
   }
 
+  function canReorderOrder(id, accessOnly = false) {
+    const order = dayOrders().find((item) => item.id === id);
+    return !!order && state.open && state.ownerId === window.AtlasAuth?.getSession()?.user?.id &&
+      (accessOnly || (!state.planningController && !savedDay.busy)) && (!storage()?.enabled || (savedDay.ready && savedDay.canEdit)) &&
+      !isLockedOrder(id) && !order.dispatchedOn && !order.deliveredOn;
+  }
+
+  function installOrderDragging(section) {
+    let suppressClickUntil = 0;
+    cancelOrderDrag = () => {
+      const drag = state.drag; state.drag = null;
+      if (!drag) return;
+      clearTimeout(drag.timer);
+      drag.row.classList.remove("is-holding-order", "is-dragging-order");
+      drag.layer?.remove();
+      section.querySelectorAll(".is-drop-target").forEach((row) => row.classList.remove("is-drop-target"));
+      if (drag.active) suppressClickUntil = Date.now() + 700;
+      if (drag.row.hasPointerCapture(drag.pointerId)) drag.row.releasePointerCapture(drag.pointerId);
+    };
+    const position = (drag, x, y) => {
+      if (drag.layer) drag.layer.style.transform = `translate3d(${x - drag.offsetX}px,${y - drag.offsetY}px,0)`;
+    };
+    const activate = (drag) => {
+      if (state.drag !== drag || !drag.row.isConnected || !canReorderOrder(drag.id)) { cancelOrderDrag(); return; }
+      drag.active = true;
+      const rect = drag.row.getBoundingClientRect();
+      drag.offsetX = drag.x - rect.left; drag.offsetY = drag.y - rect.top;
+      const layer = document.createElement("div"), table = document.createElement("table"), body = document.createElement("tbody"), clone = drag.row.cloneNode(true);
+      layer.className = "atlas-route-table-scroll atlas-route-drag-card";
+      layer.setAttribute("aria-hidden", "true"); layer.inert = true;
+      clone.removeAttribute("data-route-row"); clone.classList.remove("is-holding-order");
+      clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+      layer.style.width = rect.width + "px"; body.appendChild(clone); table.appendChild(body); layer.appendChild(table); section.appendChild(layer);
+      drag.layer = layer; drag.row.classList.remove("is-holding-order"); drag.row.classList.add("is-dragging-order");
+      drag.row.setPointerCapture(drag.pointerId); position(drag, drag.x, drag.y);
+    };
+    section.addEventListener("click", (event) => {
+      if (Date.now() < suppressClickUntil && event.target.closest("[data-route-edit]")) { suppressClickUntil = 0; event.preventDefault(); event.stopImmediatePropagation(); }
+    }, true);
+    section.addEventListener("pointerdown", (event) => {
+      const row = event.target.closest("[data-route-row]"), handle = event.target.closest("[data-route-drag]");
+      const mobile = event.pointerType !== "mouse" || matchMedia("(max-width:750px)").matches;
+      if (!row || state.drag || event.button !== 0 || !canReorderOrder(row.dataset.routeRow) || (!mobile && !handle)) return;
+      if (mobile && event.target.closest("input,select,textarea,summary,[data-route-move],[data-dispatch-promote],[data-dispatch-choose]")) return;
+      const drag = { id: row.dataset.routeRow, target: row.dataset.routeRow, pointerId: event.pointerId, row, x: event.clientX, y: event.clientY, active: false };
+      state.drag = drag;
+      if (mobile) { row.classList.add("is-holding-order"); drag.timer = setTimeout(() => activate(drag), 1000); }
+      else { event.preventDefault(); activate(drag); }
+    });
+    section.addEventListener("pointermove", (event) => {
+      const drag = state.drag;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      if (!drag.active) { if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 10) cancelOrderDrag(); return; }
+      event.preventDefault(); position(drag, event.clientX, event.clientY);
+      const row = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-route-row]");
+      const trip = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-route-trip-drop]");
+      drag.trip = trip && Number(trip.dataset.routeTripDrop) >= state.lockedTrips.length ? Number(trip.dataset.routeTripDrop) : null;
+      drag.target = row && canReorderOrder(row.dataset.routeRow) ? row.dataset.routeRow : null;
+      section.querySelectorAll("[data-route-row]").forEach((item) => item.classList.toggle("is-drop-target", item.dataset.routeRow === drag.target && drag.id !== drag.target));
+    });
+    section.addEventListener("touchmove", (event) => { if (state.drag?.active) event.preventDefault(); }, { passive: false });
+    section.addEventListener("touchstart", (event) => { if (event.touches.length > 1) cancelOrderDrag(); }, { passive: true });
+    section.addEventListener("contextmenu", (event) => { if (state.drag && event.target.closest("[data-route-row]")) event.preventDefault(); });
+    section.addEventListener("pointerup", (event) => {
+      const drag = state.drag;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      const { id, target, active, trip } = drag;
+      cancelOrderDrag();
+      const sourceTrip = state.loads.findIndex(load=>load.shipments.some(s=>s.orderId===id));
+      if (active && trip != null && trip !== sourceTrip) openDispatchMove(id, trip);
+      else if (active && target && id !== target) moveOrder(id, target);
+    });
+    section.addEventListener("pointercancel", cancelOrderDrag);
+    section.addEventListener("lostpointercapture", (event) => { if (state.drag?.pointerId === event.pointerId) cancelOrderDrag(); });
+    section.addEventListener("keydown", (event) => { if (event.key === "Escape") cancelOrderDrag(); });
+    window.addEventListener("blur", cancelOrderDrag);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) cancelOrderDrag(); });
+  }
+
   function moveOrder(id, targetId) {
-    if (isLockedOrder(id) || isLockedOrder(targetId)) return;
+    if (!canReorderOrder(id) || !canReorderOrder(targetId)) return;
     const day = dayOrders();
     const from = day.findIndex((order) => order.id === id);
     const to = day.findIndex((order) => order.id === targetId);
@@ -868,9 +1067,11 @@
     find("[data-route-preserve]").checked = true;
     state.orders = [...state.orders.filter((order) => order.date !== date), ...day];
     renderOrders();
+    flashOrderPlacement(id);
   }
 
   function renderOrders({ keepAssignments = false, dirty = true } = {}) {
+    cancelOrderDrag();
     if (dirty && storage()?.enabled && state.open) { savedDay.dirty = true; savedDay.message = ""; }
     invalidatePlan();
     if (!keepAssignments) { state.assignments = Object.fromEntries(state.lockedTrips.map((trip, index) => [index, trip.assignment])); state.vanConfirmed = Object.fromEntries(state.lockedTrips.map((trip, index) => [index, trip.vanConfirmed])); vehicleChanges = {}; }
@@ -884,6 +1085,7 @@
     }).join("") : '<tr><td colspan="6" class="atlas-route-empty">No deliveries for this day. Select Add Orders to begin.</td></tr>';
     const plan = core.countTruckTrips(analyzed.map((order) => ({ ...order, palletSpaces: order.issues.some((issue) => issue.includes("item quantity") || issue.includes("case quantity")) ? null : order.palletSpaces })), { truckPalletTarget: state.truckPalletTarget, dailyTripTarget: state.dailyTripTarget, lockedTrips: state.lockedTrips });
     state.loads = plan.trips;
+    state.loadPlan = plan;
     state.analyzed = analyzed;
     plan.trips.forEach((trip, index) => {
       if (trip.locked) return;
@@ -911,6 +1113,7 @@
     find("[data-route-trip-controls]").innerHTML = !storage()?.enabled || !savedDay.ready || !savedDay.canEdit ? "" :
       `<div class="atlas-route-card-tools">${state.lockedTrips.length ? `<span>${state.lockedTrips.length} sent-out trip${state.lockedTrips.length === 1 ? "" : "s"} retained for this day.</span><button type="button" class="atlas-route-button" data-route-reopen-last>Reopen Trip ${state.lockedTrips.length}</button>` : "<span>Mark a trip sent out when it leaves Chubby Gorilla.</span>"}${plan.trips[state.lockedTrips.length] ? `<button type="button" class="atlas-route-button atlas-route-primary" data-route-lock-next>Mark Trip ${state.lockedTrips.length + 1} Sent Out</button>` : ""}</div>`;
     showSaveStatus();
+    renderDispatch();
     return plan;
   }
 
@@ -1038,6 +1241,7 @@
       ${plan.unscheduled.length ? `<div class="atlas-route-unscheduled"><strong>Unscheduled — review these deliveries</strong>${plan.unscheduled.map((item) => `<p>${escape(item.customer)} · ${item.palletSpaces} pallets — ${escape(item.reason)}</p>`).join("")}</div>` : ""}
       ${Object.entries(plan.drivers).filter(([, driver]) => driver.trips).map(([name, driver]) => `<p class="atlas-route-intake-note">${name}: ${driver.lunch ? `lunch ${displayTime(driver.lunch.start)}–${displayTime(driver.lunch.end)}` : "lunch reserved; timing pending"}${plan.complete ? ` · ${Math.round(driver.workMinutes)} working minutes / 480 available` : ""}.</p>`).join("")}
       <button type="button" class="atlas-route-button" data-route-adjust>Adjust loads / drivers</button><p class="atlas-route-intake-note">Google optimizes stops within each assigned load. Loads follow the order list; this is not a global fleet optimum or a truck-clearance navigation service. Times include traffic estimates, stops, reloads and lunch.</p>`;
+    renderDispatch();
   }
 
   async function optimizeDay() {
@@ -1086,6 +1290,7 @@
   }
 
   function leaveRouting(target) {
+    if (window.atlasRoutingPOD?.hasPending() && !window.confirm("These POD pages are still saving or could not be saved. Leave without saving them?")) return false;
     if ((savedDay.dirty || savedDay.busy || captureQueue?.jobs().some(job => !["added", "dismissed"].includes(job.status))) && !window.confirm("There are unsaved changes or unfinished photo readings. Leave and clear temporary photos?")) return false;
     state.open = false;
     resetWorkspace();
@@ -1099,6 +1304,11 @@
   }
 
   function resetWorkspace() {
+    cancelOrderDrag();
+    window.atlasRoutingPOD?.reset();
+    dispatchUI.tab = "orders"; dispatchUI.query = ""; dispatchUI.lastPlan = null;
+    for (const name of ["settings","map","move"]) find(`[data-dispatch-${name}]`)?.close();
+    if (find("[data-dispatch-query]")) find("[data-dispatch-query]").value = "";
     captureQueue?.reset(); captureQueue = null; captureJob = null; captureReviewJob = null; captureApplying = false;
     find("[data-route-capture]")?.close(); if (find(".atlas-route-main")) find(".atlas-route-main").inert = false;
     intakeRequest = null;
