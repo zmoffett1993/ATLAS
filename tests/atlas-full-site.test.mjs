@@ -41,6 +41,10 @@ test('all shell and boot assets are allowlisted, present, correctly packaged, an
   const docker=readFileSync(new URL('cloud-run/atlas-routing-app/Dockerfile',root),'utf8');
   for(const [, [file]] of fullSiteFiles){assert.ok(readFileSync(new URL(file,root)).length);assert.ok(docker.includes(file),file+' missing from container');}
   for(const path of ['/AGENTS.md','/.git/config','/.env','/supabase/config.toml','/NEW%20COC%202.xlsx','/NEW COC 2.xlsx'.replaceAll(' ','%20'),'/cloud-run/atlas-routing-app/server.mjs','/cloud-run/atlas-routing-app/static-files.json','/index%20(1).html','/tools/routing-preview/private-trip-locks.sql'])assert.equal((await f.get(path)).status,404,path);
+  for(const [, [file, type]] of fullSiteFiles) if(type === 'application/json') {
+    const response=await f.get('/'+file);
+    assert.equal(response.body,readFileSync(new URL(file,root),'utf8'),'static JSON must retain its original bytes');
+  }
   const manifest=JSON.parse((await f.get('/manifest.webmanifest')).body);assert.equal(manifest.name,'ATLAS Testing');
   assert.equal(f.calls(),0);
 });
@@ -48,7 +52,7 @@ test('combined worker preserves push handling and session-isolated offline cache
   const f=await fixture(t),worker=await f.get('/tools/routing-preview/routing-notification-sw.mjs');
   assert.equal(worker.headers['service-worker-allowed'],'/');assert.ok(worker.body.startsWith('import "/service-worker.js";'));
   assert.ok(worker.body.includes('notificationclick'));assert.ok(worker.body.includes('pushsubscriptionchange'));
-  const base=(await f.get('/service-worker.js')).body;assert.ok(base.includes('atlas-pwa-v369-testing-host-v1'));
+  const base=(await f.get('/service-worker.js')).body;assert.ok(base.includes('atlas-pwa-v369-testing-host-v2'));
   assert.ok(base.includes('url.pathname === "/runtime-config.json"'));assert.ok(base.includes('warehouseRead(request, unavailable)'));
 });
 test('host remains origin-restricted and runtime configuration exposes no tester identity or private setting',async t=>{

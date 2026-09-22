@@ -80,7 +80,9 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
         if (fullAtlas && path === "/service-worker.js") content = fullSiteWorker(content.toString());
         if (fullAtlas && path === "/tools/routing-preview/routing-notification-sw.mjs") content = 'import "/service-worker.js";\n' + content.toString();
         if (fullAtlas && path === "/manifest.webmanifest") { const manifest = JSON.parse(content); manifest.name = "ATLAS Testing"; manifest.short_name = "ATLAS Test"; content = JSON.stringify(manifest); }
-        return send(200, content, type);
+        // Static JSON is already serialized; preserve its bytes instead of encoding a Buffer.
+        res.writeHead(200, { ...headers, "Content-Type": type });
+        return res.end(content);
       }
       if (req.url === "/runtime-config.json" && req.method === "GET") return send(200, { url: SUPABASE, key: browserKey, mapsBrowserKey, photoEnabled: photoEnabled === true, storageEnabled: storageEnabled === true,
         ...(permanent ? {notificationsEnabled: notificationsEnabled === true, notificationOrigin: origin} : {}) });
