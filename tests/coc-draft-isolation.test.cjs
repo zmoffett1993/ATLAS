@@ -7,11 +7,13 @@ const vm = require('node:vm');
 // Actual COC modules, synthetic browser storage, no network or real account data.
 function boot(storage, user, overrides = {}) {
   const listeners = new Map();
+  const documentListeners = new Map();
   const elements = new Map();
   const timers = new Map();
   let timerId = 0;
   const context = {
     console, structuredClone, Blob,
+    FormData: class { constructor(form) { this.values = form.values; } get(key) { return this.values[key]; } },
     localStorage: {
       getItem: key => storage.get(key) ?? null,
       setItem: (key, value) => storage.set(key, String(value)),
@@ -19,11 +21,16 @@ function boot(storage, user, overrides = {}) {
     },
     navigator: { onLine: false },
     document: {
-      readyState: 'loading', visibilityState: 'hidden', addEventListener() {},
+      readyState: 'loading', visibilityState: 'hidden',
+      addEventListener(name, callback) {
+        if (!documentListeners.has(name)) documentListeners.set(name, []);
+        documentListeners.get(name).push(callback);
+      },
       documentElement: { classList: { toggle() {}, remove() {}, add() {} } },
       getElementById: id => elements.get(id) || null,
       querySelectorAll: () => [], querySelector: () => null,
-      createElement: () => ({ innerHTML: '', querySelectorAll: () => [] }),
+      createElement: () => ({ innerHTML: '', querySelectorAll: () => [], setAttribute() {},
+        classList: { add() {}, remove() {} } }),
       body: { appendChild: element => elements.set(element.id, element) },
     },
     addEventListener(name, callback) {
@@ -35,22 +42,26 @@ function boot(storage, user, overrides = {}) {
     clearTimeout(id) { timers.delete(id); },
     AtlasCocParser: {}, AtlasCocExcel: {}, AtlasCocStorage: {},
     AtlasCocCaseQuantities: { loadRemote() {} },
+    AtlasAuth: { getSession: () => user ? { access_token: 'synthetic-only', user } : null },
     AtlasCocDelivery: { currentUser: () => user, requestedWarehouseCode: () => user?.warehouse,
       getAuthSession: () => user ? { access_token: 'synthetic-only', user } : null },
     ...overrides,
   };
   context.window = context;
   vm.createContext(context);
-  for (const file of ['atlas-coc-core.js', 'atlas-coc.js']) {
+  const deliveryOverrides = context.AtlasCocDelivery;
+  for (const file of ['atlas-coc-delivery.js', 'atlas-coc-core.js', 'atlas-coc.js']) {
     let source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
     if (file === 'atlas-coc.js') source = source.replace(/\}\)\(\);\s*$/, `
       window.audit = { restoreFromCloud, scheduleCloudSync, resetDraftContext, persist,
         rememberClosedDraft, flushClosedDrafts, sendCompletedCoc,
+        handleAction, landingMarkup, modalMarkup, expectedCountMarkup, boxCountError,
         setSession(value) { session = value; }, getKey: () => draftContextKey, getSendState: () => sendState };
     })();`);
     vm.runInContext(source, context, { filename: file });
+    if (file === 'atlas-coc-delivery.js') context.AtlasCocDelivery = { ...context.AtlasCocDelivery, ...deliveryOverrides };
   }
-  return { context, timers, setUser: value => { user = value; }, emit: (name, detail) => {
+  return { context, timers, elements, documentListeners, setUser: value => { user = value; }, emit: (name, detail) => {
     for (const listener of listeners.get(name) || []) listener({ detail });
   } };
 }
@@ -214,4 +225,216 @@ for(const status of ['RECEIVED','OFFICE_COMPLETED'])test('accepted '+status+' re
  assert.equal(saved.at(-1).officeTransferStatus,status);
  assert.equal(f.context.audit.getSendState().phase,status==='RECEIVED'?'received':'office_completed');
  assert.equal(f.context.atlasCoc.getState(),null);
+});
+
+const LEGACY = 'atlas-coc-active-v1';
+const supervisor = (role = 'supervisor') => ({ id: 'synthetic-ca', warehouse: 'CA', app_metadata: { role } });
+const click = (f, action) => f.context.audit.handleAction({ dataset: { cocAction: action } });
+function legacyFixture(raw = JSON.stringify(caDraft()), user = supervisor()) {
+  const storage = new Map([
+    [LEGACY, raw],
+    ['atlas-coc-active-v2:synthetic-ca:CA', JSON.stringify({ ownerUserId: 'synthetic-ca', warehouseCode: 'CA', snapshot: caDraft() })],
+    ['atlas-coc-active-v2:synthetic-tx:TX', 'synthetic-TX-data'],
+    ['atlas-coc-active-v2:synthetic-ca:CA:closed', '[]'],
+    ['office-coc-receiver-credentials:OFFICE_COC_01', 'synthetic-pairing'],
+    ['atlas-coc-device-id-v1', 'synthetic-device'],
+    ['atlas-selected-warehouse-v1', 'CA'],
+    ['sb-synthetic-auth-token', 'synthetic-session'],
+    ['unrelated-key', 'preserve-byte-for-byte'],
+  ]);
+  const before = new Map(storage);
+  const completed = [{ cocId: 'synthetic-completed', workbook: 'untouched' }];
+  const f = boot(storage, user, {
+    // Any call into completed COC / IndexedDB persistence would fail this fixture.
+    AtlasCocStorage: new Proxy({}, { get() { assert.fail('Legacy cleanup must not touch completed COC storage'); } }),
+    fetch() { assert.fail('Legacy cleanup must not call the network'); },
+  });
+  f.elements.set('atlas-coc-workflows-root', { innerHTML: '' });
+  f.context.atlasCoc.openWorkflows();
+  return { ...f, storage, before, completed };
+}
+
+test('picker and editable-metadata admin cannot review or delete; normal landing remains usable', async () => {
+  for (const user of [null, { id: 'picker', warehouse: 'CA', user_metadata: { role: 'admin' } }]) {
+    const f = legacyFixture(undefined, user);
+    const landing = f.context.audit.landingMarkup();
+    assert.match(landing, /An older COC draft is preserved/);
+    assert.doesNotMatch(landing, /Review Old Draft/);
+    assert.match(landing, /Start COC/);
+    assert.match(landing, /COMPLETED COCs/);
+    for (const action of ['review-old-draft', 'review-delete-old-draft', 'confirm-delete-old-draft']) await click(f, action);
+    assert.equal(f.context.audit.modalMarkup(), '');
+    assert.deepEqual(f.storage, f.before);
+    assert.equal(f.context.atlasCoc.getState(), null);
+    if (user) {
+      await click(f, 'start-setup');
+      assert.match(f.elements.get('atlas-coc-workflows-root').innerHTML, /atlas-coc-start-form/);
+    }
+  }
+});
+
+test('trusted supervisor/admin roles review safely; Keep Draft cancels either step unchanged', async () => {
+  for (const role of ['supervisor', 'admin', 'administrator']) {
+    const f = legacyFixture(undefined, supervisor(role));
+    assert.match(f.context.audit.landingMarkup(), /Review Old Draft/);
+    await click(f, 'review-old-draft');
+    assert.match(f.context.audit.modalMarkup(), /Review saved draft/);
+    assert.match(f.context.audit.modalMarkup(), /review-delete-old-draft/);
+    assert.doesNotMatch(f.context.audit.modalMarkup(), /confirm-delete-old-draft|review-discard|Resume|Upload/);
+    await click(f, 'close-modal');
+    assert.equal(f.context.audit.modalMarkup(), '');
+    assert.deepEqual(f.storage, f.before);
+    await click(f, 'review-old-draft');
+    await click(f, 'review-delete-old-draft');
+    assert.match(f.context.audit.modalMarkup(), /Delete this older draft\?/);
+    await click(f, 'close-modal');
+    assert.deepEqual(f.storage, f.before);
+    assert.match(f.context.audit.landingMarkup(), /older COC draft/);
+  }
+});
+
+test('review escapes allowlisted summary fields and never renders credentials or raw JSON', async () => {
+  const draft = caDraft();
+  Object.assign(draft, { customerName: '<img src=x onerror=alert(1)>', salesOrderNumber: 'SO-0001<&',
+    employeeDisplayName: '<script>bad()</script>', updatedAt: '2026-09-22T12:00:00Z',
+    access_token: 'PRIVATE-FIXTURE-MUST-NOT-RENDER', arbitrary: 'UNLISTED-FIXTURE' });
+  const f = legacyFixture(JSON.stringify(draft));
+  await click(f, 'review-old-draft');
+  const html = f.context.audit.modalMarkup();
+  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(html, /SO-0001&lt;&amp;/);
+  assert.match(html, /&lt;script&gt;bad\(\)&lt;\/script&gt;/);
+  assert.match(html, /Warehouse:<\/strong> CA/);
+  assert.match(html, /Pallet count:<\/strong> 1/);
+  assert.match(html, /Recorded box count:<\/strong> 0/);
+  assert.doesNotMatch(html, /<img|<script|PRIVATE-FIXTURE|UNLISTED-FIXTURE|atlas-coc-active/);
+  assert.deepEqual(f.storage, f.before);
+});
+
+test('invalid, empty and unsanitizable legacy values remain stored and reviewable', async () => {
+  for (const raw of ['{invalid JSON', '', 'null', '{"pallets":[{"lots":[{"lot":""}]}]}']) {
+    const f = legacyFixture(raw);
+    assert.match(f.context.audit.landingMarkup(), /Review Old Draft/);
+    await click(f, 'review-old-draft');
+    assert.match(f.context.audit.modalMarkup(), /Draft details are unavailable. The original data is still stored on this device./);
+    await click(f, 'close-modal');
+    assert.deepEqual(f.storage, f.before);
+  }
+});
+
+test('only second-step deletion removes the exact legacy key; owned drafts and device state survive reload', async () => {
+  const f = legacyFixture();
+  const snapshot = f.context.atlasCoc.getState();
+  const removed = [];
+  f.context.localStorage.removeItem = key => { removed.push(key); f.storage.delete(key); };
+  await click(f, 'confirm-delete-old-draft');
+  await click(f, 'review-old-draft');
+  await click(f, 'confirm-delete-old-draft');
+  assert.deepEqual(f.storage, f.before, 'Cannot skip confirmation');
+  await click(f, 'review-old-draft');
+  await click(f, 'review-delete-old-draft');
+  assert.deepEqual(f.storage, f.before, 'Opening confirmation is read-only');
+  await click(f, 'confirm-delete-old-draft');
+  const expected = new Map(f.before); expected.delete(LEGACY);
+  assert.deepEqual(removed, [LEGACY]);
+  assert.deepEqual(f.storage, expected);
+  assert.deepEqual(f.context.atlasCoc.getState(), snapshot);
+  assert.deepEqual(f.completed, [{ cocId: 'synthetic-completed', workbook: 'untouched' }]);
+  assert.equal(f.context.audit.modalMarkup(), '');
+  assert.doesNotMatch(f.elements.get('atlas-coc-workflows-root').innerHTML, /older COC draft|Review Old Draft/);
+  assert.equal(f.elements.get('atlas-coc-toast').textContent, 'Older draft removed from this device');
+  const reload = boot(f.storage, supervisor());
+  assert.doesNotMatch(reload.context.audit.landingMarkup(), /older COC draft/);
+  assert.deepEqual(JSON.parse(JSON.stringify(reload.context.atlasCoc.getState())), JSON.parse(JSON.stringify(snapshot)));
+});
+
+test('throwing or ineffective deletion preserves warning and never reports success', async () => {
+  for (const remove of [() => { throw new Error('storage denied'); }, () => {}]) {
+    const f = legacyFixture();
+    f.context.localStorage.removeItem = remove;
+    await click(f, 'review-old-draft');
+    await click(f, 'review-delete-old-draft');
+    await click(f, 'confirm-delete-old-draft');
+    assert.deepEqual(f.storage, f.before);
+    assert.match(f.context.audit.landingMarkup(), /older COC draft/);
+    assert.equal(f.elements.get('atlas-coc-toast').textContent, 'The older draft could not be removed. No COC data was changed.');
+  }
+});
+
+test('sign-out, account, warehouse and role changes or expired sessions block both destructive steps', async () => {
+  const changes = [
+    f => f.setUser(null),
+    f => f.setUser({ ...supervisor(), id: 'another-admin' }),
+    f => f.setUser({ ...supervisor(), warehouse: 'TX' }),
+    f => f.setUser({ ...supervisor('picker'), user_metadata: { role: 'admin' } }),
+    f => { f.context.AtlasCocDelivery.getAuthSession = () => ({ user: supervisor(), access_token: 'expired-fixture', expires_at: 1 }); },
+    f => { f.setUser(null); f.emit('atlas-auth-changed', { session: null }); f.setUser(supervisor()); f.emit('atlas-auth-changed', { session: {} }); },
+  ];
+  for (const change of changes) for (const stage of ['review', 'confirm']) {
+    const f = legacyFixture();
+    await click(f, 'review-old-draft');
+    if (stage === 'confirm') await click(f, 'review-delete-old-draft');
+    change(f);
+    if (stage === 'review') await click(f, 'review-delete-old-draft');
+    await click(f, 'confirm-delete-old-draft');
+    assert.deepEqual(f.storage, f.before);
+    assert.equal(f.context.audit.modalMarkup(), '');
+  }
+});
+
+test('another tab replacing the reviewed draft requires a new review', async () => {
+  const f = legacyFixture();
+  await click(f, 'review-old-draft');
+  await click(f, 'review-delete-old-draft');
+  const replacement = JSON.stringify({ ...caDraft(), customerName: 'NEW SYNTHETIC DRAFT' });
+  f.storage.set(LEGACY, replacement);
+  await click(f, 'confirm-delete-old-draft');
+  assert.equal(f.storage.get(LEGACY), replacement);
+  assert.match(f.elements.get('atlas-coc-toast').textContent, /changed. Review it again/);
+  await click(f, 'review-old-draft');
+  f.emit('storage', undefined); // unrelated storage event cannot delete anything
+  assert.equal(f.storage.get(LEGACY), replacement);
+});
+
+test('pallet setup labels, empty validation and other setup wording remain correctly scoped', () => {
+  const f = boot(new Map(), supervisor());
+  const Core = f.context.AtlasCocCore;
+  for (const number of [1, 2, 3]) {
+    const snapshot = caDraft(); snapshot.pallets[0].number = number;
+    f.context.audit.setSession(snapshot);
+    const html = f.context.audit.expectedCountMarkup(snapshot.pallets[0]);
+    assert.ok(html.includes(`<strong>Boxes on Pallet ${number}${number === 1 ? ' or Loose Boxes' : ''}</strong>`));
+    assert.match(html, /placeholder="Enter box count"/);
+    assert.match(html, /maxlength="6"/);
+    assert.ok(html.includes(`Set Up Pallet ${number}`));
+    assert.ok(html.includes(`First Model on Pallet ${number}`));
+    assert.ok(html.includes(`Start Pallet ${number}`));
+    assert.match(html, /Enter the box count and first model on this pallet./);
+    const error = { textContent: '' };
+    const form = { id: 'atlas-coc-expected-form', values: { expectedBoxes: '' }, querySelector: () => error };
+    for (const handler of f.documentListeners.get('submit')) handler({ target: form, preventDefault() {} });
+    assert.equal(error.textContent, number === 1 ? 'Enter the Pallet 1 or loose-box count.' : `Enter the box count for Pallet ${number}.`);
+    // Existing correction-dialog validation is outside the initial setup wording change.
+    assert.equal(f.context.audit.boxCountError('', number), `Enter the total number of boxes on Pallet ${number}.`);
+  }
+  for (const [value, message] of [['0', 'Box count must be greater than 0.'], ['1.5', 'Enter a whole number of boxes.'], ['abc', 'Enter a whole number of boxes.']]) {
+    assert.equal(f.context.audit.boxCountError(value, 1, true), message);
+  }
+  for (const count of [1, 2]) {
+    let snapshot = Core.addModel(caDraft(), { modelNumber: 'SYNTHETIC-SKU', caseQuantity: 10 });
+    f.context.audit.setSession(snapshot);
+    const error = { textContent: '' };
+    const form = { id: 'atlas-coc-expected-form', values: { expectedBoxes: String(count) }, querySelector: () => error };
+    for (const handler of f.documentListeners.get('submit')) handler({ target: form, preventDefault() {} });
+    snapshot = f.context.atlasCoc.getState();
+    assert.equal(error.textContent, '');
+    assert.equal(Core.activePallet(snapshot).expectedBoxes, count);
+    snapshot = Core.addLot(snapshot, '000123-TEST').session;
+    if (count === 2) snapshot = Core.addCase(snapshot);
+    assert.equal(Core.sessionTotal(snapshot), count);
+    assert.equal(Core.sessionUnitTotal(snapshot), count * 10);
+    if (count === 2) assert.throws(() => Core.setExpectedBoxCount(snapshot, 1), /lower|BELOW/);
+    snapshot = Core.verifyPallet(snapshot).session;
+    assert.equal(Core.completeSession(snapshot).status, 'report');
+  }
 });

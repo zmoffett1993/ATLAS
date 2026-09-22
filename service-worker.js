@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v379-routing-live-connection";
+const VERSION = "atlas-pwa-v380-coc-legacy-draft-review";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -21,7 +21,7 @@ const APP_SHELL = [
   "./atlas-coc-storage.js?v=5",
   "./atlas-coc-delivery.js?v=16",
   "./atlas-coc-excel.js?v=20",
-  "./atlas-coc.js?v=83",
+  "./atlas-coc.js?v=84",
   "./coc-receiver/index.html",
   "./coc-receiver/coc-receiver-favicon.svg?v=4",
   "./coc-receiver/coc-receiver-favicon-16.png?v=4",
