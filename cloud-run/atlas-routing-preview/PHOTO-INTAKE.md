@@ -4,20 +4,54 @@ Status: connected to the private preview on 2026-09-20 with explicit user approv
 Live ATLAS is unchanged. The photo reader passed a synthetic Google Vision test
 and a real check against the user-provided order photograph.
 
-## Workflow
+## Document intake update — local, September 22, 2026
 
-Take Photo requests the rear camera where the browser supports capture. Choose
-Photos accepts multiple images. Up to 20 images, each below 15 MiB, stay together
-in a single order draft. The user explicitly selects Read Photos, reviews the
-suggested fields beside links to the originals, selects Fill empty fields, and
-saves the order. Existing edits and existing SKU rows are never overwritten.
+This frontend update is prepared locally; the historical activation details below
+are evidence from earlier deployments, not a deployment of this update.
 
-The browser re-encodes each image to JPEG, at most 2400 pixels on the longest
-side and 2,800,000 base64 characters. Re-encoding removes EXIF/GPS metadata;
-the original file is untouched. Unsupported images offer a manual-entry fallback.
-One request runs at a time, with at least 6.1 seconds between request starts. Closing the
-draft, changing its photos, leaving routing, or changing account cancels/invalidates
-the result. Cancellation cannot undo a Google request already accepted for billing.
+Add Orders opens **Add Delivery Order**, with Photograph Order and Choose from
+Photos. There is no Enter Manually action on this screen at any breakpoint.
+The separate order editor remains available from the desktop orders list and
+for corrections. The mobile manager navigation is Home, Orders, Trips, More;
+More keeps waiting loads, history, map, settings, documents and day actions.
+The existing ATLAS sidebar and driver/POD navigation are unchanged.
+
+The camera requests the rear-facing lens and releases the stream after capture,
+back, cancellation or account reset. Ready appears only after camera playback.
+Camera-denied users can select a photo. Reading starts on selection/capture and
+always ends at Verify. No photo is automatically added or saved. Verify shows
+editable operational fields with individual amber confirmation prompts. Add
+another page appends paperwork for the same order; Retake replaces the selected
+page only. Pages can be selected and removed to resolve mixed orders.
+
+The field assessment uses Ship To geometry, printed order IDs, complete SKUs,
+Case Qty, catalog matches, quantity relationships and repeated-page agreement.
+Low confidence in unrelated notes or Bill To text does not block an order.
+Missing critical values, uncertain critical words, unknown/incomplete SKUs,
+conflicting addresses/counts and mixed sales orders still require review.
+Complementary pages fill missing values; genuine conflicts remain blocking.
+Case Qty is boxes; Item Qty is never substituted for an unreadable box count.
+
+Add Order is an explicit confirmation and uses the existing order editor's
+insertion, duplicate and date-rollover path. The first photo fixes the intended
+delivery day using the Pacific noon/Monday–Friday cutoff. Order added offers
+Add Another Order or Finish Adding Orders. Orders Ready lists the current day;
+Optimize Route calls the existing planner. Route Ready displays returned trip
+metrics and review notes; Save Route uses revision-checked saved-day persistence.
+Save/network failures remain visible, preserve reviewed orders, and never claim
+success. Maps/optimization are unavailable when the existing connection is off.
+
+Photos are transient object URLs and bytes. Reading is aborted on cancellation,
+retake, exit, sign-out or warehouse reset; late responses cannot populate another
+account. URLs and photo bytes are released after explicit Add or abandoning intake.
+Saved-day documents contain reviewed details only. No schema, Edge Function,
+authorization, OCR endpoint or Google API configuration changes are required.
+
+Images are re-encoded to JPEG, at most 2400 pixels on the longest side and
+2,800,000 base64 characters, stripping EXIF/GPS metadata without changing the
+original. Up to 20 photos per order, each below 15 MiB, are accepted. Reads remain
+sequential through the existing throttled connection. Canceling cannot undo an
+upstream Google request that has already been accepted.
 
 The parser uses word positions to separate Ship To from Bill To and Case Qty
 (boxes) from Item Qty (units). It retains the full SKU, including color suffixes,
@@ -89,10 +123,11 @@ handlers. This local integration has not been published to live ATLAS.
 
 ## Verification
 
-Run all available routing tests:
+Run the available regression suite and the focused intake checks:
 
 ```powershell
-node --test tests/atlas-routing-core.test.cjs tests/atlas-routing-edge.test.mjs tests/atlas-routing-server.test.mjs tests/atlas-routing-preview.test.mjs tests/atlas-routing-planner.test.cjs tests/atlas-routing-cloud-planner.test.mjs tests/atlas-routing-intake.test.cjs tests/atlas-routing-photo.test.mjs
+node tools/run-regressions.cjs
+node --test tests/atlas-routing-intake.test.cjs tests/atlas-routing-photo.test.mjs tests/atlas-routing-planner.test.cjs tests/atlas-routing-storage.test.cjs tests/atlas-routing-preview.test.mjs tests/atlas-routing-server.test.mjs
 git diff --check
 ```
 
@@ -100,7 +135,13 @@ The historical full ATLAS regression runners specified in AGENTS.md are still
 missing. These routing checks do not substitute for workbook, receiver, full
 application or offline/service-worker regression verification.
 
-## Deployment evidence
+A local loopback HTTP server can serve `tests/routing-intake-browser.html`.
+Run workflow checks uses actual frontend modules with synthetic auth, OCR,
+planner and in-memory saves; it makes no external service calls. This fixture
+is not part of the production static-file allowlist. Real camera permissions,
+mobile background behavior and OCR quality still require physical-device checks.
+
+## Historical deployment evidence
 
 - Private ready revision: `atlas-routing-preview-00005-qqh`.
 - Image digest: `sha256:ec955a40c5cf63b1efc611c6f038d0a330f0a717c4c157fa8971683165c7483a`.
