@@ -101,11 +101,11 @@
     let content='';
     if(driverTab==='today'){
       content=`<div class="atlas-driver-intro"><small>YOUR DELIVERY DAY</small><h2>${name?`Hello, ${esc(name)}`:'Your deliveries'}</h2><p>${esc(dayLabel)}</p></div><div class="atlas-driver-day-stats"><div><strong>${groups.length}</strong><span>Trips</span></div><div><strong>${shipments.length}</strong><span>Stops</span></div><div><strong>${received.length}</strong><span>PODs saved</span></div></div>`;
-      content+=groups.map(trip=>{
+      content+='<div class="atlas-driver-trip-grid">'+(groups.map(trip=>{
         const stops=shipments.filter(s=>s.trip_index===trip),done=stops.filter(s=>s.submission?.state==='received').length,vehicle=stops[0].source_assignment?.split(':')[1];
         const next=Math.max(0,stops.findIndex(s=>s.submission?.state!=='received'));
         return `<article class="atlas-driver-overview"><header><span class="atlas-driver-vehicle-icon">${icon('truck')}</span><div><small>TRIP ${trip+1}</small><h3>${vehicle==='truck'?'Box Truck':vehicle==='van2'?'Cargo Van 2':'Cargo Van 1'}</h3></div><span class="atlas-driver-badge">${done===stops.length?'PODs saved':'Assigned'}</span></header><div class="atlas-driver-overview-metrics"><span><b>${stops.length}</b> stops</span><span><b>${stops.reduce((n,s)=>n+Number(s.source_shipment?.palletSpaces||0),0)}</b> pallets</span></div><div class="atlas-driver-progress-label"><span>Shipment documents</span><strong>${done} of ${stops.length} saved</strong></div><progress value="${done}" max="${stops.length}" aria-label="Trip ${trip+1} PODs saved"></progress><button type="button" class="atlas-driver-next" data-pod-trip="${trip}" data-pod-stop="${next}"><span>${icon(stops[next].submission?.state==='received'?'check':'stops')}</span><div><small>${done===stops.length?'View trip stops':'Next POD to capture'}</small><strong>${esc(stops[next].customer)}</strong></div>${icon('arrow')}</button><button type="button" class="atlas-route-button atlas-route-primary" data-pod-trip="${trip}" data-pod-stop="${next}">View stops ${icon('arrow')}</button></article>`;
-      }).join('')||empty;
+      }).join('')||empty)+'</div>';
       if(drafts.some(d=>d.status!=='received'))content+=`<button type="button" class="atlas-driver-draft-link" data-pod-tab="documents">${icon('documents')} ${drafts.filter(d=>d.status!=='received').length} saved scan(s) need attention ${icon('arrow')}</button>`;
     }else if(driverTab==='stops'){
       if(groups.length&&!groups.includes(driverTrip))driverTrip=groups[0];
@@ -117,27 +117,47 @@
       if(drafts.length)content+=`<h3 class="atlas-driver-section-label">On this device · all days</h3>${drafts.map(d=>`<article class="atlas-driver-document">${icon('documents')}<div><strong>${esc(d.binding.customer)}</strong><p>${esc(d.binding.sales_order)} · ${esc(d.date)}</p><small>${label(d)}</small></div><button type="button" class="atlas-route-button" data-pod-resume="${esc(d.binding.id)}">${d.status==='received'?'View':'Resume'}</button></article>`).join('')}`;
       content+=received.length?`<h3 class="atlas-driver-section-label">Received · ${esc(dayLabel)}</h3>${received.map(s=>`<article class="atlas-driver-document">${icon('check')}<div><strong>${esc(s.customer)}</strong><p>${esc(s.sales_order)}${s.shipment_total>1?` · ${s.shipment_number} of ${s.shipment_total}`:''}</p><small>${esc(emailLabel(s.submission))}</small></div><button type="button" class="atlas-route-button" data-pod-download="${esc(s.id)}">PDF</button></article>`).join('')}`:drafts.length?'':'<div class="atlas-driver-empty">'+icon('documents')+'<h3>No documents yet</h3><p>Scan a signed POD from a stop. Its saved copy will appear here.</p></div>';
     }
-    return content+driverNavigation();
+    return `<div class="atlas-driver-tab-content" data-pod-tab-view="${driverTab}">${content}</div>`+driverNavigation();
   }
   function assignmentPanel(){
     if(!management)return '';
     return `<section class="atlas-driver-assign"><h3>Assign a delivery driver</h3><p>Choose who will make each saved, sent-out trip. Backup drivers receive access only to their assigned stops. Planning times keep the original driver schedule.</p>${management.trips.length?management.trips.map(t=>`<form data-pod-assign-trip="${t.index}"><div><strong>Trip ${t.index+1}</strong><small>${t.stops} stops · ${t.pallets} pallets</small></div>${t.driver_name?`<strong>${esc(t.driver_name)}</strong>`:`<label><span>Driver</span><select name="driver" required ${assigning?'disabled':''}><option value="">Choose warehouse worker</option>${management.drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')}</select></label><button class="atlas-route-button atlas-route-primary" type="submit" ${assigning?'disabled':''}>Assign Trip</button>`}</form>`).join(''):'<p>Save a sent-out trip first, then return here to assign its driver.</p>'}<button type="button" class="atlas-route-button" data-pod-action="close-assign">Done</button></section>`;
   }
+  function capturePanel(){
+    const frozen=!!draft?.submissionId,received=draft?.status==='received';
+    const queued=draft?.status==='queued',attention=draft?.status==='attention'||dirty;
+    const filename=window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total).filename;
+    const stop=shipments.find(s=>s.id===selected.id);
+    const next=isDriver()?shipments.find(s=>s.trip_index===selected.trip_index&&s.id!==selected.id&&s.current&&s.submission?.state!=='received'):null;
+    const nextIndex=next?shipments.filter(s=>s.trip_index===next.trip_index).indexOf(next):0;
+    const status=dirty?'Not saved — keep this page open and retry saving.':draft?`${label(draft)}. ${draft.message||''}`:'Take a photo to begin. Submit becomes available after a page is added.';
+    return `<div class="atlas-pod-workflow ${received?'is-received':''}" data-pod-state="${received?'received':attention?'attention':queued?'queued':pages.length?'review':'capture'}">
+      <header class="atlas-pod-workflow-title"><span class="atlas-pod-stage-icon">${icon(received?'check':pages.length?'documents':'camera')}</span><div><small>PROOF OF DELIVERY</small><h2>${received?'POD received':pages.length?'Review your POD':'Scan signed POD'}</h2><p>${received?'Your document is securely saved.':pages.length?'Check the signature and all four edges.':'Photograph the full signed page.'}</p></div></header>
+      <div class="atlas-pod-customer"><span>${icon('stops')}</span><div><strong>${esc(selected.customer)}</strong><p>${esc(selected.sales_order)}</p></div><span class="atlas-pod-page-count">${pages.length} ${pages.length===1?'page':'pages'}</span></div>
+      ${selected.shipment_total>1?`<p class="atlas-pod-split">Shipment ${selected.shipment_number} of ${selected.shipment_total} · Split shipment</p>`:''}
+      ${received?`<section class="atlas-pod-receipt" role="status"><span class="atlas-pod-receipt-check">${icon('check')}</span><h3>Document saved</h3><p>${esc(stop?.submission?emailLabel(stop.submission):draft.message||'Server receipt confirmed.')}</p><div class="atlas-pod-receipt-file">${icon('documents')}<span>${esc(filename)}</span></div></section>`:''}
+      <div class="atlas-pod-review-layout">${received?'<details class="atlas-pod-receipt-preview"><summary>View submitted pages</summary>':''}<div class="atlas-pod-pages">${pages.map((p,i)=>`<figure><div class="atlas-pod-paper"><img src="${p.url}" alt="POD page ${i+1}"/></div><figcaption><strong>Page ${i+1}</strong>${p.lowResolution?'<span class="atlas-pod-quality">Low resolution · check readability</span>':''}</figcaption><div class="atlas-pod-page-actions"><button type="button" class="atlas-route-button" data-pod-rotate="${i}" ${busy||syncing||frozen?'disabled':''}>Rotate</button><button type="button" class="atlas-route-button" data-pod-remove="${i}" ${busy||syncing||frozen?'disabled':''}>Remove</button></div></figure>`).join('')||`<div class="atlas-pod-camera-empty">${icon('camera')}<h3>Ready for the signed POD</h3><p>Use your phone camera, or choose a photo on this device.</p><button type="button" class="atlas-route-button atlas-route-primary" data-pod-action="photo" ${busy||syncing?'disabled':''}>${icon('camera')}Take Photo</button></div>`}</div>${received?'</details>':''}
+      <aside class="atlas-pod-review-actions"><input data-pod-file type="file" accept="image/jpeg,image/png" capture="environment" hidden/>
+      ${received?`<button type="button" class="atlas-route-button atlas-route-primary" ${next?`data-pod-next="${next.trip_index}" data-pod-stop="${nextIndex}"`:'data-pod-action="refresh"'}>${next?'Next stop':'Back to deliveries'}${icon('arrow')}</button>${stop?`<button type="button" class="atlas-route-button" data-pod-download="${esc(selected.id)}">${icon('documents')}Download PDF</button>`:''}`:`${pages.length?`<button type="button" class="atlas-route-button" data-pod-action="photo" ${busy||syncing||frozen||pages.length>=10?'disabled':''}>${icon('camera')}Add Page</button>`:''}<button type="button" class="atlas-route-button atlas-route-primary" data-pod-action="submit" aria-describedby="atlasPodCaptureStatus" ${busy||syncing||!pages.length?'disabled':''}>${icon('check')}${syncing?'Submitting…':frozen?'Retry saved POD':'Submit POD'}</button>`}
+      ${dirty?'<button type="button" class="atlas-route-button" data-pod-action="save">Retry saving</button>':''}
+      <p id="atlasPodCaptureStatus" role="status" class="atlas-pod-save-state ${attention?'needs-attention':queued?'is-queued':''}">${esc(status)}</p>
+      ${!received?'<button type="button" class="atlas-route-button atlas-pod-back" data-pod-action="back-stop">Back to stop</button>':''}
+      <details class="atlas-pod-storage-help"><summary>About saved scans</summary><p>Saved scans stay on this device for this account. Keep ATLAS open to finish sending. Do not clear site data before receipt; phone storage cleanup can remove local scans.${emailEnabled?'':' Email sending is disabled.'}</p>${received?'<button type="button" class="atlas-route-button" data-pod-action="remove-copy">Remove saved copy</button>':''}</details></aside></div></div>`;
+  }
   function render(){
     if(!root)return;
     root.classList.toggle('atlas-driver-surface',isDriver());
     if(!enabled){root.innerHTML='<h2>Delivery documents</h2><p>POD storage is awaiting activation.</p><p>Driver access and private storage must be verified before real PODs can be submitted. No emails are being sent.</p>';return;}
-    root.innerHTML=`<div class="atlas-pod-heading"><div><small>CHUBBY GORILLA · DELIVERY ROUTING</small><h2>${view==='list'?(capability==='driver'?'Your trip, at a glance':'Delivery documents'):'Review POD'}</h2><p>${view==='list'?'Your stops and load details, together in one place.':'Check the full page, then submit.'}</p></div><div class="atlas-route-card-tools">${view==='list'&&capability==='office'?'<button type="button" class="atlas-route-button" data-pod-action="assign">Assign Drivers</button>':''}<button type="button" class="atlas-route-button" data-pod-action="refresh" ${busy||syncing||assigning?'disabled':''}>${view==='list'?'Refresh':'Done'}</button></div></div>${error?`<p role="alert" class="atlas-route-planning-review">${esc(error)}</p>`:''}${busy?'<p role="status">Saving… Keep this page open.</p>':syncing?'<p role="status">Submitting POD…</p>':''}`;
+    root.dataset.podView=view;
+    root.innerHTML=`<div class="atlas-pod-heading">${isDriver()?'<img class="atlas-driver-brand" src="./atlas-brand-landscape-light.svg" alt="ATLAS"/>':`<div><small>CHUBBY GORILLA · DELIVERY ROUTING</small><h2>${view==='list'?'Delivery documents':'Shipment document'}</h2><p>${view==='list'?'Signed PODs, saved scans and driver assignments.':'Capture, review and save the signed POD.'}</p></div>`}<div class="atlas-route-card-tools">${view==='list'&&capability==='office'?'<button type="button" class="atlas-route-button" data-pod-action="assign">Assign Drivers</button>':''}<button type="button" class="atlas-route-button atlas-driver-refresh" data-pod-action="refresh" ${busy||syncing||assigning?'disabled':''}>${view==='list'?'Refresh':'Done'}</button></div></div>${error?`<p role="alert" class="atlas-route-planning-review">${esc(error)}</p>`:''}${busy?'<p role="status">Loading or saving… Keep this page open.</p>':syncing?'<p role="status">Submitting POD…</p>':''}`;
     if(view==='list'){
       if(isDriver()){
-        root.querySelector('.atlas-pod-heading').innerHTML=`<img class="atlas-driver-brand" src="./atlas-brand-landscape-light.svg" alt="ATLAS"/><button type="button" class="atlas-route-button atlas-driver-refresh" data-pod-action="refresh" ${busy||syncing?'disabled':''}>Refresh</button>`;
         root.insertAdjacentHTML('beforeend',driverHome());return;
       }
       if(drafts.length&&capability!=='viewer')root.insertAdjacentHTML('beforeend',`<h3>Saved on this device</h3>${drafts.map(d=>`<article class="atlas-pod-delivery"><div><strong>${esc(d.binding.customer)}</strong><p>${esc(d.binding.sales_order)} · ${esc(d.date)}</p><small>${label(d)}</small></div><button type="button" class="atlas-route-button" data-pod-resume="${esc(d.binding.id)}" ${busy||syncing?'disabled':''}>${d.status==='received'?'View saved copy':'Resume'}</button></article>`).join('')}`);
       root.insertAdjacentHTML('beforeend',assignmentPanel()+(shipments.length?tripCards():'<div class="atlas-route-plan-empty"><strong>No assigned deliveries for this day</strong><p>Your administrator can assign a trip when you are needed. Then tap Refresh. Saved scans above remain available.</p></div>'));
     }else if(selected){
-      const frozen=!!draft?.submissionId,received=draft?.status==='received';
-      root.insertAdjacentHTML('beforeend',`<div class="atlas-pod-delivery"><div><strong>${esc(selected.customer)}</strong><p>${esc(window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total).filename)}</p></div></div><p>Check that signatures, dates, stamps and all page edges are readable.</p><div class="atlas-pod-pages">${pages.map((p,i)=>`<figure><img src="${p.url}" alt="POD page ${i+1}"/><figcaption>Page ${i+1}${p.lowResolution?' · Low resolution — check readability':''}</figcaption><div><button type="button" class="atlas-route-button" data-pod-rotate="${i}" ${busy||syncing||frozen?'disabled':''}>Rotate</button><button type="button" class="atlas-route-button" data-pod-remove="${i}" ${busy||syncing||frozen?'disabled':''}>Remove</button></div></figure>`).join('')}</div><input data-pod-file type="file" accept="image/jpeg,image/png" capture="environment" hidden/><div class="atlas-route-card-tools"><button type="button" class="atlas-route-button" data-pod-action="photo" ${busy||syncing||frozen||pages.length>=10?'disabled':''}>${pages.length?'Add Page':'Take Photo'}</button><button type="button" class="atlas-route-button atlas-route-primary" data-pod-action="submit" ${busy||syncing||!pages.length||received?'disabled':''}>${received?'POD received':frozen?'Retry saved POD':'Submit POD'}</button>${dirty?'<button type="button" class="atlas-route-button" data-pod-action="save">Retry saving</button>':''}${received?'<button type="button" class="atlas-route-button" data-pod-action="remove-copy">Remove saved copy</button>':''}</div><p role="status" class="atlas-dispatch-muted">${dirty?'Not saved — keep this page open and retry saving.':draft?`${label(draft)}. ${esc(draft.message)}`:'Take a photo to begin.'}</p><p class="atlas-dispatch-muted">Saved scans stay on this device for this account. Do not clear site data before receipt. Sending resumes while ATLAS is open; phone storage cleanup can remove local data.${emailEnabled?'':' Email is disabled.'}</p>`);
+      root.insertAdjacentHTML('beforeend',capturePanel());
     }
   }
   function showDraft(record){release();draft=record;selected=record.binding;pages=record.pages.map(p=>{const url=URL.createObjectURL(p.blob);urls.add(url);return {...p,url};});view='capture';error='';render();}
@@ -195,7 +215,7 @@
           current=await queue().write(partition,{...current,status:e.retryable===false||current.attempts>=3?'attention':'queued',retryAt:Date.now()+window.atlasRoutingPodCore.retryDelay(current.attempts),message:e.retryable===false?e.message:current.attempts>=3?'Sending paused after three attempts. Check your connection, then retry.':'Connection interrupted. Saved for retry.'},current.revision);
         }finally{clearTimeout(timeout);}
         if(!active(gen))return;await refreshDrafts(gen);
-        if(draft?.binding.id===current.binding.id){draft=current;if(current.status==='received'){release();view='list';}}
+        if(draft?.binding.id===current.binding.id){draft=current;if(current.status==='received')error='';}
         if(current.status==='received'){const match=shipments.find(s=>s.id===current.binding.id);if(match)match.submission={...match.submission,id:current.submissionId,state:'received'};}
       };
       if(navigator.locks)await navigator.locks.request(`atlas-pod-send:${partition.userId}:${partition.warehouse}`,{ifAvailable:true},lock=>{if(lock)return run();contended=true;});else await run();
@@ -215,7 +235,10 @@
     root.addEventListener('click',async event=>{
       const button=event.target.closest('button');if(!button||busy||syncing)return;const gen=generation;
       try{
-        if(button.dataset.podTab){
+        if(button.dataset.podNext!==undefined){
+          if(!isDriver()||draft?.status!=='received')return;
+          driverTrip=Number(button.dataset.podNext);driverStop=Number(button.dataset.podStop||0);driverTab='stops';await load();
+        }else if(button.dataset.podTab){
           if(!isDriver()||view!=='list')return;driverTab=button.dataset.podTab;render();root.querySelector(`[data-pod-tab="${driverTab}"]`)?.focus({preventScroll:true});
         }else if(button.dataset.podTrip!==undefined){
           if(!isDriver()||view!=='list')return;driverTrip=Number(button.dataset.podTrip);driverStop=Number(button.dataset.podStop||0);driverTab='stops';render();
@@ -247,7 +270,9 @@
         }else if(button.dataset.podAction==='photo')root.querySelector('[data-pod-file]').click();
         else if(button.dataset.podAction==='submit')await submit();
         else if(button.dataset.podAction==='save'){busy=true;await saveCapture();busy=false;render();}
-        else if(button.dataset.podAction==='refresh')await load();
+        else if(button.dataset.podAction==='back-stop'){
+          if(isDriver()&&selected){const stops=shipments.filter(s=>s.trip_index===selected.trip_index),index=stops.findIndex(s=>s.id===selected.id);driverTrip=selected.trip_index;driverStop=Math.max(0,index);driverTab=index<0?'documents':'stops';}await load();
+        }else if(button.dataset.podAction==='refresh')await load();
         else if(button.dataset.podAction==='remove-copy'&&draft?.status==='received'&&confirm('Remove this device’s saved copy? The received server POD will remain.')){await queue().remove(scope(),draft.binding.id,draft.revision);if(!active(gen))return;release();view='list';await load();}
       }catch(e){if(active(gen)){error=e.message;busy=false;render();}}
     });

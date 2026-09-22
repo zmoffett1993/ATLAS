@@ -70,7 +70,7 @@ const html=`<!doctype html><meta name="viewport" content="width=device-width,ini
   await page.waitForFunction(()=>document.querySelector('#pod').textContent.includes('POD received'),null,{timeout:20000});
   assert.equal(posts,1,'uncertain receipt is reconciled without another photo upload');assert.equal(writes,3);
   assert.equal((await records(page))[0].status,'received');
-  await page.locator('[data-pod-action="refresh"]').click();
+  await page.locator('.atlas-pod-heading [data-pod-action="refresh"]').click();
   await page.locator('[data-pod-email-mode="retry"]').click();
   await page.waitForFunction(()=>document.querySelector('#pod').textContent.includes('POD email sent.'));
   assert.equal(emailCalls,2);assert.equal(posts,1,'email retry never reuploads photos');
