@@ -19,6 +19,7 @@
   let draftGeneration = 0;
   let captureQueue = null, captureJob = null, captureReviewJob = null, captureApplying = false;
   let cancelOrderDrag = () => {};
+  let driverMode = false, entryGeneration = 0, accessReadOnly = false;
   const dispatchUI = { tab: "orders", query: "", move: null, lastPlan: null };
   const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
   const find = (selector) => document.getElementById("atlasDeliveryRouting")?.querySelector(selector);
@@ -268,9 +269,10 @@
     find("[data-route-date]").addEventListener("change", () => {
       if (window.atlasRoutingPOD?.hasPending() && !window.confirm("These POD pages are still saving or could not be saved. Leave without saving them?")) { find("[data-route-date]").value = savedDay.day; return; }
       window.atlasRoutingPOD?.reset();
+      if (driverMode) { void window.atlasRoutingPOD?.load(); return; }
       if (!storage()?.enabled) { renderOrders(); return; }
       if (savedDay.dirty && !window.confirm("This day has unsaved changes. Leave them and open the other day?")) { find("[data-route-date]").value = savedDay.day; return; }
-      void loadDay();
+      void loadDay().then(() => { if (dispatchUI.tab === "pods") void window.atlasRoutingPOD?.load(); });
     });
     for (const selector of ["[data-route-preserve]", "[data-route-reload]", "[data-route-lunch]"]) find(selector).addEventListener("change", renderOrders);
     section.addEventListener("change", (event) => {
@@ -357,7 +359,9 @@
   function applyDispatchTab() {
     const section = document.getElementById("atlasDeliveryRouting"); if (!section) return;
     section.dataset.dispatchTab = dispatchUI.tab;
-    find(".atlas-route-header h1").textContent = dispatchUI.tab === "pods" ? "Delivery Documents" : "Daily Route Optimizer";
+    section.dataset.driverMode = String(driverMode);
+    find(".atlas-route-header h1").textContent = driverMode ? "My Deliveries" : dispatchUI.tab === "pods" ? "Delivery Documents" : "Daily Route Optimizer";
+    find('[data-dispatch-tab="pods"] span').textContent = driverMode ? "My Deliveries" : "PODs";
     section.querySelectorAll(".atlas-dispatch-tabs button[data-dispatch-tab]").forEach(el => el.setAttribute("aria-pressed", String(el.dataset.dispatchTab === dispatchUI.tab)));
     find("[data-dispatch-orders]").hidden = dispatchUI.tab !== "orders";
     find("[data-dispatch-queue]").hidden = dispatchUI.tab !== "queue";
@@ -472,6 +476,16 @@
     find("[data-route-confirm-day]").disabled = savedDay.busy || !dayOrders().length || (enabled && !savedDay.canEdit) || find("[data-route-date]").value > todayPacific();
     for (const selector of ["[data-route-lock-next]", "[data-route-reopen-last]"]) if (find(selector)) find(selector).disabled = savedDay.busy || !enabled || !savedDay.ready || !savedDay.canEdit || Boolean(state.planningController);
     find("[data-route-date]").disabled = savedDay.busy;
+    applyReadOnlyControls();
+  }
+
+  function applyReadOnlyControls() {
+    const section = document.getElementById("atlasDeliveryRouting"); if (!section) return;
+    section.dataset.routingReadOnly = String(accessReadOnly);
+    if (!accessReadOnly) return;
+    const controls = '[data-route-optimize],[data-route-intake],[data-route-manual-order],[data-route-edit],[data-route-drag],[data-route-move],[data-route-assignment],[data-route-confirm-van],[data-route-lock-next],[data-route-reopen-last],[data-route-save-day],[data-route-confirm-day],[data-dispatch-promote],[data-dispatch-choose],[data-dispatch-apply],[data-dispatch-settings] input,[data-dispatch-settings] select';
+    section.querySelectorAll(controls).forEach(el => { if (!el.disabled) el.dataset.routingDisabled = 'true'; el.disabled = true; });
+    find('[data-route-save-status]').textContent = 'Read-only · Administrators manage routes and driver assignments.';
   }
 
   function showReminderStatus() {
@@ -1304,6 +1318,8 @@
   }
 
   function resetWorkspace() {
+    document.getElementById("atlasDeliveryRouting")?.querySelectorAll('[data-routing-disabled]').forEach(el => { el.disabled = false; delete el.dataset.routingDisabled; });
+    entryGeneration++; driverMode = false; accessReadOnly = false;
     cancelOrderDrag();
     window.atlasRoutingPOD?.reset();
     dispatchUI.tab = "orders"; dispatchUI.query = ""; dispatchUI.lastPlan = null;
@@ -1347,14 +1363,22 @@
     if (state.open && navigation && navigation.dataset.action !== "routing" && !leaveRouting()) { event.preventDefault(); event.stopImmediatePropagation(); }
   }, true);
 
-  window.atlasOpenRouting = () => {
+  window.atlasOpenRouting = async () => {
     if (state.open) return;
     const session = window.AtlasAuth?.getSession();
     if (!session?.user?.id) {
       window.AtlasAuth?.open();
       return;
     }
+    const entry = ++entryGeneration;
+    let access;
+    try { access = await window.atlasRoutingPOD?.access(); }
+    catch { access = { capability: "driver" }; }
+    if (entry !== entryGeneration || window.AtlasAuth?.getSession()?.user?.id !== session.user.id) return;
     mount();
+    // Fail closed to the assigned-deliveries screen, without fetching an office day.
+    driverMode = !!access && !["office", "viewer"].includes(access.capability);
+    accessReadOnly = !!access && access.canEdit !== true;
     const displayName = window.AtlasAuth.displayName(session) || "ATLAS user";
     find("[data-route-user]").textContent = displayName;
     find("[data-route-avatar]").textContent = displayName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
@@ -1364,11 +1388,16 @@
     document.getElementById("atlasDeliveryRouting").hidden = false;
     root.classList.add("atlas-routing-open");
     window.scrollTo(0, 0);
-    if (storage()?.enabled) void loadDay();
+    dispatchUI.tab = driverMode ? "pods" : "orders";
+    applyDispatchTab();
+    applyReadOnlyControls();
+    if (driverMode) void window.atlasRoutingPOD?.load();
+    else if (storage()?.enabled) void loadDay();
   };
-  window.atlasOpenDeliveryReview = day => {
+  window.atlasOpenDeliveryReview = async day => {
     if (!window.atlasRoutingNotifications.day(day) || day > todayPacific() || !window.AtlasAuth?.getSession()?.user?.id) return false;
-    window.atlasOpenRouting();
+    await window.atlasOpenRouting();
+    if (driverMode || !state.open) return false;
     reminderDay = day;
     find("[data-route-review-request-text]").textContent = `Delivery review for ${day}. Your current work is preserved. Open a saved shipment to confirm delivery or report an issue.`;
     find("[data-route-review-request]").hidden = false;
@@ -1395,6 +1424,7 @@
   });
   window.addEventListener("beforeunload", (event) => { if (savedDay.dirty || savedDay.busy || find(".atlas-route-intake")?.open) { event.preventDefault(); event.returnValue = ""; } });
   window.addEventListener("atlas-auth-changed", (event) => {
+    if (event.detail?.session?.user?.id !== state.ownerId) entryGeneration++;
     if (state.ownerId && event.detail?.session?.user?.id !== state.ownerId) void reminders()?.reset();
     if (!state.open || (event.detail?.session?.user?.id && event.detail.session.user.id === state.ownerId)) return;
     state.open = false;

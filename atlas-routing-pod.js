@@ -4,12 +4,33 @@
   const endpoint='https://dwrrbpiprcmajfyronlf.supabase.co/functions/v1/delivery-pod';
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let enabled=false,root=null,date=()=>'',owner=null,generation=0,controller=null,shipments=[],selected=null,pages=[],draft=null,drafts=[],busy=false,error='',view='list',dirty=false,syncing=false,timer=null;
+  let capability=null,emailEnabled=false,management=null,assigning=false;
+  let driverTab='today',driverTrip=null,driverStop=0,loadedDay='';
+  const isDriver=()=>root?.closest('[data-driver-mode="true"]')!=null;
+  const icon=name=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${({today:'<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 5h2"/>',stops:'<circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M8 5h8a4 4 0 0 1 0 8H8a3 3 0 0 0 0 6h8"/>',documents:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8m-8 4h5"/>',truck:'<path d="M3 5h11v12H3zm11 5h4l3 4v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>',arrow:'<path d="m9 5 7 7-7 7"/>',check:'<path d="m5 12 4 4L19 6"/>',camera:'<path d="m8 5 1-2h6l1 2h4a2 2 0 0 1 2 2v12H2V7a2 2 0 0 1 2-2z"/><circle cx="12" cy="12" r="4"/>'})[name]||''}</svg>`;
   const urls=new Set(),queue=()=>window.atlasRoutingPodQueue;
+  // These RPCs authorize current sessions on the server. The UI never grants roles.
+  async function driverRPC(action,payload={}){
+    const ownerId=window.AtlasAuth?.getSession()?.user?.id;
+    const session=await window.AtlasAuth?.getValidSession();
+    const config=window.atlasSupabaseConfig;
+    if(!ownerId||session?.user?.id!==ownerId||!config?.key)throw Error('Sign into ATLAS again.');
+    const response=await fetch(`https://dwrrbpiprcmajfyronlf.supabase.co/rest/v1/rpc/atlas_pod_${action}`,{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:config.key,Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(window.AtlasAuth?.getSession()?.user?.id!==ownerId)throw Error('The ATLAS account changed. Reopen Delivery Routing.');
+    const result=await response.json();
+    if(window.AtlasAuth?.getSession()?.user?.id!==ownerId)throw Error('The ATLAS account changed. Reopen Delivery Routing.');
+    if(!response.ok){
+      const messages={SAVED_DAY_CHANGED:'This day changed. Refresh assignments before continuing.',COMPLETE_SHIPMENT_ALLOCATION_REQUIRED:'This split order has pallets still waiting. Finish its shipment allocation before assigning POD access.',POD_TRIP_ALREADY_ASSIGNED:'This trip already has a driver. Refresh to see the assignment.',POD_ASSIGNMENT_CHANGED:'A linked shipment changed. Contact the office before assigning it.',APPROVED_DRIVER_REQUIRED:'Choose an active CA warehouse worker.',POD_OFFICE_REQUIRED:'Only an authorized administrator can assign deliveries.'};
+      throw Error(messages[result.message]||'Driver access is unavailable. Reconnect and refresh, or contact your supervisor.');
+    }
+    return result;
+  }
+  async function access(){return enabled?driverRPC('driver_access'):null;}
   // Routing and its server list are currently CA-only. Never infer warehouse from user-editable metadata.
   const scope=()=>({userId:owner,warehouse:'CA'});
   const active=gen=>gen===generation && owner===window.AtlasAuth?.getSession()?.user?.id;
   function release(){urls.forEach(url=>URL.revokeObjectURL(url));urls.clear();pages=[];selected=null;draft=null;dirty=false;}
-  function reset(){generation++;clearTimeout(timer);controller?.abort();controller=null;release();shipments=[];drafts=[];owner=null;busy=false;syncing=false;error='';view='list';render();}
+  function reset(){generation++;clearTimeout(timer);controller?.abort();controller=null;release();shipments=[];drafts=[];capability=null;emailEnabled=false;management=null;assigning=false;owner=null;busy=false;syncing=false;error='';view='list';driverTab='today';driverTrip=null;driverStop=0;loadedDay='';render();}
   async function request(body,signal){
     const requestOwner=owner,gen=generation,session=await window.AtlasAuth?.getValidSession();
     if(!session||session.user.id!==requestOwner||!active(gen))throw Object.assign(Error('Sign in again to continue.'),{retryable:false});
@@ -26,25 +47,97 @@
   async function load(){
     if(!enabled||busy||syncing)return;const session=window.AtlasAuth?.getSession();if(!session)return;
     if(dirty&&!confirm('These pages have not been saved. Leave them?'))return;
-    reset();owner=session.user.id;busy=true;const gen=generation;controller=new AbortController();render();
+    const navigation=owner===session.user.id&&loadedDay===date()?{tab:driverTab,trip:driverTrip,stop:driverStop}:null;
+    reset();owner=session.user.id;loadedDay=date();if(navigation){driverTab=navigation.tab;driverTrip=navigation.trip;driverStop=navigation.stop;}busy=true;const gen=generation;controller=new AbortController();render();
     try{await refreshDrafts(gen);if(!active(gen))return;
       if(navigator.onLine){const result=await(await request({action:'list',date:date()},controller.signal)).json();if(!active(gen))return;
-        if(result.warehouse&&result.warehouse!=='CA')throw Error('Unexpected warehouse. Reopen Delivery Routing.');shipments=result.shipments||[];
+        if(result.warehouse&&result.warehouse!=='CA')throw Error('Unexpected warehouse. Reopen Delivery Routing.');shipments=result.shipments||[];capability=result.capability;emailEnabled=result.email_enabled===true;
       }else error='Offline. Saved scans are available below.';
     }catch(e){if(active(gen)&&e.name!=='AbortError')error=e.message;}
     finally{if(active(gen)){busy=false;render();void drain();}}
   }
   const label=d=>d.status==='received'?'POD received':d.status==='queued'?(d.attempts>=3?'Saved · Retry needed':'Saved · Waiting to send'):d.status==='attention'?'Saved · Needs attention':'Saved draft · Not submitted';
+  function emailLabel(s){
+    if(!emailEnabled)return 'POD received · Email disabled';
+    if(s.email_status==='sent')return `Sent${s.email_sent_at?' · '+new Date(s.email_sent_at).toLocaleString():''}`;
+    if(s.email_error_code==='SEND_OUTCOME_UNKNOWN')return 'Pending review · Check the recipient inbox before resending';
+    if(s.email_status==='sending')return 'Email sending · Refresh to check status';
+    if(s.email_status==='failed')return 'Email failed · POD saved. Management can retry.';
+    return 'Email pending · POD saved';
+  }
+  function emailControls(s){
+    if(!emailEnabled||capability!=='office'||s.submission?.state!=='received')return '';
+    const sub=s.submission,uncertain=sub.email_error_code==='SEND_OUTCOME_UNKNOWN',sending=sub.email_status==='sending';
+    const mode=sub.email_status==='sent'||uncertain||sending?'resend':'retry';
+    const cooling=Date.now()-Date.parse(sub.email_attempted_at||0)<(sending?300000:30000);
+    return `<button type="button" class="atlas-route-button" data-pod-email="${esc(sub.id)}" data-pod-email-mode="${mode}" ${busy||syncing||cooling?'disabled':''}>${mode==='resend'?'Resend Email':'Retry Email'}</button>`;
+  }
+  async function sendEmail(podId,mode='send'){
+    return (await request({action:'send-email',podId,mode,requestId:crypto.randomUUID()},controller?.signal)).json();
+  }
+  function tripCards(tripFilter=null,stopFilter=null){
+    const trips=new Map();
+    for(const s of shipments){if(!trips.has(s.trip_index))trips.set(s.trip_index,[]);trips.get(s.trip_index).push(s);}
+    return [...trips].sort(([a],[b])=>a-b).filter(([trip])=>tripFilter===null||trip===tripFilter).map(([trip,stops])=>{
+      const pallets=stops.reduce((sum,s)=>sum+Number(s.source_shipment?.palletSpaces||0),0);
+      const vehicle=stops[0].source_assignment?.split(':')[1];
+      const complete=stops.filter(s=>s.submission?.state==='received').length;
+      return `<section class="atlas-driver-trip"><header><div><small>TRIP ${trip+1} · ${esc(stops[0].driver_name||'Assigned driver')}</small><h3>${vehicle==='truck'?'Box Truck':vehicle==='van2'?'Cargo Van 2':'Cargo Van 1'}</h3></div><span class="atlas-driver-progress">${complete} / ${stops.length} PODs saved</span></header><div class="atlas-driver-metrics"><span><b>${stops.length}</b> stops</span><span><b>${pallets}</b> pallets</span><span>Shipment documents</span></div><ol class="atlas-driver-stops">${stops.map((s,i)=>{
+        if(stopFilter!==null&&i!==stopFilter)return '';
+        const received=s.submission?.state==='received',details=s.delivery||{},boxes=s.source_shipment?.boxAllocation||[];
+        return `<li class="atlas-driver-stop ${received?'is-received':''}"><div class="atlas-driver-stop-heading"><span class="atlas-driver-stop-number">${i+1}</span><div><h4>${esc(s.customer)}</h4><p>${esc(s.sales_order)}${s.shipment_total>1?` · Shipment ${s.shipment_number} of ${s.shipment_total}`:''}</p></div><strong class="atlas-driver-pallets">${Number(s.source_shipment?.palletSpaces||0)}<small>pallets</small></strong></div><p class="atlas-driver-address">${esc(s.address)}</p>${details.timeWindow?`<p class="atlas-driver-hours"><strong>Customer hours</strong> ${esc(details.timeWindow)}</p>`:''}${details.checkOnDelivery?'<p class="atlas-driver-check">CHECK ON DELIVERY</p>':''}${details.notes?`<p class="atlas-driver-notes">${esc(details.notes)}</p>`:''}<details class="atlas-driver-boxes"><summary>Load details · ${boxes.reduce((n,l)=>n+Number(l.boxes||0),0)} boxes</summary>${boxes.map(l=>`<p><span>${esc(l.sku)}</span><b>${Number(l.boxes)} boxes</b></p>`).join('')}</details><p class="atlas-driver-status">${received?esc(emailLabel(s.submission)):s.current?'POD not yet saved':'Shipment changed · ask the office'}</p><div class="atlas-driver-stop-actions"><a class="atlas-route-button" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}" target="_blank" rel="noopener noreferrer">Open in Maps</a>${received?`<button type="button" class="atlas-route-button" data-pod-download="${esc(s.id)}" ${busy||syncing?'disabled':''}>Download PDF</button>`:capability==='viewer'?'':`<button type="button" class="atlas-route-button atlas-route-primary" data-pod-scan="${esc(s.id)}" ${!s.current||busy||syncing?'disabled':''}>${drafts.some(d=>d.binding.id===s.id)?'Resume scan':'Scan POD'}</button>`}${emailControls(s)}</div></li>`;
+      }).join('')}</ol></section>`;
+    }).join('');
+  }
+  function driverNavigation(){
+    return `<nav class="atlas-driver-nav" aria-label="My Deliveries">${['today','stops','documents'].map(tab=>`<button type="button" data-pod-tab="${tab}" aria-current="${driverTab===tab?'page':'false'}">${icon(tab)}<span>${tab==='today'?'Today':tab==='stops'?'Stops':'Documents'}</span></button>`).join('')}</nav>`;
+  }
+  function driverHome(){
+    const groups=[...new Set(shipments.map(s=>s.trip_index))].sort((a,b)=>a-b);
+    const name=shipments[0]?.driver_name||window.AtlasAuth?.getSession()?.user?.user_metadata?.display_name||'';
+    const received=shipments.filter(s=>s.submission?.state==='received');
+    const dayLabel=new Date(date()+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    const empty='<div class="atlas-driver-empty">'+icon('truck')+'<h3>No assigned trips</h3><p>Your deliveries will appear here once an administrator assigns a trip. Tap Refresh to check again.</p></div>';
+    let content='';
+    if(driverTab==='today'){
+      content=`<div class="atlas-driver-intro"><small>YOUR DELIVERY DAY</small><h2>${name?`Hello, ${esc(name)}`:'Your deliveries'}</h2><p>${esc(dayLabel)}</p></div><div class="atlas-driver-day-stats"><div><strong>${groups.length}</strong><span>Trips</span></div><div><strong>${shipments.length}</strong><span>Stops</span></div><div><strong>${received.length}</strong><span>PODs saved</span></div></div>`;
+      content+=groups.map(trip=>{
+        const stops=shipments.filter(s=>s.trip_index===trip),done=stops.filter(s=>s.submission?.state==='received').length,vehicle=stops[0].source_assignment?.split(':')[1];
+        const next=Math.max(0,stops.findIndex(s=>s.submission?.state!=='received'));
+        return `<article class="atlas-driver-overview"><header><span class="atlas-driver-vehicle-icon">${icon('truck')}</span><div><small>TRIP ${trip+1}</small><h3>${vehicle==='truck'?'Box Truck':vehicle==='van2'?'Cargo Van 2':'Cargo Van 1'}</h3></div><span class="atlas-driver-badge">${done===stops.length?'PODs saved':'Assigned'}</span></header><div class="atlas-driver-overview-metrics"><span><b>${stops.length}</b> stops</span><span><b>${stops.reduce((n,s)=>n+Number(s.source_shipment?.palletSpaces||0),0)}</b> pallets</span></div><div class="atlas-driver-progress-label"><span>Shipment documents</span><strong>${done} of ${stops.length} saved</strong></div><progress value="${done}" max="${stops.length}" aria-label="Trip ${trip+1} PODs saved"></progress><button type="button" class="atlas-driver-next" data-pod-trip="${trip}" data-pod-stop="${next}"><span>${icon(stops[next].submission?.state==='received'?'check':'stops')}</span><div><small>${done===stops.length?'View trip stops':'Next POD to capture'}</small><strong>${esc(stops[next].customer)}</strong></div>${icon('arrow')}</button><button type="button" class="atlas-route-button atlas-route-primary" data-pod-trip="${trip}" data-pod-stop="${next}">View stops ${icon('arrow')}</button></article>`;
+      }).join('')||empty;
+      if(drafts.some(d=>d.status!=='received'))content+=`<button type="button" class="atlas-driver-draft-link" data-pod-tab="documents">${icon('documents')} ${drafts.filter(d=>d.status!=='received').length} saved scan(s) need attention ${icon('arrow')}</button>`;
+    }else if(driverTab==='stops'){
+      if(groups.length&&!groups.includes(driverTrip))driverTrip=groups[0];
+      const stops=shipments.filter(s=>s.trip_index===driverTrip);if(stops.length)driverStop=Math.min(driverStop,stops.length-1);
+      content=`<div class="atlas-driver-intro"><small>YOUR ROUTE</small><h2>${driverTrip===null?'Trip stops':`Trip ${driverTrip+1} stops`}</h2><p>Select a stop for its load details and POD.</p></div>`;
+      if(stops.length)content+=`<div class="atlas-driver-trip-select" aria-label="Select trip">${groups.map(t=>`<button type="button" data-pod-trip="${t}" data-pod-stop="0" aria-pressed="${t===driverTrip}">Trip ${t+1}</button>`).join('')}</div><div class="atlas-driver-step-label">STOP ${driverStop+1} OF ${stops.length}</div><nav class="atlas-driver-stepper" aria-label="Select stop">${stops.map((s,i)=>`<button type="button" data-pod-trip="${driverTrip}" data-pod-stop="${i}" aria-label="Stop ${i+1}: ${esc(s.customer)}" aria-current="${i===driverStop?'step':'false'}" class="${s.submission?.state==='received'?'is-saved':''}">${s.submission?.state==='received'?icon('check'):i+1}</button>`).join('')}</nav>${tripCards(driverTrip,driverStop)}`;else content+=empty;
+    }else{
+      content=`<div class="atlas-driver-intro"><small>PROOF OF DELIVERY</small><h2>Your documents</h2><p>Received PODs and scans saved on this device.</p></div>`;
+      if(drafts.length)content+=`<h3 class="atlas-driver-section-label">On this device · all days</h3>${drafts.map(d=>`<article class="atlas-driver-document">${icon('documents')}<div><strong>${esc(d.binding.customer)}</strong><p>${esc(d.binding.sales_order)} · ${esc(d.date)}</p><small>${label(d)}</small></div><button type="button" class="atlas-route-button" data-pod-resume="${esc(d.binding.id)}">${d.status==='received'?'View':'Resume'}</button></article>`).join('')}`;
+      content+=received.length?`<h3 class="atlas-driver-section-label">Received · ${esc(dayLabel)}</h3>${received.map(s=>`<article class="atlas-driver-document">${icon('check')}<div><strong>${esc(s.customer)}</strong><p>${esc(s.sales_order)}${s.shipment_total>1?` · ${s.shipment_number} of ${s.shipment_total}`:''}</p><small>${esc(emailLabel(s.submission))}</small></div><button type="button" class="atlas-route-button" data-pod-download="${esc(s.id)}">PDF</button></article>`).join('')}`:drafts.length?'':'<div class="atlas-driver-empty">'+icon('documents')+'<h3>No documents yet</h3><p>Scan a signed POD from a stop. Its saved copy will appear here.</p></div>';
+    }
+    return content+driverNavigation();
+  }
+  function assignmentPanel(){
+    if(!management)return '';
+    return `<section class="atlas-driver-assign"><h3>Assign a delivery driver</h3><p>Choose who will make each saved, sent-out trip. Backup drivers receive access only to their assigned stops. Planning times keep the original driver schedule.</p>${management.trips.length?management.trips.map(t=>`<form data-pod-assign-trip="${t.index}"><div><strong>Trip ${t.index+1}</strong><small>${t.stops} stops · ${t.pallets} pallets</small></div>${t.driver_name?`<strong>${esc(t.driver_name)}</strong>`:`<label><span>Driver</span><select name="driver" required ${assigning?'disabled':''}><option value="">Choose warehouse worker</option>${management.drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')}</select></label><button class="atlas-route-button atlas-route-primary" type="submit" ${assigning?'disabled':''}>Assign Trip</button>`}</form>`).join(''):'<p>Save a sent-out trip first, then return here to assign its driver.</p>'}<button type="button" class="atlas-route-button" data-pod-action="close-assign">Done</button></section>`;
+  }
   function render(){
     if(!root)return;
+    root.classList.toggle('atlas-driver-surface',isDriver());
     if(!enabled){root.innerHTML='<h2>Delivery documents</h2><p>POD storage is awaiting activation.</p><p>Driver access and private storage must be verified before real PODs can be submitted. No emails are being sent.</p>';return;}
-    root.innerHTML=`<div class="atlas-pod-heading"><div><small>CHUBBY GORILLA · DELIVERY DOCUMENTS</small><h2>${view==='list'?'Delivery documents':'Review POD'}</h2></div><button type="button" class="atlas-route-button" data-pod-action="refresh" ${busy||syncing?'disabled':''}>${view==='list'?'Refresh':'Done'}</button></div>${error?`<p role="alert" class="atlas-route-planning-review">${esc(error)}</p>`:''}${busy?'<p role="status">Saving… Keep this page open.</p>':syncing?'<p role="status">Sending saved POD…</p>':''}`;
+    root.innerHTML=`<div class="atlas-pod-heading"><div><small>CHUBBY GORILLA · DELIVERY ROUTING</small><h2>${view==='list'?(capability==='driver'?'Your trip, at a glance':'Delivery documents'):'Review POD'}</h2><p>${view==='list'?'Your stops and load details, together in one place.':'Check the full page, then submit.'}</p></div><div class="atlas-route-card-tools">${view==='list'&&capability==='office'?'<button type="button" class="atlas-route-button" data-pod-action="assign">Assign Drivers</button>':''}<button type="button" class="atlas-route-button" data-pod-action="refresh" ${busy||syncing||assigning?'disabled':''}>${view==='list'?'Refresh':'Done'}</button></div></div>${error?`<p role="alert" class="atlas-route-planning-review">${esc(error)}</p>`:''}${busy?'<p role="status">Saving… Keep this page open.</p>':syncing?'<p role="status">Submitting POD…</p>':''}`;
     if(view==='list'){
-      if(drafts.length)root.insertAdjacentHTML('beforeend',`<h3>Saved on this device</h3>${drafts.map(d=>`<article class="atlas-pod-delivery"><div><strong>${esc(d.binding.customer)}</strong><p>${esc(d.binding.sales_order)} · ${esc(d.date)}</p><small>${label(d)}</small></div><button type="button" class="atlas-route-button" data-pod-resume="${esc(d.binding.id)}" ${busy||syncing?'disabled':''}>${d.status==='received'?'View saved copy':'Resume'}</button></article>`).join('')}`);
-      root.insertAdjacentHTML('beforeend',shipments.length?shipments.map(s=>`<article class="atlas-pod-delivery"><div><strong>${esc(s.customer)}</strong><p>${esc(s.sales_order)} · Trip ${s.trip_index+1} · Shipment ${s.shipment_number} of ${s.shipment_total}</p><small>${esc(s.address)}</small><p>${s.submission?.state==='received'?'POD received · Email disabled':s.current?'POD not received':'Shipment changed · Office review required'}</p></div><button type="button" class="atlas-route-button ${s.submission?.state==='received'?'':'atlas-route-primary'}" data-pod-${s.submission?.state==='received'?'download':'scan'}="${esc(s.id)}" ${!s.current||busy||syncing?'disabled':''}>${s.submission?.state==='received'?'Download PDF':drafts.some(d=>d.binding.id===s.id)?'Resume scan':'Scan POD'}</button></article>`).join(''):'<div class="atlas-route-plan-empty"><strong>No assigned POD deliveries loaded</strong><p>Saved scans above remain available. New deliveries require a connection and an office-approved shipment link.</p></div>');
+      if(isDriver()){
+        root.querySelector('.atlas-pod-heading').innerHTML=`<img class="atlas-driver-brand" src="./atlas-brand-landscape-light.svg" alt="ATLAS"/><button type="button" class="atlas-route-button atlas-driver-refresh" data-pod-action="refresh" ${busy||syncing?'disabled':''}>Refresh</button>`;
+        root.insertAdjacentHTML('beforeend',driverHome());return;
+      }
+      if(drafts.length&&capability!=='viewer')root.insertAdjacentHTML('beforeend',`<h3>Saved on this device</h3>${drafts.map(d=>`<article class="atlas-pod-delivery"><div><strong>${esc(d.binding.customer)}</strong><p>${esc(d.binding.sales_order)} · ${esc(d.date)}</p><small>${label(d)}</small></div><button type="button" class="atlas-route-button" data-pod-resume="${esc(d.binding.id)}" ${busy||syncing?'disabled':''}>${d.status==='received'?'View saved copy':'Resume'}</button></article>`).join('')}`);
+      root.insertAdjacentHTML('beforeend',assignmentPanel()+(shipments.length?tripCards():'<div class="atlas-route-plan-empty"><strong>No assigned deliveries for this day</strong><p>Your administrator can assign a trip when you are needed. Then tap Refresh. Saved scans above remain available.</p></div>'));
     }else if(selected){
       const frozen=!!draft?.submissionId,received=draft?.status==='received';
-      root.insertAdjacentHTML('beforeend',`<div class="atlas-pod-delivery"><div><strong>${esc(selected.customer)}</strong><p>${esc(window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total).filename)}</p></div></div><p>Check that signatures, dates, stamps and all page edges are readable.</p><div class="atlas-pod-pages">${pages.map((p,i)=>`<figure><img src="${p.url}" alt="POD page ${i+1}"/><figcaption>Page ${i+1}${p.lowResolution?' · Low resolution — check readability':''}</figcaption><div><button type="button" class="atlas-route-button" data-pod-rotate="${i}" ${busy||syncing||frozen?'disabled':''}>Rotate</button><button type="button" class="atlas-route-button" data-pod-remove="${i}" ${busy||syncing||frozen?'disabled':''}>Remove</button></div></figure>`).join('')}</div><input data-pod-file type="file" accept="image/jpeg,image/png" capture="environment" hidden/><div class="atlas-route-card-tools"><button type="button" class="atlas-route-button" data-pod-action="photo" ${busy||syncing||frozen||pages.length>=10?'disabled':''}>${pages.length?'Add Page':'Take Photo'}</button><button type="button" class="atlas-route-button atlas-route-primary" data-pod-action="submit" ${busy||syncing||!pages.length||received?'disabled':''}>${received?'POD received':frozen?'Retry saved POD':'Submit POD'}</button>${dirty?'<button type="button" class="atlas-route-button" data-pod-action="save">Retry saving</button>':''}${received?'<button type="button" class="atlas-route-button" data-pod-action="remove-copy">Remove saved copy</button>':''}</div><p role="status" class="atlas-dispatch-muted">${dirty?'Not saved — keep this page open and retry saving.':draft?`${label(draft)}. ${esc(draft.message)}`:'Take a photo to begin.'}</p><p class="atlas-dispatch-muted">Saved scans stay on this device for this account. Do not clear site data before receipt. Sending resumes while ATLAS is open; phone storage cleanup can remove local data. Email is disabled.</p>`);
+      root.insertAdjacentHTML('beforeend',`<div class="atlas-pod-delivery"><div><strong>${esc(selected.customer)}</strong><p>${esc(window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total).filename)}</p></div></div><p>Check that signatures, dates, stamps and all page edges are readable.</p><div class="atlas-pod-pages">${pages.map((p,i)=>`<figure><img src="${p.url}" alt="POD page ${i+1}"/><figcaption>Page ${i+1}${p.lowResolution?' · Low resolution — check readability':''}</figcaption><div><button type="button" class="atlas-route-button" data-pod-rotate="${i}" ${busy||syncing||frozen?'disabled':''}>Rotate</button><button type="button" class="atlas-route-button" data-pod-remove="${i}" ${busy||syncing||frozen?'disabled':''}>Remove</button></div></figure>`).join('')}</div><input data-pod-file type="file" accept="image/jpeg,image/png" capture="environment" hidden/><div class="atlas-route-card-tools"><button type="button" class="atlas-route-button" data-pod-action="photo" ${busy||syncing||frozen||pages.length>=10?'disabled':''}>${pages.length?'Add Page':'Take Photo'}</button><button type="button" class="atlas-route-button atlas-route-primary" data-pod-action="submit" ${busy||syncing||!pages.length||received?'disabled':''}>${received?'POD received':frozen?'Retry saved POD':'Submit POD'}</button>${dirty?'<button type="button" class="atlas-route-button" data-pod-action="save">Retry saving</button>':''}${received?'<button type="button" class="atlas-route-button" data-pod-action="remove-copy">Remove saved copy</button>':''}</div><p role="status" class="atlas-dispatch-muted">${dirty?'Not saved — keep this page open and retry saving.':draft?`${label(draft)}. ${esc(draft.message)}`:'Take a photo to begin.'}</p><p class="atlas-dispatch-muted">Saved scans stay on this device for this account. Do not clear site data before receipt. Sending resumes while ATLAS is open; phone storage cleanup can remove local data.${emailEnabled?'':' Email is disabled.'}</p>`);
     }
   }
   function showDraft(record){release();draft=record;selected=record.binding;pages=record.pages.map(p=>{const url=URL.createObjectURL(p.blob);urls.add(url);return {...p,url};});view='capture';error='';render();}
@@ -56,6 +149,7 @@
     const url=URL.createObjectURL(blob);urls.add(url);return {original,blob,url,rotation,lowResolution:Math.min(w,h)<1000};
   }
   async function submit(){
+    if(capability==='viewer')return;
     if(busy||syncing||!pages.length||!selected)return;busy=true;error='';const gen=generation;render();
     try{if(dirty||!draft)await saveCapture();if(!active(gen)||dirty)return;
       draft=await queue().write(scope(),{...draft,status:'queued',submissionId:draft.submissionId||crypto.randomUUID(),attempts:0,retryAt:0,message:''},draft.revision);
@@ -64,6 +158,7 @@
     finally{if(active(gen)){busy=false;render();void drain();}}
   }
   async function drain(){
+    if(capability==='viewer')return;
     if(!enabled||!owner||syncing||busy||!navigator.onLine||document.hidden||!drafts.some(d=>d.status==='queued'&&d.attempts<3))return;
     const gen=generation,partition=scope();let contended=false;syncing=true;clearTimeout(timer);render();
     try{
@@ -87,25 +182,53 @@
             const receipt=await(await request(form,controller.signal)).json();if(!active(gen))return;
             if(receipt.state!=='received'||receipt.id!==current.submissionId)throw Error('Receipt not confirmed. The saved scan will be checked before retrying.');
           }
-          current=await queue().write(partition,{...current,status:'received',retryAt:0,message:'Server receipt confirmed. Email disabled.'},current.revision);
+          // The PDF receipt is durable even if the separate email call is interrupted.
+          let mail={email_status:'disabled'};
+          if(result.email_enabled===true){
+            try{mail=await sendEmail(current.submissionId);}catch{mail={email_status:'pending'};}
+            if(!active(gen))return;
+          }
+          const message=mail.email_status==='sent'?'POD SUBMITTED ✓':mail.email_status==='disabled'?'Server receipt confirmed. Email disabled.':'POD saved — email pending. Management can retry.';
+          current=await queue().write(partition,{...current,status:'received',retryAt:0,message},current.revision);
+          if(active(gen)){error=message;const match=shipments.find(s=>s.id===current.binding.id);if(match)match.submission={id:current.submissionId,state:'received',...mail};}
         }catch(e){if(!active(gen))return;
           current=await queue().write(partition,{...current,status:e.retryable===false||current.attempts>=3?'attention':'queued',retryAt:Date.now()+window.atlasRoutingPodCore.retryDelay(current.attempts),message:e.retryable===false?e.message:current.attempts>=3?'Sending paused after three attempts. Check your connection, then retry.':'Connection interrupted. Saved for retry.'},current.revision);
         }finally{clearTimeout(timeout);}
         if(!active(gen))return;await refreshDrafts(gen);
         if(draft?.binding.id===current.binding.id){draft=current;if(current.status==='received'){release();view='list';}}
-        if(current.status==='received'){const match=shipments.find(s=>s.id===current.binding.id);if(match)match.submission={id:current.submissionId,state:'received'};}
+        if(current.status==='received'){const match=shipments.find(s=>s.id===current.binding.id);if(match)match.submission={...match.submission,id:current.submissionId,state:'received'};}
       };
       if(navigator.locks)await navigator.locks.request(`atlas-pod-send:${partition.userId}:${partition.warehouse}`,{ifAvailable:true},lock=>{if(lock)return run();contended=true;});else await run();
     }catch(e){if(e.code==='DRAFT_CONFLICT')contended=true;else if(active(gen))error=e.message;}
     finally{if(active(gen)){syncing=false;render();const pending=drafts.filter(d=>d.status==='queued'&&d.attempts<3);if(pending.length&&!contended)timer=setTimeout(()=>void drain(),Math.max(1000,Math.min(...pending.map(d=>d.retryAt))-Date.now()));}}
   }
   function mount(container,day){root=container;date=day;render();
+    root.addEventListener('submit',async event=>{
+      const form=event.target.closest('[data-pod-assign-trip]');if(!form)return;event.preventDefault();
+      if(capability!=='office'||assigning||busy||!management)return;
+      const gen=generation,dayValue=date(),driver=form.elements.driver.value,trip=Number(form.dataset.podAssignTrip),revision=management.revision;
+      if(!driver)return;assigning=true;error='';render();
+      try{await driverRPC('assign_trip',{p_day:dayValue,p_revision:revision,p_trip:trip,p_driver:driver});if(!active(gen)||date()!==dayValue)return;
+        assigning=false;await load();
+      }catch(e){if(active(gen)){assigning=false;error=e.message;render();}}
+    });
     root.addEventListener('click',async event=>{
       const button=event.target.closest('button');if(!button||busy||syncing)return;const gen=generation;
       try{
-        if(button.dataset.podScan||button.dataset.podResume){
+        if(button.dataset.podTab){
+          if(!isDriver()||view!=='list')return;driverTab=button.dataset.podTab;render();root.querySelector(`[data-pod-tab="${driverTab}"]`)?.focus({preventScroll:true});
+        }else if(button.dataset.podTrip!==undefined){
+          if(!isDriver()||view!=='list')return;driverTrip=Number(button.dataset.podTrip);driverStop=Number(button.dataset.podStop||0);driverTab='stops';render();
+        }else if(button.dataset.podScan||button.dataset.podResume){
           const id=button.dataset.podScan||button.dataset.podResume;await refreshDrafts(gen);if(!active(gen))return;
           const saved=drafts.find(d=>d.binding.id===id);if(saved)showDraft(saved);else{release();selected=shipments.find(s=>s.id===id);window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total);view='capture';error='';render();}
+        }else if(button.dataset.podEmail){
+          const mode=button.dataset.podEmailMode;
+          if(mode==='resend'&&!confirm('Check the recipient inbox first. Resending may create another copy of this email. Send again?'))return;
+          busy=true;error='';controller=new AbortController();render();
+          const mail=await sendEmail(button.dataset.podEmail,mode);if(!active(gen))return;
+          const shipment=shipments.find(s=>s.submission?.id===button.dataset.podEmail);if(shipment)Object.assign(shipment.submission,mail);
+          busy=false;error=mail.email_status==='sent'?'POD email sent.':mail.email_status==='disabled'?'Email sending is not activated.':'POD saved. '+emailLabel(mail);render();
         }else if(button.dataset.podDownload){
           busy=true;const response=await request({action:'download',bindingId:button.dataset.podDownload});const blob=await response.blob();if(!active(gen))return;
           const s=shipments.find(s=>s.id===button.dataset.podDownload),url=URL.createObjectURL(blob);urls.add(url);const a=document.createElement('a');a.href=url;a.download=window.atlasRoutingPodCore.naming(s.sales_order,s.shipment_number,s.shipment_total).filename;a.click();busy=false;
@@ -116,6 +239,11 @@
         }else if(button.dataset.podRemove!==undefined){
           if(draft?.submissionId||!confirm('Remove this page from the saved scan?'))return;
           const [page]=pages.splice(Number(button.dataset.podRemove),1);URL.revokeObjectURL(page.url);urls.delete(page.url);busy=true;await saveCapture();busy=false;render();
+        }else if(button.dataset.podAction==='assign'){
+          if(capability!=='office'||assigning)return;busy=true;render();
+          const result=await driverRPC('driver_roster',{p_day:date()});if(!active(gen))return;
+          management=result;busy=false;render();
+        }else if(button.dataset.podAction==='close-assign'){management=null;render();
         }else if(button.dataset.podAction==='photo')root.querySelector('[data-pod-file]').click();
         else if(button.dataset.podAction==='submit')await submit();
         else if(button.dataset.podAction==='save'){busy=true;await saveCapture();busy=false;render();}
@@ -137,5 +265,5 @@
   window.addEventListener('online',()=>void drain());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)void drain();});
   window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
-  window.atlasRoutingPOD=Object.freeze({configure:config=>{enabled=config.enabled===true;reset();},mount,load,reset,hasPending:()=>dirty||busy});
+  window.atlasRoutingPOD=Object.freeze({configure:config=>{enabled=config.enabled===true;reset();},mount,load,reset,access,hasPending:()=>dirty||busy||assigning});
 })();

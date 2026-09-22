@@ -1,5 +1,5 @@
--- LOCAL REVIEW DRAFT ONLY. Not applied. No changes to existing routing/COC tables.
--- Generate a migration with the Supabase CLI and verify on an isolated database
+-- Reviewed POD schema source. Apply through a recorded Supabase migration.
+-- No changes to existing routing/COC tables. Create private buckets through Storage
 -- before activation. Driver and office memberships require explicit provisioning.
 begin;
 create schema if not exists atlas_pod_private;
@@ -40,9 +40,16 @@ revoke all on all tables in schema atlas_pod_private from public,anon,authentica
 
 -- No public storage access, listing, upsert, deletion or user-write policies.
 -- The Edge adapter authorizes a specific binding before every storage operation.
-insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
- values('atlas-pod-originals','atlas-pod-originals',false,15000000,array['image/jpeg','image/png']),
- ('atlas-pod-documents','atlas-pod-documents',false,25000000,array['application/pdf']);
+-- Storage metadata is read-only here; buckets are provisioned through its API/UI.
+do $$ begin
+ if not exists(select 1 from storage.buckets where id='atlas-pod-originals' and not public
+   and file_size_limit between 15000000 and 15728640 and allowed_mime_types @> array['image/jpeg','image/png']::text[]
+   and allowed_mime_types <@ array['image/jpeg','image/png']::text[])
+ or not exists(select 1 from storage.buckets where id='atlas-pod-documents' and not public
+   and file_size_limit between 25000000 and 26214400 and allowed_mime_types=array['application/pdf']::text[]) then
+  raise exception 'PRIVATE_POD_BUCKET_CONFIGURATION_REQUIRED';
+ end if;
+end $$;
 
 create function atlas_pod_private.access(p_user uuid,p_session uuid,p_warehouse uuid) returns text
 language sql stable security definer set search_path='' as $$
@@ -128,7 +135,7 @@ begin
  if p_pdf_hash !~ '^[0-9a-f]{64}$' or (s.pdf_hash is not null and s.pdf_hash<>p_pdf_hash) then raise exception 'PDF_HASH_CONFLICT'; end if;
  if s.state<>'received' then
  update atlas_pod_private.submissions set state='received',pdf_hash=p_pdf_hash,received_at=now() where id=s.id returning * into s;
- insert into atlas_pod_private.events(binding_id,actor_id,event) values(b.id,p_actor,'pod_received_email_disabled');
+ insert into atlas_pod_private.events(binding_id,actor_id,event) values(b.id,p_actor,'pod_received');
  end if;
  end if;
  return to_jsonb(s);

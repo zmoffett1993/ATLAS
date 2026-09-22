@@ -25,11 +25,12 @@ const html=`<!doctype html><meta name="viewport" content="width=device-width,ini
  const origin=`http://127.0.0.1:${server.address().port}`;
  const browser=await chromium.launch({executablePath:process.env.ATLAS_BROWSER_PATH,headless:true});
  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,serviceWorkers:'block'});
- let receipt=null,writes=0,posts=0,lists=0,dropReceipt=true,deny=false;
+ let receipt=null,writes=0,posts=0,lists=0,dropReceipt=true,deny=false,emailCalls=0;
  const binding={id:BIND,actor_id:USER,warehouse_id:'ca-fixture',sales_order:'SO-US-68032',customer:'Synthetic customer',address:'Synthetic address',trip_index:0,shipment_number:1,shipment_total:1,current:true};
  const {createHandler}=await import(pathToFileURL(resolve(repo,'supabase/functions/delivery-pod/handler.mjs')));
- const handler=createHandler({enabled:true,origins:[origin],authenticate:async()=>({id:USER}),context:async()=>binding,
-  list:async()=>({warehouse:'CA',shipments:[{...binding,submission:receipt}]}),
+ const handler=createHandler({enabled:true,emailEnabled:true,origins:[origin],authenticate:async()=>({id:USER}),context:async()=>binding,
+  list:async()=>({warehouse:'CA',capability:'office',shipments:[{...binding,submission:receipt}]}),
+  email:async()=>{emailCalls++;Object.assign(receipt,emailCalls===1?{email_status:'failed',email_error_code:'GMAIL_SEND_REJECTED'}:{email_status:'sent',gmail_message_id:'mock-gmail',email_sent_at:new Date().toISOString(),email_error_code:null});return receipt;},
   receive:async(b,input)=>{receipt={id:input.id,state:input.pdfHash?'received':receipt?.state||'uploading'};return {...receipt,object_prefix:'synthetic/'+input.id};},
   putImmutable:async()=>{writes++;}
  });
@@ -69,6 +70,12 @@ const html=`<!doctype html><meta name="viewport" content="width=device-width,ini
   await page.waitForFunction(()=>document.querySelector('#pod').textContent.includes('POD received'),null,{timeout:20000});
   assert.equal(posts,1,'uncertain receipt is reconciled without another photo upload');assert.equal(writes,3);
   assert.equal((await records(page))[0].status,'received');
+  await page.locator('[data-pod-action="refresh"]').click();
+  await page.locator('[data-pod-email-mode="retry"]').click();
+  await page.waitForFunction(()=>document.querySelector('#pod').textContent.includes('POD email sent.'));
+  assert.equal(emailCalls,2);assert.equal(posts,1,'email retry never reuploads photos');
+  assert.equal(await page.locator('[data-pod-download]').count(),1);
+  console.log('PASS: saved POD email failure, office retry, sent status and retained private download.');
   await page.evaluate(id=>{window.testUser=id;window.dispatchEvent(new CustomEvent('atlas-auth-changed',{detail:{session:{user:{id}}}}));},OTHER);
   assert.equal(await page.locator('.atlas-pod-pages img').count(),0,'account switch removes photo previews');
   assert.equal((await records(page)).length,0,'another account cannot inherit drafts');

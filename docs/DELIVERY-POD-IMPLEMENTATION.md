@@ -1,5 +1,13 @@
 # Delivery POD implementation and routing UI refinement
 
+## Current driver-access work
+
+The private POD backend and Gmail test have since been activated; the user confirmed receipt (in spam). The older preparation notes below are historical. See [POD-GMAIL-PILOT.md](POD-GMAIL-PILOT.md) for deployed state and [POD-DRIVER-ACCESS.md](POD-DRIVER-ACCESS.md) for the activated driver screen, administrator-only editing and backup-driver assignment. The v375 driver update is deployed only to the private preview; main ATLAS is unchanged.
+
+## Gmail pilot local preparation — September 21
+
+The Gmail pilot now extends the existing POD function, local schema drafts and management status/retry controls. Sending remains disabled, with no Supabase changes or real emails. See [POD-GMAIL-PILOT.md](POD-GMAIL-PILOT.md) for exact setup, reauthorization, verification, rollback and outstanding activation work. This supersedes the older statements below that email provider code has not been prepared. Local shell marker: v374-pod-gmail-pilot; the deployed testing host still runs the previous v373 release.
+
 ## Current integration status — September 21
 
 The real routing application now contains the compact desktop dashboard, mobile view tabs, waiting-load list, next-load capacity card, collapsed trip details, existing saved-route search and settings/map dialogs. These views use existing saved-day data. Priority moves display their actual repacked trips, preserve sent-out allocations, clear stale timing and persist through the existing Save Day contract. Capacity-based displacement suggestions are implemented; traffic-based comparison of candidate swaps is still pending. Moves do not create hard per-trip reservations: the existing load allocator repacks order priority and the review shows the resulting trip assignments.
