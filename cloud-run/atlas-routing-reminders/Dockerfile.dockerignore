@@ -1,0 +1,16 @@
+# Explicit allowlist: no repository history, workbooks, customer documents or runtime secrets.
+**
+!cloud-run/
+!cloud-run/atlas-routing-reminders/
+!cloud-run/atlas-routing-reminders/package.json
+!cloud-run/atlas-routing-reminders/package-lock.json
+!atlas-routing-notifications.js
+!tools/
+!tools/routing-preview/
+!tools/routing-preview/notification-dispatcher.mjs
+!cloud-run/atlas-routing-reminders/job.mjs
+!cloud-run/atlas-routing-reminders/store.mjs
+!cloud-run/atlas-routing-reminders/Dockerfile
+!cloud-run/atlas-routing-reminders/Dockerfile.dockerignore
+!cloud-run/atlas-routing-reminders/upload.ignore
+!cloud-run/atlas-routing-reminders/cloudbuild.yaml

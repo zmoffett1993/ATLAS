@@ -1,3 +1,10 @@
 [functions.atlas-user-admin]
 # Matches deployed v21. The handler validates every token with Auth getUser.
 verify_jwt = false
+
+[functions.atlas-routing-preview]
+verify_jwt = true
+
+[functions.delivery-pod]
+# Disabled in its runtime by default. Handler verifies getUser + current-session RPC.
+verify_jwt = false

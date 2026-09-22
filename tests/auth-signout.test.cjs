@@ -1,3 +1,4 @@
+// Reused from commit 53e3845. Synthetic fixtures only; no external requests.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 function fixture(){
  const source=fs.readFileSync(path.join(__dirname,'../atlas-auth.js'),'utf8');

@@ -19237,6 +19237,7 @@ Error generating stack: ` +
                   (0, T.jsxs)(`button`, {
                     type: `button`,
                     className: e === `workflows` ? `active` : ``,
+                    "data-nav": "Workflows",
                     "aria-current": e === `workflows` ? `page` : void 0,
                     onClick: () => {
                       (window.atlasCoc?.openWorkflows?.(),
@@ -19247,7 +19248,7 @@ Error generating stack: ` +
                         className: `nav-icon`,
                         children: `✓`,
                       }),
-                      (0, T.jsx)(`span`, { children: `Workflows` }),
+                      (0, T.jsx)(`span`, { children: `COC` }),
                     ],
                   }),
                 ],
@@ -24811,6 +24812,7 @@ Error generating stack: ` +
         "Browse Aisles": premiumIcon.grid,
         Inventory: premiumIcon.inventory,
         Workflows: premiumIcon.workflows,
+        COC: premiumIcon.workflows,
       };
       const atlasWordmark = `
   <svg class="atlas-wordmark" viewBox="0 0 620 120" role="img" aria-label="ATLAS">
@@ -24905,7 +24907,7 @@ Error generating stack: ` +
         const button = [
           ...document.querySelectorAll(".bottom-nav button"),
         ].find((item) =>
-          item.textContent.trim().toLowerCase().includes(label.toLowerCase()),
+          (item.dataset.nav || item.textContent).trim().toLowerCase().includes(label.toLowerCase()),
         );
         button?.click();
       };
@@ -25914,7 +25916,8 @@ Error generating stack: ` +
         image.dataset.atlasHomeLockupV3 = "true";
       };
       const syncPremiumDrawerActiveState = () => {
-        const activeLabel = document.querySelector(".bottom-nav button.active")?.textContent?.trim() || "Home";
+        const activeButton = document.querySelector(".bottom-nav button.active");
+        const activeLabel = activeButton?.dataset.nav || activeButton?.textContent?.trim() || "Home";
         document.querySelectorAll(".premium-drawer-link").forEach((link) => {
           const isDashboard = link.dataset.action === "dashboard";
           const linkLabel = link.dataset.nav || (link.dataset.action === "about" ? "About ATLAS" : "");
@@ -26019,7 +26022,7 @@ Error generating stack: ` +
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4"/><path d="M8 16h8"/></svg>
           </span>
-          <span class="atlas-menu-label">WORKFLOWS</span>
+          <span class="atlas-menu-label">COC</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
         <button class="premium-drawer-link atlas-menu-item" type="button" data-action="dashboard">
@@ -26027,6 +26030,13 @@ Error generating stack: ` +
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/><rect x="3" y="10" width="3" height="10" rx="1"/><rect x="9" y="4" width="3" height="16" rx="1"/><rect x="15" y="13" width="3" height="7" rx="1"/></svg>
           </span>
           <span class="atlas-menu-label">DASHBOARD</span>
+          <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
+        </button>
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-action="routing">
+          <span class="atlas-menu-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M3 7h11v9H3zM14 10h3l4 3v3h-7z"/><circle cx="7" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>
+          </span>
+          <span class="atlas-menu-label">DELIVERY ROUTING</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
         <button class="premium-drawer-link atlas-menu-item" type="button" data-action="about" data-atlas-navigation-key="about">
@@ -26194,6 +26204,12 @@ Error generating stack: ` +
           }),
         );
         backdrop
+          .querySelector('[data-action="routing"]')
+          .addEventListener("click", () => {
+            window.atlasOpenRouting?.();
+            close(false);
+          });
+        backdrop
           .querySelector('[data-action="about"]')
           .addEventListener("click", () => {
             openAtlasAbout();
@@ -26256,7 +26272,8 @@ Error generating stack: ` +
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register(
-              "./service-worker.js?v=271",
+              "./atlas-routing-worker.mjs?v=281",
+              { type: "module", updateViaCache: "none" },
             );
             const activateUpdate = (worker) =>
               worker?.postMessage({ type: "SKIP_WAITING" });
@@ -36507,11 +36524,12 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop.css?v=154" />
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
-    <link rel="stylesheet" href="./atlas-mobile-menu.css?v=2" />
+    <link rel="stylesheet" href="./atlas-mobile-menu.css?v=3" />
+    <link rel="stylesheet" href="./atlas-routing.css?v=20" />
     <script src="./atlas-login.js?v=1" defer></script>
     <script src="./atlas-auth.js?v=8" defer></script>
     <script src="./atlas-coc-references.js?v=2" defer></script>
-    <script src="./atlas-dashboard.js?v=188" defer></script>
+    <script src="./atlas-dashboard.js?v=189" defer></script>
     <script src="./atlas-guided-workflows.js?v=4" defer></script>
     <script src="./atlas-restock.js?v=3" defer></script>
     <script src="./atlas-delete-approval.js?v=1" defer></script>
@@ -36525,7 +36543,18 @@ Error generating stack: ` +
     <script src="./atlas-coc-delivery.js?v=16" defer></script>
     <script src="./atlas-coc-excel.js?v=20" defer></script>
     <script src="./atlas-coc.js?v=83" defer></script>
-  <script src="./atlas-desktop.js?v=133" defer></script>
+  <script src="./atlas-desktop.js?v=136" defer></script>
+  <script src="./atlas-routing-core.js?v=12" defer></script>
+    <script src="./atlas-routing-planner.js?v=6" defer></script>
+  <script src="./atlas-routing-catalog.js?v=2" defer></script>
+  <script src="./atlas-routing-intake.js?v=4" defer></script>
+  <script src="./atlas-routing-storage.js?v=3" defer></script>
+  <script src="./atlas-routing-notifications.js?v=2" defer></script>
+    <script src="./atlas-routing-pod-core.js?v=1" defer></script>
+    <script src="./atlas-routing-pod-queue.js?v=1" defer></script>
+    <script src="./atlas-routing-pod.js?v=6" defer></script>
+    <script src="./atlas-routing.js?v=34" defer></script>
+    <script type="module" src="./tools/routing-preview/full-site-client.mjs?v=2"></script>
 
 </body>
 </html>
