@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { parsePage, combinePages, preparePhoto } = require('../atlas-routing-intake.js');
-const { createPhotoQueue, quickReadingIssues } = require('../atlas-routing-intake.js');
+const { createPhotoQueue, quickReadingIssues, assessOrderReading } = require('../atlas-routing-intake.js');
 const core = require('../atlas-routing-core.js');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const photo = name => ({ file: { type: 'image/jpeg', size: 100, name }, name });
@@ -44,7 +44,7 @@ test('capture is bounded and rejects oversized or non-image files before reading
   queue.reset();
 });
 
-test('auto-add requires clear text, known SKU and consistent box/unit counts; TBA is retained for load review', () => {
+test('operational review requires known SKU and consistent box/unit counts; TBA remains load review', () => {
   const catalog = [{ model: 'CGST1-95MM', caseQty: 300, boxesPerPallet: 'TBA', caseDimensions: 'TBA' }], page = document();
   assert.deepEqual(quickReadingIssues(combinePages([page]), [page], catalog, core), []);
   assert.ok(quickReadingIssues(combinePages([page]), [page], [], core).length);
@@ -56,6 +56,56 @@ test('auto-add requires clear text, known SKU and consistent box/unit counts; TB
   assert.ok(quickReadingIssues(combinePages([mismatch]), [mismatch], catalog, core).length);
   const conflict = [document(), document({ cases: '50' })];
   assert.ok(quickReadingIssues(combinePages(conflict), conflict, catalog, core).length);
+});
+
+const assessmentCatalog = [{ model: 'CGST1-95MM', caseQty: 300, boxesPerPallet: 20 }];
+const assess = pages => assessOrderReading(combinePages(pages), pages, assessmentCatalog, core);
+test('unclear unrelated notes and billing text do not block operational fields', () => {
+  const page = document();
+  page.words[0].confidence = .1;
+  page.words.push({ text: 'unrelated', x: .1, y: .9, w: .12, h: .012 });
+  const result = assess([page]);
+  assert.equal(result.ready, true);
+  assert.deepEqual(result.blockingIssues, []);
+  assert.equal(result.fields.lines[0].sku.status, 'confirmed');
+});
+test('uncertain critical text flags only the field it supports', () => {
+  for (const [text, field] of [['Test Receiver', 'customer'], ['123 Example Street', 'address'], ['Fullerton CA 92835', 'city'], ['8:00 AM - 3:00 PM', 'timeWindow'], ['SO-US-64939', 'orderNumber']]) {
+    const page = document({ hours: '8:00 AM - 3:00 PM' });
+    page.words.push({ text: 'SO-US-64939', x: .7, y: .05, w: .2, h: .012, confidence: .98 });
+    page.words.find(w => w.text === text).confidence = .4;
+    const result = assess([page]);
+    assert.equal(result.fields[field].status, 'confirm_required', field);
+    assert.equal(result.fields.lines[0].caseQty.status, 'confirmed');
+    assert.equal(result.ready, false);
+  }
+  for (const [text, field] of [['CGST1-95MM-0401','sku'], ['100','caseQty']]) {
+    const page = document(); page.words.find(w => w.text === text).confidence = undefined;
+    const result = assess([page]);
+    assert.equal(result.fields.lines[0][field].status, 'confirm_required');
+    assert.equal(result.fields.customer.status, 'confirmed');
+  }
+});
+test('complementary pages resolve missing fields without stale page-wide blocks', () => {
+  const result = assess([document({ noCases: true }), document()]);
+  assert.equal(result.ready, true);
+  assert.equal(result.fields.lines[0].caseQty.value, 100);
+  assert.equal(assess([document({ noCases: true })]).fields.lines[0].caseQty.status, 'missing');
+});
+test('genuine field conflicts and mixed orders remain blocking despite later agreement', () => {
+  const result = assess([document(), document({ cases: '50' }), document()]);
+  assert.equal(result.fields.lines[0].caseQty.status, 'conflicting');
+  assert.deepEqual(result.fields.lines[0].caseQty.candidates, [100, 50]);
+  const other = document(); other.words.find(w => w.text === '123 Example Street').text = '456 Other Street';
+  assert.equal(assess([document(),other,document()]).fields.address.status, 'conflicting');
+  assert.equal(assess([document(), document({ id: 'SO-US-99999' })]).ready, false);
+});
+test('repeated high-confidence evidence can confirm a weak reading but incomplete SKU suffix remains flagged', () => {
+  const weak = document(); weak.words.find(w => w.text === '100').confidence = .3;
+  assert.equal(assess([weak,document()]).fields.lines[0].caseQty.status, 'confirmed');
+  const partial = document(); partial.words.find(w => w.text === 'CGST1-95MM-0401').text = 'CGST1-95MM-';
+  partial.text = partial.text.replace('CGST1-95MM-0401','CGST1-95MM-');
+  assert.equal(assess([partial]).fields.lines[0].sku.status, 'confirm_required');
 });
 
 function document(overrides = {}) {

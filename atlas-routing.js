@@ -17,7 +17,7 @@
   let vehicleChanges = {};
   let intakeRequest = null;
   let draftGeneration = 0;
-  let captureQueue = null, captureJob = null, captureReviewJob = null, captureApplying = false;
+  let documentFlow = null;
   let cancelOrderDrag = () => {};
   let driverMode = false, entryGeneration = 0, accessReadOnly = false;
   const dispatchUI = { tab: "orders", query: "", move: null, lastPlan: null };
@@ -82,7 +82,7 @@
           <div class="atlas-route-header-actions"><label class="atlas-route-date">${icon("calendar")}<span>Planning day</span> <input type="date" data-route-date /></label><button type="button" class="atlas-route-button" data-route-history>${icon("calendar")}Saved Routes</button><button type="button" class="atlas-route-button atlas-route-primary" data-route-optimize disabled title="Add orders and connect routing to calculate traffic and timing">${icon("play")}Optimize Routes</button><button type="button" class="atlas-route-account" data-route-account aria-label="ATLAS account"><span class="atlas-route-avatar" data-route-avatar></span><span><strong data-route-user></strong><small>Delivery planning</small></span>${icon("chevron")}</button></div>
         </header>
         <div class="atlas-route-daybar"><span data-route-save-status role="status"></span><div class="atlas-route-day-actions"><button type="button" class="atlas-route-button" data-route-save-day>${icon("check")}Save Day</button><details class="atlas-route-day-menu"><summary>Day actions ${icon("chevron")}</summary><div><button type="button" class="atlas-route-button" data-route-load-day>View Saved Day</button><button type="button" class="atlas-route-button" data-route-reminders>${icon("clock")}Delivery Reminders</button><button type="button" class="atlas-route-button" data-route-confirm-day>All Delivered</button><p>All Delivered records your confirmation; select Save Day afterward. Sent-out orders without an issue are assumed delivered after 5 PM Pacific. Future plans are never completed automatically.</p></div></details></div></div>
-        <details class="atlas-route-help"><summary>About this planning preview</summary><p>Clear photo readings are added and saved automatically; uncertain readings need review. Saved days keep order details, specifications and load assignments; order-entry photos are temporary. Recalculate routes for current traffic.</p></details>
+        <details class="atlas-route-help"><summary>About this planning preview</summary><p>Review each photo reading, then select Add Order. Save Route stores the reviewed day. Saved days keep order details, specifications and load assignments; order-entry photos are temporary. Recalculate routes for current traffic.</p></details>
         <div class="atlas-route-notice" data-route-review-request hidden role="status"><span data-route-review-request-text></span><button type="button" class="atlas-route-button" data-route-review-request-open>Review Saved Deliveries</button></div>
         <div class="atlas-route-grid">
           <div class="atlas-route-column">
@@ -109,16 +109,6 @@
           </div>
         </div>
       </main>
-      <dialog class="atlas-route-capture" data-route-capture aria-labelledby="atlasRouteCaptureTitle">
-        <div class="atlas-route-capture-heading"><span class="atlas-route-capture-icon">${icon("camera")}</span><div><p class="atlas-route-eyebrow">ORDER ENTRY</p><h2 id="atlasRouteCaptureTitle">Photograph Orders</h2></div></div><p>One order at a time. Add Page for more paperwork, Next Order to keep going, or Done to finish.</p>
-        <details class="atlas-route-help"><summary>How photo reading works</summary><p>Clear readings are added and saved automatically. Unclear details stay in Needs review. Photos are temporary; keep ATLAS open until reading finishes. Reading continues in the background after you tap Done.</p></details>
-        <p data-route-capture-status role="status">Ready for the first order.</p>
-        <div class="atlas-route-capture-buttons"><button type="button" class="atlas-route-button atlas-route-primary" data-route-capture-photo>Take Photo</button><button type="button" class="atlas-route-button" data-route-capture-next disabled>Next Order</button><button type="button" class="atlas-route-button" data-route-capture-done>Done</button></div>
-        <input type="file" accept="image/*" capture="environment" data-route-quick-camera hidden /><input type="file" accept="image/*" multiple data-route-quick-files hidden />
-        <button type="button" class="atlas-route-button" data-route-capture-files>Choose Photos for This Order</button><p data-route-capture-error role="alert"></p><div data-route-capture-jobs></div>
-        <button type="button" class="atlas-route-button" data-route-capture-close>Back to Deliveries</button>
-        <button type="button" class="atlas-route-button" data-route-capture-clear hidden>Start a New Batch</button>
-      </dialog>
       <dialog class="atlas-route-intake" aria-labelledby="atlasRouteIntakeTitle"><form data-route-order-form>
         <button type="button" class="atlas-route-close" aria-label="Close" data-route-cancel>×</button><h2 id="atlasRouteIntakeTitle">Add Order</h2><p role="status" data-route-entry-status></p><p data-route-intake-day></p><label class="atlas-route-check-option" data-route-cutoff-exception-wrap hidden><input type="checkbox" data-route-cutoff-exception /> Same-day exception: I am assigning this afternoon delivery</label>
         <p>Photograph the sales order, packing list, and invoice for one delivery. Check the Ship To address, SKU and boxes before adding it to the day.</p>
@@ -139,6 +129,7 @@
       </dialog>`;
     document.body.appendChild(section);
     initializeDispatchUI(section);
+    initializeDocumentFlow(section);
     const reminderDialog = document.createElement("dialog");
     reminderDialog.className = "atlas-route-intake atlas-route-reminders";
     reminderDialog.setAttribute("data-route-reminder-dialog", "");
@@ -198,19 +189,6 @@
       if (event.target.closest("[data-route-account]")) window.AtlasAuth?.open();
       if (event.target.closest("[data-route-intake]")) openCapture();
       if (event.target.closest("[data-route-manual-order]")) openDraft();
-      if (event.target.closest("[data-route-capture-photo]")) find("[data-route-quick-camera]").click();
-      if (event.target.closest("[data-route-capture-files]")) find("[data-route-quick-files]").click();
-      if (event.target.closest("[data-route-capture-next]")) { sealCapture(); find("[data-route-quick-camera]").click(); }
-      if (event.target.closest("[data-route-capture-done]")) { sealCapture(); find("[data-route-capture]").close(); }
-      if (event.target.closest("[data-route-capture-close]")) find("[data-route-capture]").close();
-      if (event.target.closest("[data-route-capture-clear]") && !captureApplying && captureQueue?.jobs().every(job => ["added", "dismissed"].includes(job.status))) { captureQueue.reset(); captureJob = null; renderCapture(); }
-      const dismissCapture = event.target.closest("[data-route-capture-dismiss]");
-      if (dismissCapture) {
-        const job = captureQueue?.jobs()[Number(dismissCapture.dataset.routeCaptureDismiss)];
-        if (job?.status === "review") { job.status = "dismissed"; job.photos = []; job.pages = []; job.result = null; if (captureJob === job) captureJob = null; renderCapture(); }
-      }
-      const captureReview = event.target.closest("[data-route-capture-review]");
-      if (captureReview) reviewCapture(Number(captureReview.dataset.routeCaptureReview));
       const leave = event.target.closest("[data-route-leave]");
       if (leave) leaveRouting(leave.dataset.routeLeave);
       const edit = event.target.closest("[data-route-edit]");
@@ -246,16 +224,6 @@
       if (!event.target.checked) field.value = "";
     });
     find(".atlas-route-intake").addEventListener("close", cleanupDraft);
-    find("[data-route-capture]").addEventListener("close", sealCapture);
-    for (const selector of ["[data-route-quick-camera]", "[data-route-quick-files]"]) find(selector).addEventListener("change", event => {
-      const photos = [...event.target.files].map(file => ({ file, name: file.name })); event.target.value = "";
-      if (!photos.length) return;
-      try {
-        const date = core.intakeDeliveryDay(find("[data-route-date]").value, new Date()).date;
-        captureJob = captureQueue.add(photos, { date, owner: state.ownerId }, captureJob);
-        find("[data-route-capture-error]").textContent = ""; renderCapture();
-      } catch (error) { find("[data-route-capture-error]").textContent = error.message; }
-    });
     find("[data-route-cutoff-exception]").addEventListener("change", showIntakeDay);
     section.addEventListener("input", (event) => {
       const key = event.target.matches("[data-route-truck-target]") ? "truckPalletTarget" : event.target.matches("[data-route-trip-target]") ? "dailyTripTarget" : null;
@@ -680,17 +648,16 @@
   function showIntakeDay() {
     const selected = find("[data-route-date]").value;
     const policy = core.intakeDeliveryDay(selected, new Date(), find("[data-route-cutoff-exception]").checked);
-    find("[data-route-cutoff-exception-wrap]").hidden = Boolean(state.editId || captureReviewJob) || !policy.exceptionAllowed;
+    find("[data-route-cutoff-exception-wrap]").hidden = Boolean(state.editId) || !policy.exceptionAllowed;
     find("[data-route-intake-day]").textContent = state.editId
       ? `Delivery day: ${selected}. Existing assignments stay unchanged.`
-      : captureReviewJob ? `Delivery day: ${captureReviewJob.date}, assigned when the first photo was taken.`
       : policy.exceptionAllowed && find("[data-route-cutoff-exception]").checked
         ? `Delivery day: ${policy.date}. Manual same-day exception selected; assign the afternoon driver and vehicle yourself.`
         : `Delivery day: ${policy.date}. New orders at or after 12:00 PM Pacific go to the next weekday. Friday afternoon goes to Monday.`;
   }
 
-  function openDraft(id = null) {
-    if (intakeRequest || savedDay.busy) return;
+  function openDraft(id = null, show = true) {
+    if (intakeRequest || savedDay.busy || accessReadOnly || driverMode) return;
     draftGeneration++;
     cancelPhotoReading();
     const existing = state.orders.find((order) => order.id === id);
@@ -727,92 +694,86 @@
     find("[data-route-form-error]").textContent = "";
     renderPhotos();
     if (locked) find("[data-route-read]").disabled = true;
-    if (!find(".atlas-route-intake").open) find(".atlas-route-intake").showModal();
+    if (show && !find(".atlas-route-intake").open) find(".atlas-route-intake").showModal();
   }
 
-  function openCapture() {
-    if (savedDay.busy || captureApplying || intakeRequest) return;
-    if (!window.atlasRoutingConnection?.photoAvailable) { openDraft(); return; }
-    if (!captureQueue) captureQueue = window.atlasRoutingIntake.createPhotoQueue({
-      read: async (photo, signal) => {
-        const image = await window.atlasRoutingIntake.preparePhoto(photo.file, signal);
+  function intakeSnapshot() {
+    const canEdit = state.open && !driverMode && !accessReadOnly && state.ownerId === window.AtlasAuth?.getSession()?.user?.id &&
+      !savedDay.busy && !intakeRequest && !state.planningController && (!storage()?.enabled || (savedDay.ready && savedDay.canEdit));
+    return { owner: state.ownerId, active: state.open && !driverMode && state.ownerId === window.AtlasAuth?.getSession()?.user?.id,
+      canEdit, canSave: canEdit && storage()?.enabled && savedDay.ready, dirty: savedDay.dirty,
+      canOptimize: canEdit && !find("[data-route-optimize]").disabled,
+      planIssue: !window.atlasRoutingConnection?.available ? "Google routing is not connected. Your orders remain available." : state.loadPlan?.unscheduled.length ? "Some loads need review before routing. Open Trips to review them." : "",
+      orders: dayOrders().map(o => ({ ...o, locked: isLockedOrder(o.id) || !!o.dispatchedOn || !!o.deliveredOn })),
+      catalog: state.catalog, core, date: find("[data-route-date]").value,
+      intakeDate: core.intakeDeliveryDay(find("[data-route-date]").value, new Date()).date,
+      pallets: find("[data-route-total-pallets]").textContent, plan: state.planned, time: displayTime };
+  }
+
+  function initializeDocumentFlow(section) {
+    documentFlow = window.atlasRoutingIntake.createDocumentFlow({ host: section, icon, snapshot: intakeSnapshot,
+      read: async (file, signal) => {
+        if (!window.atlasRoutingConnection?.photoAvailable) throw new Error("Photo reading is not connected yet.");
+        const image = await window.atlasRoutingIntake.preparePhoto(file, signal);
         const response = await window.atlasRoutingConnection.readPhoto(image, { signal });
+        if (!response.pages?.[0]) throw new Error("No readable text found. Take a clearer photo.");
         return response.pages[0];
-      }, accept: acceptCapture, changed: renderCapture,
+      },
+      submit: async order => {
+        if (!intakeSnapshot().canEdit) throw new Error("This day cannot be edited right now.");
+        openDraft(null, false);
+        const form = find("[data-route-order-form]");
+        for (const name of ["orderNumber", "customer", "address", "city", "timeWindow"]) form.elements[name].value = order[name];
+        for (const name of ["invoiceNumbers", "fulfillmentNumbers"]) form.elements[name].value = (order[name] || []).join(", ");
+        form.elements.checkOnDelivery.checked = order.checkOnDelivery;
+        find("[data-route-lines]").replaceChildren(); order.lines.forEach(addLine);
+        if (order.timeWindow) window.atlasRoutingPlanner.timeWindow(order.timeWindow, order.date, window.atlasRoutingPlanner.timestamp(order.date, 390), 25);
+        const saved = await saveDraft({ preventDefault() {}, target: form, intakeDate: order.date });
+        if (!saved) throw new Error(find("[data-route-form-error]").textContent || "Order could not be added. Try again.");
+        cleanupDraft(); return saved;
+      },
+      optimize: async () => {
+        if (!intakeSnapshot().canOptimize) throw new Error(intakeSnapshot().planIssue || "Review the orders and load assignments first.");
+        await optimizeDay();
+        if (!state.planned?.complete) throw new Error(find("[data-route-progress]").textContent || "Routes could not be calculated. Your orders are still here.");
+      },
+      save: async () => {
+        if (!intakeSnapshot().canSave) throw new Error("Saving is unavailable. Your reviewed orders remain in this tab.");
+        await saveDay();
+        if (savedDay.dirty) throw new Error(savedDay.message || "Route was not saved. Please retry.");
+      },
+      edit: id => { if (intakeSnapshot().canEdit) openDraft(id); },
+      remove: id => {
+        if (!intakeSnapshot().canEdit || !canReorderOrder(id)) throw new Error("Sent-out, delivered or read-only orders cannot be removed.");
+        if (!window.confirm("Remove this order from the current day? Save Day afterward to store the change.")) return;
+        const order = state.orders.find(o => o.id === id);
+        order?.photos.forEach(photo => { URL.revokeObjectURL(photo.url); state.allUrls.delete(photo.url); });
+        state.orders = state.orders.filter(o => o.id !== id); renderOrders();
+      },
+      map: () => find("[data-dispatch-map]").showModal(),
+      cancelPlan: () => state.planningController?.abort(),
     });
-    renderCapture(); find("[data-route-capture]").showModal();
-    if (!captureJob) find("[data-route-quick-camera]").click();
+    const nav = document.createElement("nav"); nav.className = "atlas-route-manager-nav"; nav.setAttribute("aria-label", "Delivery routing");
+    nav.innerHTML = [["home", "Home", "dashboard"], ["orders", "Orders", "document"], ["trips", "Trips", "truck"], ["more", "More", "gear"]].map(([id,label,glyph]) => `<button type="button" data-manager-tab="${id}">${icon(glyph)}<span>${label}</span></button>`).join(""); section.append(nav);
+    const more = document.createElement("dialog"); more.className = "atlas-route-manager-more";
+    more.innerHTML = '<h2>More</h2>' + [["queue","Waiting loads"],["history","Saved routes"],["map","Map"],["settings","Settings"],["pods","Delivery documents"],["day","Day actions"],["menu","Main Menu"]].map(([id,label]) => `<button type="button" class="atlas-route-button" data-manager-more="${id}">${label}</button>`).join("") + '<button type="button" class="atlas-route-button" data-manager-more="close">Close</button>'; section.append(more);
+    nav.addEventListener("click", event => {
+      const tab = event.target.closest("[data-manager-tab]")?.dataset.managerTab; if (!tab || driverMode) return;
+      if (tab === "orders") documentFlow.open("ORDERS_READY");
+      else if (tab === "more") more.showModal();
+      else { dispatchUI.tab = tab === "home" ? "orders" : "trips"; applyDispatchTab(); window.scrollTo(0,0); }
+    });
+    more.addEventListener("click", event => {
+      const action = event.target.closest("[data-manager-more]")?.dataset.managerMore; if (!action) return; more.close();
+      if (["queue", "pods"].includes(action)) { dispatchUI.tab = action; applyDispatchTab(); if(action === "pods") void window.atlasRoutingPOD?.load(); }
+      if (["map", "settings"].includes(action)) find(`[data-dispatch-${action}]`).showModal();
+      if (action === "history") { find("[data-route-history-dialog]").showModal(); void searchHistory(0); }
+      if (action === "menu") document.querySelector(".premium-menu-button")?.click();
+      if (action === "day") { find(".atlas-route-day-menu").open = true; find(".atlas-route-day-menu").scrollIntoView({block:"center"}); }
+    });
   }
 
-  function sealCapture() {
-    if (captureJob) captureQueue.seal(captureJob);
-    captureJob = null; renderCapture();
-  }
-
-  function renderCapture() {
-    if (!find("[data-route-capture]")) return;
-    const jobs = captureQueue?.jobs() || [];
-    find("[data-route-capture-status]").textContent = captureJob ? `${captureJob.photos.length} page(s) for this order · delivery day ${captureJob.date}` : "Ready for the next order.";
-    find("[data-route-capture-photo]").textContent = captureJob ? "Add Page" : "Take Photo";
-    find("[data-route-capture-next]").disabled = !captureJob;
-    find("[data-route-capture-clear]").hidden = !jobs.length || !jobs.every(job => ["added", "dismissed"].includes(job.status));
-    const html = jobs.map((job, index) => `<article><strong>${escape(job.result?.orderNumber || `Order ${index + 1}`)}</strong> · ${job.photos.length} photo(s) · ${escape(job.date)}<p>${escape(job.status === "added" ? job.message : job.status === "review" ? `Needs review: ${job.message || job.result?.issues.join(" ") || "Check the order details."}` : job.status === "reviewing" ? "Open in order editor" : job.status === "dismissed" ? "Dismissed; no order added." : job.sealed ? "Reading / checking…" : "Add another page or select Next Order / Done.")}</p>${job.status === "review" ? `<button type="button" class="atlas-route-button" data-route-capture-review="${index}">Review Order</button> <button type="button" class="atlas-route-button" data-route-capture-dismiss="${index}">Dismiss Reading</button>` : ""}</article>`).join("");
-    find("[data-route-capture-jobs]").innerHTML = html;
-    find("[data-route-capture-summary]").hidden = !jobs.length;
-    find("[data-route-capture-summary]").innerHTML = html;
-  }
-
-  async function acceptCapture(job, active) {
-    const current = () => active() && state.open && state.ownerId === job.owner && window.AtlasAuth?.getSession()?.user?.id === job.owner;
-    if (!current()) return;
-    if (savedDay.busy || intakeRequest || state.planningController || find(".atlas-route-intake").open) throw new Error("Finish the open order or day operation, then review this reading.");
-    captureApplying = true; find(".atlas-route-main").inert = true;
-    try {
-      const r = job.result;
-      if (r.mixedOrders || r.issues.length) throw new Error(r.issues.join(" "));
-      if (!storage()?.enabled || !savedDay.ready || !savedDay.canEdit) throw new Error("Shared saving is unavailable. Review this order before adding it.");
-      if (job.date !== find("[data-route-date]").value) {
-        if (savedDay.dirty) { await saveDay(); if (!current()) return; if (savedDay.dirty) throw new Error("Save the current day before opening this delivery day."); }
-        const fallback = { ...dayDocument(), date: job.date, orders: [], assignments: {}, vanConfirmed: {}, lockedTrips: [] };
-        savedDay.busy = true; showSaveStatus();
-        let result;
-        try { result = await storage().load(job.date); }
-        finally { if (current()) { savedDay.busy = false; showSaveStatus(); } }
-        if (!current()) return;
-        if (result.date !== job.date || !result.canEdit) throw new Error("This delivery day cannot be edited.");
-        find("[data-route-date]").value = job.date;
-        applySavedDay({ ...result, document: result.document || fallback });
-      }
-      if (dayOrders().some(order => order.orderNumber.toUpperCase() === r.orderNumber.toUpperCase())) throw new Error("This sales order is already on the day. Review its existing order; quantities were not added again.");
-      const issues = window.atlasRoutingIntake.quickReadingIssues(r, job.pages, state.catalog, core);
-      if (issues.length) throw new Error(issues.join(" "));
-      if (r.timeWindow) window.atlasRoutingPlanner.timeWindow(r.timeWindow, job.date, window.atlasRoutingPlanner.timestamp(job.date, 390), 25);
-      const order = { id: crypto.randomUUID(), date: job.date, orderNumber: r.orderNumber, customer: r.customer, address: r.address, city: r.city,
-        timeWindow: r.timeWindow, serviceMinutes: 25, notes: "", invoiceNumbers: r.invoiceNumbers, fulfillmentNumbers: r.fulfillmentNumbers,
-        checkOnDelivery: r.checkOnDelivery, deliveredOn: null, dispatchedOn: null, deliveryException: "",
-        lines: r.lines.map(line => ({ sku: line.sku, caseQty: line.caseQty, itemQty: line.itemQty })), photos: [] };
-      window.atlasRoutingStorage.document({ ...dayDocument(), orders: [...dayOrders(), order] });
-      if (!current()) return;
-      state.orders.push(order); const plan = renderOrders();
-      job.status = "added"; job.message = `Added · ${orderLoadMessage(plan, order.id)} Saving details…`; renderCapture();
-      await saveDay(); if (!current()) return;
-      job.message = `${savedDay.dirty ? "Added, but NOT SAVED — select Save Day to retry." : "Added and saved."} ${orderLoadMessage(plan, order.id)}`;
-    } finally { if (current()) { captureApplying = false; find(".atlas-route-main").inert = false; } }
-  }
-
-  function reviewCapture(index) {
-    const job = captureQueue?.jobs()[index];
-    if (!job || job.status !== "review" || savedDay.busy || captureApplying) return;
-    find("[data-route-capture]").close();
-    openDraft(); captureReviewJob = job; job.status = "reviewing"; showIntakeDay();
-    for (const photo of job.photos) {
-      const url = URL.createObjectURL(photo.file); state.newUrls.push(url); state.allUrls.add(url); state.draftPhotos.push({ ...photo, url });
-    }
-    renderPhotos();
-    if (job.result) { photoSuggestion = job.result; applyPhotoReading(); }
-    find("[data-route-form-error]").textContent = job.message || job.result?.issues.join(" ") || "Review this order against the photos.";
-    renderCapture();
-  }
+  function openCapture() { if (intakeSnapshot().canEdit) documentFlow.open(); }
 
   function renderPhotos() {
     find("[data-route-preview]").replaceChildren(...state.draftPhotos.map((photo, index) => {
@@ -884,13 +845,13 @@
 
   async function saveDraft(event) {
     event.preventDefault();
-    if (intakeRequest || savedDay.busy) return;
+    if (intakeRequest || savedDay.busy || accessReadOnly || driverMode) return;
     if (photoController) { find("[data-route-form-error]").textContent = "Wait for photo reading or cancel it before saving."; return; }
     const form = event.target;
     const addNext = !state.editId && Boolean(event.submitter?.matches("[data-route-add-next]"));
     const orderNumber = form.elements.orderNumber.value.trim();
     const selectedDay = find("[data-route-date]").value;
-    const date = state.editId ? selectedDay : captureReviewJob?.date || core.intakeDeliveryDay(selectedDay, new Date(), find("[data-route-cutoff-exception]").checked).date;
+    const date = state.editId ? selectedDay : event.intakeDate || core.intakeDeliveryDay(selectedDay, new Date(), find("[data-route-cutoff-exception]").checked).date;
     let invoiceNumbers, fulfillmentNumbers, deliveredOn, dispatchedOn;
     try {
       invoiceNumbers = documentNumbers(form.elements.invoiceNumbers.value); fulfillmentNumbers = documentNumbers(form.elements.fulfillmentNumbers.value);
@@ -928,7 +889,7 @@
     if (date !== selectedDay) {
       const request = {}, generation = draftGeneration, owner = state.ownerId;
       intakeRequest = request; form.inert = true;
-      const current = () => intakeRequest === request && draftGeneration === generation && state.open && state.ownerId === owner && window.AtlasAuth?.getSession()?.user?.id === owner && find(".atlas-route-intake").open;
+      const current = () => intakeRequest === request && draftGeneration === generation && state.open && state.ownerId === owner && window.AtlasAuth?.getSession()?.user?.id === owner && (event.intakeDate ? documentFlow?.active() : find(".atlas-route-intake").open);
       try {
         if (storage()?.enabled) {
           if (!savedDay.ready || !savedDay.canEdit || savedDay.day !== selectedDay) throw new Error("Open an editable saved day before adding the order.");
@@ -960,26 +921,17 @@
     if (index < 0) state.orders.push(order); else state.orders[index] = order;
     state.newUrls = [];
     const plan = renderOrders();
-    if (captureReviewJob) {
-      const job = captureReviewJob, owner = state.ownerId, generation = draftGeneration;
-      job.status = "added"; captureReviewJob = null; form.inert = true;
-      try { await saveDay(); }
-      finally { if (generation === draftGeneration) form.inert = false; }
-      if (generation !== draftGeneration || owner !== state.ownerId || owner !== window.AtlasAuth?.getSession()?.user?.id) return;
-      job.message = storage()?.enabled && !savedDay.dirty ? "Reviewed, added and saved." : "Reviewed and added, but NOT SAVED — select Save Day to retry.";
-      renderCapture();
-    }
     if (addNext) {
       cleanupDraft();
       openDraft();
       find("[data-route-entry-status]").textContent = orderNumber + " added · " + dayOrders().length + " orders on this day. " + orderLoadMessage(plan, order.id) + (dayOrders().some((item) => (item.dispatchedOn || item.deliveredOn) && !isLockedOrder(item.id)) ? " This day has older sent-out statuses without trip locks; review the plan." : "") + " Ready for the next order.";
       form.elements.orderNumber.focus();
       find(".atlas-route-intake").scrollTop = 0;
-    } else find(".atlas-route-intake").close();
+    } else if (!event.intakeDate) find(".atlas-route-intake").close();
+    return order;
   }
 
   function cleanupDraft() {
-    if (captureReviewJob) { captureReviewJob.status = "review"; captureReviewJob = null; renderCapture(); }
     draftGeneration++;
     cancelPhotoReading();
     state.newUrls.forEach((url) => { URL.revokeObjectURL(url); state.allUrls.delete(url); });
@@ -1305,7 +1257,7 @@
 
   function leaveRouting(target) {
     if (window.atlasRoutingPOD?.hasPending() && !window.confirm("These POD pages are still saving or could not be saved. Leave without saving them?")) return false;
-    if ((savedDay.dirty || savedDay.busy || captureQueue?.jobs().some(job => !["added", "dismissed"].includes(job.status))) && !window.confirm("There are unsaved changes or unfinished photo readings. Leave and clear temporary photos?")) return false;
+    if ((savedDay.dirty || savedDay.busy || documentFlow?.active()) && !window.confirm("There are unsaved changes or unfinished photo readings. Leave and clear temporary photos?")) return false;
     state.open = false;
     resetWorkspace();
     root.classList.remove("atlas-routing-open");
@@ -1325,8 +1277,8 @@
     dispatchUI.tab = "orders"; dispatchUI.query = ""; dispatchUI.lastPlan = null;
     for (const name of ["settings","map","move"]) find(`[data-dispatch-${name}]`)?.close();
     if (find("[data-dispatch-query]")) find("[data-dispatch-query]").value = "";
-    captureQueue?.reset(); captureQueue = null; captureJob = null; captureReviewJob = null; captureApplying = false;
-    find("[data-route-capture]")?.close(); if (find(".atlas-route-main")) find(".atlas-route-main").inert = false;
+    documentFlow?.reset(); find(".atlas-route-manager-more")?.close();
+    if (find(".atlas-route-main")) find(".atlas-route-main").inert = false;
     intakeRequest = null;
     if (find("[data-route-order-form]")) find("[data-route-order-form]").inert = false;
     vehicleChanges = {};
@@ -1405,7 +1357,7 @@
   };
   window.addEventListener("atlas-reminders-changed", showReminderStatus);
   window.addEventListener("beforeunload", event => {
-    if (state.open && (savedDay.dirty || savedDay.busy || captureQueue?.jobs().some(job => !["added", "dismissed"].includes(job.status)))) { event.preventDefault(); event.returnValue = ""; }
+    if (state.open && (savedDay.dirty || savedDay.busy || documentFlow?.active())) { event.preventDefault(); event.returnValue = ""; }
   });
   // A modal's top layer can clip long printed sheets. Temporarily render it
   // in normal document flow so all stops can paginate, then restore the modal.

@@ -160,8 +160,11 @@
     return closest;
   };
   let preciseCaretTap = null;
-  const boxCountError = (value, palletNumber) => {
+  const boxCountError = (value, palletNumber, setup = false) => {
     const text = String(value ?? "").trim();
+    if (!text && setup) return palletNumber === 1
+      ? "Enter the Pallet 1 or loose-box count."
+      : `Enter the box count for Pallet ${palletNumber}.`;
     if (!text) return `Enter the total number of boxes on Pallet ${palletNumber}.`;
     if (/^0+$/.test(text)) return "Box count must be greater than 0.";
     if (!/^\d+$/.test(text) || !Number.isSafeInteger(Number(text)))
@@ -216,6 +219,86 @@
     const generation = accountGeneration;
     const key = draftContextKey;
     return () => Boolean(key && generation === accountGeneration && key === activeDraftKey());
+  }
+
+  function canReviewLegacyDraft() {
+    const auth = Delivery.getAuthSession();
+    return Boolean(auth?.access_token && auth.user?.id === currentUserId() &&
+      (!auth.expires_at || Number(auth.expires_at) * 1000 > Date.now()) &&
+      activeDraftKey() && Delivery.isSupervisor());
+  }
+
+  const isLegacyDraftModal = () => ["legacy-draft-review", "legacy-draft-delete"].includes(modal?.type);
+
+  function legacyDraftSummary(raw) {
+    try {
+      const source = JSON.parse(raw);
+      const saved = Core.sanitize(source);
+      if (!saved) throw new Error("INVALID_DRAFT");
+      // Read-only, allowlisted summary. Never adopt or persist this unowned snapshot.
+      const text = (value, limit = 160) => typeof value === "string"
+        ? value.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, limit) : "";
+      const rows = [
+        ["Customer", text(source.customerName)],
+        ["Sales Order", text(source.salesOrderNumber, 80)],
+        ["Recorded employee", text(source.employeeDisplayName) || text(source.employee)],
+        ["Warehouse", text(source.warehouseCode, 8)],
+        ["Last updated", formatDate(text(source.updatedAt, 40))],
+        ["Pallet count", String(source.pallets.length)],
+        ["Recorded box count", String(Core.sessionTotal(saved))],
+      ];
+      return rows.filter(([, value]) => value).map(([label, value]) =>
+        `<p><strong>${label}:</strong> ${escapeHtml(value)}</p>`).join("");
+    } catch {
+      return "<p>Draft details are unavailable. The original data is still stored on this device.</p>";
+    }
+  }
+
+  function legacyDraftModal() {
+    const deleting = modal.type === "legacy-draft-delete";
+    return modalShell(deleting
+      ? `<h2>Delete this older draft?</h2><p>This removes only the unverified older draft from this device. Current drafts and Completed COCs will not be affected.</p>
+        <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Keep Draft</button><button type="button" class="atlas-coc-danger" data-coc-action="confirm-delete-old-draft">Delete Old Draft</button></div>`
+      : `<span class="atlas-coc-eyebrow">OLDER COC DRAFT</span><h2>Review saved draft</h2>
+        <p>This draft was created by an older version of ATLAS. Its owner cannot be verified automatically.</p>
+        ${legacyDraftSummary(modal.raw)}
+        <div class="atlas-coc-modal-actions"><button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Keep Draft</button><button type="button" class="atlas-coc-danger" data-coc-action="review-delete-old-draft">Delete Old Draft</button></div>`, {
+      label: deleting ? "Delete this older draft?" : "Review saved draft", showBack: false, showDiscard: false,
+    });
+  }
+
+  function handleLegacyDraftAction(action) {
+    const expectedType = action === "review-delete-old-draft" ? "legacy-draft-review" : "legacy-draft-delete";
+    const authorized = canReviewLegacyDraft() && (action === "review-old-draft" ||
+      (modal?.type === expectedType && modal.isCurrent()));
+    if (!authorized) {
+      modal = null; workflowView = "landing"; renderAll();
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(ACTIVE_KEY);
+      if (raw === null || (action !== "review-old-draft" && raw !== modal.raw)) {
+        modal = null; workflowView = "landing"; renderAll();
+        showToast("The older draft changed. Review it again before deleting.", "warning");
+        return;
+      }
+      if (action === "review-old-draft") {
+        modal = { type: "legacy-draft-review", raw, isCurrent: currentOperation() };
+      } else if (action === "review-delete-old-draft") {
+        modal.type = "legacy-draft-delete";
+      } else {
+        // Authorization and the reviewed value were checked synchronously above.
+        localStorage.removeItem(ACTIVE_KEY);
+        if (localStorage.getItem(ACTIVE_KEY) !== null) throw new Error("LEGACY_DRAFT_NOT_REMOVED");
+        modal = null; workflowView = "landing"; renderAll();
+        showToast("Older draft removed from this device", "confirmation");
+        return;
+      }
+      renderAll();
+    } catch {
+      modal = null; workflowView = "landing"; renderAll();
+      showToast("The older draft could not be removed. No COC data was changed.", "warning");
+    }
   }
 
   function readSession() {
@@ -547,7 +630,7 @@
       message = "Count is not safely stored — stop and retry saving";
       tone = "warning";
     }
-    if (tone !== "warning") return;
+    if (tone !== "warning" && tone !== "confirmation") return;
     let node = document.getElementById("atlas-coc-toast");
     if (!node) {
       node = document.createElement("div");
@@ -767,7 +850,7 @@
     const activeCopy = session?.status === "report" ? "Review Report" : "Resume COC";
     return `<div class="atlas-coc-page">
       <header class="atlas-coc-page-head"><span>WORKFLOWS</span><h1>Warehouse Workflows</h1><p>Focused tools for accurate warehouse work.</p></header>
-      ${localStorage.getItem(ACTIVE_KEY) ? `<p class="atlas-coc-warning">An older COC draft is preserved on this computer. Ask your ATLAS administrator to verify its owner before recovery.</p>` : ""}
+      ${localStorage.getItem(ACTIVE_KEY) !== null ? `<p class="atlas-coc-warning">An older COC draft is preserved on this computer. Ask your ATLAS administrator to verify its owner before recovery.${canReviewLegacyDraft() ? `<br><button type="button" class="atlas-coc-back" data-coc-action="review-old-draft">Review Old Draft</button>` : ""}</p>` : ""}
       <section class="atlas-coc-launch-card">
         <div class="atlas-coc-launch-icon" aria-hidden="true">✓</div>
         <div class="atlas-coc-launch-copy"><span>CERTIFICATE OF COMPLIANCE</span><h2>COC</h2>
@@ -1181,7 +1264,7 @@
         <p>Enter the box count and first model on this pallet.</p></header>
       <form id="atlas-coc-expected-form" class="atlas-coc-form-card atlas-coc-expected-card">
         ${sessionHeaderMarkup(pallet)}
-        <label><strong>Total Boxes on Pallet ${pallet.number}</strong>
+        <label><strong>${pallet.number === 1 ? "Boxes on Pallet 1 or Loose Boxes" : `Boxes on Pallet ${pallet.number}`}</strong>
           <input name="expectedBoxes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" required autofocus placeholder="Enter box count" aria-describedby="atlas-coc-box-count-error" /></label>
         ${palletModels.length ? activeModelMarkup(pallet) : `<fieldset class="atlas-coc-model-fields atlas-coc-first-model"><legend>First Model on Pallet ${pallet.number}</legend>${modelFieldMarkup({ compact: true })}</fieldset>`}
         ${recorded ? `<p class="atlas-coc-preserved-count"><strong>${plural(recorded, "box")} already recorded</strong><span>Your saved lots are preserved. Confirm the total box count to continue.</span></p>` : ""}
@@ -2250,6 +2333,7 @@
 
   function modalMarkup() {
     if (!modal) return "";
+    if (isLegacyDraftModal()) return legacyDraftModal();
     if (modal?.type === "confirm-missing-references") return missingReferencesModal(modal);
     if (modal === "review-pallet") return reviewPalletModal();
     if (modal === "review-complete") return reviewCompleteModal();
@@ -2288,6 +2372,9 @@
 
   function renderAll() {
     resetDraftContext();
+    if (isLegacyDraftModal() && (!canReviewLegacyDraft() || !modal.isCurrent())) {
+      modal = null; workflowView = "landing";
+    }
     syncActiveTiming();
     document.documentElement.classList.toggle("atlas-coc-work-mode", isWorkflowSection());
     document.documentElement.classList.toggle("atlas-coc-has-active", Boolean(session));
@@ -3119,6 +3206,11 @@
   async function handleAction(button) {
     const action = button.dataset.cocAction;
     if (!action) return;
+    if (["review-old-draft", "review-delete-old-draft", "confirm-delete-old-draft"].includes(action)) {
+      resetDraftContext();
+      handleLegacyDraftAction(action);
+      return;
+    }
     if (action === "show-landing") {
       finishScanMetricAttempt("canceled");
       cancelScanSession(); stopReceiverQrScanner(); capture = freshCapture(); modal = null;
@@ -3691,7 +3783,7 @@
     const error = form?.querySelector(".atlas-coc-form-error");
     const count = positiveWhole(input.value);
     updatePalletSetupButton(form);
-    if (error) error.textContent = input.value ? boxCountError(input.value, activePallet()?.number || 1) : "";
+    if (error) error.textContent = input.value ? boxCountError(input.value, activePallet()?.number || 1, form?.id === "atlas-coc-expected-form") : "";
   });
 
   document.addEventListener("focusin", (event) => {
@@ -3787,7 +3879,7 @@
       const expected = positiveWhole(data.get("expectedBoxes"));
       const error = event.target.querySelector(".atlas-coc-form-error");
       if (!expected) {
-        error.textContent = boxCountError(data.get("expectedBoxes"), activePallet()?.number || 1);
+        error.textContent = boxCountError(data.get("expectedBoxes"), activePallet()?.number || 1, true);
         return;
       }
       try {
@@ -3986,6 +4078,10 @@
   });
 
   window.addEventListener("storage", (event) => {
+    if (event.key === ACTIVE_KEY) {
+      if (isLegacyDraftModal()) modal = null;
+      renderAll(); return;
+    }
     if (event.key === "atlas-selected-warehouse-v1") {
       resetDraftContext(); renderAll(); restoreFromCloud(); return;
     }
@@ -4011,7 +4107,7 @@
     if (session?.status === "report" && workflowView === "session") renderAll();
   });
   window.addEventListener("atlas-auth-changed", (event) => {
-    if (resetDraftContext()) renderAll();
+    if (resetDraftContext() || isLegacyDraftModal()) renderAll();
     if (!event.detail?.session) return;
     restoreFromCloud();
     Catalog.loadRemote();

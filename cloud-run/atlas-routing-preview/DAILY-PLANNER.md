@@ -5,7 +5,7 @@ ATLAS. Nothing has been committed, pushed to GitHub, merged or published to
 GitHub Pages. Supabase configuration, databases and Edge Function sources were
 not changed in this step.
 
-## Current connection
+## Historical connection at initial deployment
 
 The existing private Cloud Run service now also accepts `/plan-trip`. The
 original `/optimize-trip` sample endpoint and its source remain unchanged.
@@ -32,38 +32,25 @@ preview was deployed. Old images, revisions and source backups were retained.
 
 ## Planning behavior
 
-### Private mobile capture update (deployed)
+### Document intake update — local, September 22, 2026
 
-Add Orders opens the phone camera. Add Page keeps another sales order,
-packing-list or invoice photo in the same order; Next Order seals that group
-and opens the next camera capture without waiting for text extraction. Done
-seals the final order and returns to Deliveries without reopening the camera;
-pending readings and saves continue while routing stays open. Done also works
-when there are no photos, without creating an empty order. A sequential background queue prevents
-simultaneous OCR requests and caps a batch at 10 orders/30 photos (20 per order).
-The day is assigned from the first photo using the existing Pacific noon and
-weekday cutoff, even when reading completes later.
+The current local frontend replaces background automatic photo addition with
+Add Document → Photograph → Verify → Order Added → Orders Ready → Route Ready.
+Every photo order requires explicit Add Order. Field-level assessment ignores
+unrelated low-confidence text while keeping critical values and genuine conflicts
+in review. See `PHOTO-INTAKE.md` for capture, confirmation and cleanup behavior.
 
-Clear, complete readings with known SKUs and consistent quantities are added
-and saved through the existing revision-checked saved-day connection. Repeated
-documents never sum their quantities. Uncertain text, mixed orders, duplicate
-order numbers, unknown SKUs, mismatched quantities and service failures remain
-in Needs review. Reviewing and adding a queued order also saves its details.
-TBA specifications still allow known order details and retain load-fit warnings.
-Save failures remain explicitly unsaved; there is no automatic conflict retry.
-Manual entry remains available. Dismiss Reading removes only a temporary queued
-reading, not a saved order. Account changes abort and clear the temporary queue.
-Photos and OCR responses stay in memory and are never included in saved days.
+Finish Adding Orders opens the current day's compact order summary. Optimize
+Route uses the existing planner and load assignments; no demonstration metrics
+are substituted when the connection is unavailable. Save Route stores the
+reviewed day through the existing revision-checked connection. Trip estimates
+are recalculated when a saved day is reopened. Photo bytes are never persisted.
 
-Verified with synthetic Node tests and a 390x844 isolated Chromium browser:
-multi-page grouping, next-order capture while reading is pending, automatic
-saves, duplicate prevention, review/edit/save, save failures, account reset,
-and a delayed Friday-before-noon reading alongside a Monday-bound noon order.
-Actual iPhone/Android camera handoff, mobile background suspension and real-photo
-recognition still require device testing. The user wants the quickest practical
-capture workflow; the earlier 3–5 seconds was illustrative, not a timing target.
-This change does not add durable background uploads: keep routing open until
-processing finishes. No new schema or Edge Function changes are needed.
+Home, Orders, Trips and More provide mobile manager navigation. The existing
+ATLAS sidebar, desktop dispatch controls and driver/POD workflow remain intact.
+The noon cutoff, weekday rollover, administrator-only editing, split shipments,
+van fallback, truck targets and sent-out trip locks remain unchanged. No backend
+or live deployment is included in this frontend update.
 
 ### Daily scheduling
 
