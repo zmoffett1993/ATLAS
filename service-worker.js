@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v381-routing-document-intake";
+const VERSION = "atlas-pwa-v382-todays-routes-mobile";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -38,7 +38,7 @@ const APP_SHELL = [
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=3",
   "./atlas-desktop.js?v=136",
-  "./atlas-routing.css?v=21",
+  "./atlas-routing.css?v=22",
   "./atlas-routing-core.js?v=12",
   "./atlas-routing-planner.js?v=6",
   "./atlas-routing-catalog.js?v=2",
@@ -48,7 +48,7 @@ const APP_SHELL = [
   "./atlas-routing-pod-core.js?v=1",
   "./atlas-routing-pod-queue.js?v=1",
   "./atlas-routing-pod.js?v=6",
-  "./atlas-routing.js?v=35",
+  "./atlas-routing.js?v=36",
   "./tools/routing-preview/full-site-client.mjs?v=2",
   "./tools/routing-preview/preview.mjs",
   "./tools/routing-preview/maps.mjs",

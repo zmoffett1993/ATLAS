@@ -18,6 +18,7 @@
   let intakeRequest = null;
   let draftGeneration = 0;
   let documentFlow = null;
+  let mobileSaveFailed = false;
   let cancelOrderDrag = () => {};
   let driverMode = false, entryGeneration = 0, accessReadOnly = false;
   const dispatchUI = { tab: "orders", query: "", move: null, lastPlan: null };
@@ -130,6 +131,7 @@
     document.body.appendChild(section);
     initializeDispatchUI(section);
     initializeDocumentFlow(section);
+    initializeMobileDashboard(section);
     const reminderDialog = document.createElement("dialog");
     reminderDialog.className = "atlas-route-intake atlas-route-reminders";
     reminderDialog.setAttribute("data-route-reminder-dialog", "");
@@ -335,6 +337,10 @@
     find("[data-dispatch-queue]").hidden = dispatchUI.tab !== "queue";
     find("[data-dispatch-pods]").hidden = dispatchUI.tab !== "pods";
     find(".atlas-route-grid").hidden = dispatchUI.tab === "pods";
+    section.querySelectorAll("[data-manager-tab]").forEach(button => {
+      const active = button.dataset.managerTab === (dispatchUI.tab === "orders" ? "home" : dispatchUI.tab);
+      if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current");
+    });
   }
 
   function filterDispatchOrders() {
@@ -343,7 +349,98 @@
       const o = dayOrders().find(item => item.id === row.dataset.routeRow);
       row.hidden = !!q && ![o.customer,o.city,o.orderNumber,...(o.invoiceNumbers || []),...(o.fulfillmentNumbers || [])].join(" ").toLowerCase().includes(q);
     });
+    find("[data-route-mobile-list]")?.querySelectorAll("[data-route-row]").forEach(row => {
+      row.hidden = !!q && !row.dataset.routeMobileSearch.includes(q);
+    });
+    const input = find("[data-route-mobile-query]");
+    if (input && input.value !== dispatchUI.query) input.value = dispatchUI.query;
+    if (q && find(".atlas-route-mobile-search")?.hidden) {
+      find(".atlas-route-mobile-search").hidden = false;
+      find('[data-route-mobile-action="search"]').setAttribute("aria-expanded", "true");
+    }
   }
+
+  // Mobile projects the existing day; commands and persistence remain shared.
+  function initializeMobileDashboard(section) {
+    const mobile = document.createElement("section"); mobile.className = "atlas-route-mobile";
+    mobile.innerHTML = `<header class="atlas-route-mobile-header"><img src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS"/><button type="button" data-route-mobile-action="more" aria-label="More day actions">⋮</button><h1>Today's Routes</h1></header>
+      <div class="atlas-route-mobile-body"><div class="atlas-route-mobile-datebar"><label>${icon("calendar")}<span data-route-mobile-date-label></span><input type="date" data-route-mobile-date aria-label="Planning date"/></label><button type="button" data-route-mobile-action="save" data-route-mobile-save aria-live="polite"></button></div>
+      <section class="atlas-route-mobile-summary"><div><small>ROUTE SETUP</small><h2 data-route-mobile-headline></h2><p data-route-mobile-totals></p></div><span class="atlas-route-mobile-illustration" aria-hidden="true">${icon("route")}</span><button type="button" class="atlas-route-mobile-primary" data-route-mobile-action="optimize">${icon("play")}Optimize Route</button></section>
+      <div class="atlas-route-mobile-list-heading"><h2>Deliveries <span data-route-mobile-count></span></h2><button type="button" class="atlas-route-mobile-search-toggle" data-route-mobile-action="search" aria-label="Search deliveries" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg></button><button type="button" class="atlas-route-mobile-primary" data-route-mobile-action="add">+ Add order</button></div>
+      <label class="atlas-route-mobile-search" hidden>Find a delivery<input type="search" data-route-mobile-query placeholder="Customer, city, SO, invoice or fulfillment"/></label><div class="atlas-route-mobile-list" data-route-mobile-list></div></div>`;
+    find(".atlas-route-main").prepend(mobile);
+    const reorder = document.createElement("dialog"); reorder.className = "atlas-route-manager-more"; reorder.dataset.routeMobileReorderDialog = ""; reorder.setAttribute("aria-label", "Reorder delivery"); section.append(reorder);
+    mobile.addEventListener("click", event => {
+      const id = event.target.closest("[data-route-mobile-reorder]")?.dataset.routeMobileReorder;
+      if (!id || !canReorderOrder(id)) return;
+      const orders = dayOrders(), index = orders.findIndex(o => o.id === id);
+      reorder.innerHTML = `<h2>Move delivery</h2><p>${escape(orders[index].customer)}</p>${[[-1,"Move earlier"],[1,"Move later"]].map(([step,label]) => `<button type="button" class="atlas-route-button" data-route-move="${step}" data-id="${escape(id)}" ${orders[index+step] && canReorderOrder(orders[index+step].id) ? "" : "disabled"}>${label}</button>`).join("")}<button type="button" class="atlas-route-button" data-route-mobile-close-reorder>Cancel</button>`;
+      reorder.showModal();
+    });
+    reorder.addEventListener("click", event => { if (event.target.closest("button:not(:disabled)")) reorder.close(); });
+    mobile.addEventListener("change", event => {
+      if (!event.target.matches("[data-route-mobile-date]")) return;
+      const date = find("[data-route-date]"); if (date.disabled) return;
+      date.value = event.target.value; date.dispatchEvent(new Event("change")); renderMobileDashboard();
+    });
+    mobile.addEventListener("input", event => {
+      if (!event.target.matches("[data-route-mobile-query]")) return;
+      dispatchUI.query = event.target.value; find("[data-dispatch-query]").value = dispatchUI.query; filterDispatchOrders();
+    });
+    mobile.addEventListener("click", async event => {
+      const button = event.target.closest("[data-route-mobile-action]"); if (!button || button.disabled) return;
+      const action = button.dataset.routeMobileAction;
+      if (action === "more") find('[data-manager-tab="more"]').click();
+      if (action === "save") find("[data-route-save-day]").click();
+      if (action === "add") find("[data-route-intake]").click();
+      if (action === "search") {
+        const field = find(".atlas-route-mobile-search"); field.hidden = !field.hidden;
+        button.setAttribute("aria-expanded", String(!field.hidden)); button.setAttribute("aria-label", field.hidden ? "Search deliveries" : "Close search");
+        if (field.hidden) { dispatchUI.query = ""; find("[data-route-mobile-query]").value = find("[data-dispatch-query]").value = ""; filterDispatchOrders(); }
+        else find("[data-route-mobile-query]").focus();
+      }
+      if (action === "optimize" && !find("[data-route-optimize]").disabled) {
+        // Reveal the existing progress, stop-calculation and trip controls.
+        dispatchUI.tab = "trips"; applyDispatchTab(); window.scrollTo(0,0); await optimizeDay();
+      }
+    });
+  }
+
+  function renderMobileDashboard() {
+    const mobile = find(".atlas-route-mobile"); if (!mobile) return;
+    const orders = dayOrders(), analyzed = state.analyzed || [], plan = state.loadPlan;
+    const date = find("[data-route-date]");
+    find("[data-route-mobile-date]").value = date.value; find("[data-route-mobile-date]").disabled = date.disabled;
+    find("[data-route-mobile-date-label]").textContent = date.value ? new Date(date.value + "T12:00:00").toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"}) : "Choose date";
+    const save = find("[data-route-mobile-save]"), enabled = storage()?.enabled;
+    const label = !enabled ? "Temporary session" : savedDay.busy ? "Working…" : !savedDay.ready ? "Unavailable" : mobileSaveFailed ? "Save failed · Retry" : savedDay.dirty ? "Save changes" : savedDay.revision ? "✓ Saved" : "Not saved";
+    save.textContent = label; save.dataset.state = label === "✓ Saved" ? "saved" : "review";
+    save.disabled = find("[data-route-save-day]").disabled || (!savedDay.dirty && !!savedDay.revision);
+    save.title = find("[data-route-save-status]").textContent;
+    if (savedDay.busy && savedDay.message.startsWith("Saving")) save.textContent = "Saving…";
+    find("[data-route-mobile-headline]").textContent = orders.length ? `${orders.length} ${orders.length === 1 ? "delivery" : "deliveries"} ready` : "No deliveries yet";
+    const needsReview = analyzed.some(o => o.palletSpaces == null) || !!plan?.unscheduled.length;
+    const pallets = analyzed.reduce((n,o) => n + (o.palletSpaces || 0),0), trips = plan?.trips.length || 0;
+    find("[data-route-mobile-totals]").textContent = needsReview ? "Review required" : `${pallets} pallet${pallets === 1 ? "" : "s"} · Estimated ${trips} trip${trips === 1 ? "" : "s"}`;
+    find('[data-route-mobile-action="optimize"]').disabled = find("[data-route-optimize]").disabled || !!state.planningController;
+    find('[data-route-mobile-action="add"]').disabled = !intakeSnapshot().canEdit;
+    find("[data-route-mobile-count]").textContent = String(orders.length);
+    const html = analyzed.map(result => {
+      const o = result.source, test = /\b(?:test delivery|driver test|synthetic|not a real delivery)\b/i.test(`${o.customer} ${o.notes}`);
+      const status = isLockedOrder(o.id) && !o.dispatchedOn ? "Partially sent out" : window.atlasRoutingStorage.deliveryStatus(o).label;
+      const badge = test ? "TEST DELIVERY" : result.issues.length ? "Review required" : isLockedOrder(o.id) || o.dispatchedOn || o.deliveredOn || o.deliveryException ? status : "";
+      const query = [o.customer,o.city,o.orderNumber,...(o.invoiceNumbers || []),...(o.fulfillmentNumbers || [])].join(" ").toLowerCase();
+      return `<article class="atlas-route-mobile-order" data-route-row="${escape(o.id)}" data-route-mobile-search="${escape(query)}"><button type="button" class="atlas-route-mobile-grip" data-route-mobile-reorder="${escape(o.id)}" aria-label="Reorder ${escape(o.customer)}" ${canReorderOrder(o.id) ? "" : "disabled"}>⠿</button><button type="button" class="atlas-route-mobile-open" data-route-edit="${escape(o.id)}" ${accessReadOnly || savedDay.busy ? "disabled" : ""}><span class="atlas-route-mobile-order-info"><strong>${escape(o.customer)}</strong>${badge ? `<small class="atlas-route-mobile-badge">${escape(badge)}</small>` : ""}<span class="atlas-route-mobile-number">${escape(o.orderNumber)}</span><span>${icon("pin")}${escape(o.city)}</span>${o.timeWindow ? `<span>${icon("clock")}${escape(o.timeWindow)}</span>` : ""}</span><span class="atlas-route-mobile-pallets"><b>${result.palletSpaces ?? "—"}</b><span>${result.palletSpaces == null ? "Review" : result.palletSpaces === 1 ? "pallet" : "pallets"}</span></span>${icon("chevron")}</button></article>`;
+    }).join("");
+    const list = find("[data-route-mobile-list]"); if (list.dataset.rendered !== html) { list.innerHTML = html; list.dataset.rendered = html; }
+    filterDispatchOrders();
+    const detail = find("[data-route-mobile-save-detail]"); if (detail) detail.textContent = save.title;
+    for (const [action, selector] of Object.entries(mobileDayActions)) {
+      const button = find(`[data-manager-more="${action}"]`); if (button) button.disabled = !!find(selector)?.disabled;
+    }
+  }
+
+  const mobileDayActions = {save:"[data-route-save-day]",history:"[data-route-history]",load:"[data-route-load-day]",reminders:"[data-route-reminders]",confirm:"[data-route-confirm-day]",manual:"[data-route-manual-order]"};
 
   function dispatchRows(shipments, { queue = false } = {}) {
     return `<div class="atlas-route-table-scroll atlas-dispatch-load-table"><table><tbody>${shipments.map(shipment => {
@@ -424,7 +521,7 @@
   function flashOrderPlacement(id) {
     document.getElementById("atlasDeliveryRouting").querySelectorAll("[data-route-row]").forEach(row=>{
       if(row.dataset.routeRow!==id)return;
-      const check=document.createElement("span");check.className="atlas-route-placement-check";check.textContent="✓ Moved";check.setAttribute("role","status");row.querySelector(".atlas-route-order-link")?.after(check);setTimeout(()=>check.remove(),2200);
+      const check=document.createElement("span");check.className="atlas-route-placement-check";check.textContent="✓ Moved";check.setAttribute("role","status");row.querySelector(".atlas-route-order-link,.atlas-route-mobile-order-info strong")?.after(check);setTimeout(()=>check.remove(),2200);
     });
   }
 
@@ -445,6 +542,7 @@
     for (const selector of ["[data-route-lock-next]", "[data-route-reopen-last]"]) if (find(selector)) find(selector).disabled = savedDay.busy || !enabled || !savedDay.ready || !savedDay.canEdit || Boolean(state.planningController);
     find("[data-route-date]").disabled = savedDay.busy;
     applyReadOnlyControls();
+    renderMobileDashboard();
   }
 
   function applyReadOnlyControls() {
@@ -466,6 +564,7 @@
   }
 
   function applySavedDay(result, { preserveDraft = false } = {}) {
+    mobileSaveFailed = false;
     vehicleChanges = {};
     const keep = new Set(preserveDraft ? state.draftPhotos.map(photo => photo.url) : []);
     state.allUrls.forEach((url) => { if (!keep.has(url)) URL.revokeObjectURL(url); }); state.allUrls = keep;
@@ -606,6 +705,7 @@
     if (!storage()?.enabled || !savedDay.ready || !savedDay.canEdit || savedDay.busy) return;
     const generation = savedDay.generation, owner = state.ownerId;
     const current = () => generation === savedDay.generation && state.open && state.ownerId === owner && window.AtlasAuth?.getSession()?.user?.id === owner;
+    mobileSaveFailed = false;
     savedDay.busy = true; savedDay.message = "Saving reviewed details…"; showSaveStatus();
     try {
       const doc = dayDocument();
@@ -615,7 +715,7 @@
       savedDay.revision = result.revision;
       savedDay.dirty = JSON.stringify(dayDocument()) !== JSON.stringify(doc);
       savedDay.message = savedDay.dirty ? "The earlier version was saved. You have additional unsaved changes." : `Saved version ${result.revision}. Photos are temporary; reviewed details and load settings are saved.`;
-    } catch (error) { if (current()) { savedDay.dirty = true; savedDay.message = error.message; } }
+    } catch (error) { if (current()) { mobileSaveFailed = true; savedDay.dirty = true; savedDay.message = error.message; } }
     finally { if (current()) { savedDay.busy = false; showSaveStatus(); } }
   }
 
@@ -756,20 +856,19 @@
     const nav = document.createElement("nav"); nav.className = "atlas-route-manager-nav"; nav.setAttribute("aria-label", "Delivery routing");
     nav.innerHTML = [["home", "Home", "dashboard"], ["orders", "Orders", "document"], ["trips", "Trips", "truck"], ["more", "More", "gear"]].map(([id,label,glyph]) => `<button type="button" data-manager-tab="${id}">${icon(glyph)}<span>${label}</span></button>`).join(""); section.append(nav);
     const more = document.createElement("dialog"); more.className = "atlas-route-manager-more";
-    more.innerHTML = '<h2>More</h2>' + [["queue","Waiting loads"],["history","Saved routes"],["map","Map"],["settings","Settings"],["pods","Delivery documents"],["day","Day actions"],["menu","Main Menu"]].map(([id,label]) => `<button type="button" class="atlas-route-button" data-manager-more="${id}">${label}</button>`).join("") + '<button type="button" class="atlas-route-button" data-manager-more="close">Close</button>'; section.append(more);
+    more.innerHTML = '<h2>More day actions</h2><p data-route-mobile-save-detail></p>' + [["save","Save changes / retry"],["queue","Waiting loads"],["history","Saved routes"],["load","View Saved Day"],["reminders","Delivery Reminders"],["confirm","All Delivered"],["manual","Enter order manually"],["map","Map"],["settings","Settings"],["pods","Delivery documents"],["menu","Main Menu"]].map(([id,label]) => `<button type="button" class="atlas-route-button" data-manager-more="${id}">${label}</button>`).join("") + '<button type="button" class="atlas-route-button" data-manager-more="close">Close</button>'; section.append(more);
     nav.addEventListener("click", event => {
       const tab = event.target.closest("[data-manager-tab]")?.dataset.managerTab; if (!tab || driverMode) return;
       if (tab === "orders") documentFlow.open("ORDERS_READY");
-      else if (tab === "more") more.showModal();
+      else if (tab === "more") { renderMobileDashboard(); more.showModal(); }
       else { dispatchUI.tab = tab === "home" ? "orders" : "trips"; applyDispatchTab(); window.scrollTo(0,0); }
     });
     more.addEventListener("click", event => {
       const action = event.target.closest("[data-manager-more]")?.dataset.managerMore; if (!action) return; more.close();
       if (["queue", "pods"].includes(action)) { dispatchUI.tab = action; applyDispatchTab(); if(action === "pods") void window.atlasRoutingPOD?.load(); }
       if (["map", "settings"].includes(action)) find(`[data-dispatch-${action}]`).showModal();
-      if (action === "history") { find("[data-route-history-dialog]").showModal(); void searchHistory(0); }
+      if (mobileDayActions[action]) find(mobileDayActions[action])?.click();
       if (action === "menu") document.querySelector(".premium-menu-button")?.click();
-      if (action === "day") { find(".atlas-route-day-menu").open = true; find(".atlas-route-day-menu").scrollIntoView({block:"center"}); }
     });
   }
 
@@ -975,15 +1074,18 @@
       layer.setAttribute("aria-hidden", "true"); layer.inert = true;
       clone.removeAttribute("data-route-row"); clone.classList.remove("is-holding-order");
       clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
-      layer.style.width = rect.width + "px"; body.appendChild(clone); table.appendChild(body); layer.appendChild(table); section.appendChild(layer);
+      layer.style.width = rect.width + "px";
+      if (drag.row.classList.contains("atlas-route-mobile-order")) { layer.classList.add("atlas-route-mobile-drag"); layer.appendChild(clone); }
+      else { body.appendChild(clone); table.appendChild(body); layer.appendChild(table); }
+      section.appendChild(layer);
       drag.layer = layer; drag.row.classList.remove("is-holding-order"); drag.row.classList.add("is-dragging-order");
       drag.row.setPointerCapture(drag.pointerId); position(drag, drag.x, drag.y);
     };
     section.addEventListener("click", (event) => {
-      if (Date.now() < suppressClickUntil && event.target.closest("[data-route-edit]")) { suppressClickUntil = 0; event.preventDefault(); event.stopImmediatePropagation(); }
+      if (Date.now() < suppressClickUntil && event.target.closest("[data-route-edit],[data-route-mobile-reorder]")) { suppressClickUntil = 0; event.preventDefault(); event.stopImmediatePropagation(); }
     }, true);
     section.addEventListener("pointerdown", (event) => {
-      const row = event.target.closest("[data-route-row]"), handle = event.target.closest("[data-route-drag]");
+      const row = event.target.closest("[data-route-row]"), handle = event.target.closest("[data-route-drag],[data-route-mobile-reorder]");
       const mobile = event.pointerType !== "mouse" || matchMedia("(max-width:750px)").matches;
       if (!row || state.drag || event.button !== 0 || !canReorderOrder(row.dataset.routeRow) || (!mobile && !handle)) return;
       if (mobile && event.target.closest("input,select,textarea,summary,[data-route-move],[data-dispatch-promote],[data-dispatch-choose]")) return;
@@ -1270,6 +1372,11 @@
   }
 
   function resetWorkspace() {
+    mobileSaveFailed = false;
+    find("[data-route-mobile-reorder-dialog]")?.close();
+    if (find(".atlas-route-mobile-search")) find(".atlas-route-mobile-search").hidden = true;
+    find('[data-route-mobile-action="search"]')?.setAttribute("aria-expanded", "false");
+    if (find("[data-route-mobile-query]")) find("[data-route-mobile-query]").value = "";
     document.getElementById("atlasDeliveryRouting")?.querySelectorAll('[data-routing-disabled]').forEach(el => { el.disabled = false; delete el.dataset.routingDisabled; });
     entryGeneration++; driverMode = false; accessReadOnly = false;
     cancelOrderDrag();
