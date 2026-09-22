@@ -11,10 +11,10 @@ const binding={id:'33333333-3333-4333-8333-333333333333',driver_id:USER,driver_n
  const server=createPermanentHost({env:k=>config[k],fetchImpl:async()=>{throw Error('No upstream permitted');}});
  server.prependListener('request',req=>{req.headers.host=host;if(req.headers.origin?.startsWith('http://127.0.0.1:'))req.headers.origin='https://'+host;});await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({executablePath:process.env.ATLAS_BROWSER_PATH,headless:true});
- try{for(const [role,capability,width] of [['picker','driver',390],['picker','driver',1440],['supervisor','viewer',1440],['admin','office',1440],['admin','office',390]]){
-  const context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block',hasTouch:width===390,isMobile:width===390});
+ try{for(const [role,capability,width] of [['picker','driver',360],['picker','driver',390],['picker','driver',393],['picker','driver',430],['picker','driver',1440],['supervisor','viewer',1440],['admin','office',1440],['admin','office',390]]){
+  const context=await browser.newContext({viewport:{width,height:width===360?800:width===390?844:width===393?852:width===430?932:900},serviceWorkers:'block',hasTouch:width<750,isMobile:width<750});
   await context.addInitScript(({role,USER})=>localStorage.setItem('sb-dwrrbpiprcmajfyronlf-auth-token',JSON.stringify({access_token:'synthetic-token',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:USER,app_metadata:{role,home_warehouse_code:'CA'},user_metadata:{display_name:role==='picker'?'Bubba':'Office test'}}})),{role,USER});
-  let loads=0,assignments=0,receipt=null;
+  let loads=0,assignments=0,receipt=null,oneStop=false,split=false,submissions=0;
   await context.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url());if(url.hostname==='127.0.0.1')return route.continue();if(!url.hostname.endsWith('.supabase.co'))return route.abort();
    let body=[];const p=url.pathname;
@@ -23,8 +23,8 @@ const binding={id:'33333333-3333-4333-8333-333333333333',driver_id:USER,driver_n
    else if(p.endsWith('/atlas_pod_assign_trip')){assignments++;assert.equal(req.postDataJSON().p_revision,1);body={assigned:2};}
    else if(p.endsWith('/delivery-pod')){
     if((req.headers()['content-type']||'').includes('multipart')){
-     const submissionId=req.postDataBuffer().toString().match(/name="submissionId"\r\n\r\n([^\r]+)/)[1];body=receipt={id:submissionId,state:'received'};
-    }else body={capability,warehouse:'CA',email_enabled:false,shipments:[{...binding,submission:receipt},{...binding,id:'44444444-4444-4444-8444-444444444444',customer:'Fullerton Distribution',sales_order:'SO-68033',address:'200 Example Road, Fullerton, CA',source_shipment:{palletSpaces:2,boxAllocation:[{sku:'CGSC1-8OZ-0401',boxes:40}]},delivery:{timeWindow:'',notes:'',checkOnDelivery:false}}]};
+     submissions++;await new Promise(resolve=>setTimeout(resolve,500));const submissionId=req.postDataBuffer().toString().match(/name="submissionId"\r\n\r\n([^\r]+)/)[1];body=receipt={id:submissionId,state:'received'};
+    }else body={capability,warehouse:'CA',email_enabled:false,shipments:[{...binding,shipment_total:split?2:1,delivery:{...binding.delivery,notes:'Synthetic UI test — do not load or deliver.'},submission:receipt},...oneStop?[]:[{...binding,id:'44444444-4444-4444-8444-444444444444',customer:'Fullerton Distribution',sales_order:'SO-68033',address:'200 Example Road, Fullerton, CA',source_shipment:{palletSpaces:2,boxAllocation:[{sku:'CGSC1-8OZ-0401',boxes:40}]},delivery:{timeWindow:'',notes:'',checkOnDelivery:false}}]]};
    }
    else if(p.endsWith('/atlas_routing_preview_load')){loads++;const day=req.postDataJSON().p_day;body={warehouse:'CA',date:day,revision:1,document:sampleDay(day),canEdit:role==='admin'};}
    else if(p.endsWith('/profiles'))body=[{user_id:USER,role,display_name:role==='picker'?'Bubba':'Office test',warehouse_id:'ca'}];
@@ -33,13 +33,17 @@ const binding={id:'33333333-3333-4333-8333-333333333333',driver_id:USER,driver_n
    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body),headers:{'Access-Control-Allow-Origin':'*'}});
   });
   const page=await context.newPage();page.on('pageerror',e=>console.error(e.message));await page.goto(`http://127.0.0.1:${server.address().port}`);
-  const shot=async name=>{assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow');if(process.env.ATLAS_QA_OUTPUT)await page.screenshot({path:resolve(process.env.ATLAS_QA_OUTPUT,`integrated-${name}-${width}.png`),fullPage:true});};
+  const shot=async name=>{assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'no horizontal overflow');if(process.env.ATLAS_QA_OUTPUT){await page.screenshot({path:resolve(process.env.ATLAS_QA_OUTPUT,`driver-mobile-${name}-${width}.png`),fullPage:true});await page.screenshot({path:resolve(process.env.ATLAS_QA_OUTPUT,`driver-mobile-${name}-${width}-viewport.png`)});}};
   await page.waitForFunction(()=>document.documentElement.dataset.atlasRoutingConnection==='ready');
   if(width<1024)await page.locator('.premium-menu-button').click();await page.locator('[data-action="routing"]').click();
   if(role==='picker'){
    await page.locator('.atlas-driver-overview').first().waitFor();
    await page.locator('.premium-toast').waitFor({state:'hidden'});
    await shot('driver-today');
+   assert.equal(await page.getByRole('button',{name:'Open ATLAS menu',exact:true}).count(),1);
+   await page.getByRole('button',{name:'Open ATLAS menu',exact:true}).click();
+   await page.locator('[data-action="routing"]').click();
+   await page.locator('.atlas-driver-overview').first().waitFor();
    await page.locator('.atlas-driver-overview > .atlas-route-primary').click();
    await page.locator('.atlas-driver-stop').first().waitFor();assert.equal(loads,0,'driver must not fetch an office saved day');
    assert.equal(await page.locator('.atlas-route-header h1').innerText(),'My Deliveries');assert.equal(await page.locator('[data-route-history]').first().isVisible(),false);
@@ -50,17 +54,28 @@ const binding={id:'33333333-3333-4333-8333-333333333333',driver_id:USER,driver_n
    await page.locator('[data-pod-action="refresh"]').click();await page.locator('.atlas-driver-stop h4').waitFor();assert.match(await page.locator('.atlas-driver-stop h4').innerText(),/Fullerton/);
    await page.locator('.atlas-driver-stepper [data-pod-stop="0"]').click();
    await shot('driver-stop');
+   const maps=await page.locator('.atlas-driver-stop-actions a').getAttribute('href');assert.equal(new URL(maps).searchParams.get('query'),binding.address);
+   await page.locator('.atlas-driver-boxes summary').click();await page.waitForFunction(()=>document.querySelector('.atlas-driver-boxes summary')?.getAttribute('aria-expanded')==='true');assert.match(await page.locator('.atlas-driver-boxes').innerText(),/80 boxes/);await shot('load-details');
+   oneStop=true;await page.locator('[aria-label="Refresh route"]').click();await page.locator('.atlas-driver-stop h4').waitFor();await shot('one-stop');
+   split=true;await page.locator('[aria-label="Refresh route"]').click();await page.locator('.atlas-driver-split').waitFor();assert.match(await page.locator('.atlas-driver-split').innerText(),/SHIPMENT 1 OF 2/);await shot('split-shipment');
+   oneStop=false;split=false;await page.locator('[aria-label="Refresh route"]').click();await page.locator('.atlas-driver-stop h4').waitFor();
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
    await page.locator('[data-pod-scan]').click();await page.locator('.atlas-pod-camera-empty').waitFor();
-   assert.equal(await page.locator('[data-pod-action="submit"]').isDisabled(),true);await shot('pod-capture');
+   assert.equal(await page.locator('[data-pod-action="submit"]').isDisabled(),true);await page.waitForFunction(()=>window.scrollY===0);await shot('pod-capture');
    const photo=await page.evaluate(()=>{
     const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1300;const c=canvas.getContext('2d');c.fillStyle='white';c.fillRect(0,0,1000,1300);c.fillStyle='#183d61';c.font='bold 38px sans-serif';c.fillText('SYNTHETIC POD · UI REVIEW',65,100);c.font='24px sans-serif';['Not a real shipment or signature','Anaheim Packaging','Sales order SO-68032','4 pallets · 80 boxes','Received by: TEST ONLY'].forEach((s,i)=>c.fillText(s,65,220+i*90));c.strokeStyle='#b5c6d7';c.lineWidth=2;for(let y=700;y<=1100;y+=80){c.beginPath();c.moveTo(65,y);c.lineTo(935,y);c.stroke();}return canvas.toDataURL('image/png').split(',')[1];
    });
    await page.locator('[data-pod-file]').setInputFiles({name:'synthetic-pod.png',mimeType:'image/png',buffer:Buffer.from(photo,'base64')});
    await page.locator('[data-pod-state="review"]').waitFor();await shot('pod-review');
    assert.equal(await page.locator('[data-pod-action="submit"]').isDisabled(),false);
-   await page.locator('[data-pod-action="submit"]').click();await page.locator('[data-pod-state="received"]').waitFor();
+   await page.evaluate(()=>Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false}));
+   await page.locator('[data-pod-action="submit"]').click();await page.locator('[data-pod-state="queued"]').waitFor();assert.equal(submissions,0);await shot('offline-queued');
+   await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>true});window.dispatchEvent(new Event('online'));});
+   await page.locator('[data-pod-action="submit"]:disabled').waitFor();await shot('submitting');
+   await page.locator('[data-pod-state="received"]').waitFor();assert.equal(submissions,1);
    assert.match(await page.locator('.atlas-pod-receipt').innerText(),/Email disabled/);await shot('pod-received');
    await page.locator('[data-pod-next]').click();await page.locator('.atlas-driver-stop h4').waitFor();assert.match(await page.locator('.atlas-driver-stop h4').innerText(),/Fullerton/);
+   await page.locator('[data-pod-tab="documents"]').click();await shot('documents');
   }else{
    await page.locator('[data-route-row]').first().waitFor();
    if(role==='supervisor'){assert.equal(await page.locator('[data-route-manual-order]').isDisabled(),true);assert.equal(await page.locator('[data-route-truck-target]').isDisabled(),true);}

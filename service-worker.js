@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v376-integrated-routing-ui";
+const VERSION = "atlas-pwa-v377-driver-mobile-ui";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -38,7 +38,7 @@ const APP_SHELL = [
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=2",
   "./atlas-desktop.js?v=135",
-  "./atlas-routing.css?v=19",
+  "./atlas-routing.css?v=20",
   "./atlas-routing-core.js?v=12",
   "./atlas-routing-planner.js?v=6",
   "./atlas-routing-catalog.js?v=2",
@@ -47,7 +47,7 @@ const APP_SHELL = [
   "./atlas-routing-notifications.js?v=2",
   "./atlas-routing-pod-core.js?v=1",
   "./atlas-routing-pod-queue.js?v=1",
-  "./atlas-routing-pod.js?v=5",
+  "./atlas-routing-pod.js?v=6",
   "./atlas-routing.js?v=34",
   "./manifest.webmanifest?v=107",
   "./product-images.json?v=20260831-thick-wall-supabase-gallery-v106",

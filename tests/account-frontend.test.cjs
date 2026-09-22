@@ -136,9 +136,9 @@ test('all APP_SHELL assets exist and modified HTML asset versions match',()=>{
     for(const name of ['atlas-login.js','atlas-auth.js','atlas-dashboard.js','atlas-dashboard.css','atlas-auth.css']){
       const match=html.match(new RegExp(name.replaceAll('.','\\.')+'\\?v=([0-9]+)'));if(match)assert.ok(shell.includes(`./${name}?v=${match[1]}`),`${file}: ${name}`);
     }
-    assert.match(html,/service-worker.js\?v=278/);
+    assert.match(html,/service-worker.js\?v=279/);
   }
-  assert.match(sw,/atlas-pwa-v376-integrated-routing-ui/);
+  assert.match(sw,/atlas-pwa-v377-driver-mobile-ui/);
 });
 
 for(const code of ['CA','TX'])test(code+' Office Receiver form synchronizes names without replacing account UUID',()=>{
