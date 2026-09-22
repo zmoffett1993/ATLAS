@@ -1,4 +1,4 @@
-# ATLAS routing handler v2 — keyless Cloud Run, not deployed
+# ATLAS routing handler v2 â€” keyless Cloud Run, not deployed
 
 The private-key Edge Function draft has been superseded by the approved keyless
 Cloud Run design. See [the current setup and review notes](../../../cloud-run/README.md).
