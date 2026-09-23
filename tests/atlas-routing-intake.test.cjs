@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parsePage, combinePages, preparePhoto } = require('../atlas-routing-intake.js');
+const { parsePage, combinePages, orderBoxCount, preparePhoto } = require('../atlas-routing-intake.js');
 const { createPhotoQueue, quickReadingIssues, assessOrderReading } = require('../atlas-routing-intake.js');
 const core = require('../atlas-routing-core.js');
 const tick = () => new Promise(resolve => setImmediate(resolve));
@@ -257,6 +257,65 @@ test('packing slip separates PO/hours from customer and uses shipped case column
  assert.equal(parsed.packingSlip,'IF-59709');assert.equal(parsed.parserVersion,'packing-slip-v1');
  const cat=[{model:'CGUB1-60MLV3',caseQty:500,boxesPerPallet:35}];
  assert.equal(assessOrderReading(combinePages([{words,text:words.map(w=>w.text).join('\n')}]),[{words}],cat,core).ready,true);
+});
+
+function chubbyPackingSlip({ cases = '120', shift = .014, second = false, noHeaders = false } = {}) {
+ const words = [], at = (text,x,y,w=.06)=>words.push({text,x,y,w,h:.012,confidence:.99});
+ at('Packing Slip',.7,.12,.2); at('IF-59709',.79,.16,.12); at('Ship To',.1,.3,.12);
+ at('PO4128 *coc* rec.hrs 6am-2:30pm',.1,.32,.35);
+ at('One Up Manufacturing',.1,.34,.25); at('550 EAST AIRLINE WAY',.1,.36,.27); at('GARDENA CA 90248',.1,.38,.25);
+ at('SO-US-68159',.73,.47,.18);
+ at('Item',.1,.52);at('Ordered',.39,.52,.09);at('Back Ordered',.52,.52,.12);
+ if (!noHeaders) {at('Item',.70,.52,.04);at('Qty.',.75,.52,.04);at('Case',.85,.52,.04);at('Qty.',.90,.52,.04);at('Shipped',.70,.54,.09);at('Shipped',.85,.54,.09);}
+ at('CGUB1-60MLV3-BK',.1,.58,.25);at('60,000',.39,.588);at('0',.54,.588);at('60,000',.70,.592);if(cases!=null)at(cases,.88,.58+shift,.04);
+ if(second){at('CGST1-95MM-0401',.1,.66,.25);at('3,600',.39,.668);at('0',.54,.668);at('3,600',.70,.672);at('12',.88,.674,.04);}
+ at('Subtotal',.7,second ? .78 : .7,.1);
+ return {words,text:'SO-US-68159\n'+words.map(w=>w.text).join('\n')};
+}
+
+test('split packing-slip headers map shipped cases to Boxes and preserve units and full SKU',()=>{
+ const page=chubbyPackingSlip(), result=parsePage(page);
+ assert.equal(result.lines.length,1);
+ assert.deepEqual(result.lines[0],{sku:'CGUB1-60MLV3-BK',caseQty:120,itemQty:60000,source:1});
+ assert.equal(orderBoxCount(result.lines),120);
+ assert.equal(result.customer,'One Up Manufacturing');assert.equal(result.address,'550 EAST AIRLINE WAY, GARDENA CA 90248');
+ assert.equal(result.timeWindow,'6:00 AM–2:30 PM');assert.equal(result.orderNumber,'SO-US-68159');
+ const catalog=[{model:'CGUB1-60MLV3',caseQty:500,boxesPerPallet:35,caseDimensions:'20X15X17',palletDimensions:'50X45X85'}];
+ assert.equal(assessOrderReading(combinePages([page]),[page],catalog,core).ready,true);
+ const savedLine={sku:result.lines[0].sku,caseQty:result.lines[0].caseQty,itemQty:result.lines[0].itemQty};
+ const planned=core.analyzeOrder({lines:[savedLine]},catalog);
+ assert.equal(planned.lines[0].match.status,'found');assert.equal(planned.lines[0].boxes,120);assert.equal(planned.palletSpaces,4);
+});
+test('shifted rightmost value stays in its own Case Qty Shipped column',()=>{
+ for(const shift of [-.008,.025])assert.equal(parsePage(chubbyPackingSlip({shift})).lines[0].caseQty,120);
+});
+test('compound OCR quantity headers still identify shipped boxes',()=>{
+ const page=chubbyPackingSlip();
+ page.words=page.words.filter(word=>!(word.y>=.52&&word.y<=.54&&word.x>=.7));
+ page.words.push({text:'Item Qty Shipped',x:.7,y:.52,w:.09,h:.012,confidence:.99});
+ page.words.push({text:'Case Qty Shipped',x:.85,y:.52,w:.1,h:.012,confidence:.99});
+ assert.deepEqual(parsePage(page).lines.map(line=>[line.sku,line.itemQty,line.caseQty]),[['CGUB1-60MLV3-BK',60000,120]]);
+});
+test('missing case value never borrows ordered, back ordered, or shipped units',()=>{
+ const parsed=parsePage(chubbyPackingSlip({cases:null}));
+ assert.equal(parsed.lines[0].sku,'CGUB1-60MLV3-BK');assert.equal(parsed.lines[0].caseQty,null);assert.equal(parsed.lines[0].itemQty,60000);
+ assert.equal(orderBoxCount(parsed.lines),null);assert.match(parsed.issues.join(' '),/Case Qty Shipped/);
+ const catalog=[{model:'CGUB1-60MLV3',caseQty:500,boxesPerPallet:35}];
+ assert.equal(assessOrderReading(combinePages([chubbyPackingSlip({cases:null})]),[chubbyPackingSlip({cases:null})],catalog,core).ready,false);
+ assert.equal(core.analyzeOrder({lines:parsed.lines},catalog).palletSpaces,null);
+});
+test('SKU survives incomplete quantity headers with unresolved boxes',()=>{
+ const parsed=parsePage(chubbyPackingSlip({noHeaders:true}));
+ assert.equal(parsed.lines.length,1);assert.equal(parsed.lines[0].sku,'CGUB1-60MLV3-BK');assert.equal(parsed.lines[0].caseQty,null);
+});
+test('multiple rows keep their own shipped boxes and duplicate pages do not add them',()=>{
+ const page=chubbyPackingSlip({second:true}),parsed=parsePage(page);
+ assert.deepEqual(parsed.lines.map(l=>[l.sku,l.caseQty,l.itemQty]),[['CGUB1-60MLV3-BK',120,60000],['CGST1-95MM-0401',12,3600]]);
+ assert.equal(orderBoxCount(parsed.lines),132);
+ assert.equal(orderBoxCount(combinePages([page,structuredClone(page)]).lines),132);
+ const conflict=combinePages([page,chubbyPackingSlip({cases:'121',second:true})]);
+ assert.equal(conflict.lines[0].caseQty,null);assert.equal(orderBoxCount(conflict.lines),null);
+ assert.equal(orderBoxCount([]),null);
 });
 test('receiving hours normalize compact and military forms without inventing ambiguous periods',()=>{
  const {normalizeHours}=require('../atlas-routing-intake.js');
