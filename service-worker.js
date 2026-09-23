@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v384-scanner-direct-entry";
+const VERSION = "atlas-pwa-v385-case-qty-shipped";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -42,7 +42,7 @@ const APP_SHELL = [
   "./atlas-routing-core.js?v=13",
   "./atlas-routing-planner.js?v=7",
   "./atlas-routing-catalog.js?v=2",
-  "./atlas-routing-intake.js?v=6",
+  "./atlas-routing-intake.js?v=7",
   "./atlas-routing-storage.js?v=4",
   "./atlas-routing-notifications.js?v=2",
   "./atlas-routing-pod-core.js?v=1",

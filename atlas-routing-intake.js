@@ -8,6 +8,8 @@
   const key = (s) => clean(s).toUpperCase();
   const number = (s) => /^\d{1,3}(?:,\d{3})*$|^\d+$/.test(s) ? Number(s.replaceAll(",", "")) : null;
   const skuPattern = /^CG[A-Z0-9]+(?:-[A-Z0-9.]+)+$/i;
+  const orderBoxCount = lines => lines?.length && lines.every(line => Number.isSafeInteger(line.caseQty) && line.caseQty > 0)
+    ? lines.reduce((sum, line) => sum + line.caseQty, 0) : null;
 
   function rows(words) {
     const result = [];
@@ -21,11 +23,39 @@
   const textOf = (row) => row.words.map((w) => w.text).join(" ");
   function phrase(row, first, second) {
     const list = row.words;
+    const label = word => key(word?.text).replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ").trim();
     for (let i = 0; i < list.length; i++) {
-      if (key(list[i].text) === `${first} ${second}`) return list[i];
-      if (key(list[i].text) === first && key(list[i + 1]?.text) === second) {
+      if (label(list[i]) === `${first} ${second}` ||
+          (["ITEM", "CASE"].includes(first) && label(list[i]) === `${first} ${second} SHIPPED`)) return list[i];
+      if (label(list[i]) === first && label(list[i + 1]) === second) {
         return { ...list[i], w: list[i + 1].x + list[i + 1].w - list[i].x };
       }
+    }
+    return null;
+  }
+  const center = word => word.x + word.w / 2;
+  function quantityHeaders(lines, ship, packingTitle) {
+    const start = ship?.row.y ?? packingTitle?.y ?? 0;
+    for (const row of lines.filter(r => r.y > start && r.y < 0.85)) {
+      const item = phrase(row, "ITEM", "QTY"), cases = phrase(row, "CASE", "QTY");
+      if (!item || !cases || center(item) >= center(cases)) continue;
+      const shipped = lines.filter(r => r.y >= row.y && r.y - row.y < 0.05)
+        .flatMap(r => r.words.filter(w => /^SHIPPED[.:]?$/i.test(w.text)));
+      const hasShipped = anchor => /\bSHIPPED[.:]?$/i.test(anchor.text) ||
+        shipped.some(w => Math.abs(center(w) - center(anchor)) < 0.09);
+      const ordered = row.words.find(w => /^ORDERED[.:]?$/i.test(w.text));
+      const backOrdered = phrase(row, "BACK", "ORDERED");
+      const anchors = [ordered && { name: "ordered", word: ordered }, backOrdered && { name: "backOrdered", word: backOrdered },
+        { name: "itemQtyShipped", word: item }, { name: "caseQtyShipped", word: cases }].filter(Boolean).sort((a, b) => center(a.word) - center(b.word));
+      const bands = Object.fromEntries(anchors.map((anchor, i) => [anchor.name, {
+        left: i ? (center(anchors[i - 1].word) + center(anchor.word)) / 2 : 0,
+        right: i + 1 < anchors.length ? (center(anchor.word) + center(anchors[i + 1].word)) / 2 : 1,
+      }]));
+      if (packingTitle && ship) {
+        if (!hasShipped(item)) bands.itemQtyShipped = null;
+        if (!hasShipped(cases)) bands.caseQtyShipped = null;
+      }
+      return { row, bands, firstQuantityX: Math.min(...anchors.map(a => a.word.x)), packing: Boolean(packingTitle && ship && hasShipped(item) && hasShipped(cases)) };
     }
     return null;
   }
@@ -62,10 +92,11 @@
     const invoiceNumbers = referenceNumbers("INV", "Invoice"), fulfillmentNumbers = referenceNumbers("IF", "Item\\s+Fulfillment");
     if (ids.length === 1) fields.orderNumber = ids[0];
     else issues.push(ids.length ? "Different sales order numbers appear on this photo." : "Confirm the sales order number; none was confidently recognized.");
-    const table = lines.find((r) => phrase(r, "CASE", "QTY") && phrase(r, "ITEM", "QTY"));
     const packingTitle = lines.find(r=>/Packing\s+Slip/i.test(textOf(r)));
     const ship = lines.map((r) => ({ row: r, heading: phrase(r, "SHIP", "TO") })).find((r) => r.heading);
-    const packing = Boolean(packingTitle && ship && table && packingTitle.y < ship.row.y && ship.row.y < table.y);
+    const tableHeaders = quantityHeaders(lines, ship, packingTitle);
+    const table = tableHeaders?.row;
+    const packing = Boolean(tableHeaders?.packing && packingTitle.y < ship.row.y && ship.row.y < table.y);
     if (ship) {
       const left = ship.heading.x - 0.01;
       const boundary = ship.row.words.find((w) => w.x > ship.heading.x + ship.heading.w + 0.05);
@@ -95,24 +126,24 @@
     }
     if (!fields.address || !fields.customer) issues.push("Review the Ship To address and customer; the Bill To address is never substituted.");
     const items = [];
-    if (table) {
-      const cases = phrase(table, "CASE", "QTY"), units = phrase(table, "ITEM", "QTY");
-      const caseX = cases.x + cases.w / 2, unitX = units.x + units.w / 2;
-      const tolerance = Math.max(0.018, Math.abs(caseX - unitX) * 0.42);
+    const fallbackHeader = packingTitle && ship && lines.find(r => r.y > ship.row.y && r.y < 0.85 && /\bItem\b/i.test(textOf(r)));
+    const itemStart = table?.y ?? fallbackHeader?.y;
+    if (itemStart != null) {
+      const firstQuantityX = tableHeaders?.firstQuantityX ?? 0.45;
       const printedSkus = [...new Set([...text.matchAll(/\bCG[A-Z0-9]+(?:\s*[-‐‑–—]\s*[A-Z0-9.]+)+/gi)]
         .map((m) => key(m[0].replace(/\s*[-‐‑–—]\s*/g, "-"))))];
       // Vision can split a printed SKU at hyphens. Rejoin only adjacent tokens
       // on the same row, left of the quantity columns; never infer a color code.
       const skus = [];
-      for (const row of lines.filter((r) => r.y > table.y)) {
+      for (const row of lines.filter((r) => r.y > itemStart)) {
         for (let i = 0; i < row.words.length; i++) {
           const first = row.words[i];
-          if (first.x >= units.x || !/^CG[A-Z0-9]/i.test(first.text)) continue;
+          if (first.x >= firstQuantityX || !/^CG[A-Z0-9]/i.test(first.text)) continue;
           let sku = { ...first, text: first.text.replace(/[‐‑–—]/g, "-") };
           let lastValid = skuPattern.test(sku.text) ? { ...sku } : /-$/.test(sku.text) && skuPattern.test(sku.text.slice(0, -1)) ? { ...sku, text: sku.text.slice(0, -1) } : null;
           while (i + 1 < row.words.length) {
             const next = row.words[i + 1], part = next.text.replace(/[‐‑–—]/g, "-");
-            if (next.x >= units.x || next.x - (sku.x + sku.w) > Math.max(sku.h * 1.5, 0.012) ||
+            if (next.x >= firstQuantityX || next.x - (sku.x + sku.w) > Math.max(sku.h * 1.5, 0.012) ||
                 !/^[A-Z0-9.\-]+$/i.test(part) || !(/-$/.test(sku.text) || /^-/.test(part))) break;
             sku.text += part; sku.w = next.x + next.w - sku.x;
             sku.confidence = Number.isFinite(sku.confidence) && Number.isFinite(next.confidence) ? Math.min(sku.confidence, next.confidence) : undefined;
@@ -126,7 +157,7 @@
             const full = printedSkus.filter((s) => s.startsWith(`${key(lastValid.text)}-`) && /^\d{4}$/.test(s.slice(lastValid.text.length + 1)));
             if (full.length === 1) {
               const suffix = full[0].slice(lastValid.text.length + 1);
-              const evidence = words.filter(w => w.text.replace(/^[-‐‑–—]/, "") === suffix && Math.abs(w.y - lastValid.y) < 0.04 && w.x < units.x);
+              const evidence = words.filter(w => w.text.replace(/^[-‐‑–—]/, "") === suffix && Math.abs(w.y - lastValid.y) < 0.04 && w.x < firstQuantityX);
               lastValid.confidence = Number.isFinite(lastValid.confidence) && evidence.length === 1 && Number.isFinite(evidence[0].confidence) ? Math.min(lastValid.confidence, evidence[0].confidence) : undefined;
               lastValid.text = full[0];
             }
@@ -137,12 +168,14 @@
       }
       skus.forEach((sku, i) => {
         const nextY = skus[i + 1]?.y ?? 1;
-        const nearby = words.filter((w) => w.y >= sku.y - sku.h * 0.5 && w.y < Math.min(nextY - sku.h * 0.3, sku.y + Math.max(sku.h * 2.4, 0.025)));
-        const at = (x) => nearby.filter((w) => (packing ? w.x < x + tolerance && w.x + w.w > x - tolerance : Math.abs(w.x + w.w / 2 - x) < tolerance) && number(w.text) != null);
-        const c = at(caseX), u = at(unitX);
+        const footer = lines.find(r => r.y > sku.y && /^(?:Subtotal|Shipping|Tax Total|Total)\b/i.test(textOf(r)));
+        const end = Math.min(nextY - sku.h * 0.3, footer?.y ?? 1, sku.y + 0.075);
+        const nearby = words.filter(w => w.y >= sku.y - sku.h && w.y < end && number(w.text) != null);
+        const at = band => band ? nearby.filter(w => center(w) >= band.left && center(w) < band.right) : [];
+        const c = at(tableHeaders?.bands.caseQtyShipped), u = at(tableHeaders?.bands.itemQtyShipped);
         const caseQty = c.length === 1 && number(c[0].text) > 0 && number(c[0].text) <= 1000000 ? number(c[0].text) : null;
         const itemQty = u.length === 1 && number(u[0].text) > 0 && number(u[0].text) <= 1000000000 ? number(u[0].text) : null;
-        if (caseQty == null) issues.push(`${sku.text}: confirm Case Qty (boxes); Item Qty was not used as a substitute.`);
+        if (caseQty == null) issues.push(`${sku.text}: confirm Case Qty Shipped (Boxes); Item Qty was not used as a substitute.`);
         if ([sku, ...c, ...u].some((w) => w.confidence != null && w.confidence < 0.85)) issues.push(`${sku.text}: photo reading is uncertain; verify the printed SKU and quantities.`);
         items.push({ sku: key(sku.text), caseQty, itemQty, source: index + 1 });
         evidence.lines.push({ sku: [sku], caseQty: c, itemQty: u });
@@ -331,7 +364,14 @@
     dialog.addEventListener("cancel", event => { event.preventDefault(); if (!busy || screen === "READING" || screen === "OPTIMIZING") close(); });
     const button = (action, label, primary = false, disabled = false) => `<button type="button" class="atlas-document-button${primary ? " is-primary" : ""}" data-intake-action="${action}" ${disabled ? "disabled" : ""}>${label}</button>`;
     const heading = (title, caption = "") => `<p class="atlas-route-eyebrow">DELIVERY ROUTING</p><h2 tabindex="-1">${title}</h2>${caption ? `<p class="atlas-document-caption">${caption}</p>` : ""}`;
-    const totalBoxes = order => order.lines.reduce((sum, line) => sum + Number(line.caseQty || 0), 0);
+    const totalBoxes = order => orderBoxCount(order.lines);
+    const reviewLines = () => (assessment?.fields.lines || []).map((line, i) => {
+      const sku = String(overrides[`sku.${i}`] ?? line.sku.value).trim().toUpperCase();
+      const rawBoxes = overrides[`caseQty.${i}`] ?? line.caseQty.value;
+      return { sku, caseQty: rawBoxes !== "" && validField(`caseQty.${i}`, rawBoxes) ? Number(rawBoxes) : null,
+        itemQty: result.lines[i]?.itemQty ?? null };
+    });
+    const lineSummary = line => `${line.sku} · ${line.caseQty == null ? "Boxes need review" : `${line.caseQty.toLocaleString()} boxes`}`;
     function validField(path, value) {
       const text = String(value).trim();
       if (path === "timeWindow") return true;
@@ -358,9 +398,11 @@
       }
       if (!/^SO-US-\d{3,12}$/i.test(order.orderNumber)) return null;
       for (const [i, line] of assessment.fields.lines.entries()) {
-        const sku = String(value(`sku.${i}`, line.sku)).trim().toUpperCase(), caseQty = Number(value(`caseQty.${i}`, line.caseQty));
-        if (!confirmed(`sku.${i}`, line.sku) || !confirmed(`caseQty.${i}`, line.caseQty) || !skuPattern.test(sku) || !Number.isSafeInteger(caseQty) || caseQty < 1 || caseQty > 1000000) return null;
-        order.lines.push({ sku, caseQty, itemQty: result.lines[i]?.itemQty ?? null });
+        const reviewed = reviewLines()[i];
+        if (!confirmed(`sku.${i}`, line.sku) || !confirmed(`caseQty.${i}`, line.caseQty) ||
+          !skuPattern.test(reviewed.sku) || reviewed.caseQty == null ||
+          snapshot().core.selectSpecification(snapshot().catalog, reviewed.sku).status !== "found") return null;
+        order.lines.push(reviewed);
       }
       const diagnostic = (name,original,reviewed,manual,evidenceName=name) => {
         const words=result.pages.flatMap(p=>p.evidence?.[evidenceName]||[]);
@@ -388,7 +430,7 @@
         if (error) content += button("retry", "Read photos again");
       }
       if (screen === "ORDER_ADDED") content = `<div class="atlas-document-success">${icon("check")}</div>` + heading("Order added") + `<div class="atlas-document-card atlas-document-receipt">${[["document", added.orderNumber], ["user", added.customer], ["pin", added.city], ["box", `${totalBoxes(added)} boxes`]].map(([glyph, value]) => `<p>${icon(glyph)}<strong>${esc(value)}</strong></p>`).join("")}</div>${button("another", `${icon("camera")}Add Another Order`, true)}${button("finish", "Finish Adding Orders")}<p class="atlas-document-caption is-centered">${s.orders.length} orders · ${esc(s.date)}${s.dirty ? " · Save Route after planning" : ""}</p>`;
-      if (screen === "ORDERS_READY") content = heading("Orders Ready") + `<p class="atlas-document-date">${icon("calendar")}${esc(s.date)}</p><div class="atlas-document-totals"><div>${icon("truck")}<strong>${s.orders.length}</strong>Deliveries</div><div>${icon("pallets")}<strong>${esc(s.pallets)}</strong>Pallets</div><div>${icon("box")}<strong>${s.orders.reduce((n, o) => n + totalBoxes(o), 0)}</strong>Boxes</div></div><div class="atlas-document-card">${s.orders.length ? s.orders.map(o => `<article class="atlas-document-order">${icon("user")}<div><strong>${esc(o.customer)}</strong><small>${esc(o.city)} · ${esc(o.orderNumber)}</small></div><span>${totalBoxes(o)} boxes</span><details><summary aria-label="Actions for ${esc(o.customer)}">•••</summary><button type="button" data-intake-edit="${esc(o.id)}">View / edit</button><button type="button" data-intake-remove="${esc(o.id)}" ${o.locked || !s.canEdit ? "disabled" : ""}>Remove</button></details></article>`).join("") : '<p>No orders for this day.</p>'}</div>${s.planIssue ? `<p class="atlas-document-caption">${esc(s.planIssue)}</p>` : ""}${button("optimize", `${icon("play")}Optimize Route`, true, !s.canOptimize)}${s.canEdit ? button("another", "Add another order") : ""}`;
+      if (screen === "ORDERS_READY") content = heading("Orders Ready") + `<p class="atlas-document-date">${icon("calendar")}${esc(s.date)}</p><div class="atlas-document-totals"><div>${icon("truck")}<strong>${s.orders.length}</strong>Deliveries</div><div>${icon("pallets")}<strong>${esc(s.pallets)}</strong>Pallets</div><div>${icon("box")}<strong>${s.orders.every(o => totalBoxes(o) != null) ? s.orders.reduce((n, o) => n + totalBoxes(o), 0) : "Needs review"}</strong>Boxes</div></div><div class="atlas-document-card">${s.orders.length ? s.orders.map(o => `<article class="atlas-document-order">${icon("user")}<div><strong>${esc(o.customer)}</strong><small>${esc(o.city)} · ${esc(o.orderNumber)}</small></div><span>${totalBoxes(o) == null ? "Needs review" : `${totalBoxes(o)} boxes`}</span><details><summary aria-label="Actions for ${esc(o.customer)}">•••</summary><button type="button" data-intake-edit="${esc(o.id)}">View / edit</button><button type="button" data-intake-remove="${esc(o.id)}" ${o.locked || !s.canEdit ? "disabled" : ""}>Remove</button></details></article>`).join("") : '<p>No orders for this day.</p>'}</div>${s.planIssue ? `<p class="atlas-document-caption">${esc(s.planIssue)}</p>` : ""}${button("optimize", `${icon("play")}Optimize Route`, true, !s.canOptimize)}${s.canEdit ? button("another", "Add another order") : ""}`;
       if (screen === "ROUTE_READY" || screen === "SAVED") {
         const plan = s.plan;
         content = heading(screen === "SAVED" ? "Route saved" : "Route Ready", screen === "SAVED" ? "Reviewed details and load settings are saved." : "Review the stops and trip estimates.");
@@ -399,9 +441,9 @@
         if(screen === "ADD_DOCUMENT") content = `<div class="atlas-scanner-hero">${icon("camera")}</div>`+heading("Scan Delivery Order","Photograph one packing slip at a time.")+button("camera",`${icon("camera")}Take Photo`,true)+button("photos","Choose from Photos")+`<p class="atlas-document-caption is-centered">Orders uploaded today <strong>${s.uploadedToday ?? uploadedCount}</strong></p>`;
         if(screen === "READING") content = `<div class="atlas-document-photo"><img src="${esc(photos[selectedPhoto]?.url)}" alt="Original order photo" /></div><div class="atlas-document-loader"></div>`+heading("Reading order…","Finding the delivery details.")+button("cancel-operation","Cancel");
         if(screen === "VERIFY" && assessment){
-          const fields=assessment.fields, boxes=fields.lines.reduce((n,l)=>n+Number(overrides[`caseQty.${fields.lines.indexOf(l)}`]??l.caseQty.value??0),0);
+          const fields=assessment.fields, lines=reviewLines(), boxes=totalBoxes({lines});
           const needsLines=fields.lines.some((l,i)=>!Object.hasOwn(overrides,`sku.${i}`)&&l.sku.status!=="confirmed"||!Object.hasOwn(overrides,`caseQty.${i}`)&&l.caseQty.status!=="confirmed");
-          content=heading("Check these details")+`<div class="atlas-document-fields">${[["orderNumber","Sales order"],["customer","Customer"],["address","Delivery address"],["timeWindow","Receiving hours"]].map(([n,label])=>fieldRow(n,label,fields[n])).join("")}${fields.lines.length===1?fieldRow("caseQty.0","Boxes",fields.lines[0].caseQty,"number"):`<div class="atlas-document-field"><label>Boxes<strong>${boxes}</strong></label><button type="button" data-intake-action="line-details">Edit box allocation</button></div>`}</div><details class="atlas-scanner-lines" ${needsLines?"open":""}><summary>SKU and box details${needsLines?" — review needed":""}</summary>${fields.lines.map((line,i)=>fieldRow(`sku.${i}`,`Item ${i+1}`,line.sku)+fieldRow(`caseQty.${i}`,"Boxes",line.caseQty,"number")).join("")}</details><label class="atlas-scanner-check"><input type="checkbox" data-scanner-check ${(checkOverride??result.checkOnDelivery)?"checked":""}/><span><strong>Check on delivery</strong><small>Adds CHECK ON DELIVERY to order notes</small></span></label>`+button("append","Add another page")+ (photos.length>1 ? `<div class="atlas-document-pages">${photos.map((p,i)=>`<button type="button" data-intake-remove-page="${i}">Remove page ${i+1}</button>`).join("")}</div>` : "");
+          content=heading("Check these details")+`<div class="atlas-document-fields">${[["orderNumber","Sales order"],["customer","Customer"],["address","Delivery address"],["timeWindow","Receiving hours"]].map(([n,label])=>fieldRow(n,label,fields[n])).join("")}${fields.lines.length===1?fieldRow("caseQty.0","Boxes",fields.lines[0].caseQty,"number"):`<div class="atlas-document-field"><label>Boxes<strong data-intake-box-total>${boxes == null ? "Needs review" : boxes}</strong></label><button type="button" data-intake-action="line-details">Edit box allocation</button></div>`}${boxes == null ? '<p class="atlas-document-caption" data-intake-box-warning>Boxes: Needs review</p>' : ""}</div><details class="atlas-scanner-lines" ${needsLines||!lines.length?"open":""}><summary>SKU and box details${needsLines||!lines.length?" — review needed":""}</summary>${lines.length ? lines.map((line,i)=>fieldRow(`sku.${i}`,`Item ${i+1}`,fields.lines[i].sku)+fieldRow(`caseQty.${i}`,"Boxes",fields.lines[i].caseQty,"number")+`<p class="atlas-document-caption" data-intake-line-summary="${i}">${esc(lineSummary(line))}</p>`).join("") : '<p class="atlas-document-caption">No item details were captured. Retake the photo or add a clearer page.</p>'+button("retake","Retake photo")}</details><label class="atlas-scanner-check"><input type="checkbox" data-scanner-check ${(checkOverride??result.checkOnDelivery)?"checked":""}/><span><strong>Check on delivery</strong><small>Adds CHECK ON DELIVERY to order notes</small></span></label>`+button("append","Add another page")+ (photos.length>1 ? `<div class="atlas-document-pages">${photos.map((p,i)=>`<button type="button" data-intake-remove-page="${i}">Remove page ${i+1}</button>`).join("")}</div>` : "");
           if(result.mixedOrders)content+='<p class="atlas-document-error">Different sales orders detected. Retake only this order.</p>';
         }
         if(screen === "ORDER_ADDED")content=`<div class="atlas-document-success">${icon("check")}</div>`+heading(added.duplicate?"Order already uploaded":"Order Uploaded",`${esc(added.orderNumber)} is saved for ${esc(added.date||date)} and ready on desktop.`)+button("another","Scan Another Order",true)+button("done","Done");
@@ -461,6 +503,12 @@
       overrides[path] = event.target.value; const row = event.target.closest(".atlas-document-field"), valid = validField(path, event.target.value);
       row.classList.toggle("needs-confirmation", !valid); row.classList.toggle("is-confirmed", valid); row.querySelector("[data-intake-check]").innerHTML = valid ? icon("check") : "!";
       if (valid) { row.querySelector("small")?.remove(); row.querySelector("button")?.remove(); }
+      if (scanner && /^(?:sku|caseQty)\.\d+$/.test(path)) {
+        const lines = reviewLines(), boxes = orderBoxCount(lines);
+        const total = dialog.querySelector('[data-intake-box-total]'); if (total) total.textContent = boxes == null ? "Needs review" : String(boxes);
+        const warning = dialog.querySelector('[data-intake-box-warning]'); if (warning) warning.hidden = boxes != null;
+        lines.forEach((line, i) => { const summary = dialog.querySelector(`[data-intake-line-summary="${i}"]`); if (summary) summary.textContent = lineSummary(line); });
+      }
       dialog.querySelector('[data-intake-action="add"]').disabled = !reviewedOrder();
     });
     dialog.addEventListener("click", async event => {
@@ -516,5 +564,5 @@
       reset: close, active: () => dialog.open,
     };
   }
-  return { parsePage, normalizeHours, combinePages, preparePhoto, createPhotoQueue, assessOrderReading, quickReadingIssues, createDocumentFlow };
+  return { parsePage, normalizeHours, combinePages, orderBoxCount, preparePhoto, createPhotoQueue, assessOrderReading, quickReadingIssues, createDocumentFlow };
 });
