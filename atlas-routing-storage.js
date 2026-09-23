@@ -133,10 +133,11 @@
       const session = await getValidSession();
       if (!current() || session?.user?.id !== owner || !session.access_token) fail("The ATLAS account changed. Reopen routing.", "SESSION_CHANGED");
       const payload = filters ? { p_warehouse: "CA", p_query: filters.query, p_from: filters.from, p_to: filters.to, p_date_field: filters.dateField, p_offset: filters.offset } : { p_warehouse: "CA", p_day: day };
+      if (action === "scanner_upload") { const seed=document(input.seed); const normalized=document({...seed,orders:[input.order]}).orders[0]; payload.p_order=normalized; payload.p_seed=seed; payload.p_metadata=input.metadata; }
       if (action === "save") { payload.p_expected_revision = integer(revision, 0, 2147483646); payload.p_document = document(input); if (payload.p_document.date !== day) fail("The planning day changed."); }
       const controller = new AbortController(); controllers.add(controller);
       try {
-        const response = await fetchImpl(`${BASE}/rest/v1/rpc/atlas_routing_preview_${action}`, { method: "POST", cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]),
+        const response = await fetchImpl(`${BASE}/rest/v1/rpc/atlas_routing_${action.startsWith("scanner_") ? action : "preview_"+action}`, { method: "POST", cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]),
           headers: { apikey: key, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         if (!current()) fail("The ATLAS account changed. Reopen routing.", "SESSION_CHANGED");
         const reader = response.body?.getReader(); let size = 0; const chunks = [];
@@ -154,6 +155,8 @@
           if (result.code === "0A000") fail("This saved day needs the newer routing version. Refresh before editing it.", "UNAVAILABLE");
           fail("The day could not be saved or opened. Your changes remain here; no automatic retry was made.", "UNAVAILABLE");
         }
+        if (action === "scanner_retry") { if(typeof result!=="boolean") fail("Unexpected scanner response.","UNAVAILABLE"); return result; }
+        if (action === "scanner_status") { if(typeof result.enabled!=="boolean") fail("Unexpected scanner response.","UNAVAILABLE"); return result; }
         if (filters) {
           if (result.warehouse !== "CA" || !Array.isArray(result.matches) || result.matches.length > 50 || typeof result.hasMore !== "boolean") fail("Unexpected search response.", "UNAVAILABLE");
           const matches = result.matches.map((row) => {
@@ -176,7 +179,7 @@
         fail(action === "save" ? "The save could not be confirmed. Keep this tab open and check the saved version before retrying." : "The saved day could not be reached. Your changes remain here.", "UNAVAILABLE");
       } finally { controllers.delete(controller); }
     }
-    return Object.freeze({ enabled, reset, load: (day) => request("load", day), save: (day, revision, value) => request("save", day, revision, value), search: (filters) => request("search", null, null, filters) });
+    return Object.freeze({ enabled, reset, scannerRetry: day => request("scanner_retry",day), scannerStatus: day => request("scanner_status",day), upload: (day,order,metadata,seed) => request("scanner_upload",day,null,{order,metadata,seed}), load: (day) => request("load", day), save: (day, revision, value) => request("save", day, revision, value), search: (filters) => request("search", null, null, filters) });
   }
   return Object.freeze({ document, date, references, deliveredDate, deliveryDetails, deliveryStatus, searchFilters, createClient });
 });

@@ -136,7 +136,7 @@ test('reads Ship To instead of Bill To; Case Qty is boxes and full color SKU is 
 });
 test('only explicit CHECK ON DELIVERY sets collection; hours come from Ship To', () => {
   const result = parsePage(document({ note: 'CHECK\nON DELIVERY', hours: '8:00 AM - 3:00 PM' }));
-  assert.equal(result.checkOnDelivery, true); assert.equal(result.timeWindow, '8:00 AM - 3:00 PM');
+  assert.equal(result.checkOnDelivery, true); assert.equal(result.timeWindow, '8:00 AM–3:00 PM');
   assert.equal(parsePage(document({ note: 'COD' })).checkOnDelivery, false);
 });
 test('never substitutes unit quantities for unreadable boxes', () => {
@@ -238,4 +238,28 @@ test('explicit invoice and Item Fulfillment numbers attach to one sales order wi
  assert.deepEqual(r.invoiceNumbers,['INV-US-12345']);assert.deepEqual(r.fulfillmentNumbers,['IF-US-45678','IF-US-67890']);assert.equal(r.orderNumber,'SO-US-64939');
  const noIds=parsePage(document({note:'Invoice\nTotal 12345\nItem Fulfillment\nAmount 45678'}));assert.deepEqual(noIds.invoiceNumbers,[]);assert.deepEqual(noIds.fulfillmentNumbers,[]);
  const mixed=combinePages([document({note:'INV-US-12345'}),document({id:'SO-US-99999',note:'IF-US-67890'})]);assert.deepEqual(mixed.invoiceNumbers,[]);assert.deepEqual(mixed.fulfillmentNumbers,[]);
+});
+
+
+test('packing slip separates PO/hours from customer and uses shipped case column',()=>{
+ const words=[];const at=(text,x,y,w=.09)=>words.push({text,x,y,w,h:.012,confidence:.99});
+ at('Packing Slip',.7,.12,.2);at('IF-59709',.7,.16);at('Ship To',.1,.3);
+ at('PO4128 "coc" rec.hrs 6am-2:30pm',.1,.32,.35);
+ at('One Up Manufacturing',.1,.34,.3);at('550 EAST AIRLINE WAY',.1,.36,.3);at('GARDENA CA 90248',.1,.38,.25);
+ at('Ship Via',.4,.45);at('SO-US-68159',.75,.47,.2);
+ at('Item',.1,.52);at('Ordered',.4,.52);at('Back Ordered',.53,.52);
+ at('Item',.7,.52,.04);at('Qty',.75,.52,.04);at('Case',.85,.52,.04);at('Qty',.90,.52,.04);
+ at('Shipped',.70,.54);at('Shipped',.85,.54);
+ at('CGUB1-60MLV3-BK',.1,.58,.25);at('60,000',.4,.58);at('0',.55,.58);at('60,000',.71,.58,.06);at('120',.89,.58,.035);
+ const parsed=parsePage({words,text:words.map(w=>w.text).join('\n')});
+ assert.equal(parsed.customer,'One Up Manufacturing');assert.equal(parsed.timeWindow,'6:00 AM–2:30 PM');
+ assert.equal(parsed.orderNumber,'SO-US-68159');assert.equal(parsed.lines[0].caseQty,120);assert.equal(parsed.lines[0].itemQty,60000);
+ assert.equal(parsed.packingSlip,'IF-59709');assert.equal(parsed.parserVersion,'packing-slip-v1');
+ const cat=[{model:'CGUB1-60MLV3',caseQty:500,boxesPerPallet:35}];
+ assert.equal(assessOrderReading(combinePages([{words,text:words.map(w=>w.text).join('\n')}]),[{words}],cat,core).ready,true);
+});
+test('receiving hours normalize compact and military forms without inventing ambiguous periods',()=>{
+ const {normalizeHours}=require('../atlas-routing-intake.js');
+ for(const value of ['6am-2:30pm','6 am to 2:30 pm','06:00-14:30','0600-1430'])assert.equal(normalizeHours(value),'6:00 AM–2:30 PM');
+ assert.equal(normalizeHours('9-5'),'9-5');
 });

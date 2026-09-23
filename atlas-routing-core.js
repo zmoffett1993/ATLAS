@@ -60,9 +60,9 @@
   function selectSpecification(rows, sku) {
     const requested = cleanModel(sku);
     const exact = rows.filter((row) => cleanModel(row.model) === requested);
-    // A four-digit suffix is treated as color only when the un-suffixed
+    // A four-digit suffix or the documented BK color is ignored only when the un-suffixed
     // shape-and-size model exists in the catalog. Exact models always win.
-    const base = requested.replace(/-\d{4}$/, "");
+    const base = requested.replace(/-(?:\d{4}|BK)$/, "");
     const candidates = exact.length ? exact :
       (base !== requested ? rows.filter((row) => cleanModel(row.model) === base) : []);
     if (!candidates.length) return { status: "missing", model: requested };

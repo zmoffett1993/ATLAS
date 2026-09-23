@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><base href="/"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ATLAS intake — isolated browser checks</title>
 <link rel="stylesheet" href="../atlas-routing.css">
 <style>body{margin:0;font-family:system-ui;background:#f4f7fa}#fixture-tools{position:fixed;bottom:90px;right:8px;z-index:100;background:#fff8d9;border:1px solid #e4ca86;padding:8px;border-radius:10px;font-size:11px;max-width:220px}#fixture-tools button{min-height:36px;margin:3px}#fixture-results{white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto}.atlas-routing-open #fixture-tools{display:block}</style>
-<details id="fixture-tools" open><summary>LOCAL TEST · no external services</summary><button id="run-checks">Run workflow checks</button><button id="dashboard-checks">Dashboard checks</button><button id="dashboard-example">Saved example</button><button id="sample">Sample order</button><button id="open-orders">Review orders</button><pre id="fixture-results" role="status"></pre></details>
+<details id="fixture-tools" open><summary>LOCAL TEST · no external services</summary><button id="scanner-checks">Scanner checks</button><button id="scanner-sample">Scanner sample</button><button id="run-checks">Run workflow checks</button><button id="dashboard-checks">Dashboard checks</button><button id="dashboard-example">Saved example</button><button id="sample">Sample order</button><button id="open-orders">Review orders</button><pre id="fixture-results" role="status"></pre></details>
 <script src="../atlas-routing-core.js"></script><script src="../atlas-routing-planner.js"></script><script src="../atlas-routing-storage.js"></script><script src="../atlas-routing-notifications.js"></script><script src="../atlas-routing-intake.js"></script>
 <script>
 // Real UI/parser/storage validation; entirely synthetic auth, OCR, routes and saves.
@@ -13,6 +13,18 @@ const settings={truckPalletTarget:11,dailyTripTarget:3,reloadMinutes:40,lunch:'1
 window.AtlasAuth={getSession:()=>actor?{user:{id:actor}}:null,displayName:()=> 'Local test administrator',open(){}};
 window.atlasRoutingPOD={access:async()=>({capability:'office',canEdit:true}),mount(){},reset(){},hasPending:()=>false};
 window.atlasRoutingSavedDays={enabled:true,reset(){},load:async date=>({date,revision:records.get(date)?.revision||0,canEdit:true,document:records.get(date)?.document||{date,version:3,orders:[],catalog,settings,assignments:{},vanConfirmed:{},lockedTrips:[]}}),save:async(date,revision,doc)=>{const validated=atlasRoutingStorage.document(doc);saves++;records.set(date,{document:validated,revision:revision+1});return{revision:revision+1}}};
+const scannerEnabled=new URLSearchParams(location.search).has('scanner');
+let uploadedToday=0,failUpload=false;
+atlasRoutingSavedDays.scannerStatus=async()=>({enabled:scannerEnabled,uploadedToday,status:'pending'});
+atlasRoutingSavedDays.upload=async(date,order,metadata,seed)=>{
+ if(failUpload)throw Error('Upload not confirmed. Retry safely.');
+ const existing=records.get(date),doc=existing?.document||seed;
+ const prior=doc.orders.find(o=>o.orderNumber===order.orderNumber);
+ const document=atlasRoutingStorage.document(prior?doc:{...doc,orders:[...doc.orders,order]});
+ const revision=prior?existing.revision:(existing?.revision||0)+1;
+ if(!prior){uploadedToday++;records.set(date,{document,revision});}
+ return {warehouse:'CA',date,revision,document,canEdit:true,order:prior||document.orders.at(-1),duplicate:!!prior};
+};
 function page({id='SO-US-999901',cases='12',weak=false}={}){
  const words=[];const at=(text,x,y,w=.05,confidence=.98)=>words.push({text,x,y,w,h:.012,confidence});
  at(id,.6,.10,.2);at('Bill',.1,.2);at('To',.14,.2);at('Ship',.4,.2);at('To',.45,.2);
@@ -38,6 +50,24 @@ const screen=()=>document.querySelector('[data-intake-screen]')?.dataset.intakeS
 const click=selector=>{const el=document.querySelector(selector);if(!el||el.disabled)throw Error('Unavailable '+selector);el.click();};
 const act=name=>click(`[data-intake-action="${name}"]`);
 async function photo(){const canvas=document.createElement('canvas');canvas.width=600;canvas.height=700;const c=canvas.getContext('2d');c.fillStyle='white';c.fillRect(0,0,600,700);c.fillStyle='#071b33';c.font='24px sans-serif';['SYNTHETIC TEST ORDER','SO-US-999901','Sample Supply','123 Example Street','Fullerton CA 92835','CGST1-95MM-0401','Case Qty: 12 boxes','Item Qty: 3,600 units','NOT A REAL DELIVERY'].forEach((t,i)=>c.fillText(t,35,60+i*65));const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));const transfer=new DataTransfer();transfer.items.add(new File([blob],'synthetic-order.png',{type:'image/png'}));const input=document.querySelector('[data-intake-files]');input.files=transfer.files;input.dispatchEvent(new Event('change'));await wait(()=>screen()==='VERIFY');}
+document.querySelector('#scanner-sample').onclick=async()=>{if(!document.querySelector('.atlas-document-flow').open)click('[data-route-intake]');await photo();document.querySelector('#fixture-tools').open=false;};
+document.querySelector('#scanner-checks').onclick=async()=>{
+ let count=0;outputs.textContent='Running scanner…';const check=(ok,message)=>{if(!ok)throw Error(message);outputs.textContent+=`\nPASS ${++count}: ${message}`;};
+ try{
+  if(!document.querySelector('.atlas-document-flow').open)click('[data-route-intake]');
+  check(document.querySelector('.is-scanner')!==null,'Scanner is the mobile entry');
+  await photo();check(!document.querySelector('[data-intake-action="add"]').disabled,'Clear reading uploads without field confirmations');
+  check(!document.querySelector('.atlas-scanner-lines').open,'Clear SKU details stay collapsed');
+  const toggle=document.querySelector('[data-scanner-check]');toggle.checked=true;toggle.dispatchEvent(new Event('input',{bubbles:true}));
+  failUpload=true;act('add');await wait(()=>document.querySelector('.atlas-document-error[role=alert]').textContent.includes('not confirmed'));
+  check(screen()==='VERIFY','Failed upload keeps review and original photo');
+  failUpload=false;act('add');await wait(()=>screen()==='ORDER_ADDED');check(uploadedToday===1,'Uploaded means durable save');
+  check([...records.values()][0].document.orders[0].notes==='CHECK ON DELIVERY','Collection toggle persists explicit note');
+  act('another');await photo();act('add');await wait(()=>screen()==='ORDER_ADDED');check(uploadedToday===1,'Retry never duplicates an order');
+  check(document.querySelector('.atlas-document-content').textContent.includes('already uploaded'),'Duplicate is explained');
+  outputs.textContent+=`\n${count} SCANNER CHECKS PASSED`;
+ }catch(e){outputs.textContent+='\nFAIL: '+e.message;}
+};
 document.querySelector('#sample').onclick=async()=>{click('[data-route-intake]');await photo();};
 document.querySelector('#open-orders').onclick=()=>click('[data-manager-tab="orders"]');
 document.querySelector('#run-checks').onclick=async()=>{
@@ -94,5 +124,7 @@ document.querySelector('#dashboard-checks').onclick=async()=>{
  finally{atlasRoutingSavedDays.save=originalSave;atlasRoutingPlanner.planDay=originalPlan;atlasRoutingSavedDays.enabled=true;}
 };
 atlasOpenRouting();
+if(new URLSearchParams(location.search).has('scannerRun'))wait(()=>document.querySelector('.is-scanner[open]')).then(()=>document.querySelector('#scanner-checks').click());
+if(new URLSearchParams(location.search).has('scannerSample'))wait(()=>document.querySelector('.is-scanner[open]')).then(()=>document.querySelector('#scanner-sample').click());
 if(new URLSearchParams(location.search).has('example'))wait(()=>document.querySelector('[data-route-mobile-date]')&&!document.querySelector('#atlasDeliveryRouting').inert).then(()=>document.querySelector('#dashboard-example').click());
 </script></html>
