@@ -1241,3 +1241,13 @@ html:has(.atlas-document-flow[open]){overflow:hidden}
 .is-scanner .atlas-document-header{flex-wrap:wrap;gap:10px}.atlas-scanner-title{width:100%;font-size:14px;color:white;font-weight:500}
 .is-scanner .atlas-document-field label{display:flex;flex-direction:column;align-items:stretch;gap:2px}
 .is-scanner .atlas-document-fields{padding:0;background:transparent;border:0;box-shadow:none}
+
+/* Keep saved-day/access loading behind the mobile scanner entry screen. */
+.atlas-route-scanner-opening { display: none; }
+.atlas-route.is-opening-scanner > :not(.atlas-route-scanner-opening) { display: none !important; }
+.atlas-route.is-opening-scanner > .atlas-route-scanner-opening { display: block; grid-column: 1 / -1; min-height: 100dvh; background: #f5f9fd; }
+.atlas-route-scanner-opening header { background: #062340; color: #fff; padding: 28px 24px; font-size: 18px; font-weight: 700; }
+.atlas-route-scanner-opening > div { padding: 80px 24px; text-align: center; }
+.atlas-route-scanner-opening svg { width: 56px; height: 56px; color: #006bff; }
+.atlas-route-scanner-opening h1 { margin: 24px 0 12px; font-size: 28px; color: #09294c; }
+.atlas-route-scanner-opening p { color: #587196; font-size: 16px; }
