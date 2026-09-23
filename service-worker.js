@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v386-packing-slip-ocr-reliability";
+const VERSION = "atlas-pwa-v387-routing-ui-refresh";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -38,18 +38,18 @@ const APP_SHELL = [
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=3",
   "./atlas-desktop.js?v=136",
-  "./atlas-routing.css?v=24",
+  "./atlas-routing.css?v=25",
   "./atlas-routing-core.js?v=13",
   "./atlas-routing-planner.js?v=7",
   "./atlas-routing-catalog.js?v=2",
-  "./atlas-routing-intake.js?v=8",
+  "./atlas-routing-intake.js?v=9",
   "./atlas-routing-storage.js?v=4",
   "./atlas-routing-notifications.js?v=2",
   "./atlas-routing-pod-core.js?v=1",
   "./atlas-routing-pod-queue.js?v=1",
   "./atlas-routing-pod.js?v=6",
-  "./atlas-routing.js?v=38",
-  "./tools/routing-preview/full-site-client.mjs?v=2",
+  "./atlas-routing.js?v=39",
+  "./tools/routing-preview/full-site-client.mjs?v=3",
   "./tools/routing-preview/preview.mjs",
   "./tools/routing-preview/maps.mjs",
   "./tools/routing-preview/notification-client.mjs",

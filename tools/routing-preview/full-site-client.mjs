@@ -3,18 +3,37 @@ import { connectRouting } from "./preview.mjs";
 export const LIVE_ORIGIN = "https://zmoffett1993.github.io";
 export const ROUTING_API = "https://atlas-routing-app-tbcotacnuq-uc.a.run.app";
 const live = location.origin === LIVE_ORIGIN && /^\/ATLAS(?:\/|$)/.test(location.pathname);
+let capabilityOwner = null, capabilityGeneration = 0, capabilityController = null;
+const notifyCapability = () => window.dispatchEvent(new Event("atlas-scanner-capability-changed"));
+window.atlasPersonalScannerAllowed = () => Boolean(capabilityOwner && capabilityOwner === window.AtlasAuth?.getSession()?.user?.id);
 
-// Both hosts reuse the existing ATLAS session; no redirect or second sign-in.
+async function refreshCapability() {
+  const generation = ++capabilityGeneration;
+  capabilityController?.abort(); capabilityController = new AbortController();
+  capabilityOwner = null; notifyCapability();
+  const owner = window.AtlasAuth?.getSession()?.user?.id;
+  if (!owner) return;
+  try {
+    const session = await window.AtlasAuth.getValidSession();
+    if (generation !== capabilityGeneration || session?.user?.id !== owner) return;
+    const response = await fetch(`${live ? ROUTING_API : ""}/api/scanner-capability`, {
+      headers: { "X-Atlas-Authorization": `Bearer ${session.access_token}` },
+      cache: "no-store", credentials: "omit", redirect: "error",
+      signal: AbortSignal.any([capabilityController.signal, AbortSignal.timeout(8000)]),
+    });
+    if (!response.ok) return;
+    const profile = await response.json();
+    if (generation !== capabilityGeneration || owner !== window.AtlasAuth?.getSession()?.user?.id) return;
+    capabilityOwner = profile.capabilities?.includes("routing_scanner_quick_action") ? owner : null;
+    notifyCapability();
+  } catch { /* Fail closed to the ordinary COC shortcut. */ }
+}
+window.addEventListener("atlas-auth-changed", () => { void refreshCapability(); });
+
+// Routing paints scanner startup before awaiting the shared connection.
 async function connect() {
   const button = document.querySelector('[data-action="routing"]');
-  const open = window.atlasOpenRouting;
-  let ready = false, requested = false;
-  if (open) window.atlasOpenRouting = () => {
-    if (ready) return open();
-    requested = true;
-    window.showPremiumToast?.("Connecting Delivery Routing…", 3000);
-  };
-  if (button) button.setAttribute("aria-busy", "true");
+  button?.setAttribute("aria-busy", "true");
   try {
     const response = await fetch(`${live ? ROUTING_API : ""}/runtime-config.json`, { cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw Error("Configuration unavailable");
@@ -27,16 +46,18 @@ async function connect() {
       const { connectNotifications } = await import("./notification-client.mjs");
       await connectNotifications(config);
     }
-    ready = true;
     document.documentElement.dataset.atlasRoutingConnection = "ready";
-    if (requested) open?.();
+    void refreshCapability();
   } catch {
     document.documentElement.dataset.atlasRoutingConnection = "unavailable";
-    // Leave other ATLAS screens available; never silently save to a different store.
-    if (open) window.atlasOpenRouting = () => window.alert("Delivery Routing could not connect. Reconnect to the internet and refresh ATLAS. Your saved days have not changed.");
-  } finally {
-    button?.removeAttribute("aria-busy");
-  }
+    throw Error("Delivery Routing could not connect. Reconnect to the internet and try again.");
+  } finally { button?.removeAttribute("aria-busy"); }
 }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", connect, { once: true });
-else void connect();
+let connection;
+window.atlasRoutingConnectionReady = () => {
+  if (!connection) connection = connect().catch(error => { connection = null; throw error; });
+  return connection;
+};
+const start = () => { void window.atlasRoutingConnectionReady().catch(() => {}); };
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+else start();

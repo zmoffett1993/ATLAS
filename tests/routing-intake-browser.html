@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><base href="/"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ATLAS intake — isolated browser checks</title>
 <link rel="stylesheet" href="../atlas-routing.css">
 <style>body{margin:0;font-family:system-ui;background:#f4f7fa}#fixture-tools{position:fixed;bottom:90px;right:8px;z-index:100;background:#fff8d9;border:1px solid #e4ca86;padding:8px;border-radius:10px;font-size:11px;max-width:220px}#fixture-tools button{min-height:36px;margin:3px}#fixture-results{white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto}.atlas-routing-open #fixture-tools{display:block}</style>
-<details id="fixture-tools" open><summary>LOCAL TEST · no external services</summary><button id="scanner-checks">Scanner checks</button><button id="scanner-sample">Scanner sample</button><button id="run-checks">Run workflow checks</button><button id="dashboard-checks">Dashboard checks</button><button id="dashboard-example">Saved example</button><button id="sample">Sample order</button><button id="open-orders">Review orders</button><pre id="fixture-results" role="status"></pre></details>
+<details id="fixture-tools" open><summary>LOCAL TEST · no external services</summary><button id="refresh-checks">Refresh checks</button><button id="scanner-checks">Scanner checks</button><button id="scanner-sample">Scanner sample</button><button id="run-checks">Run workflow checks</button><button id="dashboard-checks">Dashboard checks</button><button id="dashboard-example">Saved example</button><button id="sample">Sample order</button><button id="open-orders">Review orders</button><pre id="fixture-results" role="status"></pre></details>
 <script src="../atlas-routing-core.js"></script><script src="../atlas-routing-planner.js"></script><script src="../atlas-routing-storage.js"></script><script src="../atlas-routing-notifications.js"></script><script src="../atlas-routing-intake.js"></script>
 <script>
 // Real UI/parser/storage validation; entirely synthetic auth, OCR, routes and saves.
@@ -133,8 +133,9 @@ async function checkDirectEntry(kind) {
  let releaseDay,releaseStatus;
  atlasRoutingSavedDays.load=async date=>{await new Promise(r=>releaseDay=r);return originalLoad(date);};
  atlasRoutingSavedDays.scannerStatus=async()=>{await new Promise(r=>releaseStatus=r);if(kind==='failure')throw Error('Synthetic unavailable scanner');return originalStatus();};
+ Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async()=>{throw new DOMException('Synthetic denial','NotAllowedError');}}});
  try {
-  outputs.textContent='Direct-entry checks';await atlasOpenRouting();
+  outputs.textContent='Direct-entry checks';const opening=atlasOpenRouting({intent:'scan-order'});await wait(()=>releaseDay);
   const section=document.querySelector('#atlasDeliveryRouting'),main=section.querySelector('.atlas-route-main');
   const sample=async()=>{for(let i=0;i<4;i++){await new Promise(requestAnimationFrame);frames++;if(getComputedStyle(main).display!=='none')flashes++;}};
   await sample();check(flashes===0,'No dashboard frames while saved day loads');
@@ -142,8 +143,8 @@ async function checkDirectEntry(kind) {
   if(kind==='cancel'){actor=null;window.dispatchEvent(new CustomEvent('atlas-auth-changed',{detail:{session:null}}));}
   releaseStatus();await new Promise(r=>setTimeout(r,60));
   if(kind==='cancel')check(section.hidden&&!document.querySelector('.atlas-document-flow').open,'Sign-out cancels pending scanner entry');
-  else if(kind==='failure')check(!section.classList.contains('is-opening-scanner')&&getComputedStyle(main).display!=='none'&&!section.inert,'Unavailable scanner restores usable routing');
-  else check(document.querySelector('.is-scanner[open]')&&document.querySelector('[data-intake-screen="ADD_DOCUMENT"]'),'Entry finishes directly on Scan Delivery Order');
+  else if(kind==='failure')check(section.dataset.scannerStartup==='blocked'&&!section.inert&&!document.querySelector('[data-scanner-retry]').disabled,'Unavailable scanner offers a usable retry without exposing the dashboard');
+  else {await wait(()=>document.querySelector('[data-intake-screen="CAMERA_PERMISSION"]'));check(document.querySelector('.is-scanner[open]')&&document.querySelector('[data-intake-action="camera"]'),'Permission denial offers camera retry and photos');}
   outputs.textContent+='\nDIRECT ENTRY PASSED · '+frames+' loading frames checked · '+kind;
  }catch(e){outputs.textContent+='\nFAIL: '+e.message;}
  finally{atlasRoutingSavedDays.load=originalLoad;atlasRoutingSavedDays.scannerStatus=originalStatus;}
@@ -173,10 +174,46 @@ async function checkCaseQtyReview(kind) {
   outputs.textContent+=`\n${count} CASE QTY REVIEW CHECKS PASSED · no external requests`;
  }catch(e){outputs.textContent+='\nFAIL: '+e.message;}
 }
+
+async function checkRefresh() {
+ let count=0;outputs.textContent='Routing refresh checks';
+ const check=(yes,label)=>{if(!yes)throw Error(label);outputs.textContent+='\nPASS '+(++count)+': '+label;};
+ const originalSave=atlasRoutingSavedDays.save;
+ const date=new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
+ const order={id:'22222222-2222-4222-8222-222222999905',orderNumber:'SO-US-999905',customer:'Synthetic Refresh Customer',address:'123 Example Street, Fullerton CA 92835',city:'Fullerton',timeWindow:'8:00 AM–2:00 PM',serviceMinutes:25,notes:'TEST DELIVERY',checkOnDelivery:true,invoiceNumbers:[],fulfillmentNumbers:[],lines:[{sku:'CGST1-95MM-0401',caseQty:100,itemQty:30000}]};
+ const load=async()=>{records.set(date,{revision:1,document:{date,version:3,orders:[order],catalog,settings,assignments:{},vanConfirmed:{},lockedTrips:[]}});const input=document.querySelector('[data-route-date]');input.value=date;input.dispatchEvent(new Event('change'));await wait(()=>!document.querySelector('.atlas-route-main').inert&&document.querySelector('[data-route-orders]').textContent.includes(order.customer));};
+ try {
+  await atlasOpenRouting();await load();
+  check(!document.querySelector('.atlas-document-flow').open,'Default routing opens the dashboard');
+  check(document.querySelectorAll('[data-route-optimize]').length===1&&!document.querySelector('[data-route-manual-order]'),'One dashboard optimizer; no manual entry shortcut');
+  check(document.querySelector('.atlas-dispatch-tabs [data-route-history]').textContent.includes('Previous Trips'),'Previous Trips label retains history action');
+  check(document.querySelector('[data-route-orders]').textContent.includes('CHECK ON DELIVERY'),'Check-on-delivery is preserved');
+  click('[data-route-orders] .atlas-route-order-actions [data-route-edit]');
+  check(document.querySelector('[name="customer"]').value===order.customer&&document.querySelector('[data-line-cases]').value==='100','Edit retains customer, SKU and boxes');
+  click('[data-route-cancel]');
+  click('[data-route-orders] [data-route-delete]');
+  check(document.querySelector('[data-route-delete-dialog]').textContent.includes(order.orderNumber),'Delete dialog names exact order');
+  atlasRoutingSavedDays.save=async()=>{throw Error('Synthetic save failure');};
+  click('[data-route-delete-confirm]');await wait(()=>document.querySelector('[data-route-delete-error]').textContent.includes('Nothing was changed'));
+  check(document.querySelector('[data-route-total-orders]').textContent==='1'&&records.get(date).document.orders.length===1,'Failed save restores order and saved state');
+  atlasRoutingSavedDays.save=originalSave;click('[data-route-delete-confirm]');await wait(()=>!document.querySelector('[data-route-delete-dialog]').open);
+  check(document.querySelector('[data-route-total-orders]').textContent==='0'&&records.get(date).document.orders.length===0,'Successful deletion saves and recalculates empty day');
+  check(document.querySelector('[data-route-optimize]').disabled,'Empty day cannot optimize');
+  await load();click('[data-route-lock-next]');await wait(()=>records.get(date).document.lockedTrips.length===1);
+  click('[data-route-orders] [data-route-delete]');
+  check(!document.querySelector('[data-route-delete-confirm]')&&document.querySelector('[data-route-delete-dialog]').textContent.includes('sent-out'),'Sent-out order cannot be deleted');
+  click('[data-route-delete-cancel]');
+  const locked=JSON.stringify(records.get(date).document.lockedTrips);check(locked.includes(order.id),'Locked trip snapshot remains intact');
+  outputs.textContent+='\n'+count+' REFRESH CHECKS PASSED · no external requests';
+ }catch(e){outputs.textContent+='\nFAIL: '+e.message;}finally{atlasRoutingSavedDays.save=originalSave;}
+}
+document.querySelector('#refresh-checks').onclick=checkRefresh;
+
 const entryCheck=new URLSearchParams(location.search).get('entryCheck');
-if(entryCheck)checkDirectEntry(entryCheck);else atlasOpenRouting();
+if(entryCheck)checkDirectEntry(entryCheck);else atlasOpenRouting().then(()=>{if(scannerEnabled&&!new URLSearchParams(location.search).has('refresh'))click('[data-route-intake]');});
 if(new URLSearchParams(location.search).has('caseFixture'))checkCaseQtyReview(new URLSearchParams(location.search).get('caseFixture'));
 if(new URLSearchParams(location.search).has('scannerRun'))wait(()=>document.querySelector('.is-scanner[open]')).then(()=>document.querySelector('#scanner-checks').click());
 if(new URLSearchParams(location.search).has('scannerSample'))wait(()=>document.querySelector('.is-scanner[open]')).then(()=>document.querySelector('#scanner-sample').click());
+if(new URLSearchParams(location.search).has('refresh'))atlasOpenRouting().then(checkRefresh);
 if(new URLSearchParams(location.search).has('example'))wait(()=>document.querySelector('[data-route-mobile-date]')&&!document.querySelector('#atlasDeliveryRouting').inert).then(()=>document.querySelector('#dashboard-example').click());
 </script></html>

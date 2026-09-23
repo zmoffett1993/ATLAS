@@ -18502,6 +18502,15 @@ Error generating stack: ` +
         });
       }
       function ht() {
+        const [atlasScannerShortcut, atlasSetScannerShortcut] = (0, C.useState)(() => window.atlasPersonalScannerAllowed?.() === true);
+        (0, C.useEffect)(() => {
+          const sync = () => atlasSetScannerShortcut(window.atlasPersonalScannerAllowed?.() === true);
+          window.addEventListener("atlas-scanner-capability-changed", sync);
+          window.addEventListener("atlas-auth-changed", sync);
+          sync();
+          return () => { window.removeEventListener("atlas-scanner-capability-changed", sync); window.removeEventListener("atlas-auth-changed", sync); };
+        }, []);
+
         let [e, t] = (0, C.useState)(`home`),
           [n, r] = (0, C.useState)(`loading`),
           [i, a] = (0, C.useState)([]),
@@ -19237,18 +19246,21 @@ Error generating stack: ` +
                   (0, T.jsxs)(`button`, {
                     type: `button`,
                     className: e === `workflows` ? `active` : ``,
-                    "data-nav": "Workflows",
+                    "data-nav": e === `home` && atlasScannerShortcut ? void 0 : "Workflows",
+                    key: e === `home` && atlasScannerShortcut ? "personal-scanner" : "coc-nav",
+                    "data-personal-scanner": e === `home` && atlasScannerShortcut ? "true" : void 0,
                     "aria-current": e === `workflows` ? `page` : void 0,
                     onClick: () => {
+                      if (e === `home` && atlasScannerShortcut && window.atlasPersonalScannerAllowed?.()) { window.atlasOpenRouting?.({ intent: "scan-order" }); return; }
                       (window.atlasCoc?.openWorkflows?.(),
                         atlasReturnToSectionRoot(`workflows`));
                     },
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,
-                        children: `✓`,
+                        children: e === `home` && atlasScannerShortcut ? (0, T.jsxs)(`svg`, { viewBox: `0 0 24 24`, fill: `none`, stroke: `currentColor`, strokeWidth: 2, "aria-hidden": true, children: [(0, T.jsx)(`path`, { d: `M3 6h4l2-3h6l2 3h4v15H3z` }), (0, T.jsx)(`circle`, { cx: 12, cy: 13, r: 4 })] }) : `✓`,
                       }),
-                      (0, T.jsx)(`span`, { children: `COC` }),
+                      (0, T.jsx)(`span`, { children: e === `home` && atlasScannerShortcut ? `Scan Orders` : `COC` }),
                     ],
                   }),
                 ],
@@ -36525,7 +36537,7 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <link rel="stylesheet" href="./atlas-mobile-menu.css?v=3" />
-    <link rel="stylesheet" href="./atlas-routing.css?v=24" />
+    <link rel="stylesheet" href="./atlas-routing.css?v=25" />
     <script src="./atlas-login.js?v=1" defer></script>
     <script src="./atlas-auth.js?v=8" defer></script>
     <script src="./atlas-coc-references.js?v=2" defer></script>
@@ -36547,14 +36559,14 @@ Error generating stack: ` +
   <script src="./atlas-routing-core.js?v=13" defer></script>
     <script src="./atlas-routing-planner.js?v=7" defer></script>
   <script src="./atlas-routing-catalog.js?v=2" defer></script>
-  <script src="./atlas-routing-intake.js?v=8" defer></script>
+  <script src="./atlas-routing-intake.js?v=9" defer></script>
   <script src="./atlas-routing-storage.js?v=4" defer></script>
   <script src="./atlas-routing-notifications.js?v=2" defer></script>
     <script src="./atlas-routing-pod-core.js?v=1" defer></script>
     <script src="./atlas-routing-pod-queue.js?v=1" defer></script>
     <script src="./atlas-routing-pod.js?v=6" defer></script>
-    <script src="./atlas-routing.js?v=38" defer></script>
-    <script type="module" src="./tools/routing-preview/full-site-client.mjs?v=2"></script>
+    <script src="./atlas-routing.js?v=39" defer></script>
+    <script type="module" src="./tools/routing-preview/full-site-client.mjs?v=3"></script>
 
 </body>
 </html>
