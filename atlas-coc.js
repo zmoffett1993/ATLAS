@@ -1321,8 +1321,8 @@
           : { className: "is-offline", label: "Offline", copy: "The report will wait securely in the correct warehouse COC Inbox." };
     return `<div class="atlas-coc-page atlas-coc-report">
       <button type="button" class="atlas-coc-back atlas-coc-report-back" data-coc-action="review-complete">‹ Back to Review</button>
-      <header class="atlas-coc-transfer-head"><span>COC COMPLETE ✓</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
-      <section class="atlas-coc-destination"><span>Destination · ${escapeHtml(session.warehouseCode || Delivery.requestedWarehouseCode())}</span><h2>🖥 Office COC Receiver</h2><p class="${status.className}">● ${status.label}</p>${status.copy ? `<p>${escapeHtml(status.copy)}</p>` : ""}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : "SEND TO OFFICE"}</button></div></section>
+      <header class="atlas-coc-transfer-head"><span>${session.invoiceNumber && session.ifNumber ? "READY FOR OFFICE REVIEW" : "PENDING COC"}</span><p>${plural(session.pallets.length, "pallet")} · ${plural(total, "box")}</p></header>
+      <section class="atlas-coc-destination"><span>Destination · ${escapeHtml(session.warehouseCode || Delivery.requestedWarehouseCode())}</span><h2>🖥 Office COC Receiver</h2><p class="${status.className}">● ${status.label}</p>${status.copy ? `<p>${escapeHtml(status.copy)}</p>` : ""}<div class="atlas-coc-report-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office" ${exportInProgress ? "disabled" : ""}>${exportInProgress ? "PREPARING…" : session.invoiceNumber && session.ifNumber ? "SEND TO OFFICE" : "SAVE PENDING TO OFFICE"}</button></div></section>
     </div>`;
   }
 
@@ -1337,7 +1337,7 @@
       return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>${phase === "office_completed" ? "COMPLETED ✓" : "RECEIVED ✓"}</h1><p>${phase === "office_completed" ? `${escapeHtml(stationName)} completed the report.` : `${escapeHtml(stationName)} received the report.`}</p><section class="atlas-coc-received-summary"><strong class="atlas-coc-received-customer">${escapeHtml(customerName)}</strong><b class="atlas-coc-received-invoice">${escapeHtml(invoiceNumber)}</b><small>${plural(session?.pallets?.length || sendState.palletCount, "pallet")} · ${plural(session ? Core.sessionTotal(session) : sendState.totalBoxes, "box")}</small></section><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Done</button></div>`;
     }
     if (phase === "failed") return `<div class="atlas-coc-page atlas-coc-send-state"><h1>SEND NOT COMPLETED</h1><p>${escapeHtml(sendState.error || "The office transfer could not be confirmed. Your completed COC is still open and nothing was lost.")}</p><div class="atlas-coc-send-recovery-actions"><button type="button" class="atlas-coc-primary" data-coc-action="send-to-office">TRY AGAIN</button><button type="button" data-coc-action="return-to-report">Back to Report</button><button type="button" class="atlas-coc-start-over" data-coc-action="review-discard">Discard This COC &amp; Start Over</button></div></div>`;
-    return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>SENT ✓</h1><p>The completed COC was sent to:</p><h2>${escapeHtml(stationName)}</h2><p>Waiting for receipt…</p></div>`;
+    return `<div class="atlas-coc-page atlas-coc-send-state"><span class="atlas-coc-success-mark">✓</span><h1>SENT ✓</h1><p>The completed COC was sent to:</p><h2>${escapeHtml(stationName)}</h2><p>Saved in the office inbox; waiting for receipt.</p><button type="button" class="atlas-coc-primary" data-coc-action="finish-transfer">Return Home</button></div>`;
   }
 
   async function refreshCompletedHistory() {
@@ -1839,7 +1839,7 @@
         <section class="atlas-coc-final-pallet"><header><strong>Pallet ${item.number}</strong><b>${plural(Core.palletTotal(item), "box")}</b></header>${item.lots.map((lot) => `<div class="atlas-coc-final-record"><span class="atlas-coc-final-identifiers"><small>SKU</small><strong>${escapeHtml(lot.model || "SKU not recorded")}</strong><small>LOT</small><b>${escapeHtml(Core.displayLot(lot.lot))}</b></span>${lotQuantityReviewMarkup(item, lot, "atlas-coc-final-boxes")}</div>`).join("")}${reportMode ? `<button type="button" class="atlas-coc-review-edit" data-coc-action="review-reopen" data-pallet-id="${escapeHtml(item.id)}">Edit Pallet ${item.number} · SKU, Lots &amp; Boxes</button>` : ""}</section>
       </article>`;
     }).join("");
-    return modalShell(`<span class="atlas-coc-eyebrow">FINAL REVIEW</span><h2>${reportMode ? "Review completed COC" : "Complete this COC?"}</h2>
+    return modalShell(`${reportMode ? '<span class="atlas-coc-eyebrow">FINAL REVIEW</span>' : ""}<h2>${reportMode ? "Review completed COC" : "Final Review"}</h2>
       <div class="atlas-coc-final-review ${multiplePallets ? "is-carousel" : ""}" ${multiplePallets ? 'aria-label="Swipe through verified pallets" tabindex="0"' : ""}>${completedPalletMarkup}</div>
       <p class="atlas-coc-final-total"><strong>TOTAL</strong><b>${plural(total, "box")} · ${plural(completed.length, "pallet")}</b></p>
       ${blocked
@@ -1847,8 +1847,8 @@
         : pallet && !activeHasWork
           ? `<p>The empty Pallet ${pallet.number} draft will not be included. Only the ${plural(completed.length, "verified pallet")} shown above will appear in the final report.</p>`
           : `<p>This will finalize the COC with the ${plural(completed.length, "verified pallet")} shown above. Your final report will be ready for office completion.</p>`}
-      <div class="atlas-coc-modal-actions atlas-coc-final-actions"><button type="button" data-coc-action="view-draft-official" ${blocked || !completed.length ? "disabled" : ""}>View Official COC</button>${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Complete COC</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Complete COC</button>`}</div>`, {
-      label: "Complete COC review",
+      <div class="atlas-coc-modal-actions atlas-coc-final-actions">${reportMode ? `<button type="button" class="atlas-coc-primary" data-coc-action="close-modal">Complete COC</button>` : `<button type="button" class="atlas-coc-primary" data-coc-action="complete-coc" ${blocked || !completed.length ? "disabled" : ""}>Accept COC</button>`}</div>`, {
+      label: reportMode ? "Completed COC review" : "Final Review",
       className: "atlas-coc-final-review-dialog",
       backAction: reportMode ? "back-to-verified-pallet" : "coc-back",
       backLabel: reportMode ? "‹ Back to Pallet" : "‹ Back",
@@ -3639,7 +3639,7 @@
     }
     if (action === "send-to-office") { await sendCompletedCoc(); return; }
     if (action === "return-to-report") { workflowView = "session"; sendState = { phase: "ready" }; refreshStationPresence(); renderAll(); scrollWorkflowToTop(); return; }
-    if (action === "finish-transfer") { session = null; removeActiveDraft(); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); return; }
+    if (action === "finish-transfer") { session = null; removeActiveDraft(); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); document.querySelector('[data-nav="Home"], [data-nav="home"]')?.click(); return; }
     if (action === "retry-save") {
       if (persist()) { modal = null; renderAll(); showToast("COC saved on this device"); }
       return;
