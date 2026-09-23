@@ -130,3 +130,22 @@ test('history results are discarded after account changes and reset',async()=>{
  for(const reset of [false,true]) {let release;const pending=new Promise(r=>release=r);const f=fixture({fetchImpl:async()=>{await pending;return Response.json({warehouse:'CA',matches:[searchRow()],hasMore:false});}});
  const result=f.client.search({});await new Promise(r=>setImmediate(r));if(reset)f.client.reset();else f.identity(session(OTHER));release();await assert.rejects(result,{code:'SESSION_CHANGED'});}
 });
+
+
+test('scanner uploads use the authenticated atomic RPC and remove photos from the order',async()=>{
+ const seed=snapshot({...example(),schemaVersion:3,orders:[],assignments:{},vanConfirmed:{},lockedTrips:[]});
+ const input=snapshot({...seed,orders:example().orders}).orders[0];
+ const f=fixture({fetchImpl:async(url,init)=>{
+  assert.ok(url.endsWith('/atlas_routing_scanner_upload'));
+  const payload=JSON.parse(init.body);assert.equal(payload.p_warehouse,'CA');assert.equal('photos' in payload.p_order,false);
+  return Response.json({warehouse:'CA',date:DAY,revision:1,canEdit:true,document:{...seed,orders:[input]},order:input,duplicate:false});
+ }});
+ const result=await f.client.upload(DAY,{...input,photos:['transient']},{parserVersion:'test'},seed);
+ assert.equal(result.duplicate,false);assert.equal(result.document.orders.length,1);
+});
+test('scanner status and uploads reject late responses after account switch',async()=>{
+ let finish;const pending=new Promise(resolve=>finish=resolve);
+ const f=fixture({fetchImpl:async()=>{await pending;return Response.json({enabled:true,status:'pending'});}});
+ const response=f.client.scannerStatus(DAY);await new Promise(resolve=>setImmediate(resolve));f.identity(session(OTHER));finish();
+ await assert.rejects(response,{code:'SESSION_CHANGED'});
+});

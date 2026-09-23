@@ -30,6 +30,16 @@
     return null;
   }
 
+  function normalizeHours(value) {
+    const m=String(value).match(/\b(\d{1,2})(?::?([0-5]\d))?\s*(am|pm)?\s*(?:[-–]|to)\s*(\d{1,2})(?::?([0-5]\d))?\s*(am|pm)?\b/i);
+    if(!m)return String(value).trim();
+    const minutes=(h,min,ap)=>{h=Number(h);if(ap){if(h<1||h>12)return NaN;h=h%12+(/pm/i.test(ap)?12:0);}return h<=23?h*60+Number(min||0):NaN;};
+    let start=minutes(m[1],m[2],m[3]),end=minutes(m[4],m[5],m[6]);
+    if(!m[3]&&m[6]){const candidates=['am','pm'].map(ap=>minutes(m[1],m[2],ap)).filter(n=>n<end&&end-n<=12*60);if(candidates.length!==1)return String(value).trim();start=candidates[0];}
+    if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return String(value).trim();
+    const fmt=n=>`${Math.floor(n/60)%12||12}:${String(n%60).padStart(2,'0')} ${n<720?'AM':'PM'}`;
+    return `${fmt(start)}–${fmt(end)}`;
+  }
   // Recognize this company's printed form conservatively. Handwriting and
   // unrecognized layouts stay available in the photo for human review.
   function parsePage(page, index = 0) {
@@ -53,7 +63,9 @@
     if (ids.length === 1) fields.orderNumber = ids[0];
     else issues.push(ids.length ? "Different sales order numbers appear on this photo." : "Confirm the sales order number; none was confidently recognized.");
     const table = lines.find((r) => phrase(r, "CASE", "QTY") && phrase(r, "ITEM", "QTY"));
+    const packingTitle = lines.find(r=>/Packing\s+Slip/i.test(textOf(r)));
     const ship = lines.map((r) => ({ row: r, heading: phrase(r, "SHIP", "TO") })).find((r) => r.heading);
+    const packing = Boolean(packingTitle && ship && table && packingTitle.y < ship.row.y && ship.row.y < table.y);
     if (ship) {
       const left = ship.heading.x - 0.01;
       const boundary = ship.row.words.find((w) => w.x > ship.heading.x + ship.heading.w + 0.05);
@@ -67,16 +79,18 @@
       if (cityIndex > 0) {
         const streetIndex = block.findIndex((s) => /^\d+[A-Z-]?\s+\S/i.test(s));
         if (streetIndex >= 0 && streetIndex < cityIndex) {
-          fields.customer = block.slice(0, streetIndex).join(" ");
+          const customerRows = block.slice(0, streetIndex).map((value,i) => ({value,i})).filter(({value}) => !/\bPO\s*#?\s*\d|\bcoc\b|rec\.?\s*hrs|receiving|hours|\b(?:am|pm)\b|\d\s*(?:am|pm)|\(?\d{3}\)?[- .]\d{3}/i.test(value));
+          fields.customer = customerRows.map(r=>r.value).join(" ");
           fields.address = block.slice(streetIndex, cityIndex + 1).join(", ");
           fields.city = block[cityIndex].replace(/,?\s+[A-Z]{2}\s+\d{5}(?:-\d{4})?.*$/i, "").trim();
-          evidence.customer = blockWords.slice(0, streetIndex).flat();
+          evidence.customer = customerRows.flatMap(r=>blockWords[r.i]);
           evidence.address = blockWords.slice(streetIndex, cityIndex + 1).flat();
           evidence.city = blockWords[cityIndex];
         }
       }
       const times = block.filter((s) => /\b(?:[1-9]|1[0-2])(?::[0-5]\d)?\s*[AP]\.?M\.?\b|\b\d{1,2}:[0-5]\d\s*[-–]\s*\d{1,2}:[0-5]\d\b/i.test(s));
-      fields.timeWindow = times.join(" · ").slice(0, 100);
+      for(const line of block) if(/\b(?:\d{2}:?\d{2})\s*(?:[-–]|to)\s*\d{2}:?\d{2}\b/.test(line)&&!times.includes(line))times.push(line);
+      fields.timeWindow = times.map(normalizeHours).filter(Boolean).join(" · ").slice(0, 100);
       evidence.timeWindow = blockWords.filter((_, i) => times.includes(block[i])).flat();
     }
     if (!fields.address || !fields.customer) issues.push("Review the Ship To address and customer; the Bill To address is never substituted.");
@@ -124,7 +138,7 @@
       skus.forEach((sku, i) => {
         const nextY = skus[i + 1]?.y ?? 1;
         const nearby = words.filter((w) => w.y >= sku.y - sku.h * 0.5 && w.y < Math.min(nextY - sku.h * 0.3, sku.y + Math.max(sku.h * 2.4, 0.025)));
-        const at = (x) => nearby.filter((w) => Math.abs(w.x + w.w / 2 - x) < tolerance && number(w.text) != null);
+        const at = (x) => nearby.filter((w) => (packing ? w.x < x + tolerance && w.x + w.w > x - tolerance : Math.abs(w.x + w.w / 2 - x) < tolerance) && number(w.text) != null);
         const c = at(caseX), u = at(unitX);
         const caseQty = c.length === 1 && number(c[0].text) > 0 && number(c[0].text) <= 1000000 ? number(c[0].text) : null;
         const itemQty = u.length === 1 && number(u[0].text) > 0 && number(u[0].text) <= 1000000000 ? number(u[0].text) : null;
@@ -135,7 +149,9 @@
       });
     }
     if (!items.length) issues.push("No product rows were confidently recognized. Enter the SKU and Case Qty from the photo.");
-    return { ...fields, invoiceNumbers, fulfillmentNumbers, lines: items, ids, issues, evidence, checkOnDelivery: /\bCHECK\s+ON\s+DELIVERY\b/i.test(text), text, source: index + 1 };
+    const packingSlip = packing ? text.match(/\bIF-(?:US-)?\d{3,12}\b/i)?.[0]?.toUpperCase() || "" : "";
+    if (packingSlip && !fulfillmentNumbers.includes(packingSlip)) fulfillmentNumbers.push(packingSlip);
+    return { ...fields, parserVersion: packing ? "packing-slip-v1" : "generic-v2", purchaseOrder: text.match(/\bPO\s*#?\s*(\d{3,12})\b/i)?.[1] || "", packingSlip, invoiceNumbers, fulfillmentNumbers, lines: items, ids, issues, evidence, checkOnDelivery: /\bCHECK\s+ON\s+DELIVERY\b/i.test(text), text, source: index + 1 };
   }
 
   function combinePages(pages) {
@@ -192,7 +208,8 @@
       const context = canvas.getContext("2d"); context.fillStyle = "white"; context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       // Re-encoding strips EXIF/GPS metadata; originals are never overwritten.
-      const data = canvas.toDataURL("image/jpeg", 0.88).split(",")[1];
+      let data;
+      for (const quality of [0.88, 0.78, 0.66, 0.54]) { data = canvas.toDataURL("image/jpeg", quality).split(",")[1]; if (data?.length <= 2800000) break; }
       canvas.width = canvas.height = 1;
       if (!data || data.length > 2800000) throw new Error("This photo is too detailed to read in the preview. Crop to the order and try again.");
       return data;
@@ -292,16 +309,19 @@
   }
   // The document workflow owns only transient photos and review state. Existing
   // routing callbacks remain responsible for permissions, cutoff, saves and plans.
-  function createDocumentFlow({ host, icon, snapshot, read, submit, optimize, save, edit, remove, map, cancelPlan }) {
+  function createDocumentFlow({ host, icon, snapshot, read, submit, optimize, save, edit, remove, map, cancelPlan, exit = () => {}, upload }) {
     const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     const dialog = document.createElement("dialog"); dialog.className = "atlas-document-flow";
     dialog.setAttribute("aria-label", "Delivery order intake"); host.append(dialog);
+    const viewport = () => { if(window.visualViewport){dialog.style.setProperty("--atlas-scanner-height",`${window.visualViewport.height}px`);dialog.style.setProperty("--atlas-scanner-top",`${window.visualViewport.offsetTop}px`);} };
+    window.visualViewport?.addEventListener("resize",viewport); window.visualViewport?.addEventListener("scroll",viewport); viewport();
     let screen = "ADD_DOCUMENT", photos = [], result = null, assessment = null, overrides = {}, generation = 0, controller = null, stream = null;
+    let scanner = false, uploadedCount = 0, checkOverride = null;
     let date = null, owner = null, busy = false, error = "", added = null, replaceIndex = null, historyId = null, selectedPhoto = 0;
     const current = version => generation === version && dialog.open && owner === snapshot().owner && snapshot().active;
     const stopCamera = () => { stream?.getTracks().forEach(track => track.stop()); stream = null; };
     function cancel() { generation++; controller?.abort(); controller = null; stopCamera(); cancelPlan(); busy = false; }
-    function clearPhotos() { photos.forEach(p => URL.revokeObjectURL(p.url)); photos = []; result = assessment = null; overrides = {}; }
+    function clearPhotos() { photos.forEach(p => URL.revokeObjectURL(p.url)); photos = []; result = assessment = null; overrides = {}; checkOverride = null; }
     function close(fromBack = false) {
       cancel(); clearPhotos(); added = null; dialog.close();
       if (!fromBack && historyId && window.history.state?.atlasDocumentFlow === historyId) window.history.back();
@@ -330,10 +350,11 @@
       if (!assessment || result?.mixedOrders) return null;
       const value = (path, field) => Object.hasOwn(overrides, path) ? overrides[path] : field.value;
       const confirmed = (path, field) => Object.hasOwn(overrides, path) || field.status === "confirmed";
-      const order = { ...result, date, lines: [] };
+      const order = { ...result, date, checkOnDelivery: checkOverride ?? result.checkOnDelivery, sourceCheckOnDelivery: result.checkOnDelivery, lines: [] };
       for (const name of ["orderNumber", "customer", "address", "city", "timeWindow"]) {
         const field = assessment.fields[name]; order[name] = String(value(name, field)).trim();
-        if (!confirmed(name, field) || (name !== "timeWindow" && !order[name])) return null;
+        if (scanner && name === "city" && overrides.address) order.city = String(overrides.address).match(/(?:,|^)([^,]+),?\s+[A-Z]{2}\s+\d{5}/i)?.[1]?.trim() || order.city;
+        if ((!confirmed(name, field) && !(scanner && name === "city" && order.city)) || (name !== "timeWindow" && !order[name])) return null;
       }
       if (!/^SO-US-\d{3,12}$/i.test(order.orderNumber)) return null;
       for (const [i, line] of assessment.fields.lines.entries()) {
@@ -341,6 +362,14 @@
         if (!confirmed(`sku.${i}`, line.sku) || !confirmed(`caseQty.${i}`, line.caseQty) || !skuPattern.test(sku) || !Number.isSafeInteger(caseQty) || caseQty < 1 || caseQty > 1000000) return null;
         order.lines.push({ sku, caseQty, itemQty: result.lines[i]?.itemQty ?? null });
       }
+      const diagnostic = (name,original,reviewed,manual,evidenceName=name) => {
+        const words=result.pages.flatMap(p=>p.evidence?.[evidenceName]||[]);
+        const values=words.map(w=>w.confidence).filter(Number.isFinite);
+        return {field:name,original:String(original??""),reviewed:String(reviewed??""),confidence:values.length?Math.min(...values):null,source:manual?"manual":result.pages[0]?.parserVersion==="packing-slip-v1"?"template":"generic"};
+      };
+      order.extraction = { parserVersion: result.pages?.[0]?.parserVersion || "generic-v2", purchaseOrder: result.pages?.[0]?.purchaseOrder || "", packingSlip: result.pages?.[0]?.packingSlip || "", fields: ["orderNumber","customer","address","timeWindow"].map(name=>diagnostic(name,result[name],order[name],Object.hasOwn(overrides,name))) };
+      order.lines.forEach((line,i)=>{for(const name of ["sku","caseQty","itemQty"])order.extraction.fields.push({field:`lines.${i}.${name}`,original:String(result.lines[i]?.[name]??""),reviewed:String(line[name]??""),confidence:null,source:Object.hasOwn(overrides,`${name}.${i}`)?"manual":"generic"});});
+
       return order.lines.length ? order : null;
     }
     function render(focus = true) {
@@ -366,7 +395,18 @@
         if (plan) content += `${plan.warnings?.length || plan.unscheduled?.length ? `<p class="atlas-document-error">Review needed · ${esc((plan.warnings || []).join(" "))} ${plan.unscheduled?.length || 0} unscheduled shipments</p>` : '<p class="atlas-document-ready">Route calculated · ready for review</p>'}${plan.trips.map(trip => `<article class="atlas-document-card atlas-document-trip"><h3>${icon("truck")}Trip ${trip.tripIndex + 1}<small>${esc(trip.driver)} · ${trip.vehicle === "truck" ? "Box Truck" : "Cargo Van"}</small></h3><p>${icon("clock")}${esc(s.time(trip.departure))}–${esc(s.time(trip.returnTime))} · ${trip.visits.reduce((sum, v) => sum + trip.shipments[v.stopIndex].palletSpaces, 0)} pallets</p><ol>${trip.visits.map(v => `<li><strong>${esc(trip.shipments[v.stopIndex].customer)}</strong><small>${esc(trip.locations[v.stopIndex]?.formattedAddress || "")}</small></li>`).join("")}<li><strong>Return to Warehouse</strong></li></ol><footer>${(trip.distanceMeters / 1609.344).toFixed(1)} mi <span>${Math.round((Date.parse(trip.returnTime) - Date.parse(trip.departure)) / 60000)} min trip</span></footer></article>`).join("")}`;
         content += button("save", screen === "SAVED" ? "Saved" : `${icon("template")}Save Route`, true, screen === "SAVED" || !s.canSave || !plan?.complete) + button("map", `${icon("map")}View Map`);
       }
-      dialog.innerHTML = `<header class="atlas-document-header"><button type="button" data-intake-action="back" ${busy && !["READING", "OPTIMIZING"].includes(screen) ? "disabled" : ""}>‹ <span>${["ROUTE_READY", "SAVED"].includes(screen) ? "Orders" : "Today’s Routes"}</span></button><img src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS" /></header><main class="atlas-document-content" data-intake-screen="${screen}">${content}<p class="atlas-document-error" role="alert">${esc(error)}</p></main>${screen === "VERIFY" ? `<footer class="atlas-document-submit">${button("add", "Add Order", true, !reviewedOrder())}</footer>` : ""}<input type="file" accept="image/*" multiple data-intake-files hidden />`;
+      if(scanner){
+        if(screen === "ADD_DOCUMENT") content = `<div class="atlas-scanner-hero">${icon("camera")}</div>`+heading("Scan Delivery Order","Photograph one packing slip at a time.")+button("camera",`${icon("camera")}Take Photo`,true)+button("photos","Choose from Photos")+`<p class="atlas-document-caption is-centered">Orders uploaded today <strong>${s.uploadedToday ?? uploadedCount}</strong></p>`;
+        if(screen === "READING") content = `<div class="atlas-document-photo"><img src="${esc(photos[selectedPhoto]?.url)}" alt="Original order photo" /></div><div class="atlas-document-loader"></div>`+heading("Reading order…","Finding the delivery details.")+button("cancel-operation","Cancel");
+        if(screen === "VERIFY" && assessment){
+          const fields=assessment.fields, boxes=fields.lines.reduce((n,l)=>n+Number(overrides[`caseQty.${fields.lines.indexOf(l)}`]??l.caseQty.value??0),0);
+          const needsLines=fields.lines.some((l,i)=>!Object.hasOwn(overrides,`sku.${i}`)&&l.sku.status!=="confirmed"||!Object.hasOwn(overrides,`caseQty.${i}`)&&l.caseQty.status!=="confirmed");
+          content=heading("Check these details")+`<div class="atlas-document-fields">${[["orderNumber","Sales order"],["customer","Customer"],["address","Delivery address"],["timeWindow","Receiving hours"]].map(([n,label])=>fieldRow(n,label,fields[n])).join("")}${fields.lines.length===1?fieldRow("caseQty.0","Boxes",fields.lines[0].caseQty,"number"):`<div class="atlas-document-field"><label>Boxes<strong>${boxes}</strong></label><button type="button" data-intake-action="line-details">Edit box allocation</button></div>`}</div><details class="atlas-scanner-lines" ${needsLines?"open":""}><summary>SKU and box details${needsLines?" — review needed":""}</summary>${fields.lines.map((line,i)=>fieldRow(`sku.${i}`,`Item ${i+1}`,line.sku)+fieldRow(`caseQty.${i}`,"Boxes",line.caseQty,"number")).join("")}</details><label class="atlas-scanner-check"><input type="checkbox" data-scanner-check ${(checkOverride??result.checkOnDelivery)?"checked":""}/><span><strong>Check on delivery</strong><small>Adds CHECK ON DELIVERY to order notes</small></span></label>`+button("append","Add another page")+ (photos.length>1 ? `<div class="atlas-document-pages">${photos.map((p,i)=>`<button type="button" data-intake-remove-page="${i}">Remove page ${i+1}</button>`).join("")}</div>` : "");
+          if(result.mixedOrders)content+='<p class="atlas-document-error">Different sales orders detected. Retake only this order.</p>';
+        }
+        if(screen === "ORDER_ADDED")content=`<div class="atlas-document-success">${icon("check")}</div>`+heading(added.duplicate?"Order already uploaded":"Order Uploaded",`${esc(added.orderNumber)} is saved for ${esc(added.date||date)} and ready on desktop.`)+button("another","Scan Another Order",true)+button("done","Done");
+      }
+      dialog.innerHTML = `<header class="atlas-document-header"><button type="button" data-intake-action="back" ${busy && !["READING", "OPTIMIZING"].includes(screen) ? "disabled" : ""}>‹ <span>${scanner ? "Back to ATLAS" : ["ROUTE_READY", "SAVED"].includes(screen) ? "Orders" : "Today’s Routes"}</span></button><img src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS" />${scanner ? `<small class="atlas-scanner-title">${screen==="VERIFY"?"Review Order":"Order Scanner"}</small>` : ""}</header><main class="atlas-document-content" data-intake-screen="${screen}">${content}<p class="atlas-document-error" role="alert">${esc(error)}</p></main>${screen === "VERIFY" ? `<footer class="atlas-document-submit">${button("add", scanner ? "Upload Order" : "Add Order", true, !reviewedOrder())}${scanner ? button("retake","Retake") : ""}</footer>` : ""}<input type="file" accept="image/*" multiple data-intake-files hidden />`;
       dialog.querySelector("[data-intake-files]").addEventListener("change", event => { void addPhotos([...event.target.files]); event.target.value = ""; });
       if (focus) { dialog.scrollTop = 0; dialog.querySelector("h2")?.focus({ preventScroll: true }); }
     }
@@ -416,6 +456,7 @@
       } catch { if (current(version)) { stopCamera(); error = "Camera access is unavailable. Allow camera access in your browser, or choose an existing photo."; render(); } }
     }
     dialog.addEventListener("input", event => {
+      if(event.target.matches("[data-scanner-check]")){checkOverride=event.target.checked;return;}
       const path = event.target.dataset.intakeField; if (!path) return;
       overrides[path] = event.target.value; const row = event.target.closest(".atlas-document-field"), valid = validField(path, event.target.value);
       row.classList.toggle("needs-confirmation", !valid); row.classList.toggle("is-confirmed", valid); row.querySelector("[data-intake-check]").innerHTML = valid ? icon("check") : "!";
@@ -431,6 +472,8 @@
       if (target.hasAttribute("data-intake-remove-page")) { cancel(); const [p] = photos.splice(Number(target.dataset.intakeRemovePage), 1); URL.revokeObjectURL(p.url); selectedPhoto = 0; overrides = {}; if (!photos.length) { clearPhotos(); screen = "ADD_DOCUMENT"; render(); } else await readPending(); return; }
       if (target.hasAttribute("data-intake-edit")) { close(); edit(target.dataset.intakeEdit); return; }
       if (target.hasAttribute("data-intake-remove")) { try { remove(target.dataset.intakeRemove); } catch (e) { error = e.message; } render(false); return; }
+      if (action === "line-details") dialog.querySelector(".atlas-scanner-lines").open=true;
+      if (action === "done" || (action === "back" && scanner)) { if(!busy){close();exit();} return; }
       if (action === "back") { if (["ROUTE_READY", "SAVED"].includes(screen)) { screen = "ORDERS_READY"; render(); } else if (!busy || ["READING", "OPTIMIZING"].includes(screen)) close(); }
       if (action === "camera") await camera();
       if (action === "photos") dialog.querySelector("[data-intake-files]").click();
@@ -454,7 +497,7 @@
         if (action === "optimize") { screen = "OPTIMIZING"; render(); }
         else dialog.querySelector('[data-intake-action="back"]').disabled = true;
         try {
-          if (action === "add") { const saved = await submit(order); if (!current(version)) return; added = saved; clearPhotos(); screen = "ORDER_ADDED"; }
+          if (action === "add") { const saved = await (scanner ? upload(order) : submit(order)); if (!current(version)) return; added = saved; if(scanner&&!saved.duplicate)uploadedCount++; clearPhotos(); screen = "ORDER_ADDED"; }
           if (action === "optimize") { await optimize(); if (!current(version)) return; screen = "ROUTE_READY"; }
           if (action === "save") { await save(); if (!current(version)) return; screen = "SAVED"; }
         } catch (e) { if (current(version)) { error = e.message || "Please try again."; if (action === "optimize") screen = "ORDERS_READY"; } }
@@ -465,6 +508,7 @@
       open(initial = "ADD_DOCUMENT") {
         if (dialog.open) return;
         const s = snapshot(); if (!s.active || (initial === "ADD_DOCUMENT" && !s.canEdit)) return;
+        scanner = s.scanner === true; dialog.classList.toggle("is-scanner",scanner); if(owner!==s.owner)uploadedCount=0;
         cancel(); clearPhotos(); owner = s.owner; date = null; selectedPhoto = 0; replaceIndex = null; screen = initial; error = "";
         historyId = `intake-${Date.now()}`; window.history.pushState({ ...window.history.state, atlasDocumentFlow: historyId }, "");
         dialog.showModal(); render();
@@ -472,5 +516,5 @@
       reset: close, active: () => dialog.open,
     };
   }
-  return { parsePage, combinePages, preparePhoto, createPhotoQueue, assessOrderReading, quickReadingIssues, createDocumentFlow };
+  return { parsePage, normalizeHours, combinePages, preparePhoto, createPhotoQueue, assessOrderReading, quickReadingIssues, createDocumentFlow };
 });

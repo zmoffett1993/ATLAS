@@ -34,7 +34,7 @@ export function photoResult(result) {
     if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0 || x < 0 || y < 0 || x + w > 1.01 || y + h > 1.01) continue;
     words.push({ text, x, y: y + h / 2, w, h, confidence: Number.isFinite(word.confidence) ? word.confidence : null });
   }
-  return { warehouse: "CA", scope: "order-photo", pages: [{ text: annotation.text, words }] };
+  return { warehouse: "CA", scope: "order-photo", pages: [{ text: annotation.text, words, width: page.width, height: page.height }] };
 }
 
 export function createPhotoHandler({ env, fetchImpl = fetch, now = Date.now }) {

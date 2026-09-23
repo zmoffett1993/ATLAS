@@ -797,10 +797,37 @@
     if (show && !find(".atlas-route-intake").open) find(".atlas-route-intake").showModal();
   }
 
+  let scannerReady = false, scannerUploadedToday = 0;
+  async function refreshScannerStatus() {
+    const owner=state.ownerId, scanDay=find("[data-route-date]").value;
+    if(!state.open||driverMode||savedDay.busy||state.planningController||document.hidden||!storage()?.scannerStatus)return;
+    try {
+      const result=await storage().scannerStatus(scanDay);
+      if(!state.open||find("[data-route-date]").value!==scanDay||state.ownerId!==owner||window.AtlasAuth?.getSession()?.user?.id!==owner)return;
+      scannerReady=result.enabled===true;scannerUploadedToday=Number(result.uploadedToday)||0;
+      if(scannerReady && Array.isArray(result.catalog) && !savedDay.dirty){
+        const known=new Set(state.catalog.map(row=>row.model));const merged=[...state.catalog,...result.catalog.filter(row=>!known.has(row.model))];
+        state.catalog=window.atlasRoutingStorage.document({...dayDocument(),catalog:merged}).catalog;
+      }
+      if(scannerReady && Number.isSafeInteger(result.currentRevision) && result.currentRevision>savedDay.revision && !savedDay.dirty && !documentFlow?.active()) await loadDay();
+      if(!state.open||find("[data-route-date]").value!==scanDay||state.ownerId!==owner)return;
+      if(!savedDay.dirty && !state.planningController && !documentFlow?.active() && result.planRevision===savedDay.revision && result.plan?.timed?.complete && !state.lockedTrips.length) renderTimedPlan(result.plan.timed);
+      let status=find("[data-scanner-planning-status]");
+      if(!status){status=document.createElement("p");status.dataset.scannerPlanningStatus="";status.setAttribute("role","status");find("[data-route-save-status]").after(status);}
+      status.textContent=scannerReady?({pending:"Planning queued",planning:"Planning…",updated:result.planRevision===savedDay.revision?(result.plan?.timingStatus==="estimated"?"Plan updated with traffic estimates":"Load plan updated · review departure times"):"New orders saved · reload the day to review",attention:"Planning needs attention · orders remain saved"}[result.status]||""):"";
+      if(scannerReady && result.status==="attention" && intakeSnapshot().canEdit){
+        const retry=document.createElement("button");retry.type="button";retry.className="atlas-route-button";retry.textContent="Retry planning";
+        retry.onclick=async()=>{retry.disabled=true;try{await storage().scannerRetry(scanDay);await refreshScannerStatus();}catch{retry.disabled=false;}};
+        status.append(" ",retry);
+      }
+    } catch { scannerReady=false; }
+  }
+  window.addEventListener("focus",()=>{if(scannerReady)void refreshScannerStatus();});
+  setInterval(()=>{if(scannerReady)void refreshScannerStatus();},30000);
   function intakeSnapshot() {
     const canEdit = state.open && !driverMode && !accessReadOnly && state.ownerId === window.AtlasAuth?.getSession()?.user?.id &&
       !savedDay.busy && !intakeRequest && !state.planningController && (!storage()?.enabled || (savedDay.ready && savedDay.canEdit));
-    return { owner: state.ownerId, active: state.open && !driverMode && state.ownerId === window.AtlasAuth?.getSession()?.user?.id,
+    return { scanner: scannerReady && window.matchMedia("(max-width:750px)").matches, uploadedToday: scannerUploadedToday, owner: state.ownerId, active: state.open && !driverMode && state.ownerId === window.AtlasAuth?.getSession()?.user?.id,
       canEdit, canSave: canEdit && storage()?.enabled && savedDay.ready, dirty: savedDay.dirty,
       canOptimize: canEdit && !find("[data-route-optimize]").disabled,
       planIssue: !window.atlasRoutingConnection?.available ? "Google routing is not connected. Your orders remain available." : state.loadPlan?.unscheduled.length ? "Some loads need review before routing. Open Trips to review them." : "",
@@ -812,6 +839,20 @@
 
   function initializeDocumentFlow(section) {
     documentFlow = window.atlasRoutingIntake.createDocumentFlow({ host: section, icon, snapshot: intakeSnapshot,
+      exit: () => leaveRouting("home"),
+      upload: async order => {
+        if(!intakeSnapshot().canEdit || !scannerReady) throw new Error("Scanner saving is unavailable. Your photo remains here.");
+        if(savedDay.dirty) throw new Error("Save your existing route changes before uploading a new order.");
+        const owner=state.ownerId;
+        const seed={...dayDocument(),date:order.date,orders:[],lockedTrips:[],assignments:{},vanConfirmed:{}};
+        const record={...order,id:crypto.randomUUID(),serviceMinutes:25,notes:(order.checkOnDelivery||order.sourceCheckOnDelivery)?"CHECK ON DELIVERY":"",dispatchedOn:null,deliveredOn:null,deliveryException:""};
+        if(order.timeWindow) window.atlasRoutingPlanner.timeWindow(order.timeWindow,order.date,window.atlasRoutingPlanner.timestamp(order.date,390),25);
+        const response=await storage().upload(order.date,record,order.extraction,seed);
+        if(!state.open||state.ownerId!==owner||window.AtlasAuth?.getSession()?.user?.id!==owner) throw new Error("Account changed. Reopen the scanner.");
+        if(response.date===find("[data-route-date]").value) applySavedDay(response);
+        if(!response.duplicate)scannerUploadedToday++;
+        return {...response.order,date:response.date,duplicate:response.duplicate};
+      },
       read: async (file, signal) => {
         if (!window.atlasRoutingConnection?.photoAvailable) throw new Error("Photo reading is not connected yet.");
         const image = await window.atlasRoutingIntake.preparePhoto(file, signal);
@@ -1372,6 +1413,7 @@
   }
 
   function resetWorkspace() {
+    scannerReady = false; scannerUploadedToday = 0;
     mobileSaveFailed = false;
     find("[data-route-mobile-reorder-dialog]")?.close();
     if (find(".atlas-route-mobile-search")) find(".atlas-route-mobile-search").hidden = true;
@@ -1451,7 +1493,7 @@
     applyDispatchTab();
     applyReadOnlyControls();
     if (driverMode) void window.atlasRoutingPOD?.load();
-    else if (storage()?.enabled) void loadDay();
+    else if (storage()?.enabled) { scannerReady=false; void loadDay().then(refreshScannerStatus).then(()=>{if(intakeSnapshot().scanner&&intakeSnapshot().canEdit)documentFlow.open();}); }
   };
   window.atlasOpenDeliveryReview = async day => {
     if (!window.atlasRoutingNotifications.day(day) || day > todayPacific() || !window.AtlasAuth?.getSession()?.user?.id) return false;

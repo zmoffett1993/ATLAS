@@ -63,21 +63,23 @@
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) throw new Error("Address coordinates need review.");
     return { location: { latitude, longitude }, formattedAddress: String(result.formatted_address || "") };
   }
-  async function planDay({ date, loads, orders, route, geocode, signal, preserveOrder = false, reloadMinutes = 40, lunchMinutes = 720, onProgress = () => {}, onUpdate = () => {}, now = Date.now() }) {
+  async function planDay({ date, loads, orders, route, geocode, signal, preserveOrder = false, reloadMinutes = 40, lunchMinutes = 720, onProgress = () => {}, onUpdate = () => {}, now = Date.now(), departureNotBefore = null }) {
     const check = () => { if (signal?.aborted) throw new DOMException("Planning canceled", "AbortError"); };
     if (!loads.length || loads.length > 20) throw new Error("The testing preview supports 1–20 trips per calculation. No orders were removed.");
     if (!Number.isInteger(reloadMinutes) || reloadMinutes < 0 || reloadMinutes > 120 || !Number.isInteger(lunchMinutes) || lunchMinutes < 660 || lunchMinutes > 780) throw new Error("Review reload or lunch time.");
+    const departureFor = name => Math.max(Date.parse(timestamp(date, SHIFTS[name].departure)), departureNotBefore == null ? 0 : Number(departureNotBefore));
+    if (departureNotBefore != null && (!Number.isFinite(departureNotBefore) || departureNotBefore < now || departureNotBefore >= Date.parse(timestamp(date,1200)))) throw new Error("Review the new departure time.");
     const orderMap = new Map(orders.map((order) => [order.id, order]));
     for (const load of loads) {
       if (!SHIFTS[load.driver] || !["truck", "van"].includes(load.vehicle) || (load.driver === "Achmad" && load.vehicle !== "van")) throw new Error("Review the driver and vehicle assignment.");
       if (load.vehicleId && !(load.vehicle === "truck" ? ["truck"] : ["van1", "van2"]).includes(load.vehicleId)) throw new Error("Review the selected company vehicle.");
-      if (Date.parse(timestamp(date, SHIFTS[load.driver].departure)) <= now) throw new Error("Choose a future planning day; the default departure time has already passed.");
+      if (departureFor(load.driver) <= now) throw new Error("Choose a future planning day; the default departure time has already passed.");
       if (load.shipments.length > 20) throw new Error("A trip exceeds the 20-stop testing limit. Review this load before routing.");
       for (const shipment of load.shipments) {
         const order = orderMap.get(shipment.orderId);
         if (!order || !Number.isInteger(order.serviceMinutes) || order.serviceMinutes < 1 || order.serviceMinutes > 480) throw new Error("Review each stop's service time.");
         // Validate every window before any paid address or routing calls.
-        try { timeWindow(order.timeWindow, date, timestamp(date, SHIFTS[load.driver].departure), order.serviceMinutes); }
+        try { timeWindow(order.timeWindow, date, new Date(departureFor(load.driver)).toISOString(), order.serviceMinutes); }
         catch (error) { throw new Error(`${order.customer}: ${error.message}`); }
       }
     }
@@ -89,7 +91,7 @@
       catch (error) { check(); throw new Error(`${order.customer}: ${error.message}`); }
       check();
     }
-    const drivers = Object.fromEntries(Object.entries(SHIFTS).map(([name, shift]) => [name, { ready: Date.parse(timestamp(date, shift.departure)), trips: 0, lunchDone: false, lunch: null, workMinutes: 0, returnTime: null }]));
+    const drivers = Object.fromEntries(Object.entries(SHIFTS).map(([name, shift]) => [name, { ready: departureFor(name), trips: 0, lunchDone: false, lunch: null, workMinutes: 0, returnTime: null }]));
     const vehicleReady = { truck: 0, van1: 0, van2: 0 };
     const output = { trips: [], unscheduled: [], drivers, complete: false, distanceMeters: 0, driveSeconds: 0, warnings: [] };
     for (let index = 0; index < loads.length; index++) {
