@@ -123,7 +123,30 @@ document.querySelector('#dashboard-checks').onclick=async()=>{
  }catch(e){outputs.textContent+='\nFAIL: '+e.message;}
  finally{atlasRoutingSavedDays.save=originalSave;atlasRoutingPlanner.planDay=originalPlan;atlasRoutingSavedDays.enabled=true;}
 };
-atlasOpenRouting();
+async function checkDirectEntry(kind) {
+ let frames=0,flashes=0;
+ const check=(ok,message)=>{if(!ok)throw Error(message);outputs.textContent+='\nPASS: '+message;};
+ const originalLoad=atlasRoutingSavedDays.load,originalStatus=atlasRoutingSavedDays.scannerStatus;
+ let releaseDay,releaseStatus;
+ atlasRoutingSavedDays.load=async date=>{await new Promise(r=>releaseDay=r);return originalLoad(date);};
+ atlasRoutingSavedDays.scannerStatus=async()=>{await new Promise(r=>releaseStatus=r);if(kind==='failure')throw Error('Synthetic unavailable scanner');return originalStatus();};
+ try {
+  outputs.textContent='Direct-entry checks';await atlasOpenRouting();
+  const section=document.querySelector('#atlasDeliveryRouting'),main=section.querySelector('.atlas-route-main');
+  const sample=async()=>{for(let i=0;i<4;i++){await new Promise(requestAnimationFrame);frames++;if(getComputedStyle(main).display!=='none')flashes++;}};
+  await sample();check(flashes===0,'No dashboard frames while saved day loads');
+  releaseDay();await wait(()=>releaseStatus);await sample();check(flashes===0,'No dashboard frames while scanner access loads');
+  if(kind==='cancel'){actor=null;window.dispatchEvent(new CustomEvent('atlas-auth-changed',{detail:{session:null}}));}
+  releaseStatus();await new Promise(r=>setTimeout(r,60));
+  if(kind==='cancel')check(section.hidden&&!document.querySelector('.atlas-document-flow').open,'Sign-out cancels pending scanner entry');
+  else if(kind==='failure')check(!section.classList.contains('is-opening-scanner')&&getComputedStyle(main).display!=='none'&&!section.inert,'Unavailable scanner restores usable routing');
+  else check(document.querySelector('.is-scanner[open]')&&document.querySelector('[data-intake-screen="ADD_DOCUMENT"]'),'Entry finishes directly on Scan Delivery Order');
+  outputs.textContent+='\nDIRECT ENTRY PASSED · '+frames+' loading frames checked · '+kind;
+ }catch(e){outputs.textContent+='\nFAIL: '+e.message;}
+ finally{atlasRoutingSavedDays.load=originalLoad;atlasRoutingSavedDays.scannerStatus=originalStatus;}
+}
+const entryCheck=new URLSearchParams(location.search).get('entryCheck');
+if(entryCheck)checkDirectEntry(entryCheck);else atlasOpenRouting();
 if(new URLSearchParams(location.search).has('scannerRun'))wait(()=>document.querySelector('.is-scanner[open]')).then(()=>document.querySelector('#scanner-checks').click());
 if(new URLSearchParams(location.search).has('scannerSample'))wait(()=>document.querySelector('.is-scanner[open]')).then(()=>document.querySelector('#scanner-sample').click());
 if(new URLSearchParams(location.search).has('example'))wait(()=>document.querySelector('[data-route-mobile-date]')&&!document.querySelector('#atlasDeliveryRouting').inert).then(()=>document.querySelector('#dashboard-example').click());

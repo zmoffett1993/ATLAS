@@ -66,6 +66,7 @@
     section.hidden = true;
     section.setAttribute("aria-label", "ATLAS Delivery Routing");
     section.innerHTML = `
+      <div class="atlas-route-scanner-opening" role="status"><header>ATLAS · Order Scanner</header><div>${icon("camera")}<h1>Scan Delivery Order</h1><p>Opening your scanner…</p></div></div>
       <aside class="atlas-route-sidebar" aria-label="ATLAS navigation">
         <div class="atlas-route-logo"><img src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS" /></div>
         ${warehouseArt}
@@ -1413,6 +1414,7 @@
   }
 
   function resetWorkspace() {
+    document.getElementById("atlasDeliveryRouting")?.classList.remove("is-opening-scanner");
     scannerReady = false; scannerUploadedToday = 0;
     mobileSaveFailed = false;
     find("[data-route-mobile-reorder-dialog]")?.close();
@@ -1486,14 +1488,25 @@
     state.ownerId = session.user.id;
     state.open = true;
     renderOrders({ dirty: false });
-    document.getElementById("atlasDeliveryRouting").hidden = false;
+    const section = document.getElementById("atlasDeliveryRouting");
+    const currentEntry = () => entry === entryGeneration && state.open && state.ownerId === session.user.id && window.AtlasAuth?.getSession()?.user?.id === session.user.id;
+    section.classList.toggle("is-opening-scanner", !driverMode && !accessReadOnly && storage()?.enabled && window.matchMedia("(max-width:750px)").matches);
+    section.hidden = false;
     root.classList.add("atlas-routing-open");
     window.scrollTo(0, 0);
     dispatchUI.tab = driverMode ? "pods" : "orders";
     applyDispatchTab();
     applyReadOnlyControls();
     if (driverMode) void window.atlasRoutingPOD?.load();
-    else if (storage()?.enabled) { scannerReady=false; void loadDay().then(refreshScannerStatus).then(()=>{if(intakeSnapshot().scanner&&intakeSnapshot().canEdit)documentFlow.open();}); }
+    else if (storage()?.enabled) {
+      scannerReady = false;
+      void loadDay().then(() => { if (currentEntry()) return refreshScannerStatus(); }).finally(() => {
+        if (!currentEntry()) return;
+        // Reveal the destination and open its modal in the same frame, never the old dashboard first.
+        section.classList.remove("is-opening-scanner");
+        if (intakeSnapshot().scanner && intakeSnapshot().canEdit) documentFlow.open();
+      });
+    }
   };
   window.atlasOpenDeliveryReview = async day => {
     if (!window.atlasRoutingNotifications.day(day) || day > todayPacific() || !window.AtlasAuth?.getSession()?.user?.id) return false;
