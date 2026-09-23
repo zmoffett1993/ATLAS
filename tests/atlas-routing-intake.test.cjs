@@ -286,6 +286,16 @@ test('split packing-slip headers map shipped cases to Boxes and preserve units a
  const planned=core.analyzeOrder({lines:[savedLine]},catalog);
  assert.equal(planned.lines[0].match.status,'found');assert.equal(planned.lines[0].boxes,120);assert.equal(planned.palletSpaces,4);
 });
+test('phone OCR row skew still joins the printed SKU and Case Qty Shipped',()=>{
+ const page=chubbyPackingSlip();
+ page.words=page.words.filter(w=>w.text!=='CGUB1-60MLV3-BK');
+ page.words.push({text:'CGUB1-60MLV3',x:.1,y:.58,w:.17,h:.012,confidence:.98});
+ page.words.push({text:'-',x:.27,y:.591,w:.008,h:.012,confidence:.98});
+ page.words.push({text:'BK',x:.278,y:.592,w:.028,h:.012,confidence:.98});
+ page.words.find(w=>w.text==='Qty.'&&w.x>=.9).y=.535;
+ page.text='SO-US-68159\n'+page.words.map(w=>w.text).join('\n');
+ assert.deepEqual(parsePage(page).lines.map(l=>[l.sku,l.caseQty]),[['CGUB1-60MLV3-BK',120]]);
+});
 test('shifted rightmost value stays in its own Case Qty Shipped column',()=>{
  for(const shift of [-.008,.025])assert.equal(parsePage(chubbyPackingSlip({shift})).lines[0].caseQty,120);
 });

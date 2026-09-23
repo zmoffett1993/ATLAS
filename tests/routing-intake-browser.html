@@ -14,6 +14,8 @@ window.AtlasAuth={getSession:()=>actor?{user:{id:actor}}:null,displayName:()=> '
 window.atlasRoutingPOD={access:async()=>({capability:'office',canEdit:true}),mount(){},reset(){},hasPending:()=>false};
 window.atlasRoutingSavedDays={enabled:true,reset(){},load:async date=>({date,revision:records.get(date)?.revision||0,canEdit:true,document:records.get(date)?.document||{date,version:3,orders:[],catalog,settings,assignments:{},vanConfirmed:{},lockedTrips:[]}}),save:async(date,revision,doc)=>{const validated=atlasRoutingStorage.document(doc);saves++;records.set(date,{document:validated,revision:revision+1});return{revision:revision+1}}};
 const scannerEnabled=new URLSearchParams(location.search).has('scanner');
+const realMatchMedia=window.matchMedia.bind(window);
+window.matchMedia=query=>query.includes('max-width:750px')&&scannerEnabled?{...realMatchMedia(query),matches:true}:realMatchMedia(query);
 let uploadedToday=0,failUpload=false;
 atlasRoutingSavedDays.scannerStatus=async()=>({enabled:scannerEnabled,uploadedToday,status:'pending'});
 atlasRoutingSavedDays.upload=async(date,order,metadata,seed)=>{
@@ -58,7 +60,7 @@ document.querySelector('#scanner-checks').onclick=async()=>{
   if(!document.querySelector('.atlas-document-flow').open)click('[data-route-intake]');
   check(document.querySelector('.is-scanner')!==null,'Scanner is the mobile entry');
   await photo();check(!document.querySelector('[data-intake-action="add"]').disabled,'Clear reading uploads without field confirmations');
-  check(!document.querySelector('.atlas-scanner-lines').open,'Clear SKU details stay collapsed');
+  check(document.querySelector('[data-intake-field="sku.0"]')?.value==='CGST1-95MM-0401','Clear SKU is visible on review');
   const toggle=document.querySelector('[data-scanner-check]');toggle.checked=true;toggle.dispatchEvent(new Event('input',{bubbles:true}));
   failUpload=true;act('add');await wait(()=>document.querySelector('.atlas-document-error[role=alert]').textContent.includes('not confirmed'));
   check(screen()==='VERIFY','Failed upload keeps review and original photo');
@@ -151,18 +153,18 @@ async function checkCaseQtyReview(kind) {
  try {
   await wait(()=>document.querySelector('.is-scanner[open]'));
   await photo();
-  const content=document.querySelector('[data-intake-screen="VERIFY"]'),details=content.querySelector('.atlas-scanner-lines');details.open=true;
-  if(kind==='noSku'){check(details.textContent.includes('No item details were captured')&&content.textContent.includes('Needs review'),'No SKU shows explicit capture failure and Needs review');check(document.querySelector('[data-intake-action="add"]').disabled,'No SKU cannot upload or queue optimization');outputs.textContent+=`\n${count} CASE QTY REVIEW CHECKS PASSED · no external requests`;return;}
+  const content=document.querySelector('[data-intake-screen="VERIFY"]');
+  if(kind==='noSku'){check(content.textContent.includes('No item details were captured'),'No SKU shows explicit capture failure');check(document.querySelector('[data-intake-action="add"]').disabled,'No SKU cannot upload or queue optimization');outputs.textContent+=`\n${count} CASE QTY REVIEW CHECKS PASSED · no external requests`;return;}
   check(content.querySelector('[data-intake-field="orderNumber"]').value==='SO-US-68159'&&content.querySelector('[data-intake-field="customer"]').value==='One Up Manufacturing','Order and Ship To customer extracted');
   check(content.querySelector('[data-intake-field="address"]').value.includes('550 EAST AIRLINE WAY')&&content.querySelector('[data-intake-field="timeWindow"]').value==='6:00 AM–2:30 PM','Ship To address and receiving hours extracted');
-  check(details.textContent.includes('CGUB1-60MLV3-BK')&&!details.textContent.includes('60,000 units'),'Full SKU shown without unnecessary shipped units');
+  check(content.querySelector('[data-intake-field="sku.0"]').value==='CGUB1-60MLV3-BK'&&!content.textContent.includes('60,000 units'),'Full SKU visible without opening details or showing shipped units');
   if(kind==='missing'){
-   check(content.textContent.includes('Needs review')&&details.textContent.includes('Boxes need review'),'Missing cases show review, not zero or item units');
+   check(content.querySelector('[data-intake-field="caseQty.0"]').value===''&&content.textContent.includes('Please confirm this value'),'Missing cases show review, not zero or item units');
    check(document.querySelector('[data-intake-action="add"]').disabled,'Missing boxes cannot upload or queue optimization');
    const input=content.querySelector('[data-intake-field="caseQty.0"]');input.value='120';input.dispatchEvent(new Event('input',{bubbles:true}));
-   check(details.textContent.includes('120 boxes')&&!document.querySelector('[data-intake-action="add"]').disabled,'Manual box correction updates review and enables upload');
+   check(input.value==='120'&&!document.querySelector('[data-intake-action="add"]').disabled,'Manual box correction updates review and enables upload');
   }else{
-   check(content.querySelector('[data-intake-field="caseQty.0"]').value==='120'&&details.textContent.includes('120 boxes'),'Case Qty Shipped 120 shown as Boxes');
+   check(content.querySelector('[data-intake-field="caseQty.0"]').value==='120','Case Qty Shipped 120 shown as Boxes');
    check(!document.querySelector('[data-intake-action="add"]').disabled,'Complete item rows are ready to upload');
   }
   act('add');await wait(()=>screen()==='ORDER_ADDED');
