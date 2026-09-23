@@ -52,7 +52,7 @@ test('combined worker preserves push handling and session-isolated offline cache
   const f=await fixture(t),worker=await f.get('/tools/routing-preview/routing-notification-sw.mjs');
   assert.equal(worker.headers['service-worker-allowed'],'/');assert.ok(worker.body.startsWith('import "/service-worker.js";'));
   assert.ok(worker.body.includes('notificationclick'));assert.ok(worker.body.includes('pushsubscriptionchange'));
-  const base=(await f.get('/service-worker.js')).body;assert.ok(base.includes('atlas-pwa-v385-testing-host-v1'));
+  const base=(await f.get('/service-worker.js')).body;assert.ok(base.includes('atlas-pwa-v386-testing-host-v1'));
   assert.ok(base.includes('url.pathname === "/runtime-config.json"'));assert.ok(base.includes('warehouseRead(request, unavailable)'));
 });
 test('host remains origin-restricted and runtime configuration exposes no tester identity or private setting',async t=>{

@@ -37,14 +37,18 @@
   function quantityHeaders(lines, ship, packingTitle) {
     const start = ship?.row.y ?? packingTitle?.y ?? 0;
     for (const row of lines.filter(r => r.y > start && r.y < 0.85)) {
-      const item = phrase(row, "ITEM", "QTY"), cases = phrase(row, "CASE", "QTY");
+      // Phone perspective can put words from the same printed header on
+      // neighboring OCR rows. Match within the header's small vertical band.
+      const header = { words: lines.filter(r => Math.abs(r.y - row.y) < 0.022)
+        .flatMap(r => r.words).filter(w => !/^SHIPPED[.:]?$/i.test(w.text)).sort((a, b) => a.x - b.x) };
+      const item = phrase(header, "ITEM", "QTY"), cases = phrase(header, "CASE", "QTY");
       if (!item || !cases || center(item) >= center(cases)) continue;
-      const shipped = lines.filter(r => r.y >= row.y && r.y - row.y < 0.05)
+      const shipped = lines.filter(r => r.y >= row.y - 0.01 && r.y - row.y < 0.05)
         .flatMap(r => r.words.filter(w => /^SHIPPED[.:]?$/i.test(w.text)));
       const hasShipped = anchor => /\bSHIPPED[.:]?$/i.test(anchor.text) ||
         shipped.some(w => Math.abs(center(w) - center(anchor)) < 0.09);
-      const ordered = row.words.find(w => /^ORDERED[.:]?$/i.test(w.text));
-      const backOrdered = phrase(row, "BACK", "ORDERED");
+      const ordered = header.words.find(w => /^ORDERED[.:]?$/i.test(w.text));
+      const backOrdered = phrase(header, "BACK", "ORDERED");
       const anchors = [ordered && { name: "ordered", word: ordered }, backOrdered && { name: "backOrdered", word: backOrdered },
         { name: "itemQtyShipped", word: item }, { name: "caseQtyShipped", word: cases }].filter(Boolean).sort((a, b) => center(a.word) - center(b.word));
       const bands = Object.fromEntries(anchors.map((anchor, i) => [anchor.name, {
@@ -132,29 +136,29 @@
       const firstQuantityX = tableHeaders?.firstQuantityX ?? 0.45;
       const printedSkus = [...new Set([...text.matchAll(/\bCG[A-Z0-9]+(?:\s*[-‐‑–—]\s*[A-Z0-9.]+)+/gi)]
         .map((m) => key(m[0].replace(/\s*[-‐‑–—]\s*/g, "-"))))];
-      // Vision can split a printed SKU at hyphens. Rejoin only adjacent tokens
-      // on the same row, left of the quantity columns; never infer a color code.
+      // Vision can split a printed SKU at hyphens or place adjacent tokens on
+      // neighboring rows. Rejoin only spatially adjacent printed tokens left
+      // of the quantity columns; never infer an absent color code.
       const skus = [];
-      for (const row of lines.filter((r) => r.y > itemStart)) {
-        for (let i = 0; i < row.words.length; i++) {
-          const first = row.words[i];
+      for (const first of words.filter(w => w.y > itemStart && w.x < firstQuantityX && /^CG[A-Z0-9]/i.test(w.text))) {
           if (first.x >= firstQuantityX || !/^CG[A-Z0-9]/i.test(first.text)) continue;
           let sku = { ...first, text: first.text.replace(/[‐‑–—]/g, "-") };
           let lastValid = skuPattern.test(sku.text) ? { ...sku } : /-$/.test(sku.text) && skuPattern.test(sku.text.slice(0, -1)) ? { ...sku, text: sku.text.slice(0, -1) } : null;
-          while (i + 1 < row.words.length) {
-            const next = row.words[i + 1], part = next.text.replace(/[‐‑–—]/g, "-");
+          const neighbors = words.filter(w => w !== first && w.x > first.x && w.x < firstQuantityX &&
+            Math.abs(w.y - first.y) < Math.max(first.h * 1.5, 0.018)).sort((a, b) => a.x - b.x);
+          for (const next of neighbors) {
+            const part = next.text.replace(/[‐‑–—]/g, "-");
             if (next.x >= firstQuantityX || next.x - (sku.x + sku.w) > Math.max(sku.h * 1.5, 0.012) ||
                 !/^[A-Z0-9.\-]+$/i.test(part) || !(/-$/.test(sku.text) || /^-/.test(part))) break;
             sku.text += part; sku.w = next.x + next.w - sku.x;
             sku.confidence = Number.isFinite(sku.confidence) && Number.isFinite(next.confidence) ? Math.min(sku.confidence, next.confidence) : undefined;
             if (skuPattern.test(sku.text)) lastValid = { ...sku };
-            i++;
           }
           if (lastValid) {
             // Skew can place the final color token on a neighboring OCR row.
             // Use it only when the complete OCR text has one unambiguous,
-            // explicitly printed four-digit extension of this exact base.
-            const full = printedSkus.filter((s) => s.startsWith(`${key(lastValid.text)}-`) && /^\d{4}$/.test(s.slice(lastValid.text.length + 1)));
+            // explicitly printed color extension of this exact base.
+            const full = printedSkus.filter((s) => s.startsWith(`${key(lastValid.text)}-`) && /^(?:\d{4}|BK)$/.test(s.slice(lastValid.text.length + 1)));
             if (full.length === 1) {
               const suffix = full[0].slice(lastValid.text.length + 1);
               const evidence = words.filter(w => w.text.replace(/^[-‐‑–—]/, "") === suffix && Math.abs(w.y - lastValid.y) < 0.04 && w.x < firstQuantityX);
@@ -164,7 +168,6 @@
             else if (full.length > 1 || /-$/.test(sku.text)) issues.push(`${lastValid.text}: confirm the complete printed SKU and color suffix.`);
             skus.push(lastValid);
           }
-        }
       }
       skus.forEach((sku, i) => {
         const nextY = skus[i + 1]?.y ?? 1;
@@ -371,7 +374,6 @@
       return { sku, caseQty: rawBoxes !== "" && validField(`caseQty.${i}`, rawBoxes) ? Number(rawBoxes) : null,
         itemQty: result.lines[i]?.itemQty ?? null };
     });
-    const lineSummary = line => `${line.sku} · ${line.caseQty == null ? "Boxes need review" : `${line.caseQty.toLocaleString()} boxes`}`;
     function validField(path, value) {
       const text = String(value).trim();
       if (path === "timeWindow") return true;
@@ -442,8 +444,7 @@
         if(screen === "READING") content = `<div class="atlas-document-photo"><img src="${esc(photos[selectedPhoto]?.url)}" alt="Original order photo" /></div><div class="atlas-document-loader"></div>`+heading("Reading order…","Finding the delivery details.")+button("cancel-operation","Cancel");
         if(screen === "VERIFY" && assessment){
           const fields=assessment.fields, lines=reviewLines(), boxes=totalBoxes({lines});
-          const needsLines=fields.lines.some((l,i)=>!Object.hasOwn(overrides,`sku.${i}`)&&l.sku.status!=="confirmed"||!Object.hasOwn(overrides,`caseQty.${i}`)&&l.caseQty.status!=="confirmed");
-          content=heading("Check these details")+`<div class="atlas-document-fields">${[["orderNumber","Sales order"],["customer","Customer"],["address","Delivery address"],["timeWindow","Receiving hours"]].map(([n,label])=>fieldRow(n,label,fields[n])).join("")}${fields.lines.length===1?fieldRow("caseQty.0","Boxes",fields.lines[0].caseQty,"number"):`<div class="atlas-document-field"><label>Boxes<strong data-intake-box-total>${boxes == null ? "Needs review" : boxes}</strong></label><button type="button" data-intake-action="line-details">Edit box allocation</button></div>`}${boxes == null ? '<p class="atlas-document-caption" data-intake-box-warning>Boxes: Needs review</p>' : ""}</div><details class="atlas-scanner-lines" ${needsLines||!lines.length?"open":""}><summary>SKU and box details${needsLines||!lines.length?" — review needed":""}</summary>${lines.length ? lines.map((line,i)=>fieldRow(`sku.${i}`,`Item ${i+1}`,fields.lines[i].sku)+fieldRow(`caseQty.${i}`,"Boxes",fields.lines[i].caseQty,"number")+`<p class="atlas-document-caption" data-intake-line-summary="${i}">${esc(lineSummary(line))}</p>`).join("") : '<p class="atlas-document-caption">No item details were captured. Retake the photo or add a clearer page.</p>'+button("retake","Retake photo")}</details><label class="atlas-scanner-check"><input type="checkbox" data-scanner-check ${(checkOverride??result.checkOnDelivery)?"checked":""}/><span><strong>Check on delivery</strong><small>Adds CHECK ON DELIVERY to order notes</small></span></label>`+button("append","Add another page")+ (photos.length>1 ? `<div class="atlas-document-pages">${photos.map((p,i)=>`<button type="button" data-intake-remove-page="${i}">Remove page ${i+1}</button>`).join("")}</div>` : "");
+          content=heading("Check these details")+`<div class="atlas-document-fields">${[["orderNumber","Sales order"],["customer","Customer"],["address","Delivery address"],["timeWindow","Receiving hours"]].map(([n,label])=>fieldRow(n,label,fields[n])).join("")}${lines.length ? fields.lines.map((line,i)=>fieldRow(`sku.${i}`,fields.lines.length>1?`Item ${i+1} SKU`:"SKU",line.sku)+fieldRow(`caseQty.${i}`,fields.lines.length>1?`Item ${i+1} boxes`:"Boxes",line.caseQty,"number")).join("") : '<p class="atlas-document-caption">No item details were captured. Retake the photo or add a clearer page.</p>'}${lines.length>1?`<p class="atlas-document-caption">Total boxes: <strong data-intake-box-total>${boxes==null?"Needs review":boxes}</strong></p>`:""}</div><label class="atlas-scanner-check"><input type="checkbox" data-scanner-check ${(checkOverride??result.checkOnDelivery)?"checked":""}/><span><strong>Check on delivery</strong><small>Adds CHECK ON DELIVERY to order notes</small></span></label>`+button("append","Add another page")+ (photos.length>1 ? `<div class="atlas-document-pages">${photos.map((p,i)=>`<button type="button" data-intake-remove-page="${i}">Remove page ${i+1}</button>`).join("")}</div>` : "");
           if(result.mixedOrders)content+='<p class="atlas-document-error">Different sales orders detected. Retake only this order.</p>';
         }
         if(screen === "ORDER_ADDED")content=`<div class="atlas-document-success">${icon("check")}</div>`+heading(added.duplicate?"Order already uploaded":"Order Uploaded",`${esc(added.orderNumber)} is saved for ${esc(added.date||date)} and ready on desktop.`)+button("another","Scan Another Order",true)+button("done","Done");
@@ -490,7 +491,7 @@
     async function camera() {
       cancel(); screen = "CAPTURE"; error = ""; render(); const version = generation;
       try {
-        const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1440 }, height: { ideal: 1920 } }, audio: false });
         if (!current(version) || screen !== "CAPTURE") { media.getTracks().forEach(t => t.stop()); return; }
         stream = media; const video = dialog.querySelector("video"); video.srcObject = media; await video.play();
         if (!current(version) || screen !== "CAPTURE") return;
@@ -506,8 +507,6 @@
       if (scanner && /^(?:sku|caseQty)\.\d+$/.test(path)) {
         const lines = reviewLines(), boxes = orderBoxCount(lines);
         const total = dialog.querySelector('[data-intake-box-total]'); if (total) total.textContent = boxes == null ? "Needs review" : String(boxes);
-        const warning = dialog.querySelector('[data-intake-box-warning]'); if (warning) warning.hidden = boxes != null;
-        lines.forEach((line, i) => { const summary = dialog.querySelector(`[data-intake-line-summary="${i}"]`); if (summary) summary.textContent = lineSummary(line); });
       }
       dialog.querySelector('[data-intake-action="add"]').disabled = !reviewedOrder();
     });
@@ -520,7 +519,6 @@
       if (target.hasAttribute("data-intake-remove-page")) { cancel(); const [p] = photos.splice(Number(target.dataset.intakeRemovePage), 1); URL.revokeObjectURL(p.url); selectedPhoto = 0; overrides = {}; if (!photos.length) { clearPhotos(); screen = "ADD_DOCUMENT"; render(); } else await readPending(); return; }
       if (target.hasAttribute("data-intake-edit")) { close(); edit(target.dataset.intakeEdit); return; }
       if (target.hasAttribute("data-intake-remove")) { try { remove(target.dataset.intakeRemove); } catch (e) { error = e.message; } render(false); return; }
-      if (action === "line-details") dialog.querySelector(".atlas-scanner-lines").open=true;
       if (action === "done" || (action === "back" && scanner)) { if(!busy){close();exit();} return; }
       if (action === "back") { if (["ROUTE_READY", "SAVED"].includes(screen)) { screen = "ORDERS_READY"; render(); } else if (!busy || ["READING", "OPTIMIZING"].includes(screen)) close(); }
       if (action === "camera") await camera();
