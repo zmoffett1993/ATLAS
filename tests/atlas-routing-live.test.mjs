@@ -57,8 +57,24 @@ test('live route and photo calls use only the fixed gateway with current ATLAS b
 test('live entry and receiver share one module worker without modifying receiver icon or main app identity',()=>{
   const read=file=>readFileSync(new URL('../'+file,import.meta.url),'utf8');
   for(const file of ['index.html','coc-receiver/index.html'])assert.match(read(file),/atlas-routing-worker\.mjs\?v=281/);
-  assert.equal((read('index.html').match(/src="\.\/tools\/routing-preview\/full-site-client\.mjs\?v=2"/g)||[]).length,1);
+  assert.equal((read('index.html').match(/src="\.\/tools\/routing-preview\/full-site-client\.mjs\?v=3"/g)||[]).length,1);
   assert.match(read('atlas-routing-worker.mjs'),/import "\.\/service-worker\.js"/);
   assert.match(read('atlas-routing-worker.mjs'),/routing-notification-sw\.mjs/);
   assert.equal(JSON.parse(read('manifest.webmanifest')).short_name,'ATLAS');
+});
+
+test('personal scanner capability is caller-specific, authenticated and never exposes the allowlisted ID',async t=>{
+  let approved=false,authCalls=0;
+  const server=createPreviewBridge({origin:API,publishableKey:'sb_publishable_synthetic',permanent:true,fullAtlas:true,liveEnabled:true,
+    authorizeCaller:async()=>{authCalls++;return approved;},getGoogleToken:async()=>{throw Error('No Google call expected');}});
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
+  const invoke=(token=true,origin=LIVE)=>new Promise((resolve,reject)=>{
+    const req=request({host:'127.0.0.1',port:server.address().port,path:'/api/scanner-capability',headers:{Host:new URL(API).host,Origin:origin,...(token?{'X-Atlas-Authorization':'Bearer synthetic-current-account-token'}:{})}},res=>{const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,body:Buffer.concat(chunks).toString()}));});req.on('error',reject);req.end();
+  });
+  assert.equal((await invoke(false)).status,401);assert.equal(authCalls,0);
+  assert.equal((await invoke(true,'https://evil.example')).status,403);assert.equal(authCalls,0);
+  assert.deepEqual(JSON.parse((await invoke()).body),{capabilities:[]});
+  approved=true;const allowed=await invoke();assert.equal(allowed.headers['cache-control'],'no-store');
+  assert.deepEqual(JSON.parse(allowed.body),{capabilities:['routing_scanner_quick_action']});
 });

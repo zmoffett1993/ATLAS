@@ -68,7 +68,8 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
       if (![parsed.host, ...(permanent ? [] : ["localhost:18766", "127.0.0.1:18766"])].includes(host)) return reject(403, "HOST_NOT_ALLOWED");
       const path = new URL(req.url, origin).pathname;
       const apiPath = ["/api/optimize-trip", "/api/plan-trip", "/api/read-order-photo"].includes(req.url);
-      const liveRequest = liveEnabled && req.headers.origin === LIVE_ORIGIN && (apiPath || req.url === "/runtime-config.json");
+      const capabilityPath = permanent && req.url === "/api/scanner-capability";
+      const liveRequest = liveEnabled && req.headers.origin === LIVE_ORIGIN && (apiPath || capabilityPath || req.url === "/runtime-config.json");
       if (req.headers.origin && req.headers.origin !== origin && !liveRequest) return reject(403, "ORIGIN_NOT_ALLOWED");
       if (liveRequest) Object.assign(headers, {
         "Access-Control-Allow-Origin": LIVE_ORIGIN, "Vary": "Origin",
@@ -98,6 +99,14 @@ export function createPreviewBridge({ origin, publishableKey, browserKey = publi
         // Static JSON is already serialized; preserve its bytes instead of encoding a Buffer.
         res.writeHead(200, { ...headers, "Content-Type": type });
         return res.end(content);
+      }
+      if (capabilityPath) {
+        if (req.method !== "GET") return reject(405, "METHOD_NOT_ALLOWED");
+        const authorization = req.headers["x-atlas-authorization"];
+        if (!/^Bearer [^\s]{20,8192}$/i.test(authorization || "")) return reject(401, "SIGN_IN_REQUIRED");
+        const approved = await authorizeCaller(authorization) === true;
+        // Return only this caller's capability, never the configured account ID.
+        return send(200, { capabilities: approved ? ["routing_scanner_quick_action"] : [] });
       }
       if (req.url === "/runtime-config.json" && req.method === "GET") return send(200, { url: SUPABASE, key: browserKey, mapsBrowserKey, photoEnabled: photoEnabled === true, storageEnabled: storageEnabled === true,
         ...(permanent ? {notificationsEnabled: notificationsEnabled === true, notificationOrigin: origin, podEnabled: fullAtlas && podEnabled === true} : {}) });
