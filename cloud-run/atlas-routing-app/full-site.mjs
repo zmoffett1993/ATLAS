@@ -3,6 +3,7 @@ const files = JSON.parse(readFileSync(new URL("./static-files.json", import.meta
 const mime = { html: "text/html", js: "text/javascript", mjs: "text/javascript", css: "text/css", json: "application/json", webmanifest: "application/manifest+json", png: "image/png", svg: "image/svg+xml", jpeg: "image/jpeg", jpg: "image/jpeg", webp: "image/webp", ico: "image/x-icon" };
 export const fullSiteFiles = new Map(files.map(file => [`/${file}`, [file, mime[file.split('.').pop()]]]));
 fullSiteFiles.set("/", ["index.html", "text/html"]);
+fullSiteFiles.set("/install/", ["install/index.html", "text/html"]);
 fullSiteFiles.set("/coc-receiver/", ["coc-receiver/index.html", "text/html"]);
 fullSiteFiles.set("/tools/routing-preview/full-site-client.mjs", ["tools/routing-preview/full-site-client.mjs", "text/javascript"]);
 for (const file of ["preview.mjs", "maps.mjs"]) fullSiteFiles.set(`/tools/routing-preview/${file}`, [`tools/routing-preview/${file}`, "text/javascript"]);
@@ -20,7 +21,7 @@ export function fullSiteWorker(source) {
   // Reuse main's session-isolated cache and offline fallbacks. Never cache runtime config.
   // The existing reminder worker lives below /tools/, so shell URLs must be root-relative.
   source = source.replaceAll('"./', '"/');
-  source = source.replace('const VERSION = "atlas-pwa-v388-coc-final-review";', 'const VERSION = "atlas-pwa-v388-testing-host-v1";');
+  source = source.replace('const VERSION = "atlas-pwa-v389-universal-install";', 'const VERSION = "atlas-pwa-v389-testing-host-v1";');
   source = source.replace('self.addEventListener("install",', 'APP_SHELL.push("/tools/routing-preview/full-site-client.mjs", "/preview.mjs", "/maps.mjs");\nself.addEventListener("install",');
   source = source.replace('const isNavigation = request.mode === "navigate";', 'if (url.origin === self.location.origin && (url.pathname === "/runtime-config.json" || url.pathname.startsWith("/api/"))) return;\n  const isNavigation = request.mode === "navigate";');
   return source;

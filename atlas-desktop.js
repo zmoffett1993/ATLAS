@@ -374,7 +374,7 @@
       setInventoryExpanded(nextOpen);
     });
 
-    [home, workflows, dashboard, routing, about].forEach((item) => {
+    [home, dashboard, routing, about].forEach((item) => {
       item.addEventListener("click", () => {
         inventoryFlyoutPreview = false;
         inventoryFlyoutDismissed = false;
@@ -387,7 +387,7 @@
     dashboard.querySelector(".atlas-menu-label").textContent = "Dashboard";
     routing.querySelector(".atlas-menu-label").textContent = "Delivery Routing";
     about.querySelector(".atlas-menu-label").textContent = "About ATLAS";
-    nav.replaceChildren(home, desktopInventory, workflows, dashboard, routing, about);
+    nav.replaceChildren(home, desktopInventory, dashboard, routing, about);
     nav.dataset.atlasDesktopNavigation = "true";
     syncSidebarItemLabels(nav);
     setInventoryExpanded(false);

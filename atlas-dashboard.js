@@ -1734,7 +1734,7 @@
   };
 
   const roleLabel = (role) =>
-    ({ admin: "Administrator", supervisor: "Supervisor", office_receiver: "Office Receiver", picker: "Picker" })[role] || "Picker";
+    ({ admin: "Administrator", supervisor: "Supervisor", office_receiver: "Office Receiver", picker: "Warehouse" })[role] || "Warehouse";
 
   const renderPremiumSelect = ({ name = "", value, options, ariaLabel, dataAttribute = "", className = "" }) => {
     const selected = options.find((option) => option.value === value) || options[0];
@@ -1768,7 +1768,7 @@
     }));
 
   const roleSelectOptions = () => [
-    { value: "picker", label: "Picker", badge: "P", meta: "Warehouse inventory access" },
+    { value: "picker", label: "Warehouse", badge: "W", meta: "Warehouse inventory access" },
     { value: "office_receiver", label: "Office Receiver", badge: "OR", meta: "Dedicated COC receiving station" },
     { value: "supervisor", label: "Supervisor", badge: "S", meta: "Warehouse oversight and approvals" },
     { value: "admin", label: "Administrator", badge: "A", meta: "CA + TX control center access" },

@@ -33,6 +33,14 @@ test('full testing host serves original ATLAS navigation and Receiver with nonce
   }
   assert.equal(f.calls(),0);
 });
+test('public installation page and shared worker load without authentication or external requests',async t=>{
+  const f=await fixture(t),page=await f.get('/install/');
+  assert.equal(page.status,200);assert.ok(page.body.includes('Install ATLAS'));
+  assert.ok(!page.body.includes('full-site-client.mjs'));
+  assert.equal((await f.get('/atlas-routing-worker.mjs?v=281')).status,200);
+  assert.equal(f.calls(),0);
+});
+
 test('all shell and boot assets are allowlisted, present, correctly packaged, and no secrets or workbooks are served',async t=>{
   const f=await fixture(t),source=fullSiteWorker(readFileSync(new URL('service-worker.js',root),'utf8'));
   const shell=vm.runInNewContext(source.slice(0,source.indexOf('self.addEventListener'))+';APP_SHELL');
@@ -52,7 +60,7 @@ test('combined worker preserves push handling and session-isolated offline cache
   const f=await fixture(t),worker=await f.get('/tools/routing-preview/routing-notification-sw.mjs');
   assert.equal(worker.headers['service-worker-allowed'],'/');assert.ok(worker.body.startsWith('import "/service-worker.js";'));
   assert.ok(worker.body.includes('notificationclick'));assert.ok(worker.body.includes('pushsubscriptionchange'));
-  const base=(await f.get('/service-worker.js')).body;assert.ok(base.includes('atlas-pwa-v388-testing-host-v1'));
+  const base=(await f.get('/service-worker.js')).body;assert.ok(base.includes('atlas-pwa-v389-testing-host-v1'));
   assert.ok(base.includes('url.pathname === "/runtime-config.json"'));assert.ok(base.includes('warehouseRead(request, unavailable)'));
 });
 test('host remains origin-restricted and runtime configuration exposes no tester identity or private setting',async t=>{
