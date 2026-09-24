@@ -1,13 +1,16 @@
-const VERSION = "atlas-pwa-v388-coc-final-review";
+const VERSION = "atlas-pwa-v389-universal-install";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./install/index.html",
+  "./install/install.css?v=3",
+  "./install/install.js?v=2",
   "./atlas-dashboard.css?v=171",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=189",
+  "./atlas-dashboard.js?v=190",
   "./atlas-auth.css?v=4",
   "./atlas-login.js?v=1",
   "./atlas-auth.js?v=8",
@@ -37,7 +40,7 @@ const APP_SHELL = [
   "./atlas-desktop-menu-typography.css?v=1",
   "./atlas-alerts.css?v=2",
   "./atlas-mobile-menu.css?v=3",
-  "./atlas-desktop.js?v=136",
+  "./atlas-desktop.js?v=137",
   "./atlas-routing.css?v=25",
   "./atlas-routing-core.js?v=13",
   "./atlas-routing-planner.js?v=7",
@@ -175,7 +178,9 @@ self.addEventListener("fetch", (event) => {
         SHELL_CACHE,
         caches.match(url.pathname.includes("/coc-receiver/")
           ? "./coc-receiver/index.html"
-          : "./index.html"),
+          : url.pathname.includes("/install/")
+            ? "./install/index.html"
+            : "./index.html"),
       ),
     );
     return;

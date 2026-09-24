@@ -115,3 +115,8 @@
 !atlas-routing-pod.js
 
 !atlas-routing-pod-queue.js
+
+!install/
+!install/index.html
+!install/install.css
+!install/install.js

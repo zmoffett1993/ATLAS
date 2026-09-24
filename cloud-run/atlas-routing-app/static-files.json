@@ -87,5 +87,9 @@
   "product-images.json",
   "product-images/cgasb1-60ml-cnl-owh.png",
   "service-worker.js",
+  "atlas-routing-worker.mjs",
+  "install/index.html",
+  "install/install.css",
+  "install/install.js",
   "atlas-routing-worker.mjs"
 ]
