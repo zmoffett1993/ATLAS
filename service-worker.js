@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v395-install-guidance";
+const VERSION = "atlas-pwa-v396-android-install-steps";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./index.html",
   "./install/index.html",
   "./install/install.css?v=4",
-  "./install/install.js?v=3",
+  "./install/install.js?v=4",
   "./atlas-dashboard.css?v=172",
   "./atlas-coc-references.js?v=2",
   "./atlas-dashboard.js?v=191",

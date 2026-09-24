@@ -12,7 +12,8 @@
   let prompting = false;
   function render() {
     byId("iphone").hidden = installed || !ios;
-    byId("browser-guidance").hidden = installed || ios;
+    byId("android").hidden = installed || !android || ios;
+    byId("browser-guidance").hidden = installed || ios || android;
     byId("device-heading").textContent = installed ? "ATLAS is installed" : ios ? "Install on iPhone" : android ? "Install on Android" : "Install on your device";
     byId("device-copy").textContent = android && deferredPrompt
       ? "Tap the button below to install ATLAS on your Android device."
@@ -21,10 +22,8 @@
     button.hidden = installed || ios || !deferredPrompt;
     button.disabled = prompting;
     byId("page-title").textContent = installed ? "ATLAS is installed" : ios ? "Install on iPhone" : android ? "Install on Android" : "Install ATLAS";
-    byId("page-intro").textContent = installed ? "Open ATLAS to access your warehouse tools." : ios ? "Follow these steps to add ATLAS to your Home Screen." : android && deferredPrompt ? "Tap the button below to install ATLAS on your Android device." : "Add ATLAS to your phone for quick access to warehouse tools.";
-    byId("android-icon").hidden = !android || installed || !deferredPrompt;
+    byId("page-intro").textContent = installed ? "Open ATLAS to access your warehouse tools." : ios ? "Follow these steps to add ATLAS to your Home Screen." : android ? "Follow these steps to add ATLAS to your Home Screen." : "Add ATLAS to your phone for quick access to warehouse tools.";
     byId("device-copy").hidden = android && !!deferredPrompt;
-    byId("fallback").hidden = !android || !!deferredPrompt;
     byId("open-app").textContent = "Open ATLAS";
     byId("offline-note").hidden = navigator.onLine !== false;
   }
