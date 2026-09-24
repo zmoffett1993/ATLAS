@@ -54,7 +54,7 @@ function boot(storage, user, overrides = {}) {
     let source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
     if (file === 'atlas-coc.js') source = source.replace(/\}\)\(\);\s*$/, `
       window.audit = { restoreFromCloud, scheduleCloudSync, resetDraftContext, persist,
-        rememberClosedDraft, flushClosedDrafts, sendCompletedCoc,
+        rememberClosedDraft, flushClosedDrafts, sendCompletedCoc, navigateWorkflows, getView:()=>workflowView, getModal:()=>modal,
         handleAction, landingMarkup, modalMarkup, expectedCountMarkup, boxCountError,
         setSession(value) { session = value; }, getKey: () => draftContextKey, getSendState: () => sendState };
     })();`);
@@ -437,4 +437,20 @@ test('pallet setup labels, empty validation and other setup wording remain corre
     snapshot = Core.verifyPallet(snapshot).session;
     assert.equal(Core.completeSession(snapshot).status, 'report');
   }
+});
+
+for(const status of ['report','active'])test('COC resumes '+status+' without a visible navigation button',async()=>{
+ const snapshot=caDraft();snapshot.status=status; snapshot.invoiceNumber='INV-1';
+ const f=boot(new Map(),{id:'synthetic-ca',warehouse:'CA'});f.context.audit.setSession(snapshot);
+ let calls=0;f.context.scrollTo=()=>{};
+ f.context.AtlasNavigation={openSection:async key=>{assert.equal(key,'workflows');calls++;f.elements.set('atlas-coc-workflows-root',{innerHTML:'',querySelectorAll:()=>[]});}};
+ await f.context.audit.navigateWorkflows({resume:true});
+ assert.equal(calls,1);assert.equal(f.context.audit.getView(),'session');assert.equal(f.context.atlasCoc.getState().invoiceNumber,'INV-1');
+});
+test('COC navigation failure and account change preserve saved data',async()=>{
+ const f=boot(new Map(),{id:'synthetic-ca',warehouse:'CA'});const snapshot=caDraft();f.context.audit.setSession(snapshot);
+ f.context.AtlasNavigation={openSection:async()=>{throw Error('timeout');}};
+ await f.context.audit.navigateWorkflows({resume:true});assert.match(f.elements.get('atlas-coc-toast').textContent,/still saved/);assert.equal(f.context.atlasCoc.getState().id,snapshot.id);
+ f.setUser({id:'other',warehouse:'CA'});let calls=0;f.context.AtlasNavigation.openSection=async()=>calls++;
+ await f.context.audit.navigateWorkflows({resume:true});assert.equal(calls,0);
 });

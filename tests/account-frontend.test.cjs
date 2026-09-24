@@ -138,7 +138,7 @@ test('all APP_SHELL assets exist and modified HTML asset versions match',()=>{
     }
     assert.match(html,/atlas-routing-worker.mjs\?v=281/);
   }
-  assert.match(sw,/atlas-pwa-v392-routing-refinement/);
+  assert.match(sw,/atlas-pwa-v393-coc-live-orders/);
 });
 
 for(const code of ['CA','TX'])test(code+' Office Receiver form synchronizes names without replacing account UUID',()=>{

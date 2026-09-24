@@ -132,7 +132,7 @@
     let epoch = 0;
     const controllers = new Set();
     const reset = () => { epoch++; controllers.forEach((controller) => controller.abort()); controllers.clear(); };
-    async function request(action, day, revision, input) {
+    async function request(action, day, revision, input, signal) {
       if (!enabled) fail("Shared saving is awaiting database approval and connection.", "DISABLED");
       const filters = action === "search" ? searchFilters(input) : null;
       if (!filters) date(day);
@@ -147,7 +147,7 @@
       const controller = new AbortController(); controllers.add(controller);
       try {
         const response = await fetchImpl(`${BASE}/rest/v1/rpc/atlas_routing_${action.startsWith("scanner_") ? action : "preview_"+action}`, { method: "POST", cache: "no-store", credentials: "omit", redirect: "error", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]),
-          headers: { apikey: key, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+          headers: { apikey: key, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload), ...(signal ? {signal: AbortSignal.any([signal, controller.signal, AbortSignal.timeout(20000)])} : {}) });
         if (!current()) fail("The ATLAS account changed. Reopen routing.", "SESSION_CHANGED");
         const reader = response.body?.getReader(); let size = 0; const chunks = [];
         if (!reader) fail("The saved-day response is unavailable.", "UNAVAILABLE");
@@ -188,7 +188,44 @@
         fail(action === "save" ? "The save could not be confirmed. Keep this tab open and check the saved version before retrying." : "The saved day could not be reached. Your changes remain here.", "UNAVAILABLE");
       } finally { controllers.delete(controller); }
     }
-    return Object.freeze({ enabled, reset, scannerRetry: day => request("scanner_retry",day), scannerStatus: day => request("scanner_status",day), upload: (day,order,metadata,seed) => request("scanner_upload",day,null,{order,metadata,seed}), load: (day) => request("load", day), save: (day, revision, value) => request("save", day, revision, value), search: (filters) => request("search", null, null, filters) });
+    return Object.freeze({ enabled, reset, scannerRetry: day => request("scanner_retry",day), scannerStatus: day => request("scanner_status",day), upload: (day,order,metadata,seed) => request("scanner_upload",day,null,{order,metadata,seed}), load: (day, options = {}) => request("load", day, null, null, options.signal), save: (day, revision, value) => request("save", day, revision, value), search: (filters) => request("search", null, null, filters) });
   }
-  return Object.freeze({ document, date, references, deliveredDate, deliveryDetails, deliveryStatus, searchFilters, createClient });
+  const same = (a,b) => JSON.stringify(a) === JSON.stringify(b);
+  function reconcile(base, local, remote, dirty) {
+    const existing = new Set(local.orders.map(order => order.id));
+    const added = (remote?.orders || []).filter(order => !existing.has(order.id));
+    if (!dirty) return {kind:"replace", document:remote, added};
+    if (!base || !remote) return {kind:"conflict", added:[]};
+    const withoutOrders = doc => { const {orders, ...rest} = doc; return rest; };
+    const oldIds = new Set(base.orders.map(order => order.id));
+    if (!same(withoutOrders(base), withoutOrders(remote)) || !same(base.orders, remote.orders.filter(order => oldIds.has(order.id)))) return {kind:"conflict", added:[]};
+    const fresh = remote.orders.filter(order => !oldIds.has(order.id));
+    const numbers = new Set(local.orders.map(order => order.orderNumber.trim().toUpperCase().replace(/\s+/g,"")));
+    if (fresh.some(order => existing.has(order.id) || numbers.has(order.orderNumber.trim().toUpperCase().replace(/\s+/g,"")))) return {kind:"conflict", added:[]};
+    return {kind:"merge", document:{...local,orders:[...local.orders,...fresh]}, added:fresh};
+  }
+  function watchDay({context, busy, load, apply, schedule = setTimeout, cancel = clearTimeout}) {
+    let timer = null, controller = null, key = null, generation = 0, running = false, queued = false;
+    function stop() { generation++; cancel(timer); timer=null; controller?.abort(); controller=null; key=null; running=false; queued=false; }
+    async function check() {
+      const current = context();
+      if (!current) { stop(); return; }
+      if (key !== current) { stop(); key=current; }
+      if (running) { queued=true; return; }
+      cancel(timer); timer=null;
+      const version=generation;
+      running=true; controller=new AbortController();
+      try {
+        if (!busy()) {
+          const result=await load(controller.signal);
+          if (version===generation && context()===current && !busy()) apply(result);
+        }
+      } catch { /* Keep current work; retry on the next visible check. */ }
+      finally {
+        if(version===generation) { running=false;controller=null;const delay=queued?0:2000;queued=false;timer=schedule(check,delay); }
+      }
+    }
+    return {check,stop};
+  }
+  return Object.freeze({ document, date, references, deliveredDate, deliveryDetails, deliveryStatus, searchFilters, createClient, reconcile, watchDay });
 });
