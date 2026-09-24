@@ -1383,6 +1383,8 @@ html:has(.atlas-document-flow[open]){overflow:hidden}
  .atlas-route [data-dispatch-orders] .atlas-route-order-position button{padding:3px;min-width:0}
 }
 
+.atlas-route-live-toast{position:fixed;right:24px;top:150px;max-width:min(380px,calc(100vw - 48px));padding:14px 18px;border:1px solid #b5dfd3;border-radius:12px;background:#effbf6;color:#075c42;box-shadow:0 6px 24px #12304a18;font-size:14px;z-index:80;pointer-events:none}
+@media(max-width:750px){.atlas-route-live-toast{top:auto;bottom:100px;right:16px;max-width:calc(100vw - 64px)}}
 /* Routing refinement: natural-size actions and shared right-hand drawers. */
 @media screen and (min-width:751px){
  .atlas-route .atlas-route-order-tools{display:flex;justify-content:flex-start}

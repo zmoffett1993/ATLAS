@@ -11,6 +11,43 @@
   const todayPacific = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
   const documentNumbers = (value) => window.atlasRoutingStorage.references(value.split(/[,\n]/).map((s) => s.trim()).filter(Boolean));
   const storage = () => window.atlasRoutingSavedDays;
+  let savedBase = null, liveConflict = false, liveToastTimer = null, liveWasBusy = false;
+  function liveBusy() {
+    return savedDay.busy || !savedDay.ready || !!state.planningController || !!intakeRequest || !!state.drag || printingTripSheet || !!scannerStartup || documentFlow?.active() || !!document.querySelector('#atlasDeliveryRouting dialog[open]');
+  }
+  function showIncomingOrders(orders) {
+    if (!orders.length) return;
+    let toast=find('[data-route-live-toast]');
+    if (!toast) { toast=document.createElement('div');toast.dataset.routeLiveToast='';toast.className='atlas-route-live-toast';toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');toast.setAttribute('aria-atomic','true');document.getElementById('atlasDeliveryRouting').append(toast); }
+    clearTimeout(liveToastTimer);
+    toast.textContent=orders.length===1?`New order added · ${orders[0].customer} · ${orders[0].orderNumber}`:`${orders.length} new orders added`;
+    toast.hidden=false;liveToastTimer=setTimeout(()=>{toast.remove();},2000);
+  }
+  const liveDay = window.atlasRoutingStorage.watchDay({
+    context: () => state.open && !driverMode && !document.hidden && navigator.onLine !== false && storage()?.enabled && savedDay.ready &&
+      state.ownerId === window.AtlasAuth?.getSession()?.user?.id && window.AtlasCocDelivery?.requestedWarehouseCode?.() === 'CA'
+      ? `${state.ownerId}:CA:${find('[data-route-date]').value}:${savedDay.generation}` : null,
+    busy:liveBusy,
+    load:signal=>storage().load(find('[data-route-date]').value,{signal}),
+    apply(result) {
+      if (result.date!==savedDay.day || result.revision<=savedDay.revision) return;
+      const change=window.atlasRoutingStorage.reconcile(savedBase,dayDocument(),result.document,savedDay.dirty);
+      if(change.kind==='conflict') { if(!liveConflict){liveConflict=true;showSaveStatus();}return; }
+      const position={x:window.scrollX,y:window.scrollY};
+      if(change.kind==='replace') applySavedDay(result);
+      else {
+        state.orders.push(...change.added.map(order=>({...order,date:result.date,photos:[]})));
+        savedDay.revision=result.revision;savedBase=structuredClone(result.document);savedDay.canEdit=result.canEdit;
+        liveConflict=false;renderOrders({keepAssignments:true,dirty:false});savedDay.dirty=true;showSaveStatus();
+      }
+      window.scrollTo(position.x,position.y);
+      showIncomingOrders(change.added);
+    }
+  });
+  for(const event of ['focus','online','pageshow']) window.addEventListener(event,()=>void liveDay.check());
+  document.addEventListener('visibilitychange',()=>void liveDay.check());
+  for(const event of ['offline','pagehide']) window.addEventListener(event,()=>liveDay.stop());
+  document.addEventListener('close',event=>{if(event.target.closest?.('#atlasDeliveryRouting'))void liveDay.check();},true);
   const reminders = () => window.atlasRoutingReminderController;
   let reminderDay = null;
   let printingTripSheet = false;
@@ -488,7 +525,7 @@
           const input=find(`[data-route-${selector}]`);if(key==="preserveOrder")input.checked=doc.settings[key];else input.value=doc.settings[key];
         }
         state.truckPalletTarget=doc.settings.truckPalletTarget;state.dailyTripTarget=doc.settings.dailyTripTarget;state.catalog=doc.catalog;
-        savedDay.revision=result.revision;savedDay.dirty=false;savedDay.message="Settings saved.";
+        savedDay.revision=result.revision;savedBase=structuredClone(result.document || doc);liveConflict=false;savedDay.dirty=false;savedDay.message="Settings saved.";
         renderOrders({keepAssignments:true,dirty:false});dialog.close();
       }catch(e){if(current())form.querySelector("[data-settings-status]").textContent=`${e.message} Your settings have not been applied. Try again.`;}
       finally{dialog.removeEventListener("cancel",preventClose);if(owner===state.ownerId&&generation===savedDay.generation){savedDay.busy=false;form.inert=false;showSaveStatus();}}
@@ -685,6 +722,9 @@
 
   function showSaveStatus() {
     if (!find("[data-route-save-status]")) return;
+    const busyNow=!!liveBusy();
+    if(liveWasBusy && !busyNow) queueMicrotask(()=>void liveDay.check());
+    liveWasBusy=busyNow;
     const enabled = storage()?.enabled;
     find("[data-route-save-status]").textContent = !enabled ? "Orders are temporary. Shared saving is awaiting database approval and connection." : savedDay.message || (savedDay.dirty ? "Unsaved changes — select Save Day before leaving." : savedDay.revision ? `Saved version ${savedDay.revision} · recalculate routes for current traffic.` : "No saved orders for this day yet.");
     find("[data-route-save-day]").disabled = !enabled || !savedDay.ready || !savedDay.canEdit || savedDay.busy || Boolean(state.planningController);
@@ -698,6 +738,7 @@
     document.getElementById("atlasDeliveryRouting").querySelectorAll("[data-next-priority]").forEach(button => { button.disabled = !canReorderOrder(button.dataset.nextPriority); });
     updateOptimizeAvailability();
     applyReadOnlyControls();
+    if(liveConflict) find('[data-route-save-status]').textContent='Delivery data changed — review update using Open saved day. Your unsaved changes are preserved.';
     renderMobileDashboard();
   }
 
@@ -721,6 +762,7 @@
   }
 
   function applySavedDay(result, { preserveDraft = false } = {}) {
+    liveConflict=false;
     mobileSaveFailed = false;
     vehicleChanges = {};
     const keep = new Set(preserveDraft ? state.draftPhotos.map(photo => photo.url) : []);
@@ -737,10 +779,12 @@
     savedDay.message = result.canEdit ? "" : "Read-only access to this saved day. Changes in this tab cannot be saved.";
     find("[data-route-catalog-status]").textContent = state.catalog.length ? `${state.catalog.length} product specifications` : "Load product specifications to calculate pallets and van estimates.";
     renderOrders({ keepAssignments: true, dirty: false });
+    savedBase=structuredClone(result.document || dayDocument());
   }
 
   async function loadDay(review = false) {
     if (!storage()?.enabled || savedDay.busy) return;
+    liveDay.stop();
     const generation = ++savedDay.generation, owner = state.ownerId, day = find("[data-route-date]").value;
     const current = () => savedDay.generation === generation && state.open && state.ownerId === owner && window.AtlasAuth?.getSession()?.user?.id === owner;
     savedDay.busy = true; savedDay.message = "Opening saved day…";
@@ -763,7 +807,7 @@
         find("[data-route-saved-review]").showModal();
       }
     } catch (error) { if (current()) savedDay.message = error.message; }
-    finally { if (current()) { savedDay.busy = false; find(".atlas-route-main").inert = Boolean(scannerStartup); showSaveStatus(); } }
+    finally { if (current()) { savedDay.busy = false; find(".atlas-route-main").inert = Boolean(scannerStartup); showSaveStatus(); void liveDay.check(); } }
   }
 
   async function searchHistory(offset = 0, paging = false) {
@@ -851,7 +895,7 @@
       renderOrders();
       const result = await storage().save(request.day, request.revision, dayDocument());
       if (!current()) return;
-      savedDay.revision = result.revision; savedDay.dirty = false; savedDay.message = "Order deleted. Remaining loads recalculated.";
+      savedDay.revision = result.revision; savedBase=structuredClone(result.document || dayDocument());liveConflict=false; savedDay.dirty = false; savedDay.message = "Order deleted. Remaining loads recalculated.";
       before.orders.find(o => o.id === request.id)?.photos?.forEach(photo => { URL.revokeObjectURL(photo.url); state.allUrls.delete(photo.url); });
       find("[data-route-delete-dialog]").close();
     } catch {
@@ -942,10 +986,11 @@
       const result = await storage().save(doc.date, savedDay.revision, doc);
       if (!current()) return;
       savedDay.revision = result.revision;
+      savedBase=structuredClone(result.document || doc);liveConflict=false;
       savedDay.dirty = JSON.stringify(dayDocument()) !== JSON.stringify(doc);
       savedDay.message = savedDay.dirty ? "The earlier version was saved. You have additional unsaved changes." : `Saved version ${result.revision}. Photos are temporary; reviewed details and load settings are saved.`;
     } catch (error) { if (current()) { mobileSaveFailed = true; savedDay.dirty = true; savedDay.message = error.message; } }
-    finally { if (current()) { savedDay.busy = false; showSaveStatus(); } }
+    finally { if (current()) { savedDay.busy = false; showSaveStatus(); void liveDay.check(); } }
   }
 
   const dayOrders = () => state.orders.filter((order) => order.date === find("[data-route-date]").value);
@@ -1031,16 +1076,17 @@
   let scannerReady = false, scannerUploadedToday = 0;
   async function refreshScannerStatus() {
     const owner=state.ownerId, scanDay=find("[data-route-date]").value;
-    if(!state.open||driverMode||savedDay.busy||state.planningController||document.hidden||!storage()?.scannerStatus)return;
+    if(!state.open||driverMode||liveBusy()||document.hidden||!storage()?.scannerStatus)return;
     try {
       const result=await storage().scannerStatus(scanDay);
       if(!state.open||find("[data-route-date]").value!==scanDay||state.ownerId!==owner||window.AtlasAuth?.getSession()?.user?.id!==owner)return;
+      if(liveBusy())return;
       scannerReady=result.enabled===true;scannerUploadedToday=Number(result.uploadedToday)||0;
       if(scannerReady && Array.isArray(result.catalog) && !savedDay.dirty){
         const known=new Set(state.catalog.map(row=>row.model));const merged=[...state.catalog,...result.catalog.filter(row=>!known.has(row.model))];
         state.catalog=window.atlasRoutingStorage.document({...dayDocument(),catalog:merged}).catalog;
       }
-      if(scannerReady && Number.isSafeInteger(result.currentRevision) && result.currentRevision>savedDay.revision && !savedDay.dirty && !documentFlow?.active()) await loadDay();
+      if(scannerReady && Number.isSafeInteger(result.currentRevision) && result.currentRevision>savedDay.revision) void liveDay.check();
       if(!state.open||find("[data-route-date]").value!==scanDay||state.ownerId!==owner)return;
       if(!savedDay.dirty && !state.planningController && !documentFlow?.active() && result.planRevision===savedDay.revision && result.plan?.timed?.complete && !state.lockedTrips.length) renderTimedPlan(result.plan.timed);
       let status=find("[data-scanner-planning-status]");
@@ -1642,6 +1688,7 @@
   }
 
   function resetWorkspace() {
+    liveDay.stop();savedBase=null;liveConflict=false;clearTimeout(liveToastTimer);find('[data-route-live-toast]')?.remove();
     clearTimeout(scannerStartup?.timer); scannerStartup = null; scannerOwner = null; deletingOrder = false; deleteRequest = null;
     find("[data-route-delete-dialog]")?.close();
     document.getElementById("atlasDeliveryRouting")?.classList.remove("is-opening-scanner");

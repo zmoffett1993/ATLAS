@@ -787,15 +787,15 @@
     });
   }
 
-  function navigateWorkflows({ resume = false } = {}) {
+  async function navigateWorkflows({ resume = false } = {}) {
+    const current = currentOperation();
+    if (resume && (!session || !current() || session.warehouseCode !== Delivery.requestedWarehouseCode())) return;
+    const token = ++resumeRenderToken;
     if (resume) {
       cancelScanSession();
       capture = freshCapture();
       modal = null;
     }
-    const button = [...document.querySelectorAll(".bottom-nav button, [data-nav]")]
-      .find((item) => String(item.dataset?.nav || item.textContent || "").trim().toLowerCase().includes("workflows"));
-    button?.click();
     workflowView = resume && session ? "session" : "landing";
     if (resume && session?.status === "report") refreshStationPresence();
     if (resume && session?.status === "active") {
@@ -808,21 +808,16 @@
     // resume from Home, the COC render can otherwise happen just before the
     // new Workflows root is mounted, leaving a blank screen. Wait for the
     // actual destination node and render into the node that will remain.
-    const token = ++resumeRenderToken;
-    const renderWhenReady = (attempt = 0) => {
-      if (token !== resumeRenderToken) return;
-      if (document.getElementById("atlas-coc-workflows-root")) {
-        renderAll();
-        window.scrollTo({ top: 0, behavior: "auto" });
-        return;
-      }
-      if (attempt < 30) {
-        window.requestAnimationFrame(() => renderWhenReady(attempt + 1));
-        return;
-      }
-      console.error("ATLAS could not mount the Workflows screen for COC resume.");
-    };
-    renderWhenReady();
+    try {
+      if (!window.AtlasNavigation?.openSection) throw Error("Navigation unavailable");
+      await window.AtlasNavigation.openSection("workflows");
+      if (token !== resumeRenderToken || (resume && !current())) return;
+      if (!document.getElementById("atlas-coc-workflows-root")) throw Error("COC screen unavailable");
+      renderAll();
+      window.scrollTo({ top: 0, behavior: "auto" });
+    } catch {
+      if (token === resumeRenderToken && (!resume || current())) showToast("COC could not open. Please try again. Your COC is still saved.", "warning");
+    }
   }
 
   function barMarkup() {

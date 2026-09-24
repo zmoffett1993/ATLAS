@@ -18585,6 +18585,26 @@ Error generating stack: ` +
           (0, C.useEffect)(() => {
             window.atlasCoc?.sync?.(e);
           }, [e]));
+        (0, C.useEffect)(() => {
+          const pending = new Set();
+          const api = { openSection(section) {
+            if (section !== "workflows") return Promise.reject(new Error("Unknown section"));
+            return new Promise((resolve, reject) => {
+              let timer;
+              const finish = error => { observer.disconnect(); clearTimeout(timer); pending.delete(cancel); error ? reject(error) : resolve(); };
+              const cancel = () => finish(new Error("Navigation ended"));
+              const check = () => { if (document.getElementById("atlas-coc-workflows-root")) finish(); };
+              const observer = new MutationObserver(check);
+              pending.add(cancel);
+              observer.observe(document.getElementById("root") || document.body, {childList:true,subtree:true});
+              timer = setTimeout(cancel, 3000);
+              atlasReturnToSectionRoot(section);
+              check();
+            });
+          } };
+          window.AtlasNavigation = api;
+          return () => { pending.forEach(cancel => cancel()); if (window.AtlasNavigation === api) delete window.AtlasNavigation; };
+        }, []);
         function ne(e) {
           let t = [e.sku, ...f.filter((t) => t !== e.sku)].slice(0, 5);
           (p(t), localStorage.setItem(`atlas-recent-skus`, JSON.stringify(t)));
@@ -36537,7 +36557,7 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <link rel="stylesheet" href="./atlas-mobile-menu.css?v=3" />
-    <link rel="stylesheet" href="./atlas-routing.css?v=27" />
+    <link rel="stylesheet" href="./atlas-routing.css?v=28" />
     <script src="./atlas-login.js?v=1" defer></script>
     <script src="./atlas-auth.js?v=8" defer></script>
     <script src="./atlas-coc-references.js?v=2" defer></script>
@@ -36554,18 +36574,18 @@ Error generating stack: ` +
     <script src="./atlas-coc-storage.js?v=5" defer></script>
     <script src="./atlas-coc-delivery.js?v=16" defer></script>
     <script src="./atlas-coc-excel.js?v=20" defer></script>
-    <script src="./atlas-coc.js?v=85" defer></script>
+    <script src="./atlas-coc.js?v=86" defer></script>
   <script src="./atlas-desktop.js?v=137" defer></script>
   <script src="./atlas-routing-core.js?v=14" defer></script>
     <script src="./atlas-routing-planner.js?v=8" defer></script>
   <script src="./atlas-routing-catalog.js?v=2" defer></script>
   <script src="./atlas-routing-intake.js?v=9" defer></script>
-  <script src="./atlas-routing-storage.js?v=5" defer></script>
+  <script src="./atlas-routing-storage.js?v=6" defer></script>
   <script src="./atlas-routing-notifications.js?v=2" defer></script>
     <script src="./atlas-routing-pod-core.js?v=1" defer></script>
     <script src="./atlas-routing-pod-queue.js?v=1" defer></script>
     <script src="./atlas-routing-pod.js?v=6" defer></script>
-    <script src="./atlas-routing.js?v=41" defer></script>
+    <script src="./atlas-routing.js?v=42" defer></script>
     <script type="module" src="./tools/routing-preview/full-site-client.mjs?v=3"></script>
 
 </body>
