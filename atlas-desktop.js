@@ -327,10 +327,10 @@
       return nav;
     }
 
-    const home = nav.querySelector('[data-nav="Home"]');
-    const browse = nav.querySelector('[data-nav="Browse Aisles"]');
-    const inventory = nav.querySelector('[data-nav="Inventory"]');
-    const workflows = nav.querySelector('[data-nav="Workflows"]');
+    const home = nav.querySelector('[data-nav="home"]');
+    const browse = nav.querySelector('[data-nav="aisles"]');
+    const inventory = nav.querySelector('[data-nav="inventory"]');
+    const workflows = nav.querySelector('[data-nav="coc"]');
     const dashboard = nav.querySelector('[data-action="dashboard"]');
     const routing = nav.querySelector('[data-action="routing"]');
     const about = nav.querySelector('[data-action="about"]');

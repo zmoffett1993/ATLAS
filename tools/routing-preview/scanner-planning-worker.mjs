@@ -1,6 +1,7 @@
 // Transport-independent worker preparation. No scheduler or remote connection starts on import.
 import core from '../../atlas-routing-core.js';
 import storage from '../../atlas-routing-storage.js';
+import assignmentContract from '../../atlas-routing-assignment.js';
 import planner from '../../atlas-routing-planner.js';
 
 export function buildScannerDraft(input) {
@@ -49,11 +50,10 @@ export async function runScannerPlanningOnce(rpc, traffic) {
  let plan=null,error=null;
  try {
   plan=buildScannerDraft(job.document);
-  if(traffic && plan.trips.length && !job.document.lockedTrips?.length && !Object.values(job.document.assignments||{}).some(a=>a.includes(':van'))){
+  if(traffic && plan.trips.length && !job.document.lockedTrips?.length && !Object.values(job.document.assignments||{}).some(a=>assignmentContract.read(a).vehicleId!=='box_truck')){
    const loads=plan.trips.map((trip,i)=>{
     const assignment=job.document.assignments?.[i]||'Bubba:truck';
-    const [driver,vehicleId]=assignment.split(':');
-    return {...trip,driver,vehicleId,vehicle:vehicleId==='truck'?'truck':'van',palletTarget:job.document.settings.truckPalletTarget};
+    return {...trip,...assignmentContract.load(assignment),palletTarget:job.document.settings.truckPalletTarget};
    });
    const timed=await planner.planDay({date:job.date,loads,orders:job.document.orders,
     ...traffic,departureNotBefore:(traffic.now ?? Date.now())+30*60000,preserveOrder:job.document.settings.preserveOrder,reloadMinutes:job.document.settings.reloadMinutes,

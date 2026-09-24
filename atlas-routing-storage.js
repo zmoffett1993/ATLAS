@@ -1,9 +1,9 @@
 /* Reviewed details only: no photos, OCR text, credentials, or Google responses. */
 ((root, factory) => {
-  const api = factory();
+  const api = factory(typeof module === "object" && module.exports ? require("./atlas-routing-assignment.js") : root?.atlasRoutingAssignment);
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.atlasRoutingStorage = api;
-})(typeof window === "undefined" ? null : window, () => {
+})(typeof window === "undefined" ? null : window, (assignment) => {
   "use strict";
   const BASE = "https://dwrrbpiprcmajfyronlf.supabase.co";
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -49,7 +49,7 @@
   }
   // Explicitly project allowed fields; never serialize the application state wholesale.
   function document(input) {
-    if (![1, 2, 3].includes(input?.schemaVersion) || !Array.isArray(input.orders) || input.orders.length > 200 || !Array.isArray(input.catalog) || input.catalog.length > 2000) fail("This saved day has an unsupported format or is too large.");
+    if (![1, 2, 3, 4].includes(input?.schemaVersion) || !Array.isArray(input.orders) || input.orders.length > 200 || !Array.isArray(input.catalog) || input.catalog.length > 2000) fail("This saved day has an unsupported format or is too large.");
     const day = date(input.date), ids = new Set(), numbers = new Set();
     const orders = input.orders.map((order) => {
       if (!UUID.test(order.id || "") || ids.has(order.id.toLowerCase())) fail("Every order needs a unique ID.");
@@ -69,15 +69,15 @@
     const settings = { truckPalletTarget: integer(s.truckPalletTarget, 1, 100), dailyTripTarget: integer(s.dailyTripTarget, 1, 100), reloadMinutes: integer(s.reloadMinutes, 0, 120), lunch: s.lunch, preserveOrder: boolean(s.preserveOrder) };
     const assignments = {}, vanConfirmed = {};
     for (const [key, value] of Object.entries(input.assignments || {})) {
-      if (!/^(0|[1-9]\d{0,3})$/.test(key) || !/^(Bubba:(truck|van1|van2)|Achmad:van[12])$/.test(value)) fail("Review driver and vehicle assignments.");
-      assignments[key] = value;
+      if (!/^(0|[1-9]\d{0,3})$/.test(key) || (input.schemaVersion < 4 && !/^(Bubba:(truck|van1|van2)|Achmad:van[12])$/.test(value))) fail("Review driver and vehicle assignments.");
+      assignments[key] = input.schemaVersion === 4 ? assignment.validate(value) : value;
     }
     for (const [key, value] of Object.entries(input.vanConfirmed || {})) {
       if (!/^(0|[1-9]\d{0,3})$/.test(key)) fail("Invalid van review.");
       vanConfirmed[key] = boolean(value);
     }
     const result = { schemaVersion: input.schemaVersion, date: day, orders, catalog, settings, assignments, vanConfirmed };
-    if (input.schemaVersion === 3) {
+    if (input.schemaVersion >= 3) {
       if (!Array.isArray(input.lockedTrips) || input.lockedTrips.length > 200) fail("Review the saved sent-out trips.");
       const packed = new Map(), completed = new Set();
       result.lockedTrips = input.lockedTrips.map((trip) => {
@@ -102,10 +102,10 @@
           if (!match || completed.has(match.orderId.toLowerCase())) fail("Review completed orders on sent-out trips.");
           completed.add(match.orderId.toLowerCase()); return match.orderId;
         });
-        return { shipments, palletSpaces, assignment: text(trip.assignment, 20, true), vanConfirmed: boolean(trip.vanConfirmed), sentOn: date(trip.sentOn), completedOrderIds };
+        return { shipments, palletSpaces, assignment: input.schemaVersion === 4 ? assignment.validate(trip.assignment) : text(trip.assignment, 20, true), vanConfirmed: boolean(trip.vanConfirmed), sentOn: date(trip.sentOn), completedOrderIds };
       });
       result.lockedTrips.forEach((trip, index) => {
-        if (!/^(Bubba:(truck|van1|van2)|Achmad:van[12])$/.test(trip.assignment) || assignments[index] !== trip.assignment || (vanConfirmed[index] || false) !== trip.vanConfirmed) fail("Sent-out assignment changed.");
+        if ((input.schemaVersion < 4 && !/^(Bubba:(truck|van1|van2)|Achmad:van[12])$/.test(trip.assignment)) || JSON.stringify(assignments[index]) !== JSON.stringify(trip.assignment) || (vanConfirmed[index] || false) !== trip.vanConfirmed) fail("Sent-out assignment changed.");
         if (trip.completedOrderIds.some((id) => !orders.find((order) => order.id === id)?.dispatchedOn)) fail("Completed sent-out order has no dispatch date.");
       });
       for (const id of completed) {
@@ -117,7 +117,7 @@
       }
     }
     if (Object.hasOwn(input, "nextLoadPriority")) {
-      if (input.schemaVersion !== 3 || !Array.isArray(input.nextLoadPriority) || input.nextLoadPriority.length > 200) fail("Review next-load priorities.");
+      if (input.schemaVersion < 3 || !Array.isArray(input.nextLoadPriority) || input.nextLoadPriority.length > 200) fail("Review next-load priorities.");
       const seen = new Set(), locked = new Set((result.lockedTrips || []).flatMap(t => t.shipments.map(s => s.orderId.toLowerCase())));
       result.nextLoadPriority = input.nextLoadPriority.map(id => {
         const order = orders.find(o => o.id === id);

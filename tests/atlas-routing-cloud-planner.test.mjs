@@ -96,3 +96,11 @@ test("response retains omitted stops and rejects duplicate stops and invalid bre
   assert.throws(() => summarizePlannerTrip({ routes: [{ visits: [{ startTime: "2026-09-21T14:00:00Z" }, { startTime: "2026-09-21T15:00:00Z" }] }] }, 2));
   assert.throws(() => summarizePlannerTrip({ routes: [{ breaks: [{ startTime: "2026-09-21T19:00:00Z", duration: "invalid" }] }] }, 1));
 });
+
+test('assigned driver payload uses an explicit schedule and accepts independent vehicle choice',()=>{
+ const value={...input(),driver:'assigned',scheduleId:'standard'};
+ assert.ok(buildPlannerTrip(value,depot,NOW));
+ assert.ok(buildPlannerTrip({...value,vehicle:'van'},depot,NOW));
+ assert.throws(()=>buildPlannerTrip({...value,scheduleId:'Alex'},depot,NOW));
+ assert.throws(()=>buildPlannerTrip({...value,driver:'Alex'},depot,NOW));
+});

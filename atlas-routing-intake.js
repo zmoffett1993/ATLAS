@@ -349,6 +349,11 @@
     const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     const dialog = document.createElement("dialog"); dialog.className = "atlas-document-flow";
     dialog.setAttribute("aria-label", "Delivery order intake"); host.append(dialog);
+    const cameraInput=document.createElement("input"),galleryInput=document.createElement("input");
+    for(const input of [cameraInput,galleryInput]){input.type="file";input.accept="image/*";input.hidden=true;input.addEventListener("change",event=>{const files=[...event.target.files];event.target.value="";void addPhotos(files);});input.addEventListener("cancel",()=>{dialog.dataset.scannerStartup="ready";});}
+    cameraInput.setAttribute("capture","environment");cameraInput.dataset.intakeCamera="";galleryInput.multiple=true;galleryInput.dataset.intakeFiles="";
+    function nativePicker(input){stopCamera();dialog.dataset.scannerStartup="ready";try{input.click();}catch{error="The camera or photo picker could not open. Choose from Photos or return to ATLAS.";render();}}
+    function requestExit(){if((photos.length||busy)&&!window.confirm(busy?"An upload may still finish. Leave the scanner and clear temporary photos?":"Leave the scanner and clear these unsaved photos?"))return false;close();exit();return true;}
     const viewport = () => { if(window.visualViewport){dialog.style.setProperty("--atlas-scanner-height",`${window.visualViewport.height}px`);dialog.style.setProperty("--atlas-scanner-top",`${window.visualViewport.offsetTop}px`);} };
     window.visualViewport?.addEventListener("resize",viewport); window.visualViewport?.addEventListener("scroll",viewport); viewport();
     let screen = "ADD_DOCUMENT", photos = [], result = null, assessment = null, overrides = {}, generation = 0, controller = null, stream = null;
@@ -363,8 +368,8 @@
       if (!fromBack && historyId && window.history.state?.atlasDocumentFlow === historyId) window.history.back();
       historyId = null;
     }
-    window.addEventListener("popstate", () => { if (dialog.open && historyId && window.history.state?.atlasDocumentFlow !== historyId) { close(true); if (direct) exit(); } });
-    dialog.addEventListener("cancel", event => { event.preventDefault(); if (!busy || screen === "READING" || screen === "OPTIMIZING") { close(); if (direct) exit(); } });
+    window.addEventListener("popstate", () => { if (dialog.open && historyId && window.history.state?.atlasDocumentFlow !== historyId) { if((photos.length||busy)&&!window.confirm("Leave the scanner and clear temporary photos?")){window.history.pushState({atlasDocumentFlow:historyId},"");return;}close(true); if (direct) exit(); } });
+    dialog.addEventListener("cancel", event => { event.preventDefault(); if(scanner||direct)requestExit();else if (!busy || screen === "READING" || screen === "OPTIMIZING") close(); });
     const button = (action, label, primary = false, disabled = false) => `<button type="button" class="atlas-document-button${primary ? " is-primary" : ""}" data-intake-action="${action}" ${disabled ? "disabled" : ""}>${label}</button>`;
     const heading = (title, caption = "") => `<p class="atlas-route-eyebrow">DELIVERY ROUTING</p><h2 tabindex="-1">${title}</h2>${caption ? `<p class="atlas-document-caption">${caption}</p>` : ""}`;
     const totalBoxes = order => orderBoxCount(order.lines);
@@ -450,8 +455,8 @@
         }
         if(screen === "ORDER_ADDED")content=`<div class="atlas-document-success">${icon("check")}</div>`+heading(added.duplicate?"Order already uploaded":"Order Uploaded",`${esc(added.orderNumber)} is saved for ${esc(added.date||date)} and ready on desktop.`)+button("another","Scan Another Order",true)+button("done","Done");
       }
-      dialog.innerHTML = `<header class="atlas-document-header"><button type="button" data-intake-action="back" ${busy && !["READING", "OPTIMIZING"].includes(screen) ? "disabled" : ""}>‹ <span>${scanner ? "Back to ATLAS" : ["ROUTE_READY", "SAVED"].includes(screen) ? "Orders" : "Today’s Routes"}</span></button><img src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS" />${scanner ? `<small class="atlas-scanner-title">${screen==="VERIFY"?"Review Order":"Order Scanner"}</small>` : ""}</header><main class="atlas-document-content" aria-live="polite" data-intake-screen="${screen}">${content}<p class="atlas-document-error" role="alert">${esc(error)}</p></main>${screen === "VERIFY" ? `<footer class="atlas-document-submit">${button("add", scanner ? "Upload Order" : "Add Order", true, !reviewedOrder())}${scanner ? button("retake","Retake") : ""}</footer>` : ""}<input type="file" accept="image/*" multiple data-intake-files hidden />`;
-      dialog.querySelector("[data-intake-files]").addEventListener("change", event => { void addPhotos([...event.target.files]); event.target.value = ""; });
+      dialog.innerHTML = `<header class="atlas-document-header"><button type="button" data-intake-action="back" ${!scanner && !direct && busy && !["READING", "OPTIMIZING"].includes(screen) ? "disabled" : ""}>‹ <span>${scanner ? "Back to ATLAS" : ["ROUTE_READY", "SAVED"].includes(screen) ? "Orders" : "Today’s Routes"}</span></button><img src="./atlas-brand-landscape-dark.svg?v=128" alt="ATLAS" />${scanner ? `<small class="atlas-scanner-title">${screen==="VERIFY"?"Review Order":"Order Scanner"}</small>` : ""}</header><main class="atlas-document-content" aria-live="polite" data-intake-screen="${screen}">${content}<p class="atlas-document-error" role="alert">${esc(error)}</p></main>${screen === "VERIFY" ? `<footer class="atlas-document-submit">${button("add", scanner ? "Upload Order" : "Add Order", true, !reviewedOrder())}${scanner ? button("retake","Retake") : ""}</footer>` : ""}`;
+      dialog.append(cameraInput,galleryInput);
       if (focus) { dialog.scrollTop = 0; dialog.querySelector("h2")?.focus({ preventScroll: true }); }
     }
     function assess() {
@@ -533,10 +538,10 @@
       if (target.hasAttribute("data-intake-remove-page")) { cancel(); const [p] = photos.splice(Number(target.dataset.intakeRemovePage), 1); URL.revokeObjectURL(p.url); selectedPhoto = 0; overrides = {}; if (!photos.length) { clearPhotos(); screen = "ADD_DOCUMENT"; render(); } else await readPending(); return; }
       if (target.hasAttribute("data-intake-edit")) { close(); edit(target.dataset.intakeEdit); return; }
       if (target.hasAttribute("data-intake-remove")) { try { remove(target.dataset.intakeRemove); } catch (e) { error = e.message; } render(false); return; }
-      if (action === "done" || (action === "back" && (scanner || direct))) { if(!busy){close();exit();} return; }
+      if (action === "done" || (action === "back" && (scanner || direct))) { requestExit(); return; }
       if (action === "back") { if (["ROUTE_READY", "SAVED"].includes(screen)) { screen = "ORDERS_READY"; render(); } else if (!busy || ["READING", "OPTIMIZING"].includes(screen)) close(); }
-      if (action === "camera") await camera();
-      if (action === "photos") dialog.querySelector("[data-intake-files]").click();
+      if (action === "camera") { if(scanner||direct)nativePicker(cameraInput);else await camera(); }
+      if (action === "photos") nativePicker(galleryInput);
       if (action === "shutter") {
         const video = dialog.querySelector("video"), canvas = document.createElement("canvas"); if (!video?.videoWidth) return;
         canvas.width = video.videoWidth; canvas.height = video.videoHeight; canvas.getContext("2d").drawImage(video, 0, 0);
@@ -544,7 +549,7 @@
         if (blob && current(version)) await addPhotos([new File([blob], "order.jpg", { type: "image/jpeg" })]);
       }
       if (action === "append") { replaceIndex = null; screen = "ADD_DOCUMENT"; error = ""; render(); }
-      if (action === "retake") { replaceIndex = selectedPhoto; await camera(); }
+      if (action === "retake") { replaceIndex = selectedPhoto; if(scanner||direct)nativePicker(cameraInput);else await camera(); }
       if (action === "retry") await readPending();
       if (action === "cancel-operation") { cancel(); screen = screen === "OPTIMIZING" ? "ORDERS_READY" : "VERIFY"; if (photos.length) assess(); error = "Canceled. Your order details are still here."; render(); }
       if (action === "another") { cancel(); clearPhotos(); date = null; added = null; screen = "ADD_DOCUMENT"; error = ""; render(); }
@@ -555,7 +560,7 @@
         if (action === "add" && !order) return;
         busy = true; error = ""; const version = generation; target.disabled = true;
         if (action === "optimize") { screen = "OPTIMIZING"; render(); }
-        else dialog.querySelector('[data-intake-action="back"]').disabled = true;
+        else if(!scanner&&!direct)dialog.querySelector('[data-intake-action="back"]').disabled = true;
         try {
           if (action === "add") { const saved = await (scanner ? upload(order) : submit(order)); if (!current(version)) return; added = saved; if(scanner&&!saved.duplicate)uploadedCount++; clearPhotos(); screen = "ORDER_ADDED"; }
           if (action === "optimize") { await optimize(); if (!current(version)) return; screen = "ROUTE_READY"; }
@@ -569,13 +574,13 @@
         if (dialog.open) return;
         const s = snapshot(); if (!s.active || (["ADD_DOCUMENT", "CAPTURE"].includes(initial) && !s.canEdit)) return;
         direct = options.direct === true; cameraTimeout = options.timeout || 8000;
-        scanner = s.scanner === true; dialog.classList.toggle("is-scanner",scanner); if(owner!==s.owner)uploadedCount=0;
+        scanner = options.scanner === true || s.scanner === true; dialog.classList.toggle("is-scanner",scanner); if(owner!==s.owner)uploadedCount=0;
         cancel(); clearPhotos(); owner = s.owner; date = null; selectedPhoto = 0; replaceIndex = null; screen = initial; error = "";
         historyId = `intake-${Date.now()}`; window.history.pushState({ ...window.history.state, atlasDocumentFlow: historyId }, "");
         dialog.showModal(); render();
         if (initial === "CAPTURE") void camera();
       },
-      choosePhotos: () => dialog.querySelector("[data-intake-files]")?.click(),
+      choosePhotos: () => nativePicker(galleryInput),
       reset: close, active: () => dialog.open,
     };
   }

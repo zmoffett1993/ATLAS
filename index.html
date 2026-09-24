@@ -18587,7 +18587,17 @@ Error generating stack: ` +
           }, [e]));
         (0, C.useEffect)(() => {
           const pending = new Set();
-          const api = { openSection(section) {
+          const api = {
+            open(action) {
+              if (action === "routing") return window.atlasOpenRouting?.();
+              if (action === "order-scanner") { if (!window.atlasPersonalScannerAllowed?.()) return false; return window.atlasOpenRouting?.({intent:"scan-order"}); }
+              const section = action === "coc" ? "workflows" : action;
+              if (!["home","aisles","inventory","workflows"].includes(section)) return false;
+              if (window.atlasLeaveRouting && !window.atlasLeaveRouting()) return false;
+              if (section === "workflows") window.atlasCoc?.openWorkflows?.();
+              atlasReturnToSectionRoot(section);
+              return true;
+            }, openSection(section) {
             if (section !== "workflows") return Promise.reject(new Error("Unknown section"));
             return new Promise((resolve, reject) => {
               let timer;
@@ -18726,6 +18736,7 @@ Error generating stack: ` +
                   ? (0, T.jsxs)(`main`, {
                       className: `workspace home-view`,
                       children: [
+                        (0, T.jsx)(`div`, {id:"atlas-assigned-trips"}),
                         (0, T.jsx)(`div`, { id: `atlas-coc-home-slot` }),
                         (0, T.jsx)(`div`, {
                           className: `home-search-panel`,
@@ -19228,7 +19239,7 @@ Error generating stack: ` +
                     type: `button`,
                     className: e === `home` ? `active` : ``,
                     "aria-current": e === `home` ? `page` : void 0,
-                    onClick: () => atlasReturnToSectionRoot(`home`),
+                    onClick: () => window.AtlasNavigation?.open("home"),
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,
@@ -19241,7 +19252,7 @@ Error generating stack: ` +
                     type: `button`,
                     className: e === `aisles` ? `active` : ``,
                     "aria-current": e === `aisles` ? `page` : void 0,
-                    onClick: () => atlasReturnToSectionRoot(`aisles`),
+                    onClick: () => window.AtlasNavigation?.open("aisles"),
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,
@@ -19254,7 +19265,7 @@ Error generating stack: ` +
                     type: `button`,
                     className: e === `inventory` ? `active` : ``,
                     "aria-current": e === `inventory` ? `page` : void 0,
-                    onClick: () => atlasReturnToSectionRoot(`inventory`),
+                    onClick: () => window.AtlasNavigation?.open("inventory"),
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,
@@ -19265,22 +19276,21 @@ Error generating stack: ` +
                   }),
                   (0, T.jsxs)(`button`, {
                     type: `button`,
-                    className: e === `workflows` ? `active` : ``,
-                    "data-nav": e === `home` && atlasScannerShortcut ? void 0 : "Workflows",
-                    key: e === `home` && atlasScannerShortcut ? "personal-scanner" : "coc-nav",
-                    "data-personal-scanner": e === `home` && atlasScannerShortcut ? "true" : void 0,
-                    "aria-current": e === `workflows` ? `page` : void 0,
+                    className: !atlasScannerShortcut && e === `workflows` ? `active` : ``,
+                    "data-nav": atlasScannerShortcut ? "order-scanner" : "coc",
+                    key: atlasScannerShortcut ? "personal-scanner" : "coc-nav",
+                    "data-personal-scanner": atlasScannerShortcut ? "true" : void 0,
+                    "aria-current": !atlasScannerShortcut && e === `workflows` ? `page` : void 0,
                     onClick: () => {
-                      if (e === `home` && atlasScannerShortcut && window.atlasPersonalScannerAllowed?.()) { window.atlasOpenRouting?.({ intent: "scan-order" }); return; }
-                      (window.atlasCoc?.openWorkflows?.(),
-                        atlasReturnToSectionRoot(`workflows`));
+                      if (atlasScannerShortcut && window.atlasPersonalScannerAllowed?.()) { window.AtlasNavigation?.open("order-scanner"); return; }
+                      window.AtlasNavigation?.open("coc");
                     },
                     children: [
                       (0, T.jsx)(`span`, {
                         className: `nav-icon`,
-                        children: e === `home` && atlasScannerShortcut ? (0, T.jsxs)(`svg`, { viewBox: `0 0 24 24`, fill: `none`, stroke: `currentColor`, strokeWidth: 2, "aria-hidden": true, children: [(0, T.jsx)(`path`, { d: `M3 6h4l2-3h6l2 3h4v15H3z` }), (0, T.jsx)(`circle`, { cx: 12, cy: 13, r: 4 })] }) : `✓`,
+                        children: atlasScannerShortcut ? (0, T.jsxs)(`svg`, { viewBox: `0 0 24 24`, fill: `none`, stroke: `currentColor`, strokeWidth: 2, "aria-hidden": true, children: [(0, T.jsx)(`path`, { d: `M3 6h4l2-3h6l2 3h4v15H3z` }), (0, T.jsx)(`circle`, { cx: 12, cy: 13, r: 4 })] }) : `✓`,
                       }),
-                      (0, T.jsx)(`span`, { children: e === `home` && atlasScannerShortcut ? `Scan Orders` : `COC` }),
+                      (0, T.jsx)(`span`, { children: atlasScannerShortcut ? `Scan Orders` : `COC` }),
                     ],
                   }),
                 ],
@@ -24845,6 +24855,7 @@ Error generating stack: ` +
         Inventory: premiumIcon.inventory,
         Workflows: premiumIcon.workflows,
         COC: premiumIcon.workflows,
+        "Scan Orders": '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2"><path d="M3 7h4l2-3h6l2 3h4v13H3Z"/><circle cx="12" cy="13" r="4"/></svg>',
       };
       const atlasWordmark = `
   <svg class="atlas-wordmark" viewBox="0 0 620 120" role="img" aria-label="ATLAS">
@@ -24935,14 +24946,7 @@ Error generating stack: ` +
             }
           });
       };
-      const premiumNavigate = (label) => {
-        const button = [
-          ...document.querySelectorAll(".bottom-nav button"),
-        ].find((item) =>
-          (item.dataset.nav || item.textContent).trim().toLowerCase().includes(label.toLowerCase()),
-        );
-        button?.click();
-      };
+      const premiumNavigate = action => window.AtlasNavigation?.open(action);
       const atlasNavigationLayoutQuery = window.matchMedia(
         "(min-width: 1024px) and (hover: hover) and (pointer: fine)",
       );
@@ -26029,28 +26033,28 @@ Error generating stack: ` +
         </div>
       </header>
       <nav class="premium-drawer-nav atlas-menu-nav" aria-label="Primary navigation">
-        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Home">
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="home">
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M3.5 10.25 12 3l8.5 7.25"/><path d="M5.5 9.25v11h13v-11M9.25 20.25v-6.5h5.5v6.5"/></svg>
           </span>
           <span class="atlas-menu-label">SEARCH SKU</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
-        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Inventory">
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="inventory">
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="m12 3.25 8 4.25-8 4.25L4 7.5l8-4.25Z"/><path d="m4 7.5 8 4.25 8-4.25v9L12 20.75 4 16.5v-9Z"/><path d="M12 11.75v9M8 5.4l8 4.25"/></svg>
           </span>
           <span class="atlas-menu-label">INVENTORY</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
-        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Browse Aisles">
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="aisles">
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="M4.25 3.5v17M19.75 3.5v17"/><rect x="6.75" y="5" width="10.5" height="4" rx=".75"/><rect x="6.75" y="10.25" width="10.5" height="4" rx=".75"/><rect x="6.75" y="15.5" width="10.5" height="4" rx=".75"/></svg>
           </span>
           <span class="atlas-menu-label">BROWSE AISLES</span>
           <span class="drawer-chevron atlas-menu-chevron" aria-hidden="true">›</span>
         </button>
-        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="Workflows">
+        <button class="premium-drawer-link atlas-menu-item" type="button" data-nav="coc">
           <span class="atlas-menu-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" focusable="false"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 2 2 4-4"/><path d="M8 16h8"/></svg>
           </span>
@@ -26238,7 +26242,7 @@ Error generating stack: ` +
         backdrop
           .querySelector('[data-action="routing"]')
           .addEventListener("click", () => {
-            window.atlasOpenRouting?.();
+            window.AtlasNavigation?.open("routing");
             close(false);
           });
         backdrop
@@ -36557,7 +36561,7 @@ Error generating stack: ` +
     <link rel="stylesheet" href="./atlas-desktop-menu-typography.css?v=1" />
     <link rel="stylesheet" href="./atlas-alerts.css?v=2" />
     <link rel="stylesheet" href="./atlas-mobile-menu.css?v=3" />
-    <link rel="stylesheet" href="./atlas-routing.css?v=28" />
+    <link rel="stylesheet" href="./atlas-routing.css?v=29" />
     <script src="./atlas-login.js?v=1" defer></script>
     <script src="./atlas-auth.js?v=8" defer></script>
     <script src="./atlas-coc-references.js?v=2" defer></script>
@@ -36574,19 +36578,21 @@ Error generating stack: ` +
     <script src="./atlas-coc-storage.js?v=5" defer></script>
     <script src="./atlas-coc-delivery.js?v=16" defer></script>
     <script src="./atlas-coc-excel.js?v=20" defer></script>
-    <script src="./atlas-coc.js?v=86" defer></script>
-  <script src="./atlas-desktop.js?v=137" defer></script>
-  <script src="./atlas-routing-core.js?v=14" defer></script>
-    <script src="./atlas-routing-planner.js?v=8" defer></script>
+    <script src="./atlas-coc.js?v=87" defer></script>
+  <script src="./atlas-desktop.js?v=138" defer></script>
+  <script src="./atlas-routing-assignment.js?v=1" defer></script>
+  <script src="./atlas-driver-workspace.js?v=1" defer></script>
+<script src="./atlas-routing-core.js?v=15" defer></script>
+    <script src="./atlas-routing-planner.js?v=9" defer></script>
   <script src="./atlas-routing-catalog.js?v=2" defer></script>
-  <script src="./atlas-routing-intake.js?v=9" defer></script>
-  <script src="./atlas-routing-storage.js?v=6" defer></script>
+  <script src="./atlas-routing-intake.js?v=10" defer></script>
+  <script src="./atlas-routing-storage.js?v=7" defer></script>
   <script src="./atlas-routing-notifications.js?v=2" defer></script>
-    <script src="./atlas-routing-pod-core.js?v=1" defer></script>
-    <script src="./atlas-routing-pod-queue.js?v=1" defer></script>
-    <script src="./atlas-routing-pod.js?v=6" defer></script>
-    <script src="./atlas-routing.js?v=42" defer></script>
-    <script type="module" src="./tools/routing-preview/full-site-client.mjs?v=3"></script>
+    <script src="./atlas-routing-pod-core.js?v=2" defer></script>
+    <script src="./atlas-routing-pod-queue.js?v=2" defer></script>
+    <script src="./atlas-routing-pod.js?v=7" defer></script>
+    <script src="./atlas-routing.js?v=43" defer></script>
+    <script type="module" src="./tools/routing-preview/full-site-client.mjs?v=4"></script>
 
 </body>
 </html>

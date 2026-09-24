@@ -263,3 +263,17 @@ test('an earlier fitting load can free Bubba for a later truck-only trip without
   assert.deepEqual(options.map(item => item.tripIndex), [0]);
   assert.equal(JSON.stringify({ plan, loads }), before);
 });
+
+test('UUID driver schedules do not depend on names; shared vehicles remain sequential', async () => {
+  const uuid='11111111-1111-4111-8111-111111111111', other='22222222-2222-4222-8222-222222222222';
+  const calls=[];
+  const result=await planDay({...defaults,orders:[order('A'),order('B')],loads:[load('A',{driver:'Alex',driverUserId:uuid,scheduleId:'standard',vehicleId:'truck'}),load('B',{driver:'Alex',driverUserId:other,scheduleId:'standard',vehicleId:'truck'})],
+    route:async payload=>{calls.push(payload);return response(payload,timestamp(day,calls.length===1?480:600));}});
+  assert.equal(result.complete,true);
+  assert.deepEqual(calls.map(p=>p.driver),['assigned','assigned']);
+  assert.deepEqual(calls.map(p=>p.scheduleId),['standard','standard']);
+  assert.ok(Date.parse(calls[1].departure)>=Date.parse(timestamp(day,510)));
+  assert.equal(result.drivers[uuid].trips,1);assert.equal(result.drivers[other].trips,1);
+  assert.equal(result.drivers[uuid].displayName,'Alex');
+  await assert.rejects(planDay({...defaults,loads:[load('A',{driver:'Alex',driverUserId:uuid,scheduleId:'standard'}),load('A',{driver:'Alex',driverUserId:uuid,scheduleId:'relief'})]}),/consistent schedule/);
+});

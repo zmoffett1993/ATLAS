@@ -53,7 +53,7 @@ async function connect() {
     throw Error("Delivery Routing could not connect. Reconnect to the internet and try again.");
   } finally { button?.removeAttribute("aria-busy"); }
 }
-let connection;
+let connection, connecting=false;
 window.atlasRoutingConnectionReady = () => {
   if (!connection) connection = connect().catch(error => { connection = null; throw error; });
   return connection;

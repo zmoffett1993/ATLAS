@@ -17,7 +17,7 @@ const STATIC = new Map([
   ["/preview.mjs", ["tools/routing-preview/preview.mjs", "text/javascript"]],
   ["/maps.mjs", ["tools/routing-preview/maps.mjs", "text/javascript"]],
   ["/preview.css", ["tools/routing-preview/preview.css", "text/css"]],
-  ...["atlas-login.js", "atlas-auth.js", "atlas-routing-core.js", "atlas-routing-intake.js", "atlas-routing-storage.js", "atlas-routing-notifications.js", "atlas-routing-planner.js", "atlas-routing-catalog.js", "atlas-routing.js", "atlas-jszip.min.js"].map((file) => [`/${file}`, [file, "text/javascript"]]),
+  ...["atlas-login.js", "atlas-auth.js", "atlas-routing-assignment.js", "atlas-routing-core.js", "atlas-routing-intake.js", "atlas-routing-storage.js", "atlas-routing-notifications.js", "atlas-routing-planner.js", "atlas-routing-catalog.js", "atlas-routing.js", "atlas-jszip.min.js"].map((file) => [`/${file}`, [file, "text/javascript"]]),
   ...["atlas-auth.css", "atlas-routing.css"].map((file) => [`/${file}`, [file, "text/css"]]),
   ["/atlas-brand-landscape-dark.svg", ["atlas-brand-landscape-dark.svg", "image/svg+xml"]],
   ["/chubby-gorilla-header-v2.png", ["chubby-gorilla-header-v2.png", "image/png"]],

@@ -16,3 +16,5 @@
 !supabase/functions/
 !supabase/functions/atlas-routing-preview/
 !supabase/functions/atlas-routing-preview/handler.mjs
+
+!atlas-routing-assignment.js

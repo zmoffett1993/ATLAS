@@ -33,3 +33,12 @@ test('storage failure cannot claim POD received',async()=>{
 test('JPEG parser bounds dimensions and PDF has byte-correct object offsets',()=>{
  assert.deepEqual(jpegSize(jpeg),{width:32,height:48,channels:3});const pdf=makePdf([jpeg,jpeg]),str=Buffer.from(pdf).toString('latin1');assert.match(str,/\/Count 2/);assert.match(str,/\/Filter \/DCTDecode/);const xref=Number(str.match(/startxref\n(\d+)/)[1]);assert.equal(str.slice(xref,xref+4),'xref');assert.throws(()=>makePdf([]));assert.throws(()=>jpegSize(new Uint8Array([255,216,255,217])));
 });
+
+test('assigned-trip POD rechecks version, uses test paths and never queues email',async()=>{
+ const dynamicRequest=async(version=1)=>{const original=request(),form=await original.formData();form.set('workflow','assigned-trip');form.set('tripVersion',String(version));return new Request(original.url,{method:'POST',headers:{Origin:'https://test.example',Authorization:'Bearer synthetic'},body:form});};
+ const testBinding={...sample,is_test:true,sales_order:'SO-TEST-0001',shipment_total:1,version:1};
+ const r=rig({emailEnabled:true,driverContext:async()=>testBinding,driverReceive:async(b,input)=>({id:input.id,state:input.pdfHash?'received':'uploading',object_prefix:`pod-test/ca/${b.id}/${input.id}`})});
+ const result=await r.handle(await dynamicRequest());assert.equal(result.status,200);assert.equal((await result.json()).email,'disabled');assert.equal(r.receipts.length,0);assert.equal(r.writes.length,3);assert.ok(r.writes.every(([,p])=>p.startsWith('pod-test/')));
+ const stale=rig({driverContext:async()=>({...testBinding,version:2}),driverReceive:async()=>{throw Error('must not write');}});assert.equal((await stale.handle(await dynamicRequest())).status,409);assert.equal(stale.writes.length,0);
+ const off=rig();assert.equal((await off.handle(await dynamicRequest())).status,503);
+});

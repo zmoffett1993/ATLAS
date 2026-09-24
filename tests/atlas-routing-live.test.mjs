@@ -57,7 +57,7 @@ test('live route and photo calls use only the fixed gateway with current ATLAS b
 test('live entry and receiver share one module worker without modifying receiver icon or main app identity',()=>{
   const read=file=>readFileSync(new URL('../'+file,import.meta.url),'utf8');
   for(const file of ['index.html','coc-receiver/index.html'])assert.match(read(file),/atlas-routing-worker\.mjs\?v=281/);
-  assert.equal((read('index.html').match(/src="\.\/tools\/routing-preview\/full-site-client\.mjs\?v=3"/g)||[]).length,1);
+  assert.equal((read('index.html').match(/src="\.\/tools\/routing-preview\/full-site-client\.mjs\?v=4"/g)||[]).length,1);
   assert.match(read('atlas-routing-worker.mjs'),/import "\.\/service-worker\.js"/);
   assert.match(read('atlas-routing-worker.mjs'),/routing-notification-sw\.mjs/);
   assert.equal(JSON.parse(read('manifest.webmanifest')).short_name,'ATLAS');

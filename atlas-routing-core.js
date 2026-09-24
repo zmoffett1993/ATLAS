@@ -191,9 +191,9 @@
   }
 
   function resolveVanAssignment(assignment, shipments, catalog) {
-    if (!/^(Bubba|Achmad):van[12]$/.test(assignment)) return { assignment, switched: false, fit: null };
+    if (!(typeof assignment === "object" ? ["van_1","van_2"].includes(assignment?.vehicleId) : /^(Bubba|Achmad):van[12]$/.test(assignment))) return { assignment, switched: false, fit: null };
     const fit = assessVanShipments(shipments, catalog);
-    return { assignment: fit.status === "does-not-fit" ? "Bubba:truck" : assignment, switched: fit.status === "does-not-fit", fit };
+    return { assignment: fit.status === "does-not-fit" ? (typeof assignment === "object" ? {...assignment,vehicleId:"box_truck"} : "Bubba:truck") : assignment, switched: fit.status === "does-not-fit", fit };
   }
 
   function packVanColumns(orders) {
