@@ -29,6 +29,7 @@ test('scanner transactions and queue run on isolated PostgreSQL',async t=>{
  select case when jsonb_typeof(j)='number' then j::text::numeric=trunc(j::text::numeric) and j::text::numeric between lo and hi else false end $$;`);
  await db.exec(await read('tools/routing-preview/private-trip-locks.sql'));
  await db.exec(await read('tools/routing-preview/scanner-backend-draft.sql'));
+ await db.exec(await read('tools/routing-preview/next-load-priority-draft.sql'));
  await q("insert into warehouses values($1,'CA',true),($2,'TX',true)",[ca,tx]);
  for(const who of [admin,supervisor,texas]){
   const wh=who===texas?tx:ca,role=who===supervisor?'supervisor':'admin';
@@ -54,6 +55,25 @@ test('scanner transactions and queue run on isolated PostgreSQL',async t=>{
   assert.equal(await v('select generation::int from atlas_scanner_private.planning'),1);
   assert.equal(await v("select document->'orders'->0->>'customer' from atlas_routing_preview_private.days"),'Synthetic customer');
   assert.equal(await v("select document::text like '%parserVersion%' from atlas_routing_preview_private.days"),false);
+ });
+ await scenario('next-load priorities persist, reject invalid IDs and survive scanner uploads',async()=>{
+  await user();const first=await upload();
+  const doc={...first.document,nextLoadPriority:[order().id]};
+  const save=(revision,value)=>v("select atlas_routing_preview_private.save_day('CA',$1,$2,$3)",[day,revision,value]);
+  // The public wrapper supplies the same authenticated authorization check.
+  await db.exec('reset role');
+  assert.equal(await v('select atlas_routing_preview_private.valid_document($1,$2)',[doc,day]),true);
+  for(const priority of [[order().id,order().id],[id(999)],null])
+   assert.equal(await v('select atlas_routing_preview_private.valid_document($1,$2)',[{...doc,nextLoadPriority:priority},day]),false);
+  const saved=await save(1,doc);assert.deepEqual(saved.document.nextLoadPriority,[order().id]);
+  await user();await upload(order(2));await db.exec('reset role');
+  const current=await v('select document from atlas_routing_preview_private.days');
+  assert.deepEqual(current.nextLoadPriority,[order().id]);
+  assert.equal(buildScannerDraft(current).trips[0].shipments[0].orderId,order().id);
+  await db.exec('savepoint old');const old={...current};delete old.nextLoadPriority;
+  await assert.rejects(save(3,old),/ROUTING_CLIENT_UPDATE_REQUIRED/);await db.exec('rollback to old');
+  await db.exec('savepoint stale');await assert.rejects(save(2,current),/ROUTING_SAVE_CONFLICT/);await db.exec('rollback to stale');
+  assert.deepEqual((await save(3,{...current,nextLoadPriority:[]})).document.nextLoadPriority,[]);
  });
  await scenario('invalid order rolls back its day, metadata and queue',async()=>{
   await user();await db.exec('savepoint invalid');await assert.rejects(upload({...order(),lines:[]}),/INVALID_ROUTING_DOCUMENT/);

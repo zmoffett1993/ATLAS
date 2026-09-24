@@ -282,7 +282,7 @@
     return result.length ? result : null;
   }
 
-  function countTruckTrips(orders, { truckPalletTarget = USABLE_TRUCK_SPACES, dailyTripTarget = 3, lockedTrips = [] } = {}) {
+  function countTruckTrips(orders, { truckPalletTarget = USABLE_TRUCK_SPACES, dailyTripTarget = 3, lockedTrips = [], nextLoadPriority = [] } = {}) {
     if (![truckPalletTarget, dailyTripTarget].every((value) => Number.isSafeInteger(value) && value > 0)) {
       throw new Error("Planning targets must be positive whole numbers");
     }
@@ -302,7 +302,11 @@
     const rollovers = [];
     // A rendering safeguard for malformed/huge imports, not a daily trip limit.
     const maxPreviewTrips = 200;
-    for (const order of orders) {
+    // Explicit priorities are stable across source-row sorting and optimization.
+    const priorityIds = new Set(nextLoadPriority);
+    if (priorityIds.size !== nextLoadPriority.length || nextLoadPriority.some(id => !byId.has(id) || lockedSpaces.has(id))) throw new Error("Review next-load priorities.");
+    const packingOrder = [...nextLoadPriority.map(id => byId.get(id)), ...orders.filter(order => !priorityIds.has(order.id))];
+    for (const order of packingOrder) {
       if (!Number.isSafeInteger(order.palletSpaces) || order.palletSpaces <= 0 || (lockedSpaces.get(order.id) || 0) > order.palletSpaces) {
         unscheduled.push({ orderId: order.id, customer: order.customer, palletSpaces: order.palletSpaces, reason: "Pallet count needs review" });
         continue;
