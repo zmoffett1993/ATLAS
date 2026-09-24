@@ -42,7 +42,7 @@ test('four trips remain sequential with reloads, a single lunch, and accurate ut
   assert.deepEqual(calls.map((call) => call.departure), [390, 550, 690, 890].map((minutes) => timestamp(day, minutes)));
   assert.equal(calls[3].lunch, undefined);
   assert.equal(result.trips.length, 4); assert.equal(result.trips[3].overtime, true);
-  assert.equal(result.drivers.Bubba.workMinutes, 560); assert.equal(result.drivers.Bubba.utilizationPercent, 117);
+  assert.equal(result.drivers.Bubba.workMinutes, 620); assert.equal(result.drivers.Bubba.utilizationPercent, 129);
   assert.equal(result.complete, true);
 });
 test('Achmad uses a separate shift timeline and only the cargo van', async () => {
@@ -53,33 +53,36 @@ test('Achmad uses a separate shift timeline and only the cargo van', async () =>
   await assert.rejects(planDay({ ...defaults, loads: [load('A', { driver: 'Achmad' })] }), /assignment/);
 });
 
-test('Bubba can cross noon without a fixed break and take lunch later between stops', async () => {
-  const calls = [];
-  const result = await planDay({ ...defaults, loads: [load(), load('B')], orders: [order(), order('B')], lunchMinutes: 780,
-    route: async (payload) => {
-      calls.push(payload);
-      return { ...response(payload, timestamp(day, calls.length === 1 ? 735 : 890)),
-        visits: [{ stopIndex: 0, arrival: payload.departure }],
-        breaks: calls.length === 1 ? [] : [{ start: timestamp(day, 805), durationSeconds: 3600 }] };
-    } });
-  assert.equal(calls[0].lunch.start, timestamp(day, 660));
-  assert.equal(calls[0].lunch.latestStart, timestamp(day, 840));
-  assert.equal(calls[1].departure, timestamp(day, 775));
-  assert.equal(result.drivers.Bubba.lunch.start, timestamp(day, 805));
-  assert.equal(result.drivers.Bubba.workMinutes, 470);
-  assert.equal(result.trips[1].overtime, false);
-});
-
-test('flexible lunch cannot overlap service, be too short, or start outside its window', async () => {
-  for (const entry of [{ start: timestamp(day, 420), durationSeconds: 3600 },
-    { start: timestamp(day, 750), durationSeconds: 1800 }, { start: timestamp(day, 850), durationSeconds: 3600 }]) {
-    await assert.rejects(planDay({ ...defaults, route: async (payload) => ({ ...response(payload, timestamp(day, 920)), breaks: [entry] }) }), /lunch/);
+test('Bubba has one lunch after his final return for one, three and four trips', async () => {
+  for(const count of [1,3,4]){
+    const calls=[], ends=[510,650,800,870];
+    const result=await planDay({...defaults,loads:Array.from({length:count},(_,i)=>load(String(i))),orders:Array.from({length:count},(_,i)=>order(String(i))),route:async payload=>{calls.push(payload);return response(payload,timestamp(day,ends[calls.length-1]));}});
+    assert.ok(calls.every(call=>!call.lunch));
+    assert.ok(result.trips.every(trip=>!trip.lunch));
+    assert.equal(result.drivers.Bubba.lunch.start,timestamp(day,ends[count-1]));
+    assert.equal(result.drivers.Bubba.finishTime,timestamp(day,ends[count-1]+60));
+    assert.equal(result.drivers.Bubba.overtime,count===4);
+    assert.equal(result.drivers.Bubba.workMinutes,ends[count-1]-360);
   }
-  await assert.rejects(planDay({ ...defaults, route: async (payload) => ({ ...response(payload, timestamp(day, 920)),
-    visits: [{ stopIndex: 0, arrival: timestamp(day, 670) }] }) }), /lunch/);
+});
+test('lunch after return flags a late finish even when the trip returns before 3 PM',async()=>{
+  for(const [returned,finish,late] of [[825,885,false],[870,930,true]]){
+    const result=await planDay({...defaults,route:async p=>response(p,timestamp(day,returned))});
+    assert.equal(result.drivers.Bubba.finishTime,timestamp(day,finish));
+    assert.equal(result.drivers.Bubba.overtime,late);
+    assert.equal(result.trips[0].overtime,false);
+    assert.equal(result.warnings.some(w=>w.includes('final return and lunch')),late);
+  }
+});
+test('Achmad lunch cannot overlap service or have an invalid duration',async()=>{
+  const input={...defaults,loads:[load('A',{driver:'Achmad',vehicle:'van'})]};
+  for(const entry of [{start:timestamp(day,420),durationSeconds:3600},{start:timestamp(day,720),durationSeconds:1800}]){
+    await assert.rejects(planDay({...input,route:async p=>({...response(p,timestamp(day,920)),breaks:[entry]})}),/lunch/);
+  }
+  await assert.rejects(planDay({...input,route:async p=>({...response(p,timestamp(day,920)),visits:[{stopIndex:0,arrival:timestamp(day,730)}]})}),/lunch/);
 });
 
-test('unused flexible lunch remains reserved after the final trip and Achmad keeps his separate setting', async () => {
+test('Bubba lunch follows the final trip and Achmad keeps his separate setting', async () => {
   const calls = [];
   const result = await planDay({ ...defaults, loads: [load(), load('B', { driver: 'Achmad', vehicle: 'van' })], orders: [order(), order('B')], lunchMinutes: 750,
     route: async (payload) => { calls.push(payload); return { ...response(payload, timestamp(day, 730)), breaks: [] }; } });
@@ -107,8 +110,8 @@ test('a failed later request leaves prior results explicitly incomplete and neve
     route: async (payload) => { if (++calls === 2) throw new Error('Quota reached'); return response(payload, timestamp(day, 500)); } }), /Quota/);
   assert.equal(calls, 2); assert.equal(partial.trips.length, 1); assert.equal(partial.complete, false);
 });
-test('routes extending past the flexible lunch window require a confirmed break, and malformed visits cannot pass', async () => {
-  await assert.rejects(planDay({ ...defaults, route: async (payload) => ({ ...response(payload, timestamp(day, 850)), breaks: [] }) }), /lunch/);
+test('Achmad requires a confirmed midday break, and malformed visits cannot pass', async () => {
+  await assert.rejects(planDay({ ...defaults, loads:[load('A',{driver:'Achmad',vehicle:'van'})], route: async (payload) => ({ ...response(payload, timestamp(day, 850)), breaks: [] }) }), /lunch/);
   await assert.rejects(planDay({ ...defaults, route: async (payload) => ({ ...response(payload, timestamp(day, 500)), visits: [{ stopIndex: 9, arrival: payload.departure }] }) }), /incomplete trip/);
 });
 test('the shared cargo van cannot be assigned to Bubba and Achmad at the same time', async () => {
@@ -137,7 +140,7 @@ test('an entirely skipped trip cannot consume lunch or reload time for a later s
     } });
   assert.equal(calls[1].departure, timestamp(day, 750));
   assert.equal(calls[2].departure, timestamp(day, 750));
-  assert.equal(result.drivers.Bubba.lunch.start, timestamp(day, 750));
+  assert.equal(result.drivers.Bubba.lunch.start, timestamp(day, 850));
   assert.equal(result.unscheduled.length, 1);
 });
 test('two separate vans can run concurrently with different drivers, but one driver cannot overlap trips', async () => {

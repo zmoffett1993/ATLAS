@@ -97,11 +97,11 @@
     for (let index = 0; index < loads.length; index++) {
       check(); const load = loads[index], driver = drivers[load.driver];
       const vehicleId = load.vehicleId || (load.vehicle === "van" ? "van1" : "truck");
-      // Bubba has no fixed lunch start. Reserve an hour within 11 AM–3 PM;
-      // Google can place it between visits, or we use a vehicle-waiting gap.
-      const flexibleLunch = load.driver === "Bubba";
-      const lunchStart = Date.parse(timestamp(date, flexibleLunch ? 660 : lunchMinutes));
-      const latestLunchStart = Date.parse(timestamp(date, flexibleLunch ? 840 : lunchMinutes));
+      // Bubba's one-hour lunch follows the final warehouse return for the day.
+      // Achmad retains his independently configured midday break.
+      const afterFinalReturn = load.driver === "Bubba";
+      const lunchStart = Date.parse(timestamp(date, lunchMinutes));
+      const latestLunchStart = lunchStart;
       let depart = driver.ready;
       let lunchDone = driver.lunchDone, lunchPeriod = driver.lunch;
       const loadingMinutes = driver.trips ? reloadMinutes : 30;
@@ -111,14 +111,14 @@
         waitingMinutes = Math.max(0, (loadingStart - (driver.trips ? depart : depart - 30 * MINUTE)) / MINUTE);
         const waitingStart = driver.trips ? depart : depart - 30 * MINUTE;
         const waitingLunchStart = Math.max(waitingStart, lunchStart);
-        if (!lunchDone && loadingStart >= waitingLunchStart + 60 * MINUTE) {
+        if (!afterFinalReturn && !lunchDone && loadingStart >= waitingLunchStart + 60 * MINUTE) {
           lunchDone = true; waitingMinutes -= 60;
           lunchPeriod = { start: new Date(waitingLunchStart).toISOString(), end: new Date(waitingLunchStart + 60 * MINUTE).toISOString() };
         }
-        const reload = addWork(loadingStart, loadingMinutes, latestLunchStart, lunchDone);
+        const reload = addWork(loadingStart, loadingMinutes, latestLunchStart, lunchDone || afterFinalReturn);
         depart = reload.end;
         if (reload.lunch) { lunchDone = true; lunchPeriod = reload.lunch; }
-      } else if (depart >= latestLunchStart && !lunchDone) {
+      } else if (!afterFinalReturn && depart >= latestLunchStart && !lunchDone) {
         lunchPeriod = { start: new Date(depart).toISOString(), end: new Date(depart + 60 * MINUTE).toISOString() };
         depart += 60 * MINUTE; lunchDone = true;
       }
@@ -134,10 +134,9 @@
         stops.push({ location: locations.get(order.id).location, pallets: shipment.palletSpaces, serviceMinutes: order.serviceMinutes, ...(window ? { timeWindow: window } : {}) });
       }
       if (!stops.length) { onUpdate(output); continue; }
-      const lunch = !lunchDone && depart <= latestLunchStart ? {
+      const lunch = !afterFinalReturn && !lunchDone && depart <= latestLunchStart ? {
         start: new Date(Math.max(depart, lunchStart)).toISOString(),
         end: new Date(Math.max(depart, lunchStart) + 60 * MINUTE).toISOString(),
-        ...(flexibleLunch ? { latestStart: new Date(latestLunchStart).toISOString() } : {}),
       } : null;
       onProgress(`Calculating trip ${index + 1} of ${loads.length} with traffic…`);
       const result = await route({ action: "planTrip", warehouse: "CA", driver: load.driver, vehicle: load.vehicle, palletTarget: load.palletTarget,
@@ -188,16 +187,19 @@
     for (const [name, driver] of Object.entries(drivers)) {
       if (!driver.trips) continue;
       if (!driver.lunchDone) {
-        const start = Math.max(driver.ready, Date.parse(timestamp(date, name === "Bubba" ? 660 : lunchMinutes)));
+        const start = name === "Bubba" ? driver.ready : Math.max(driver.ready, Date.parse(timestamp(date, lunchMinutes)));
         driver.lunch = { start: new Date(start).toISOString(), end: new Date(start + 60 * MINUTE).toISOString() };
       }
       driver.utilizationPercent = Math.round(driver.workMinutes / 480 * 100);
       driver.shiftEnd = timestamp(date, SHIFTS[name].end);
+      driver.finishTime = new Date(Math.max(driver.ready, Date.parse(driver.lunch?.end || driver.returnTime))).toISOString();
+      driver.overtime = Date.parse(driver.finishTime) > Date.parse(driver.shiftEnd);
+      if (driver.overtime) output.warnings.push(`${name}: final return and lunch finish after the usual shift. Review the load or relief help.`);
     }
     output.complete = true; onUpdate(output); return output;
   }
   function reliefOptions({ date, plan, loads, orders, assessVan }) {
-    if (!plan?.complete || !plan.trips.some((trip) => trip.driver === "Bubba" && trip.overtime) ||
+    if (!plan?.complete || !(plan.drivers?.Bubba?.overtime || plan.trips.some((trip) => trip.driver === "Bubba" && trip.overtime)) ||
         plan.trips.some((trip) => trip.driver === "Achmad" && trip.overtime)) return [];
     const options = [], orderMap = new Map(orders.map((order) => [order.id, order]));
     const earliestDeparture = timestamp(date, SHIFTS.Achmad.departure);

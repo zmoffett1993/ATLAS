@@ -8,15 +8,16 @@ export function loadMaps(key) {
   if (!/^AIza[\w-]{30,60}$/.test(key || "")) return Promise.reject(new Error("The preview's restricted Maps browser key is not configured yet."));
   loading = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    const timeout = setTimeout(() => reject(new Error("Google Maps did not finish loading. Check the preview's Maps configuration.")), 20000);
+    const fail = message => { clearTimeout(timeout); script.remove(); reject(new Error(message)); };
+    const timeout = setTimeout(() => fail("Google Maps did not finish loading. Check the preview's Maps configuration."), 20000);
     window.atlasPreviewMapsReady = () => { clearTimeout(timeout); resolve(window.google.maps); };
-    window.gm_authFailure = () => { clearTimeout(timeout); reject(new Error("Google Maps rejected this preview address. Its browser-key restriction needs updating.")); };
+    window.gm_authFailure = () => fail("Google Maps rejected this preview address. Its browser-key restriction needs updating.");
     script.src = `https://maps.googleapis.com/maps/api/js?${new URLSearchParams({ key, v: "quarterly", loading: "async", callback: "atlasPreviewMapsReady", libraries: "geometry" })}`;
     script.async = true;
     script.nonce = document.querySelector("script[nonce]")?.nonce || "";
-    script.onerror = () => { clearTimeout(timeout); reject(new Error("Google Maps could not load. No automatic retry was made.")); };
+    script.onerror = () => fail("Google Maps could not load. No automatic retry was made.");
     document.head.appendChild(script);
-  });
+  }).catch(error => { loading = null; throw error; });
   return loading;
 }
 export function clearRoutes() {
@@ -31,6 +32,7 @@ export async function showMap(key, element) {
     traffic = new maps.TrafficLayer(); traffic.setMap(map);
   }
   geocoder ||= new maps.Geocoder();
+  maps.event.trigger(map, "resize");
   return maps;
 }
 export async function locate(key, address) {
