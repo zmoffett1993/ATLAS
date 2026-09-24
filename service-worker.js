@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v394-driver-assignment";
+const VERSION = "atlas-pwa-v395-install-guidance";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,8 +6,8 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./install/index.html",
-  "./install/install.css?v=3",
-  "./install/install.js?v=2",
+  "./install/install.css?v=4",
+  "./install/install.js?v=3",
   "./atlas-dashboard.css?v=172",
   "./atlas-coc-references.js?v=2",
   "./atlas-dashboard.js?v=191",

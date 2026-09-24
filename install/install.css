@@ -32,10 +32,12 @@ a:focus-visible,button:focus-visible{outline:3px solid #003e91;outline-offset:4p
 .share-card h2{font-size:.98rem;margin-bottom:12px}
 .link-row{display:flex;align-items:center;background:#fff;border:1px solid #e0e9f5;border-radius:10px;padding-left:10px;min-width:0}
 .install-link{flex:1;min-width:0;display:flex;align-items:center;min-height:48px;color:#071b40;font-size:.74rem;overflow-wrap:anywhere;text-decoration:none}
-#copy-link{display:grid;place-items:center;background:transparent;color:#0063ff;border:0;border-radius:8px;width:44px;height:48px;flex-shrink:0;cursor:pointer}
+#copy-link{display:flex;align-items:center;justify-content:center;gap:5px;font:inherit;font-size:.75rem;font-weight:650;padding:0 8px;background:transparent;color:#0063ff;border:0;border-radius:8px;min-width:44px;height:48px;flex-shrink:0;cursor:pointer}
 #copy-link svg{width:20px;height:20px}
 .copy-status{font-size:.84rem;color:#17582c;margin:8px 0}
 footer{text-align:center;line-height:1.5;padding:20px 8px 0}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:350px){.install-shell{padding-left:16px;padding-right:16px}.brand{margin-bottom:36px}.steps li{gap:8px;padding:14px 8px}.step-icon{width:32px;height:32px;flex-basis:32px}.share-card{padding:14px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+.steps p+p{margin-top:10px}

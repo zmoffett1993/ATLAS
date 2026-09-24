@@ -9,8 +9,8 @@
   <link rel="manifest" href="../manifest.webmanifest?v=107">
   <link rel="icon" href="../atlas-favicon-v2-32.png?v=101">
   <link rel="apple-touch-icon" href="../atlas-icon-v2-180.png?v=101">
-  <link rel="stylesheet" href="./install.css?v=3">
-  <script src="./install.js?v=2" defer></script>
+  <link rel="stylesheet" href="./install.css?v=4">
+  <script src="./install.js?v=3" defer></script>
 </head>
 <body>
   <main class="install-shell">
@@ -23,14 +23,14 @@
       <h2 id="device-heading" class="sr-only">Get started</h2>
       <div id="iphone" hidden>
         <ol class="steps">
-          <li><span aria-hidden="true">1</span><svg class="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="#e7f3ff"/><circle cx="24" cy="24" r="16" fill="#0088ef" stroke="none"/><path d="m30 15-4 13-9 6 4-13z" fill="white" stroke="none"/><path d="m30 15-9 6 5 7z" fill="#ed516b" stroke="none"/></svg><div><strong>Open in Safari</strong><p>Open this install link in Safari on your iPhone or iPad.</p></div></li>
+          <li><span aria-hidden="true">1</span><svg class="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="#e7f3ff"/><circle cx="24" cy="24" r="16" fill="#0088ef" stroke="none"/><path d="m30 15-4 13-9 6 4-13z" fill="white" stroke="none"/><path d="m30 15-9 6 5 7z" fill="#ed516b" stroke="none"/></svg><div><strong>Copy the link into Safari</strong><p>Copy and paste the install link into Safari.</p></div></li>
           <li><span aria-hidden="true">2</span><svg class="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 19H10v24h28V19h-7M24 32V4m-8 8 8-8 8 8"/></svg><div><strong>Tap Share</strong><p>Open Safari’s Share menu.</p></div></li>
           <li><span aria-hidden="true">3</span><svg class="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="34" height="34" rx="8"/><path d="M24 15v18m-9-9h18"/></svg><div><strong>Add to Home Screen</strong><p>Choose Add to Home Screen. Turn on Open as Web App when offered, then tap Add.</p></div></li>
         </ol>
       </div>
       <div id="browser-guidance">
         <p id="device-copy">Open ATLAS in your browser, or use your browser’s Install app option when available.</p>
-        <p id="fallback">On Android, open this link in Chrome, tap the menu, then choose Install app or Add to Home screen.</p>
+        <p id="fallback">Copy and paste the install link into Chrome. Then tap the three-dot menu and choose Install app or Add to Home screen.</p>
       </div>
       <img id="android-icon" class="app-icon" src="../atlas-icon-v2-180.png?v=101" alt="" width="112" height="112" hidden>
       <button id="install-button" class="primary" type="button" hidden>Install ATLAS <span aria-hidden="true">→</span></button>
@@ -43,7 +43,7 @@
       <h2 id="share-heading">Share the install link</h2>
       <div class="link-row">
         <a class="install-link" href="https://zmoffett1993.github.io/ATLAS/install/">zmoffett1993.github.io/ATLAS/install/</a>
-        <button id="copy-link" type="button" aria-label="Copy install link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="7" width="12" height="15" rx="2"/><path d="M16 7V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/></svg></button>
+        <button id="copy-link" type="button" aria-label="Copy install link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="7" width="12" height="15" rx="2"/><path d="M16 7V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/></svg><span>Copy link</span></button>
       </div>
       <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
     </section>
