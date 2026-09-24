@@ -2361,6 +2361,7 @@ html.atlas-dashboard-open {
 .atlas-dashboard-coc-table-wrap tbody tr:hover { background: #f8fbff; }
 .atlas-dashboard-coc-table-wrap td strong { color: var(--atlas-dashboard-navy); font-weight: 700; }
 .atlas-dashboard-coc-status { display: inline-flex; padding: 5px 8px; color: #40556e; border-radius: 999px; background: #edf2f7; font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
+.atlas-dashboard-coc-status.is-pending,
 .atlas-dashboard-coc-status.is-sent,
 .atlas-dashboard-coc-status.is-received { color: #915b00; background: #fff3d5; }
 .atlas-dashboard-coc-status.is-completed { color: #08734a; background: #e7f7ef; }

@@ -615,7 +615,7 @@
     };
   };
   const cocPlural = (count, word) => `${Number(count || 0).toLocaleString()} ${word}${Number(count) === 1 ? "" : word === "box" ? "es" : "s"}`;
-  const cocStatus = (record) => ({ SENT: "Sent", RECEIVED: "Received", OFFICE_COMPLETED: "Completed" })[record?.status] || "Warehouse complete";
+  const cocStatus = (record) => ({ SENT: "Pending", RECEIVED: "Pending", OFFICE_COMPLETED: "Completed" })[record?.status] || "Warehouse complete";
   const cocRecordDate = (record) => record?.office_completed_at || record?.received_at || record?.sent_at || record?.created_at;
   const cocWarehouseTimeZone = (warehouseCode = state.selectedWarehouse?.code || "CA") =>
     state.selectedWarehouse?.code === warehouseCode && state.selectedWarehouse?.time_zone

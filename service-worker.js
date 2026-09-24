@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v390-desktop-next-load";
+const VERSION = "atlas-pwa-v391-coc-receiver-recovery";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -8,9 +8,9 @@ const APP_SHELL = [
   "./install/index.html",
   "./install/install.css?v=3",
   "./install/install.js?v=2",
-  "./atlas-dashboard.css?v=171",
+  "./atlas-dashboard.css?v=172",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=190",
+  "./atlas-dashboard.js?v=191",
   "./atlas-auth.css?v=4",
   "./atlas-login.js?v=1",
   "./atlas-auth.js?v=8",
@@ -29,8 +29,8 @@ const APP_SHELL = [
   "./coc-receiver/coc-receiver-favicon.svg?v=4",
   "./coc-receiver/coc-receiver-favicon-16.png?v=4",
   "./coc-receiver/coc-receiver-favicon-32.png?v=4",
-  "./coc-receiver/receiver.css?v=39",
-  "./coc-receiver/receiver.js?v=47",
+  "./coc-receiver/receiver.css?v=40",
+  "./coc-receiver/receiver.js?v=48",
   "./atlas-guided-workflows.css?v=4",
   "./atlas-guided-workflows.js?v=4",
   "./atlas-restock.css?v=3",

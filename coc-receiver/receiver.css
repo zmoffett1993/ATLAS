@@ -93,6 +93,8 @@ svg{display:block;width:1.35em;height:1.35em;fill:none;stroke:currentColor;strok
 .receiver-ready-strip>span{width:43px;height:43px;border-radius:50%;background:#e4f8ef;color:#089766;display:grid;place-items:center}
 .receiver-ready-strip strong,.receiver-ready-strip small{display:block}
 .receiver-ready-strip small{margin-top:3px;color:#6c7f96}
+.receiver-ready-strip .receiver-reset-pairing{margin-left:auto}
+@media(max-width:640px){.receiver-ready-strip{flex-wrap:wrap}.receiver-ready-strip .receiver-reset-pairing{margin-left:0;width:100%}}
 
 .receiver-report-panel{border:1px solid #d5dfe9;border-radius:25px;background:rgba(255,255,255,.96);overflow:visible;box-shadow:0 16px 44px rgba(5,31,66,.085)}
 .receiver-panel-title{padding:30px 34px 18px}
