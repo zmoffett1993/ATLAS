@@ -16,7 +16,7 @@
     byId("device-heading").textContent = installed ? "ATLAS is installed" : ios ? "Install on iPhone" : android ? "Install on Android" : "Install on your device";
     byId("device-copy").textContent = android && deferredPrompt
       ? "Tap the button below to install ATLAS on your Android device."
-      : android ? "Open this link in Chrome to add ATLAS to your Home screen."
+      : android ? "Follow the steps below to open this install link in Chrome."
         : "Open ATLAS in your browser, or use your browser’s Install app option when available.";
     button.hidden = installed || ios || !deferredPrompt;
     button.disabled = prompting;
