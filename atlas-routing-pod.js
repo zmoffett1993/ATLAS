@@ -15,13 +15,13 @@
   function driverHero(trip,stops,index=0){
     const saved=stops.filter(s=>s.submission?.state==='received').length;
     const vehicle=stops[0]?.source_assignment?.split(':')[1];
-    return `<section class="atlas-driver-hero"><small>YOUR ROUTE</small><div class="atlas-driver-hero-title"><h2>Trip ${trip+1}</h2><span class="atlas-driver-badge">${saved===stops.length?'PODs saved':'Assigned'}</span></div><p>${icon('truck')}${vehicle==='truck'?'Box Truck':vehicle==='van2'?'Cargo Van 2':'Cargo Van 1'} · ${quantity(stops.length,'stop')} · ${quantity(stops.reduce((n,s)=>n+Number(s.source_shipment?.palletSpaces||0),0),'pallet')}</p><progress value="${saved}" max="${stops.length}" aria-label="Trip ${trip+1} PODs saved"></progress><div class="atlas-driver-hero-progress"><span>STOP ${index+1} OF ${stops.length}</span><span>${saved} PODs saved</span></div></section>`;
+    return `<section class="atlas-driver-hero"><small>YOUR ROUTE</small><div class="atlas-driver-hero-title"><h2>Trip ${trip+1}</h2><span class="atlas-driver-badge">${stops.every(s=>['complete','exception'].includes(s.status))?'Trip complete':saved===stops.length?'PODs saved':'Assigned'}</span></div><p>${icon('truck')}${vehicle==='truck'?'Box Truck':vehicle==='van2'?'Cargo Van 2':'Cargo Van 1'} · ${quantity(stops.length,'stop')} · ${quantity(stops.reduce((n,s)=>n+Number(s.source_shipment?.palletSpaces||0),0),'pallet')}</p><progress value="${saved}" max="${stops.length}" aria-label="Trip ${trip+1} PODs saved"></progress><div class="atlas-driver-hero-progress"><span>STOP ${index+1} OF ${stops.length}</span><span>${saved} PODs saved</span></div></section>`;
   }
   function driverStopCard(s,i){
     const received=s.submission?.state==='received',details=s.delivery||{},boxes=s.source_shipment?.boxAllocation||[];
     const pallets=Number(s.source_shipment?.palletSpaces||0),count=boxes.reduce((n,l)=>n+Number(l.boxes||0),0);
     const next=shipments.find(x=>x.trip_index===s.trip_index&&x.submission?.state!=='received');
-    return `<section class="atlas-driver-trip"><ol class="atlas-driver-stops"><li class="atlas-driver-stop ${received?'is-received':''}"><div class="atlas-driver-stop-eyebrow">${received?'POD SAVED':next?.id===s.id?'NEXT POD TO CAPTURE':'SELECTED STOP'}</div><div class="atlas-driver-stop-heading"><div><h4>${esc(s.customer)}</h4><p>${esc(s.sales_order)}</p></div><strong class="atlas-driver-pallets">${pallets}<small>${pallets===1?'PALLET':'PALLETS'}</small></strong></div><p class="atlas-driver-address">${glyph('pin')}<span>${esc(s.address)}</span></p><div class="atlas-driver-tiles">${details.timeWindow?`<div class="atlas-driver-tile atlas-driver-hours">${glyph('clock')}<div><strong>Customer hours</strong><span>${esc(details.timeWindow)}</span></div></div>`:''}<div class="atlas-driver-tile">${icon('documents')}<div><strong>POD status</strong><span>${received?'Saved':s.current?'Not yet saved':'Shipment changed'}</span></div></div></div>${details.checkOnDelivery?'<p class="atlas-driver-check">CHECK ON DELIVERY</p>':''}${details.notes?`<div class="atlas-driver-notes atlas-driver-banner ${/\b(test|synthetic)\b/i.test(details.notes)?'is-warning':'is-note'}">${glyph('warning')}<p>${esc(details.notes)}</p></div>`:''}${s.shipment_total>1?`<div class="atlas-driver-banner atlas-driver-split">${glyph('warning')}<div><strong>SHIPMENT ${s.shipment_number} OF ${s.shipment_total} — SPLIT SHIPMENT</strong><p>Load only the pallet count assigned to this shipment. Confirm SKU and box allocation before loading.</p><p>${s.shipment_number<s.shipment_total?`Remaining pallets for this customer are allocated to the other shipments, including Shipment ${s.shipment_number+1} of ${s.shipment_total}.`:'This is the final shipment; earlier pallets are allocated to the preceding shipments.'}</p></div></div>`:''}<details class="atlas-driver-boxes"><summary aria-expanded="false" aria-controls="atlasDriverLoad${i}">${glyph('box')}<span>Load details<small>${quantity(pallets,'pallet')} · ${quantity(count,'box')} assigned</small></span>${icon('arrow')}</summary><div id="atlasDriverLoad${i}">${boxes.map(l=>`<p><span>${esc(l.sku)}</span><b>${quantity(Number(l.boxes),'box')}</b></p>`).join('')}</div></details><p class="atlas-driver-status">${received?esc(emailLabel(s.submission)):s.current?'Scan the signed delivery document after unloading.':'Shipment changed · ask the office'}</p><div class="atlas-driver-stop-actions"><a class="atlas-route-button" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}" target="_blank" rel="noopener noreferrer">${glyph('pin')}Open in Maps</a>${received?`<button type="button" class="atlas-route-button" data-pod-download="${esc(s.id)}" ${busy||syncing?'disabled':''}>${icon('documents')}Download PDF</button>`:`<button type="button" class="atlas-route-button atlas-route-primary" data-pod-scan="${esc(s.id)}" ${!s.current||busy||syncing?'disabled':''}>${icon('camera')}${drafts.some(d=>d.binding.id===s.id)?'Resume scan':'Scan POD'}</button>`}</div></li></ol></section>`;
+    return `${s.is_test?'<p class="atlas-driver-check">TEST MODE · Do not load or deliver</p>':''}<section class="atlas-driver-trip"><ol class="atlas-driver-stops"><li class="atlas-driver-stop ${received?'is-received':''}"><div class="atlas-driver-stop-eyebrow">${received?'POD SAVED':next?.id===s.id?'NEXT POD TO CAPTURE':'SELECTED STOP'}</div><div class="atlas-driver-stop-heading"><div><h4>${esc(s.customer)}</h4><p>${esc(s.sales_order)}</p></div><strong class="atlas-driver-pallets">${pallets}<small>${pallets===1?'PALLET':'PALLETS'}</small></strong></div><p class="atlas-driver-address">${glyph('pin')}<span>${esc(s.address)}</span></p><div class="atlas-driver-tiles">${details.timeWindow?`<div class="atlas-driver-tile atlas-driver-hours">${glyph('clock')}<div><strong>Customer hours</strong><span>${esc(details.timeWindow)}</span></div></div>`:''}<div class="atlas-driver-tile">${icon('documents')}<div><strong>POD status</strong><span>${received?'Saved':s.current?'Not yet saved':'Shipment changed'}</span></div></div></div>${details.checkOnDelivery?'<p class="atlas-driver-check">CHECK ON DELIVERY</p>':''}${details.notes?`<div class="atlas-driver-notes atlas-driver-banner ${/\b(test|synthetic)\b/i.test(details.notes)?'is-warning':'is-note'}">${glyph('warning')}<p>${esc(details.notes)}</p></div>`:''}${s.shipment_total>1?`<div class="atlas-driver-banner atlas-driver-split">${glyph('warning')}<div><strong>SHIPMENT ${s.shipment_number} OF ${s.shipment_total} — SPLIT SHIPMENT</strong><p>Load only the pallet count assigned to this shipment. Confirm SKU and box allocation before loading.</p><p>${s.shipment_number<s.shipment_total?`Remaining pallets for this customer are allocated to the other shipments, including Shipment ${s.shipment_number+1} of ${s.shipment_total}.`:'This is the final shipment; earlier pallets are allocated to the preceding shipments.'}</p></div></div>`:''}<details class="atlas-driver-boxes"><summary aria-expanded="false" aria-controls="atlasDriverLoad${i}">${glyph('box')}<span>Load details<small>${quantity(pallets,'pallet')} · ${quantity(count,'box')} assigned</small></span>${icon('arrow')}</summary><div id="atlasDriverLoad${i}">${boxes.map(l=>`<p><span>${esc(l.sku)}</span><b>${quantity(Number(l.boxes),'box')}</b></p>`).join('')}</div></details><p class="atlas-driver-status">${received?esc(emailLabel(s.submission)):s.current?'Scan the signed delivery document after unloading.':'Shipment changed · ask the office'}</p><div class="atlas-driver-stop-actions">${s.is_test ? '<span class="atlas-route-button" aria-disabled="true">Test address · Maps unavailable</span>' : `<a class="atlas-route-button" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}" target="_blank" rel="noopener noreferrer">${glyph('pin')}Open in Maps</a>`}${received?`<button type="button" class="atlas-route-button" data-pod-download="${esc(s.id)}" ${busy||syncing?'disabled':''}>${icon('documents')}Download PDF</button>`:`<button type="button" class="atlas-route-button atlas-route-primary" data-pod-scan="${esc(s.id)}" ${!s.current||busy||syncing?'disabled':''}>${icon('camera')}${drafts.some(d=>d.binding.id===s.id)?'Resume scan':'Scan POD'}</button>`}</div>${s.workflow==='assigned-trip'?`<div class="atlas-driver-stop-operations"><p>${esc(s.status==='exception'?s.exception:s.status)}</p>${!['complete','exception'].includes(s.status)?`<button type="button" class="atlas-route-button" data-driver-arrived="${esc(s.id)}">Mark Arrived</button><label>Recipient name<input data-driver-recipient="${esc(s.id)}" maxlength="160" value="${esc(s.recipient||'')}"/></label>${details.signatureRequired?`<label><input type="checkbox" data-driver-signature="${esc(s.id)}"/> Recipient signature is visible on the POD</label>`:''}${details.checkOnDelivery?`<label><input type="checkbox" data-driver-collected="${esc(s.id)}"/> Check collected</label>`:''}<button type="button" class="atlas-route-button atlas-route-primary" data-driver-complete="${esc(s.id)}" ${received?'':'disabled'}>Complete Stop</button><button type="button" class="atlas-route-button" data-driver-problem="${esc(s.id)}">Report a Problem</button>`:''}</div>`:''}</li></ol></section>`;
   }
   function driverHeader(){
     const stops=shipments.filter(s=>s.trip_index===driverTrip);
@@ -69,7 +69,7 @@
     const navigation=owner===session.user.id&&loadedDay===date()?{tab:driverTab,trip:driverTrip,stop:driverStop}:null;
     reset();owner=session.user.id;loadedDay=date();if(navigation){driverTab=navigation.tab;driverTrip=navigation.trip;driverStop=navigation.stop;}busy=true;const gen=generation;controller=new AbortController();render();
     try{await refreshDrafts(gen);if(!active(gen))return;
-      if(navigator.onLine){const result=await(await request({action:'list',date:date()},controller.signal)).json();if(!active(gen))return;
+      if(navigator.onLine){const result=await(await request({action:'list',date:date(),driverOnly:isDriver()},controller.signal)).json();if(!active(gen))return;
         if(result.warehouse&&result.warehouse!=='CA')throw Error('Unexpected warehouse. Reopen Delivery Routing.');shipments=result.shipments||[];capability=result.capability;emailEnabled=result.email_enabled===true;
       }else error='Offline. Saved scans are available below.';
     }catch(e){if(active(gen)&&e.name!=='AbortError')error=e.message;}
@@ -77,6 +77,7 @@
   }
   const label=d=>d.status==='received'?'POD received':d.status==='queued'?(d.attempts>=3?'Saved · Retry needed':'Saved · Waiting to send'):d.status==='attention'?'Saved · Needs attention':'Saved draft · Not submitted';
   function emailLabel(s){
+    if(s.email_status==='disabled')return 'POD received · Email disabled';
     if(!emailEnabled)return 'POD received · Email disabled';
     if(s.email_status==='sent')return `Sent${s.email_sent_at?' · '+new Date(s.email_sent_at).toLocaleString():''}`;
     if(s.email_error_code==='SEND_OUTCOME_UNKNOWN')return 'Pending review · Check the recipient inbox before resending';
@@ -85,7 +86,7 @@
     return 'Email pending · POD saved';
   }
   function emailControls(s){
-    if(!emailEnabled||capability!=='office'||s.submission?.state!=='received')return '';
+    if(s.is_test===true||!emailEnabled||capability!=='office'||s.submission?.state!=='received')return '';
     const sub=s.submission,uncertain=sub.email_error_code==='SEND_OUTCOME_UNKNOWN',sending=sub.email_status==='sending';
     const mode=sub.email_status==='sent'||uncertain||sending?'resend':'retry';
     const cooling=Date.now()-Date.parse(sub.email_attempted_at||0)<(sending?300000:30000);
@@ -120,7 +121,7 @@
     const empty='<div class="atlas-driver-empty">'+icon('truck')+'<h3>No assigned trips</h3><p>Your deliveries will appear here once an administrator assigns a trip. Tap Refresh to check again.</p></div>';
     let content='';
     if(driverTab==='today'){
-      content=`<div class="atlas-driver-intro"><small>YOUR DELIVERY DAY</small><h2>${name?`Hello, ${esc(name)}`:'Your deliveries'}</h2><p>${esc(dayLabel)}</p></div><div class="atlas-driver-day-stats"><div><strong>${groups.length}</strong><span>Trips</span></div><div><strong>${shipments.length}</strong><span>Stops</span></div><div><strong>${received.length}</strong><span>PODs saved</span></div></div>`;
+      content=`${shipments.some(s=>s.is_test)?'<p class="atlas-driver-check">TEST MODE · Do not load or deliver</p>':''}<div class="atlas-driver-intro"><small>YOUR DELIVERY DAY</small><h2>${name?`Hello, ${esc(name)}`:'Your deliveries'}</h2><p>${esc(dayLabel)}</p></div><div class="atlas-driver-day-stats"><div><strong>${groups.length}</strong><span>Trips</span></div><div><strong>${shipments.length}</strong><span>Stops</span></div><div><strong>${received.length}</strong><span>PODs saved</span></div></div>`;
       content+='<div class="atlas-driver-trip-grid">'+(groups.map(trip=>{
         const stops=shipments.filter(s=>s.trip_index===trip),done=stops.filter(s=>s.submission?.state==='received').length;
         const next=Math.max(0,stops.findIndex(s=>s.submission?.state!=='received'));
@@ -146,7 +147,7 @@
   function capturePanel(){
     const frozen=!!draft?.submissionId,received=draft?.status==='received';
     const queued=draft?.status==='queued',attention=draft?.status==='attention'||dirty;
-    const filename=window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total).filename;
+    const filename=window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total,selected.is_test===true).filename;
     const stop=shipments.find(s=>s.id===selected.id);
     const next=isDriver()?shipments.find(s=>s.trip_index===selected.trip_index&&s.id!==selected.id&&s.current&&s.submission?.state!=='received'):null;
     const nextIndex=next?shipments.filter(s=>s.trip_index===next.trip_index).indexOf(next):0;
@@ -217,7 +218,7 @@
         let current=await queue().write(partition,{...candidate,attempts:candidate.attempts+1,retryAt:Date.now()+60000},candidate.revision);
         if(!active(gen))return;controller=new AbortController();const timeout=setTimeout(()=>controller?.abort(),45000);render();
         try{
-          const result=await(await request({action:'list',date:current.date},controller.signal)).json();if(!active(gen))return;
+          const result=await(await request({action:'list',date:current.date,driverOnly:isDriver()},controller.signal)).json();if(!active(gen))return;
           const binding=result.shipments?.find(b=>b.id===current.binding.id);
           if(!binding||binding.warehouse_id!==current.binding.warehouse_id)throw Object.assign(Error('Shipment access changed. Contact the office.'),{retryable:false});
           if(binding.submission?.state==='received'){
@@ -225,14 +226,14 @@
           }else{
             if(!binding.current||binding.sales_order!==current.binding.sales_order||binding.shipment_number!==current.binding.shipment_number||binding.shipment_total!==current.binding.shipment_total)throw Object.assign(Error('Shipment changed. Contact the office before retrying.'),{retryable:false});
             if(binding.submission?.id&&binding.submission.id!==current.submissionId)throw Object.assign(Error('Another submission is in progress. Contact the office.'),{retryable:false});
-            const form=new FormData();form.set('bindingId',binding.id);form.set('submissionId',current.submissionId);form.set('reviewed','true');
+            const form=new FormData();form.set('bindingId',binding.id);form.set('submissionId',current.submissionId);form.set('reviewed','true');if(binding.workflow==='assigned-trip'){form.set('workflow','assigned-trip');form.set('tripVersion',String(binding.trip_version));}
             current.pages.forEach((p,i)=>{form.append('original',p.original,`original-${i}`);form.append('page',p.blob,`page-${i}.jpg`);});
             const receipt=await(await request(form,controller.signal)).json();if(!active(gen))return;
             if(receipt.state!=='received'||receipt.id!==current.submissionId)throw Error('Receipt not confirmed. The saved scan will be checked before retrying.');
           }
           // The PDF receipt is durable even if the separate email call is interrupted.
           let mail={email_status:'disabled'};
-          if(result.email_enabled===true){
+          if(result.email_enabled===true && binding.is_test!==true){
             try{mail=await sendEmail(current.submissionId);}catch{mail={email_status:'pending'};}
             if(!active(gen))return;
           }
@@ -263,7 +264,12 @@
     root.addEventListener('click',async event=>{
       const button=event.target.closest('button');if(!button||busy||syncing)return;const gen=generation;
       try{
-        if(button.dataset.podNext!==undefined){
+        if(button.dataset.driverArrived||button.dataset.driverComplete||button.dataset.driverProblem){
+          const id=button.dataset.driverArrived||button.dataset.driverComplete||button.dataset.driverProblem,s=shipments.find(s=>s.id===id);if(!s)return;
+          const action=button.dataset.driverArrived?'arrived':button.dataset.driverComplete?'complete':'exception';
+          const details=action==='complete'?{recipient:root.querySelector('[data-driver-recipient="'+id+'"]')?.value||'',signatureConfirmed:!!root.querySelector('[data-driver-signature="'+id+'"]')?.checked,collectionAck:!!root.querySelector('[data-driver-collected="'+id+'"]')?.checked}:action==='exception'?{reason:window.prompt('Customer unavailable, Rejected, Unable to deliver, or Other','Customer unavailable')}:{};
+          if(action==='exception'&&!details.reason)return;await window.atlasRoutingAssignment.request('stop_action',{p_stop:id,p_version:s.trip_version,p_action:action,p_details:details});await load();
+        }else if(button.dataset.podNext!==undefined){
           if(!isDriver()||draft?.status!=='received')return;
           driverTrip=Number(button.dataset.podNext);driverStop=Number(button.dataset.podStop||0);driverTab='stops';await load();
         }else if(button.dataset.podTab){
@@ -272,7 +278,7 @@
           if(!isDriver()||view!=='list')return;driverTrip=Number(button.dataset.podTrip);driverStop=Number(button.dataset.podStop||0);driverTab='stops';render();
         }else if(button.dataset.podScan||button.dataset.podResume){
           const id=button.dataset.podScan||button.dataset.podResume;await refreshDrafts(gen);if(!active(gen))return;
-          const saved=drafts.find(d=>d.binding.id===id);if(saved)showDraft(saved);else{release();selected=shipments.find(s=>s.id===id);window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total);view='capture';error='';render();}
+          const saved=drafts.find(d=>d.binding.id===id);if(saved)showDraft(saved);else{release();selected=shipments.find(s=>s.id===id);window.atlasRoutingPodCore.naming(selected.sales_order,selected.shipment_number,selected.shipment_total,selected.is_test===true);view='capture';error='';render();}
         }else if(button.dataset.podEmail){
           const mode=button.dataset.podEmailMode;
           if(mode==='resend'&&!confirm('Check the recipient inbox first. Resending may create another copy of this email. Send again?'))return;
@@ -281,8 +287,8 @@
           const shipment=shipments.find(s=>s.submission?.id===button.dataset.podEmail);if(shipment)Object.assign(shipment.submission,mail);
           busy=false;error=mail.email_status==='sent'?'POD email sent.':mail.email_status==='disabled'?'Email sending is not activated.':'POD saved. '+emailLabel(mail);render();
         }else if(button.dataset.podDownload){
-          busy=true;const response=await request({action:'download',bindingId:button.dataset.podDownload});const blob=await response.blob();if(!active(gen))return;
-          const s=shipments.find(s=>s.id===button.dataset.podDownload),url=URL.createObjectURL(blob);urls.add(url);const a=document.createElement('a');a.href=url;a.download=window.atlasRoutingPodCore.naming(s.sales_order,s.shipment_number,s.shipment_total).filename;a.click();busy=false;
+          busy=true;const response=await request({action:'download',bindingId:button.dataset.podDownload,workflow:shipments.find(s=>s.id===button.dataset.podDownload)?.workflow});const blob=await response.blob();if(!active(gen))return;
+          const s=shipments.find(s=>s.id===button.dataset.podDownload),url=URL.createObjectURL(blob);urls.add(url);const a=document.createElement('a');a.href=url;a.download=window.atlasRoutingPodCore.naming(s.sales_order,s.shipment_number,s.shipment_total,s.is_test===true).filename;a.click();busy=false;
         }else if(button.dataset.podRotate!==undefined){
           if(draft?.submissionId)return;const i=Number(button.dataset.podRotate),page=pages[i];busy=true;
           const replacement=await transform(page.original,(page.rotation+90)%360);if(!active(gen)){URL.revokeObjectURL(replacement.url);urls.delete(replacement.url);return;}
@@ -291,7 +297,8 @@
           if(draft?.submissionId||!confirm('Remove this page from the saved scan?'))return;
           const [page]=pages.splice(Number(button.dataset.podRemove),1);URL.revokeObjectURL(page.url);urls.delete(page.url);busy=true;await saveCapture();busy=false;render();
         }else if(button.dataset.podAction==='assign'){
-          if(capability!=='office'||assigning)return;busy=true;render();
+          if(capability!=='office'||assigning)return;
+          if(window.atlasDriverWorkspace){await window.atlasDriverWorkspace.manage(date());return;}busy=true;render();
           const result=await driverRPC('driver_roster',{p_day:date()});if(!active(gen))return;
           management=result;busy=false;render();
         }else if(button.dataset.podAction==='close-assign'){management=null;render();
@@ -302,7 +309,7 @@
           if(isDriver()&&selected){const stops=shipments.filter(s=>s.trip_index===selected.trip_index),index=stops.findIndex(s=>s.id===selected.id);driverTrip=selected.trip_index;driverStop=Math.max(0,index);driverTab=index<0?'documents':'stops';}await load();
         }else if(button.dataset.podAction==='refresh')await load();
         else if(button.dataset.podAction==='remove-copy'&&draft?.status==='received'&&confirm('Remove this device’s saved copy? The received server POD will remain.')){await queue().remove(scope(),draft.binding.id,draft.revision);if(!active(gen))return;release();view='list';await load();}
-      }catch(e){if(active(gen)){error=e.message;busy=false;render();}}
+      }catch(e){if(active(gen)){if(e.status===403&&isDriver()){reset();window.AtlasNavigation?.open('home');return;}error=e.message;busy=false;render();}}
     });
     root.addEventListener('toggle',event=>{
       if(event.target.matches('.atlas-driver-boxes'))event.target.querySelector('summary')?.setAttribute('aria-expanded',String(event.target.open));
@@ -322,8 +329,10 @@
   }
   window.addEventListener('atlas-auth-changed',event=>{if(owner&&event.detail?.session?.user?.id===owner){void drain();return;}reset();});
   window.addEventListener('storage',event=>{if(/warehouse/i.test(event.key||''))reset();});
-  window.addEventListener('online',()=>void drain());
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void drain();});
+  const foreground=()=>{if(root?.isConnected&&!document.hidden&&view==='list'&&!busy&&!syncing&&!dirty)void load();else void drain();};
+  window.addEventListener('online',foreground);
+  window.addEventListener('focus',foreground);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)foreground();});
   window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
   window.atlasRoutingPOD=Object.freeze({configure:config=>{enabled=config.enabled===true;reset();},mount,load,reset,access,hasPending:()=>dirty||busy||assigning});
 })();

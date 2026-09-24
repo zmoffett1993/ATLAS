@@ -91,5 +91,7 @@
   "install/index.html",
   "install/install.css",
   "install/install.js",
-  "atlas-routing-worker.mjs"
+  "atlas-routing-worker.mjs",
+  "atlas-routing-assignment.js",
+  "atlas-driver-workspace.js"
 ]

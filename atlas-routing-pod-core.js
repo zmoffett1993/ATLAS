@@ -18,12 +18,12 @@
     return match[1]; // Preserve leading zeroes; never coerce a document number to Number.
   }
 
-  function naming(salesOrder, shipmentNumber = 1, shipmentTotal = 1) {
+  function naming(salesOrder, shipmentNumber = 1, shipmentTotal = 1, isTest = false) {
     if (!Number.isSafeInteger(shipmentNumber) || !Number.isSafeInteger(shipmentTotal) ||
         shipmentNumber < 1 || shipmentTotal < shipmentNumber) {
       fail("INVALID_SHIPMENT", "The shipment allocation needs supervisor review before submitting the POD.");
     }
-    const number = salesOrderNumber(salesOrder);
+    const number = isTest === true && /^SO-TEST-[0-9]{1,20}$/.test(salesOrder) ? salesOrder.slice(3) : salesOrderNumber(salesOrder);
     const basename = `POD-SO-${number}${shipmentTotal > 1 ? `-SHIPMENT-${shipmentNumber}-OF-${shipmentTotal}` : ""}`;
     return Object.freeze({ salesOrderNumber: number, basename, filename: `${basename}.pdf`, subject: basename,
       shipmentLabel: `Shipment ${shipmentNumber} of ${shipmentTotal}` });

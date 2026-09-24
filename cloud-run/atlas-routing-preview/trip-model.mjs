@@ -21,15 +21,15 @@ function local(value) {
 }
 
 export function buildPlannerTrip(input, depot, now = Date.now()) {
-  keys(input, ["action", "warehouse", "departure", "returnBy", "driver", "vehicle", "palletTarget", "stops", "preserveOrder", "lunch"]);
-  if (input.action !== "planTrip" || input.warehouse !== "CA" || !["Bubba", "Achmad"].includes(input.driver) ||
+  keys(input, ["action", "warehouse", "departure", "returnBy", "driver", "vehicle", "palletTarget", "stops", "preserveOrder", "lunch", "scheduleId"]);
+  if (input.action !== "planTrip" || input.warehouse !== "CA" || !(input.driver === "assigned" ? ["standard", "relief"].includes(input.scheduleId) : ["Bubba", "Achmad"].includes(input.driver) && input.scheduleId === undefined) ||
       !["truck", "van"].includes(input.vehicle) || (input.driver === "Achmad" && input.vehicle !== "van") || typeof input.preserveOrder !== "boolean") invalid();
   // 100 is an input-abuse bound, not a truck's loading rating or planning advice.
   if (!Number.isSafeInteger(input.palletTarget) || input.palletTarget < 1 || input.palletTarget > 100) invalid("INVALID_PALLETS");
   const departure = time(input.departure), returnBy = time(input.returnBy);
   const start = Date.parse(departure), end = Date.parse(returnBy), startLocal = local(departure), endLocal = local(returnBy);
   if (start < now || start > now + 31 * 86400000 || end <= start || startLocal.day !== endLocal.day ||
-      startLocal.minutes < (input.driver === "Bubba" ? 390 : 480) || endLocal.minutes > 1200) invalid("INVALID_TRIP_WINDOW");
+      startLocal.minutes < (input.driver === "Bubba" || input.scheduleId === "standard" ? 390 : 480) || endLocal.minutes > 1200) invalid("INVALID_TRIP_WINDOW");
   if (!Array.isArray(input.stops) || !input.stops.length || input.stops.length > 20) invalid("INVALID_STOPS");
   let totalPallets = 0;
   const shipments = input.stops.map((stop, index) => {

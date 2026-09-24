@@ -3634,7 +3634,7 @@
     }
     if (action === "send-to-office") { await sendCompletedCoc(); return; }
     if (action === "return-to-report") { workflowView = "session"; sendState = { phase: "ready" }; refreshStationPresence(); renderAll(); scrollWorkflowToTop(); return; }
-    if (action === "finish-transfer") { session = null; removeActiveDraft(); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); document.querySelector('[data-nav="Home"], [data-nav="home"]')?.click(); return; }
+    if (action === "finish-transfer") { session = null; removeActiveDraft(); workflowView = "landing"; sendState = { phase: "ready" }; await refreshCompletedHistory(); renderAll(); window.AtlasNavigation?.open("home"); return; }
     if (action === "retry-save") {
       if (persist()) { modal = null; renderAll(); showToast("COC saved on this device"); }
       return;

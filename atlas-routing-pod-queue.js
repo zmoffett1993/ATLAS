@@ -20,7 +20,7 @@
   }
   function clean(scope,input){
     const b=input.binding, naming=window.atlasRoutingPodCore;
-    naming.submissionId(b?.id);naming.naming(b.sales_order,b.shipment_number,b.shipment_total);
+    naming.submissionId(b?.id);naming.naming(b.sales_order,b.shipment_number,b.shipment_total,b.is_test===true);
     if(input.submissionId)naming.submissionId(input.submissionId);
     if(!['draft','queued','attention','received'].includes(input.status)||!Array.isArray(input.pages)||input.pages.length>10)throw Error('Invalid saved POD.');
     const pages=input.pages.map(p=>{
@@ -30,7 +30,7 @@
     if(pages.reduce((n,p)=>n+p.original.size+p.blob.size,0)>24_000_000)throw Error('These pages are too large to submit together. Use smaller photos.');
     const partition=scopeKey(scope);
     return {key:JSON.stringify([scope.userId,scope.warehouse,b.id]),scope:partition,
-      binding:{id:b.id,warehouse_id:b.warehouse_id,customer:String(b.customer||''),sales_order:b.sales_order,
+      binding:{id:b.id,warehouse_id:b.warehouse_id,...(b.workflow==='assigned-trip'?{workflow:b.workflow,is_test:b.is_test===true,trip_version:b.trip_version}:{}),customer:String(b.customer||''),sales_order:b.sales_order,
         shipment_number:b.shipment_number,shipment_total:b.shipment_total,trip_index:b.trip_index,address:String(b.address||'')},
       date:input.date,pages,status:input.status,submissionId:input.submissionId||null,
       attempts:input.attempts||0,retryAt:input.retryAt||0,message:String(input.message||''),updatedAt:Date.now()};

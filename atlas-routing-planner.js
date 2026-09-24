@@ -67,19 +67,27 @@
     const check = () => { if (signal?.aborted) throw new DOMException("Planning canceled", "AbortError"); };
     if (!loads.length || loads.length > 20) throw new Error("The testing preview supports 1–20 trips per calculation. No orders were removed.");
     if (!Number.isInteger(reloadMinutes) || reloadMinutes < 0 || reloadMinutes > 120 || !Number.isInteger(lunchMinutes) || lunchMinutes < 660 || lunchMinutes > 780) throw new Error("Review reload or lunch time.");
-    const departureFor = name => Math.max(Date.parse(timestamp(date, SHIFTS[name].departure)), departureNotBefore == null ? 0 : Number(departureNotBefore));
+    const driverKey = load => load.driverUserId || load.driver;
+    const policies = {...SHIFTS};
+    for (const load of loads) if (load.driverUserId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(load.driverUserId) || !['standard','relief'].includes(load.scheduleId)) throw Error("Review the assigned driver's schedule.");
+      const policy = load.scheduleId === 'relief' ? {...SHIFTS.Achmad,afterFinalReturn:false} : {...SHIFTS.Bubba,afterFinalReturn:true};
+      if (policies[load.driverUserId] && JSON.stringify(policies[load.driverUserId]) !== JSON.stringify(policy)) throw Error('Use one consistent schedule for each driver.');
+      policies[load.driverUserId] = policy;
+    }
+    const departureFor = name => Math.max(Date.parse(timestamp(date, policies[name].departure)), departureNotBefore == null ? 0 : Number(departureNotBefore));
     if (departureNotBefore != null && (!Number.isFinite(departureNotBefore) || departureNotBefore < now || departureNotBefore >= Date.parse(timestamp(date,1200)))) throw new Error("Review the new departure time.");
     const orderMap = new Map(orders.map((order) => [order.id, order]));
     for (const load of loads) {
-      if (!SHIFTS[load.driver] || !["truck", "van"].includes(load.vehicle) || (load.driver === "Achmad" && load.vehicle !== "van")) throw new Error("Review the driver and vehicle assignment.");
+      if (!policies[driverKey(load)] || !["truck", "van"].includes(load.vehicle) || (!load.driverUserId && load.driver === "Achmad" && load.vehicle !== "van")) throw new Error("Review the driver and vehicle assignment.");
       if (load.vehicleId && !(load.vehicle === "truck" ? ["truck"] : ["van1", "van2"]).includes(load.vehicleId)) throw new Error("Review the selected company vehicle.");
-      if (departureFor(load.driver) <= now) throw new Error("Choose a future planning day; the default departure time has already passed.");
+      if (departureFor(driverKey(load)) <= now) throw new Error("Choose a future planning day; the default departure time has already passed.");
       if (load.shipments.length > 20) throw new Error("A trip exceeds the 20-stop testing limit. Review this load before routing.");
       for (const shipment of load.shipments) {
         const order = orderMap.get(shipment.orderId);
         if (!order || !Number.isInteger(order.serviceMinutes) || order.serviceMinutes < 1 || order.serviceMinutes > 480) throw new Error("Review each stop's service time.");
         // Validate every window before any paid address or routing calls.
-        try { timeWindow(order.timeWindow, date, new Date(departureFor(load.driver)).toISOString(), order.serviceMinutes); }
+        try { timeWindow(order.timeWindow, date, new Date(departureFor(driverKey(load))).toISOString(), order.serviceMinutes); }
         catch (error) { throw new Error(`${order.customer}: ${error.message}`); }
       }
     }
@@ -91,15 +99,15 @@
       catch (error) { check(); throw new Error(`${order.customer}: ${error.message}`); }
       check();
     }
-    const drivers = Object.fromEntries(Object.entries(SHIFTS).map(([name, shift]) => [name, { ready: departureFor(name), trips: 0, lunchDone: false, lunch: null, workMinutes: 0, returnTime: null }]));
+    const drivers = Object.fromEntries(Object.entries(policies).map(([name, shift]) => [name, { displayName: loads.find(load => driverKey(load) === name)?.driver || name, ready: departureFor(name), trips: 0, lunchDone: false, lunch: null, workMinutes: 0, returnTime: null }]));
     const vehicleReady = { truck: 0, van1: 0, van2: 0 };
     const output = { trips: [], unscheduled: [], drivers, complete: false, distanceMeters: 0, driveSeconds: 0, warnings: [] };
     for (let index = 0; index < loads.length; index++) {
-      check(); const load = loads[index], driver = drivers[load.driver];
+      check(); const load = loads[index], driver = drivers[driverKey(load)];
       const vehicleId = load.vehicleId || (load.vehicle === "van" ? "van1" : "truck");
       // Bubba's one-hour lunch follows the final warehouse return for the day.
       // Achmad retains his independently configured midday break.
-      const afterFinalReturn = load.driver === "Bubba";
+      const afterFinalReturn = load.driverUserId ? policies[load.driverUserId].afterFinalReturn : load.driver === "Bubba";
       const lunchStart = Date.parse(timestamp(date, lunchMinutes));
       const latestLunchStart = lunchStart;
       let depart = driver.ready;
@@ -139,7 +147,7 @@
         end: new Date(Math.max(depart, lunchStart) + 60 * MINUTE).toISOString(),
       } : null;
       onProgress(`Calculating trip ${index + 1} of ${loads.length} with traffic…`);
-      const result = await route({ action: "planTrip", warehouse: "CA", driver: load.driver, vehicle: load.vehicle, palletTarget: load.palletTarget,
+      const result = await route({ action: "planTrip", warehouse: "CA", driver: load.driverUserId ? "assigned" : load.driver, ...(load.driverUserId ? {scheduleId: load.scheduleId} : {}), vehicle: load.vehicle, palletTarget: load.palletTarget,
         departure: new Date(depart).toISOString(), returnBy: timestamp(date, 1200), preserveOrder, stops, ...(lunch ? { lunch } : {}) }, { signal, onProgress });
       check();
       if (![result.distanceMeters, result.driveSeconds].every((value) => Number.isFinite(value) && value >= 0)) throw new Error("Google returned invalid travel estimates.");
@@ -173,7 +181,7 @@
         } else if (returned > latestLunchStart) throw new Error("The trip crosses lunch without a confirmed break. Schedule review is needed.");
       }
       const trip = { ...load, tripIndex: index, ...result, shipments, locations: shipments.map((shipment) => locations.get(shipment.orderId)),
-        overtime: returned > Date.parse(timestamp(date, SHIFTS[load.driver].end)), lunch: breakMinutes ? lunchPeriod : null };
+        overtime: returned > Date.parse(timestamp(date, policies[driverKey(load)].end)), lunch: breakMinutes ? lunchPeriod : null };
       output.trips.push(trip);
       driver.lunchDone = lunchDone; driver.lunch = lunchPeriod;
       driver.workMinutes += loadingMinutes + waitingMinutes + (returned - depart) / MINUTE - breakMinutes;
@@ -187,14 +195,14 @@
     for (const [name, driver] of Object.entries(drivers)) {
       if (!driver.trips) continue;
       if (!driver.lunchDone) {
-        const start = name === "Bubba" ? driver.ready : Math.max(driver.ready, Date.parse(timestamp(date, lunchMinutes)));
+        const start = (policies[name].afterFinalReturn ?? name === "Bubba") ? driver.ready : Math.max(driver.ready, Date.parse(timestamp(date, lunchMinutes)));
         driver.lunch = { start: new Date(start).toISOString(), end: new Date(start + 60 * MINUTE).toISOString() };
       }
       driver.utilizationPercent = Math.round(driver.workMinutes / 480 * 100);
-      driver.shiftEnd = timestamp(date, SHIFTS[name].end);
+      driver.shiftEnd = timestamp(date, policies[name].end);
       driver.finishTime = new Date(Math.max(driver.ready, Date.parse(driver.lunch?.end || driver.returnTime))).toISOString();
       driver.overtime = Date.parse(driver.finishTime) > Date.parse(driver.shiftEnd);
-      if (driver.overtime) output.warnings.push(`${name}: final return and lunch finish after the usual shift. Review the load or relief help.`);
+      if (driver.overtime) output.warnings.push(`${driver.displayName}: final return and lunch finish after the usual shift. Review the load or relief help.`);
     }
     output.complete = true; onUpdate(output); return output;
   }
