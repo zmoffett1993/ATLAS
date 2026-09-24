@@ -3,7 +3,7 @@
 
   const root = document.documentElement;
   const DEPOT = "4320 N Harbor Blvd, Fullerton, CA 92835";
-  const state = { planningGeneration: 0, planningController: null, planned: null, loads: [], lockedTrips: [], assignments: {}, vanConfirmed: {}, truckPalletTarget: 11, dailyTripTarget: 3, open: false, ownerId: null, catalog: [], orders: [], draftPhotos: [], newUrls: [], allUrls: new Set(), editId: null, drag: null, importGeneration: 0 };
+  const state = { planningGeneration: 0, planningController: null, planned: null, loads: [], lockedTrips: [], nextLoadPriority: null, assignments: {}, vanConfirmed: {}, truckPalletTarget: 11, dailyTripTarget: 3, open: false, ownerId: null, catalog: [], orders: [], draftPhotos: [], newUrls: [], allUrls: new Set(), editId: null, drag: null, importGeneration: 0 };
   const core = window.atlasRoutingCore;
   let photoGeneration = 0, photoController = null, photoSuggestion = null;
   const savedDay = { generation: 0, day: null, revision: 0, ready: false, dirty: false, busy: false, canEdit: false, message: "" };
@@ -100,7 +100,7 @@
               <div class="atlas-route-field"><span>${icon("van")} Cargo Vans · 2 Available</span><strong>2 pallets or loose boxes each</strong><small>Matching Nissan NV · 80% target</small></div>
               <label class="atlas-route-field"><span>${icon("pallets")} Typical Trips</span><input type="number" min="1" step="1" value="3" data-route-trip-target /><small>Extra trips allowed when needed</small></label>
             </div><div class="atlas-route-catalog-bar"><span data-route-catalog-status>Load product specifications to calculate pallets and van estimates.</span><label class="atlas-route-button">${icon("upload")}Load Product Specifications<input type="file" accept=".xlsx" data-route-catalog class="atlas-route-file-input" /></label></div>`)}
-            ${card(`${icon("document")} Today's Deliveries`, `<div class="atlas-route-card-tools atlas-route-order-tools"><button type="button" class="atlas-route-button atlas-route-primary" data-route-intake>${icon("camera")}Add Orders</button><button type="button" class="atlas-route-button atlas-route-optimize" data-route-optimize disabled title="Add orders and connect routing to calculate traffic and timing">${icon("play")}Optimize Routes</button></div>
+            ${card(`${icon("document")} Today's Deliveries`, `<div class="atlas-route-card-tools atlas-route-order-tools"><button type="button" class="atlas-route-button atlas-route-primary" data-route-intake>${icon("camera")}Add Orders</button><button type="button" class="atlas-route-button atlas-route-primary atlas-route-optimize" data-route-optimize disabled title="Scan orders on mobile and connect routing to calculate traffic and timing">${icon("play")}Optimize Routes</button></div>
               <div class="atlas-route-capture-summary" data-route-capture-summary hidden></div>
               <div class="atlas-route-capacity" data-route-capacity role="status"></div>
               <div class="atlas-route-table-scroll"><table><thead><tr><th>#</th><th>Customer / Sales Order</th><th>City</th><th>Pallets</th><th>Time Window</th><th>Status / Notes</th><th>Actions</th></tr></thead><tbody data-route-orders></tbody></table></div>
@@ -316,13 +316,16 @@
     const move = document.createElement("dialog"); move.className = "atlas-route-intake atlas-dispatch-move"; move.dataset.dispatchMove = ""; move.setAttribute("aria-label", "Review load move"); section.append(move);
     const toolbar = document.createElement("div"); toolbar.className = "atlas-dispatch-toolbar";
     toolbar.innerHTML = `<div class="atlas-dispatch-tabs" aria-label="Routing views">${[["orders","Orders","document"],["queue","Waiting loads","truck"],["trips","Trips","route"]].map(([id,label,name]) => `<button type="button" data-dispatch-tab="${id}" aria-pressed="${id === "orders"}">${icon(name)}<span>${label}</span></button>`).join("")}<button type="button" data-route-history>${icon("calendar")}<span>Previous Trips</span></button><button type="button" data-dispatch-tab="pods" aria-pressed="false">${icon("document")}<span>PODs</span></button></div><div class="atlas-dispatch-tools"><button type="button" class="atlas-route-button" data-dispatch-show="map">${icon("map")}Map</button><button type="button" class="atlas-route-button" data-dispatch-show="settings">${icon("gear")}Settings</button></div>`;
-    find(".atlas-route-grid").before(toolbar, find(".atlas-route-summary"));
+    find(".atlas-route-grid").before(find(".atlas-route-summary"), toolbar);
     const filter = document.createElement("label"); filter.className = "atlas-dispatch-search";
     filter.innerHTML = '<span>Find an order</span><input type="search" data-dispatch-query placeholder="Search by customer, city, SO, or invoice…" />';
     orders.querySelector(".atlas-route-table-scroll").before(filter);
     const count = document.createElement("p"); count.className = "atlas-dispatch-order-count"; count.dataset.routeVisibleCount = ""; orders.append(count);
     const queue = document.createElement("section"); queue.className = "atlas-route-card atlas-dispatch-queue"; queue.dataset.dispatchQueue = ""; queue.hidden = true; columns[0].append(queue);
     const next = document.createElement("section"); next.className = "atlas-route-card atlas-dispatch-next"; next.dataset.dispatchNext = ""; columns[1].append(next, plan);
+    const remaining = document.createElement("details"); remaining.className = "atlas-route-remaining"; remaining.dataset.routeRemaining = "";
+    remaining.innerHTML = '<summary>Remaining Plan <small data-route-remaining-summary></small></summary>';
+    remaining.append(find("[data-route-plan]")); plan.querySelector("h2").remove(); plan.append(remaining);
     const pods = document.createElement("section"); pods.className = "atlas-route-card atlas-dispatch-pods"; pods.dataset.dispatchPods = ""; pods.hidden = true;
     pods.innerHTML = `${icon("document")}<h2>Delivery documents</h2><p>POD submission is not connected yet.</p><p>Private document storage and driver-account assignments must be activated before signed documents can be saved here. Delivery status remains available in Previous Trips.</p><button type="button" class="atlas-route-button" data-route-history>Search saved deliveries</button>`; main.append(pods);
     section.addEventListener("click", (event) => {
@@ -332,6 +335,12 @@
       const promote = event.target.closest("[data-dispatch-promote]"); if (promote) openDispatchMove(promote.dataset.dispatchPromote, state.lockedTrips.length);
       const choose = event.target.closest("[data-dispatch-choose]"); if (choose) openDispatchMove(choose.dataset.dispatchChoose);
       if (event.target.closest("[data-dispatch-apply]")) applyDispatchMove();
+    });
+    section.addEventListener("click", (event) => {
+      const vehicle = event.target.closest("[data-next-vehicle]"); if(vehicle){find("[data-route-remaining]").open=true;find(`[data-route-assignment="${vehicle.dataset.nextVehicle}"]`)?.focus();}
+      const priority = event.target.closest("[data-next-priority]"); if (priority) openNextPriority(priority.dataset.nextPriority);
+      const confirm = event.target.closest("[data-next-confirm]"); if (confirm) applyNextPriority(confirm.dataset.nextConfirm);
+      if(event.target.closest("[data-next-capacity]")){find("[data-dispatch-move]").close();find("[data-dispatch-settings]").showModal();}
     });
     section.addEventListener("input", (event) => { if (event.target.matches("[data-dispatch-query]")) { dispatchUI.query = event.target.value; filterDispatchOrders(); } });
     move.addEventListener("change", (event) => { if (event.target.matches("[data-dispatch-destination]")) { dispatchUI.move.trip = Number(event.target.value); dispatchUI.move.displaced = []; } else if (event.target.matches("[data-dispatch-displace]")) dispatchUI.move.displaced = [...move.querySelectorAll("[data-dispatch-displace]:checked")].map(el => el.value); renderDispatchMove(); });
@@ -344,7 +353,8 @@
     const section = document.getElementById("atlasDeliveryRouting"); if (!section) return;
     section.dataset.dispatchTab = dispatchUI.tab;
     section.dataset.driverMode = String(driverMode);
-    find(".atlas-route-header h1").textContent = driverMode ? "My Deliveries" : dispatchUI.tab === "pods" ? "Delivery Documents" : "Daily Route Optimizer";
+    find(".atlas-route-header h1").textContent = driverMode ? "My Deliveries" : dispatchUI.tab === "pods" ? "Delivery Documents" : "Delivery Routing";
+    if (dispatchUI.tab === "trips") find("[data-route-remaining]").open = true;
     find('[data-dispatch-tab="pods"] span').textContent = driverMode ? "My Deliveries" : "PODs";
     section.querySelectorAll(".atlas-dispatch-tabs button[data-dispatch-tab]").forEach(el => el.setAttribute("aria-pressed", String(el.dataset.dispatchTab === dispatchUI.tab)));
     find("[data-dispatch-orders]").hidden = dispatchUI.tab !== "orders";
@@ -458,28 +468,38 @@
 
   const mobileDayActions = {save:"[data-route-save-day]",history:"[data-route-history]",load:"[data-route-load-day]",reminders:"[data-route-reminders]",confirm:"[data-route-confirm-day]"};
 
-  function dispatchRows(shipments, { queue = false } = {}) {
+  function dispatchRows(shipments, { queue = false, compact = false } = {}) {
     return `<div class="atlas-route-table-scroll atlas-dispatch-load-table"><table><tbody>${shipments.map(shipment => {
       const order = dayOrders().find(o => o.id === shipment.orderId); if (!order) return "";
       const editable = canReorderOrder(order.id, true), tripIndices = state.loads.flatMap((t,i) => t.shipments.some(s => s.orderId === order.id) ? [i] : []);
       const timed = state.planned?.trips.find(t => t.tripIndex === shipment.tripIndex);
       const visit = timed?.visits.find(v => timed.shipments[v.stopIndex]?.orderId === order.id);
       const date = find("[data-route-date]").value;
-      return `<tr data-route-row="${order.id}"><td class="atlas-route-order-position">${editable ? `<button type="button" data-route-drag="${order.id}" aria-label="Hold to move ${escape(order.customer)}">⠿</button>` : '<span aria-label="Sent-out load locked">●</span>'}</td><td><button type="button" class="atlas-route-order-link" data-route-edit="${order.id}">${escape(order.customer)}</button><small>${escape(order.orderNumber)} · ${escape(order.city)}</small><small>${escape(date)} · Trip ${shipment.tripIndex + 1}${tripIndices.length > 1 ? ` · Split: ${tripIndices.length} shipments` : ""}</small><small>${visit ? `Estimated ${displayTime(visit.arrival)}` : "Arrival estimate needs calculation"}</small>${order.timeWindow ? `<small>Hours · ${escape(order.timeWindow)}</small>` : ""}${order.checkOnDelivery ? '<small class="atlas-route-check-badge">CHECK ON DELIVERY</small>' : ""}<div class="atlas-dispatch-row-actions">${editable ? `${queue ? `<button type="button" class="atlas-route-button" data-dispatch-promote="${order.id}">Move to next load</button>` : ""}<button type="button" class="atlas-route-button" data-dispatch-choose="${order.id}">Move…</button>` : '<small>Locked or read-only</small>'}</div></td><td></td><td><strong>${shipment.palletSpaces ?? "—"}</strong></td><td></td><td></td></tr>`;
+      return `<tr data-route-row="${order.id}"><td class="atlas-route-order-position">${editable ? `<button type="button" data-route-drag="${order.id}" aria-label="Hold to move ${escape(order.customer)}">⠿</button>` : '<span aria-label="Sent-out load locked">●</span>'}</td><td><button type="button" class="atlas-route-order-link" data-route-edit="${order.id}">${escape(order.customer)}</button><small>${escape(order.orderNumber)} · ${escape(order.city)}</small><small class="${compact ? "atlas-next-secondary" : ""}">${escape(date)} · Trip ${shipment.tripIndex + 1}${tripIndices.length > 1 ? ` · Split: ${tripIndices.length} shipments` : ""}</small><small class="${compact && !visit ? "atlas-next-secondary" : ""}">${visit ? `Estimated ${displayTime(visit.arrival)}` : "Arrival estimate needs calculation"}</small>${order.timeWindow ? `<small>Hours · ${escape(order.timeWindow)}</small>` : ""}${order.checkOnDelivery ? '<small class="atlas-route-check-badge">CHECK ON DELIVERY</small>' : ""}<div class="atlas-dispatch-row-actions">${compact ? priorityAction(order) : ""}${!compact && editable ? `${queue ? `<button type="button" class="atlas-route-button" data-dispatch-promote="${order.id}">Move to next load</button>` : ""}<button type="button" class="atlas-route-button" data-dispatch-choose="${order.id}">Move…</button>` : !editable ? '<small>Locked or read-only</small>' : ""}</div></td><td></td><td><strong>${shipment.palletSpaces ?? "—"}</strong></td><td></td><td></td></tr>`;
     }).join("")}</tbody></table></div>`;
   }
 
   function renderDispatch() {
     if (!find("[data-dispatch-next]")) return;
     const nextIndex = state.lockedTrips.length, next = state.loads[nextIndex];
-    const assignment = state.assignments[nextIndex] || "Bubba:truck", isVan = assignment.includes(":van");
-    const capacity = !next ? "" : isVan ? (() => {
-      const fit = core.assessVanShipments(next.shipments, state.catalog);
-      const label = fit.status === "fits-estimate" ? "Likely fits" : fit.status === "does-not-fit" ? "Does not fit" : "Warehouse check needed";
-      return `<p class="atlas-dispatch-muted">Loose-box van load · ${label}${fit.percent == null || fit.percent <= 80 ? "" : ` · ${fit.percent}%`}</p>`;
-    })() : `<meter min="0" max="${state.truckPalletTarget}" value="${next.palletSpaces}" aria-label="Next load capacity"></meter><p class="atlas-dispatch-muted">${Math.max(0,state.truckPalletTarget-next.palletSpaces)} pallet spaces available · planning target</p>`;
-    find("[data-dispatch-next]").innerHTML = `<h2>${icon("truck")}Next load${next ? ` · Trip ${nextIndex + 1}` : ""}</h2>${next ? `<div class="atlas-dispatch-load-heading"><strong>${isVan ? `${next.palletSpaces} pallet equivalents` : `${next.palletSpaces} / ${state.truckPalletTarget} pallets`}</strong><span>${escape(assignment.replace(":truck", " · Box Truck").replace(":van", " · Van "))}</span></div>${capacity}<details class="atlas-dispatch-next-stops"><summary>${next.shipments.length} ${next.shipments.length===1?'stop':'stops'} on this load · View or move orders</summary>${dispatchRows(next.shipments.map(s => ({...s,tripIndex:nextIndex})))}</details>` : '<p class="atlas-dispatch-muted">No unsent load. Add orders to begin.</p>'}`;
+    const target = state.truckPalletTarget;
+    const loadCard = (trip, index, following = false) => {
+      const assignment = state.assignments[index] || "Bubba:truck", isVan = assignment.includes(":van");
+      const fit = isVan ? core.assessVanShipments(trip.shipments, state.catalog) : null;
+      const atTarget = !isVan && trip.palletSpaces >= target;
+      const percent = Math.round(trip.palletSpaces / target * 100);
+      return `<section class="atlas-next-load-section" data-route-trip-drop="${index}" ${following ? "" : "data-next-load-primary"}><header><h2>${icon(isVan ? "van" : "truck")}Trip ${index + 1} · ${following ? "Building next load" : "Next load"}</h2><button type="button" class="atlas-next-assignment" data-next-vehicle="${index}" aria-label="Review driver and vehicle for trip ${index+1}">${icon(isVan ? "van" : "truck")}${escape(assignment.replace(":truck", " · Box Truck").replace(":van", " · Van "))}</button></header>
+        <div class="atlas-dispatch-load-heading"><strong>${isVan ? `${trip.palletSpaces} pallet equivalents` : `${trip.palletSpaces} / ${target} target pallets`}</strong>${atTarget ? '<span class="atlas-route-ready">At planning target</span>' : ""}</div>
+        ${isVan ? `<p class="atlas-dispatch-muted">${escape(fit.reason)}${fit.percent == null ? "" : ` · ${fit.percent}%`}</p>` : `<div class="atlas-next-meter"><meter min="0" max="${target}" value="${trip.palletSpaces}" aria-label="Trip ${index + 1} planning target"></meter><b>${percent}%</b></div><p class="atlas-dispatch-muted">${Math.max(0,target-trip.palletSpaces)} pallet spaces available · planning target</p>${atTarget ? '<p class="atlas-next-fit-note">Confirm load fit with warehouse.</p>' : ""}`}
+        <p class="atlas-dispatch-muted">${trip.shipments.length} stop${trip.shipments.length===1?'':'s'} on this load</p>
+        ${dispatchRows(trip.shipments.map(shipment => ({...shipment,tripIndex:index})),{compact:true})}
+        ${!following ? '<div class="atlas-next-drop" data-route-next-drop><strong>Drag a delivery here to prioritize</strong><span data-route-drop-preview>Or use the order’s load actions.</span></div>' : ""}</section>`;
+    };
+    find("[data-dispatch-next]").innerHTML = next ? loadCard(next,nextIndex) + (next.palletSpaces >= target && !(state.assignments[nextIndex] || "").includes(":van") && state.loads[nextIndex+1] ? loadCard(state.loads[nextIndex+1],nextIndex+1,true) : "") : '<h2>Next load</h2><p class="atlas-dispatch-muted">No unsent load. Scan delivery orders on mobile to begin.</p>';
     find("[data-dispatch-next]").dataset.routeTripDrop = String(nextIndex);
+    const unresolved = state.loadPlan?.unscheduled || [];
+    if (unresolved.length) find("[data-dispatch-next]").insertAdjacentHTML("beforeend", `<div class="atlas-route-planning-review">${unresolved.map(item=>`<p>${escape(item.customer)} · ${escape(item.reason)}</p>`).join("")}</div>`);
+    find("[data-route-remaining-summary]").textContent = `${state.loads.length} trips · ${state.loads.slice(nextIndex+1).reduce((sum,trip)=>sum+trip.shipments.length,0)} later shipments · ${unresolved.length} unresolved${state.loadPlan?.warnings.length ? ` · ${state.loadPlan.warnings.length} review notes` : ""}`;
     const waiting = state.loads.flatMap((trip,i) => i > nextIndex ? trip.shipments.map(s => ({...s,tripIndex:i})) : []);
     const unassigned = (state.loadPlan?.unscheduled || []).map(s => `<p>${escape(s.customer)} · ${escape(s.reason)}</p>`).join("");
     find("[data-dispatch-queue]").innerHTML = `<h2>${icon("pallets")}Waiting loads <span class="atlas-dispatch-count">${waiting.length}</span></h2><p class="atlas-dispatch-muted">Planned after the next load · ${escape(find("[data-route-date]").value)}</p>${waiting.length ? dispatchRows(waiting, {queue:true}) : '<div class="atlas-route-plan-empty"><strong>No loads waiting</strong><p>Orders assigned beyond the next trip appear here.</p></div>'}${unassigned ? `<div class="atlas-route-planning-review"><strong>Allocation needs review</strong>${unassigned}</div>` : ""}`;
@@ -496,6 +516,50 @@
     filterDispatchOrders(); applyDispatchTab();
   }
 
+  function priorityAction(order) {
+    return `<button type="button" class="atlas-route-button atlas-next-priority" data-next-priority="${escape(order.id)}" ${canReorderOrder(order.id,true) ? "" : "disabled"}>${state.nextLoadPriority?.includes(order.id) ? "Remove priority" : "Prioritize for Next Load"}</button>`;
+  }
+
+  function nextPriorityProposal(id, beforeId = null, fromDrop = false) {
+    if (!canReorderOrder(id) || !storage()?.enabled || !savedDay.ready || savedDay.day !== find("[data-route-date]").value) throw Error("Open an editable saved day before prioritizing a load.");
+    const source = state.analyzed.find(o=>o.id===id), next = state.loads[state.lockedTrips.length];
+    if (!source || source.issues.length || !Number.isSafeInteger(source.palletSpaces) || source.palletSpaces<1) throw Error("Review this order’s SKU and box counts before prioritizing it.");
+    if ((state.assignments[state.lockedTrips.length] || "Bubba:truck").includes(":van")) throw Error("The next load uses a van. Review its vehicle and fit in Remaining Plan before changing its load.");
+    if (source.palletSpaces>state.truckPalletTarget || next?.shipments.some(s=>!canReorderOrder(s.orderId))) throw Error("This load includes a split or partly sent order. Review its shipment allocations in Remaining Plan.");
+    const currentIds = [...new Set(next?.shipments.map(s=>s.orderId) || [])];
+    const remove = !fromDrop && state.nextLoadPriority?.includes(id);
+    const ids = currentIds.filter(x=>x!==id);
+    const position = beforeId ? ids.indexOf(beforeId) : -1; ids.splice(position < 0 ? ids.length : position,0,id);
+    const spaces = ids.reduce((sum,x)=>sum+(state.analyzed.find(o=>o.id===x)?.palletSpaces || 0),0);
+    return {id,remove,ids,currentIds,spaces,overflow:spaces>state.truckPalletTarget};
+  }
+
+  function openNextPriority(id, beforeId = null, fromDrop = false) {
+    let proposal,error; try {proposal=nextPriorityProposal(id,beforeId,fromDrop);} catch(e){error=e.message;}
+    dispatchUI.move={priority:true,id,beforeId,fromDrop,owner:state.ownerId,day:savedDay.day,revision:savedDay.revision,document:JSON.stringify(dayDocument())};
+    const o=dayOrders().find(o=>o.id===id), p=proposal;
+    find("[data-dispatch-move]").innerHTML=`<h2>${p?.remove?"Remove next-load priority":p?.overflow?"Trip "+(state.lockedTrips.length+1)+" is at planning target":"Prioritize for Next Load"}</h2><p>${escape(o?.customer)} · ${escape(o?.orderNumber)}</p>${error?`<p role="alert">${escape(error)}</p>`:p.remove?"<p>This order returns to normal planning. Its SKU and box counts stay the same.</p>":`<p>${p.spaces} / ${state.truckPalletTarget} target pallets. ${p.overflow?"This order does not fit with the current next load.":"Keep the current load together and place this order last in its priority sequence."}</p>${find("[data-route-preserve]").checked?"<p>Keep my stop order is enabled. This change explicitly gives next-load priority precedence over the original order sequence.</p>":""}`}<p>Recalculate travel times after changing the load. Save Day keeps your changes.</p><div class="atlas-route-card-tools"><button class="atlas-route-button" data-dispatch-close="move">Cancel</button>${error?"":p.overflow&&!p.remove?`<button class="atlas-route-button atlas-route-primary" data-next-confirm="later">Place on Trip ${state.lockedTrips.length+2}</button><button class="atlas-route-button" data-next-capacity>Review load capacity</button>`:`<button class="atlas-route-button atlas-route-primary" data-next-confirm="apply">${p.remove?"Remove priority":"Confirm priority"}</button>`}</div>`;
+    find("[data-dispatch-move]").showModal();
+  }
+
+  function applyNextPriority(action) {
+    const m=dispatchUI.move;
+    if(!m?.priority || m.owner!==state.ownerId || m.day!==savedDay.day || m.revision!==savedDay.revision || m.document!==JSON.stringify(dayDocument())){find("[data-dispatch-move]").close();return;}
+    try {
+      const p=nextPriorityProposal(m.id,m.beforeId,m.fromDrop);
+      if(p.remove) state.nextLoadPriority=state.nextLoadPriority.filter(id=>id!==m.id);
+      else if(p.overflow){
+        if(action!=="later")return;
+        state.nextLoadPriority=p.currentIds;
+        // With current next load pinned, this order is first in the ordinary queue.
+        const order=state.orders.find(o=>o.id===m.id);
+        state.orders=[order,...state.orders.filter(o=>o.id!==m.id)];
+      } else state.nextLoadPriority=p.ids;
+      find("[data-dispatch-move]").close();renderOrders();flashOrderPlacement(m.id);
+      savedDay.message="Load priority changed. Save Day to keep it; optimize again for updated times.";showSaveStatus();
+    } catch(e){find("[data-route-progress]").textContent=e.message;}
+  }
+
   function dispatchMovePreview() {
     const move = dispatchUI.move;
     return core.previewPriorityMove(state.analyzed.map(o => ({...o,palletSpaces:o.issues.some(issue=>issue.includes("item quantity")||issue.includes("case quantity"))?null:o.palletSpaces,dispatchedOn:o.source.dispatchedOn,deliveredOn:o.source.deliveredOn})), {truckPalletTarget:state.truckPalletTarget,dailyTripTarget:state.dailyTripTarget,lockedTrips:state.lockedTrips},move.id,move.trip,move.displaced);
@@ -503,6 +567,7 @@
 
   function openDispatchMove(id, trip = state.lockedTrips.length) {
     if (!canReorderOrder(id)) return;
+    if(state.nextLoadPriority?.length){find("[data-route-progress]").textContent="Remove next-load priorities before using Move to change other trips.";return;}
     dispatchUI.move = { id, trip, displaced: [], owner:state.ownerId, day:find("[data-route-date]").value, generation:state.planningGeneration };
     const target=state.loads[trip],source=state.analyzed.find(o=>o.id===id);
     if(target && !target.shipments.some(s=>s.orderId===id)) {
@@ -544,7 +609,7 @@
   function dayDocument() {
     return window.atlasRoutingStorage.document({ schemaVersion: 3, date: find("[data-route-date]").value, orders: dayOrders(), catalog: state.catalog,
       settings: { truckPalletTarget: Number(find("[data-route-truck-target]").value), dailyTripTarget: Number(find("[data-route-trip-target]").value), reloadMinutes: Number(find("[data-route-reload]").value), lunch: find("[data-route-lunch]").value, preserveOrder: find("[data-route-preserve]").checked },
-      assignments: state.assignments, vanConfirmed: state.vanConfirmed, lockedTrips: state.lockedTrips });
+      assignments: state.assignments, vanConfirmed: state.vanConfirmed, lockedTrips: state.lockedTrips, ...(state.nextLoadPriority === null ? {} : {nextLoadPriority: state.nextLoadPriority}) });
   }
 
   function showSaveStatus() {
@@ -559,6 +624,7 @@
     find("[data-route-date]").disabled = savedDay.busy;
     const canEditOrder = intakeSnapshot().canEdit;
     document.getElementById("atlasDeliveryRouting").querySelectorAll("[data-route-edit],[data-route-delete]").forEach(button => { button.disabled = !canEditOrder; });
+    document.getElementById("atlasDeliveryRouting").querySelectorAll("[data-next-priority]").forEach(button => { button.disabled = !canReorderOrder(button.dataset.nextPriority); });
     updateOptimizeAvailability();
     applyReadOnlyControls();
     renderMobileDashboard();
@@ -568,7 +634,7 @@
     const section = document.getElementById("atlasDeliveryRouting"); if (!section) return;
     section.dataset.routingReadOnly = String(accessReadOnly);
     if (!accessReadOnly) return;
-    const controls = '[data-route-optimize],[data-route-intake],[data-route-edit],[data-route-drag],[data-route-move],[data-route-assignment],[data-route-confirm-van],[data-route-lock-next],[data-route-reopen-last],[data-route-save-day],[data-route-confirm-day],[data-dispatch-promote],[data-dispatch-choose],[data-dispatch-apply],[data-dispatch-settings] input,[data-dispatch-settings] select';
+    const controls = '[data-route-optimize],[data-route-intake],[data-route-edit],[data-route-drag],[data-route-move],[data-route-assignment],[data-route-confirm-van],[data-route-lock-next],[data-route-reopen-last],[data-route-save-day],[data-route-confirm-day],[data-dispatch-promote],[data-dispatch-choose],[data-dispatch-apply],[data-next-priority],[data-next-confirm],[data-dispatch-settings] input,[data-dispatch-settings] select';
     section.querySelectorAll(controls).forEach(el => { if (!el.disabled) el.dataset.routingDisabled = 'true'; el.disabled = true; });
     find('[data-route-save-status]').textContent = 'Read-only · Administrators manage routes and driver assignments.';
   }
@@ -591,7 +657,7 @@
     state.orders = (doc?.orders || []).map((order) => ({ ...order, date: result.date, photos: [] }));
     state.catalog = doc?.catalog || [];
     state.truckPalletTarget = doc?.settings.truckPalletTarget ?? 11; state.dailyTripTarget = doc?.settings.dailyTripTarget ?? 3;
-    state.assignments = doc?.assignments || {}; state.vanConfirmed = doc?.vanConfirmed || {}; state.lockedTrips = doc?.lockedTrips || [];
+    state.assignments = doc?.assignments || {}; state.vanConfirmed = doc?.vanConfirmed || {}; state.lockedTrips = doc?.lockedTrips || []; state.nextLoadPriority = doc?.nextLoadPriority ?? null;
     find("[data-route-truck-target]").value = state.truckPalletTarget; find("[data-route-trip-target]").value = state.dailyTripTarget;
     find("[data-route-reload]").value = doc?.settings.reloadMinutes ?? 40; find("[data-route-lunch]").value = doc?.settings.lunch ?? "12:00";
     find("[data-route-preserve]").checked = doc?.settings.preserveOrder ?? false;
@@ -667,7 +733,7 @@
     const reason = accessReadOnly || driverMode ? "Only administrators can optimize routes." :
       savedDay.busy || intakeRequest || state.planningController ? "Wait for the current operation to finish." :
       !window.atlasRoutingConnection?.available ? "Connect routing to calculate traffic and timing." :
-      !dayOrders().length ? "Add orders before optimizing." :
+      !dayOrders().length ? "Scan delivery orders on mobile before optimizing." :
       !state.loadPlan?.trips.length || state.loadPlan?.unscheduled.length ? "Review incomplete orders and loads before optimizing." : "";
     button.disabled = !!reason; button.title = reason || "Calculate routes with current traffic";
   }
@@ -675,7 +741,7 @@
   function orderActions(order) {
     const editable = intakeSnapshot().canEdit;
     const locked = isLockedOrder(order.id) || order.dispatchedOn || order.deliveredOn;
-    return `<div class="atlas-route-order-actions"><button type="button" class="atlas-route-button" data-route-edit="${escape(order.id)}" ${editable ? "" : "disabled"}>${icon("pencil")}Edit</button><button type="button" class="atlas-route-button atlas-route-danger" data-route-delete="${escape(order.id)}" ${editable ? "" : "disabled"} title="${locked ? "Sent-out or completed order: reopen its latest trip before deletion is available." : "Remove this unsent order"}">${icon("trash")}Delete</button></div>`;
+    return `<div class="atlas-route-order-actions">${priorityAction(order)}<button type="button" class="atlas-route-button" data-route-edit="${escape(order.id)}" ${editable ? "" : "disabled"}>${icon("pencil")}Edit</button><button type="button" class="atlas-route-button atlas-route-danger" data-route-delete="${escape(order.id)}" ${editable ? "" : "disabled"} title="${locked ? "Sent-out or completed order: reopen its latest trip before deletion is available." : "Remove this unsent order"}">${icon("trash")}Delete</button></div>`;
   }
 
   function deleteBlockReason(id) {
@@ -702,13 +768,14 @@
     if (reason || request.owner !== state.ownerId || request.day !== savedDay.day || request.revision !== savedDay.revision || request.generation !== savedDay.generation || request.document !== JSON.stringify(dayDocument())) {
       find("[data-route-delete-error]").textContent = reason || "The day changed. Close this dialog and review the order again."; return;
     }
-    const before = { orders: state.orders, assignments: { ...state.assignments }, vanConfirmed: { ...state.vanConfirmed }, planned: state.planned, vehicleChanges: { ...vehicleChanges }, saved: { ...savedDay } };
+    const before = { orders: state.orders, nextLoadPriority: state.nextLoadPriority, assignments: { ...state.assignments }, vanConfirmed: { ...state.vanConfirmed }, planned: state.planned, vehicleChanges: { ...vehicleChanges }, saved: { ...savedDay } };
     const current = () => state.open && state.ownerId === request.owner && window.AtlasAuth?.getSession()?.user?.id === request.owner && savedDay.generation === request.generation && savedDay.day === request.day;
     deletingOrder = true; savedDay.busy = true;
     find("[data-route-delete-dialog]").querySelectorAll("button").forEach(b => b.disabled = true);
     find(".atlas-route-main").inert = true;
     try {
       state.orders = state.orders.filter(o => o.id !== request.id);
+      if (state.nextLoadPriority) state.nextLoadPriority = state.nextLoadPriority.filter(id => id !== request.id);
       renderOrders();
       const result = await storage().save(request.day, request.revision, dayDocument());
       if (!current()) return;
@@ -717,7 +784,7 @@
       find("[data-route-delete-dialog]").close();
     } catch {
       if (!current()) return;
-      state.orders = before.orders; state.assignments = before.assignments; state.vanConfirmed = before.vanConfirmed;
+      state.orders = before.orders; state.nextLoadPriority = before.nextLoadPriority; state.assignments = before.assignments; state.vanConfirmed = before.vanConfirmed;
       Object.assign(savedDay, before.saved); vehicleChanges = before.vehicleChanges;
       renderOrders({ keepAssignments: true, dirty: false });
       if (before.planned) renderTimedPlan(before.planned);
@@ -752,6 +819,7 @@
       boxAllocation: shipment.boxAllocation.map((line) => ({ sku: line.sku, boxes: line.boxes })) })),
       palletSpaces: load.palletSpaces, assignment, vanConfirmed: state.vanConfirmed[index], sentOn, completedOrderIds: [] };
     state.lockedTrips.push(snapshot);
+    if (state.nextLoadPriority) state.nextLoadPriority = state.nextLoadPriority.filter(id => !snapshot.shipments.some(s => s.orderId === id));
     for (const order of dayOrders()) {
       if (order.dispatchedOn || !snapshot.shipments.some((shipment) => shipment.orderId === order.id)) continue;
       const assigned = state.lockedTrips.flatMap((trip) => trip.shipments).filter((shipment) => shipment.orderId === order.id).reduce((sum, shipment) => sum + shipment.palletSpaces, 0);
@@ -933,7 +1001,7 @@
         if(!intakeSnapshot().canEdit || !scannerReady) throw new Error("Scanner saving is unavailable. Your photo remains here.");
         if(savedDay.dirty) throw new Error("Save your existing route changes before uploading a new order.");
         const owner=state.ownerId;
-        const seed={...dayDocument(),date:order.date,orders:[],lockedTrips:[],assignments:{},vanConfirmed:{}};
+        const seed={...dayDocument(),date:order.date,orders:[],lockedTrips:[],assignments:{},vanConfirmed:{}}; delete seed.nextLoadPriority;
         const record={...order,id:crypto.randomUUID(),serviceMinutes:25,notes:(order.checkOnDelivery||order.sourceCheckOnDelivery)?"CHECK ON DELIVERY":"",dispatchedOn:null,deliveredOn:null,deliveryException:""};
         if(order.timeWindow) window.atlasRoutingPlanner.timeWindow(order.timeWindow,order.date,window.atlasRoutingPlanner.timestamp(order.date,390),25);
         const response=await storage().upload(order.date,record,order.extraction,seed);
@@ -1121,7 +1189,7 @@
             if (!current()) return;
             if (savedDay.dirty) throw new Error("Today's changes could not be saved. Your new order is still here; retry after resolving Save Day.");
           }
-          const fallback = { ...dayDocument(), date, orders: [], assignments: {}, vanConfirmed: {}, lockedTrips: [] };
+          const fallback = { ...dayDocument(), date, orders: [], assignments: {}, vanConfirmed: {}, lockedTrips: [] }; delete fallback.nextLoadPriority;
           savedDay.busy = true; showSaveStatus();
           find("[data-route-form-error]").textContent = `Opening delivery day ${date}…`;
           const result = await storage().load(date);
@@ -1226,6 +1294,8 @@
       const row = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-route-row]");
       const trip = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-route-trip-drop]");
       drag.trip = trip && Number(trip.dataset.routeTripDrop) >= state.lockedTrips.length ? Number(trip.dataset.routeTripDrop) : null;
+      drag.next = !!trip?.matches("[data-next-load-primary],[data-dispatch-next]") && matchMedia("(min-width:751px)").matches;
+      const drop = find("[data-route-next-drop]"); if(drop){drop.classList.toggle("is-drop-target",drag.next); const o=state.analyzed.find(o=>o.id===drag.id), next=state.loads[state.lockedTrips.length]; const proposed=(next?.palletSpaces||0)+(next?.shipments.some(s=>s.orderId===drag.id)?0:o?.palletSpaces||0); drop.querySelector("[data-route-drop-preview]").textContent=drag.next?`${proposed} / ${state.truckPalletTarget} target pallets · release to review`:"Or use the order’s load actions.";}
       drag.target = row && canReorderOrder(row.dataset.routeRow) ? row.dataset.routeRow : null;
       section.querySelectorAll("[data-route-row]").forEach((item) => item.classList.toggle("is-drop-target", item.dataset.routeRow === drag.target && drag.id !== drag.target));
     });
@@ -1235,10 +1305,11 @@
     section.addEventListener("pointerup", (event) => {
       const drag = state.drag;
       if (!drag || drag.pointerId !== event.pointerId) return;
-      const { id, target, active, trip } = drag;
+      const { id, target, active, trip, next } = drag;
       cancelOrderDrag();
       const sourceTrip = state.loads.findIndex(load=>load.shipments.some(s=>s.orderId===id));
-      if (active && trip != null && trip !== sourceTrip) openDispatchMove(id, trip);
+      if (active && next) openNextPriority(id,target,true);
+      else if (active && trip != null && trip !== sourceTrip) openDispatchMove(id, trip);
       else if (active && target && id !== target) moveOrder(id, target);
     });
     section.addEventListener("pointercancel", cancelOrderDrag);
@@ -1250,6 +1321,7 @@
 
   function moveOrder(id, targetId) {
     if (!canReorderOrder(id) || !canReorderOrder(targetId)) return;
+    if(state.nextLoadPriority?.length){find("[data-route-progress]").textContent="Remove next-load priorities before changing the overall stop order.";return;}
     const day = dayOrders();
     const from = day.findIndex((order) => order.id === id);
     const to = day.findIndex((order) => order.id === targetId);
@@ -1271,11 +1343,9 @@
     const analyzed = orders.map((order) => ({ ...core.analyzeOrder(order, state.catalog), source: order }));
     find("[data-route-orders]").innerHTML = analyzed.length ? analyzed.map((result, index) => {
       const order = result.source;
-      const van = core.assessVanLoad([result]);
-      const fit = van.status === "fits-estimate" ? "Van: likely fits*" : van.status === "does-not-fit" ? "Van: does not fit" : `Van: warehouse check${van.percent == null ? "" : ` · ${van.percent}%`}`;
-      return `<tr data-route-row="${order.id}"><td class="atlas-route-order-position"><button type="button" data-route-drag="${order.id}" aria-label="Drag ${escape(order.customer)} to reorder" title="Drag to reorder">⠿ ${index + 1}</button><div><button type="button" aria-label="Move ${escape(order.customer)} up" data-route-move="-1" data-id="${order.id}" ${index === 0 ? "disabled" : ""}>↑</button><button type="button" aria-label="Move ${escape(order.customer)} down" data-route-move="1" data-id="${order.id}" ${index === orders.length - 1 ? "disabled" : ""}>↓</button></div></td><td><button type="button" class="atlas-route-order-link" data-route-edit="${order.id}">${escape(order.customer)}</button><small>${escape(order.orderNumber)}${order.photos.length ? ` · ${order.photos.length} photos` : ""}</small><small>${escape(isLockedOrder(order.id) && !order.dispatchedOn ? "Partially sent out" : window.atlasRoutingStorage.deliveryStatus(order).label)}${window.atlasRoutingStorage.deliveryStatus(order).date ? ` · ${escape(window.atlasRoutingStorage.deliveryStatus(order).date)}` : ""}</small>${result.issues.length ? '<small class="atlas-route-warning">Review needed</small>' : ""}</td><td>${escape(order.city)}</td><td><strong>${result.palletSpaces ?? "—"}</strong><small title="${escape(van.reason)}">${escape(fit)}</small></td><td>${escape(order.timeWindow)}</td><td>${order.checkOnDelivery ? '<strong class="atlas-route-check-badge">CHECK ON DELIVERY</strong>' : ""}${escape(order.checkOnDelivery && /^CHECK\s+ON\s+DELIVERY$/i.test(order.notes) ? "" : order.notes)}${!result.issues.length && !order.dispatchedOn && !order.deliveredOn && !isLockedOrder(order.id) ? '<span class="atlas-route-ready">Ready</span>' : ""}${result.issues.length ? `<details><summary>Review ${result.issues.length} item${result.issues.length === 1 ? "" : "s"}</summary>${result.issues.map((issue) => `<p>${escape(issue)}</p>`).join("")}</details>` : ""}</td><td>${orderActions(order)}</td></tr>`;
-    }).join("") : '<tr><td colspan="7" class="atlas-route-empty">No deliveries for this day. Select Add Orders to begin.</td></tr>';
-    const plan = core.countTruckTrips(analyzed.map((order) => ({ ...order, palletSpaces: order.issues.some((issue) => issue.includes("item quantity") || issue.includes("case quantity")) ? null : order.palletSpaces })), { truckPalletTarget: state.truckPalletTarget, dailyTripTarget: state.dailyTripTarget, lockedTrips: state.lockedTrips });
+      return `<tr data-route-row="${order.id}"><td class="atlas-route-order-position"><button type="button" data-route-drag="${order.id}" aria-label="Drag ${escape(order.customer)} to reorder" title="Drag to reorder">⠿ ${index + 1}</button><div><button type="button" aria-label="Move ${escape(order.customer)} up" data-route-move="-1" data-id="${order.id}" ${index === 0 ? "disabled" : ""}>↑</button><button type="button" aria-label="Move ${escape(order.customer)} down" data-route-move="1" data-id="${order.id}" ${index === orders.length - 1 ? "disabled" : ""}>↓</button></div></td><td><button type="button" class="atlas-route-order-link" data-route-edit="${order.id}">${escape(order.customer)}</button><small>${escape(order.orderNumber)}${state.nextLoadPriority?.includes(order.id) ? " · Prioritized" : ""}${order.photos.length ? ` · ${order.photos.length} photos` : ""}</small><small>${escape(isLockedOrder(order.id) && !order.dispatchedOn ? "Partially sent out" : window.atlasRoutingStorage.deliveryStatus(order).label)}${window.atlasRoutingStorage.deliveryStatus(order).date ? ` · ${escape(window.atlasRoutingStorage.deliveryStatus(order).date)}` : ""}</small>${result.issues.length ? '<small class="atlas-route-warning">Review needed</small>' : ""}</td><td>${escape(order.city)}</td><td><strong>${result.palletSpaces ?? "—"}</strong></td><td>${escape(order.timeWindow)}</td><td>${order.checkOnDelivery ? '<strong class="atlas-route-check-badge">CHECK ON DELIVERY</strong>' : ""}${escape(order.checkOnDelivery && /^CHECK\s+ON\s+DELIVERY$/i.test(order.notes) ? "" : order.notes)}${!result.issues.length && !order.dispatchedOn && !order.deliveredOn && !isLockedOrder(order.id) ? '<span class="atlas-route-ready">Ready</span>' : ""}${result.issues.length ? `<details><summary>Review ${result.issues.length} item${result.issues.length === 1 ? "" : "s"}</summary>${result.issues.map((issue) => `<p>${escape(issue)}</p>`).join("")}</details>` : ""}</td><td>${orderActions(order)}</td></tr>`;
+    }).join("") : '<tr><td colspan="7" class="atlas-route-empty">No deliveries for this day. Scan delivery orders on mobile to begin.</td></tr>';
+    const plan = core.countTruckTrips(analyzed.map((order) => ({ ...order, palletSpaces: order.issues.some((issue) => issue.includes("item quantity") || issue.includes("case quantity")) ? null : order.palletSpaces })), { truckPalletTarget: state.truckPalletTarget, dailyTripTarget: state.dailyTripTarget, lockedTrips: state.lockedTrips, nextLoadPriority: state.nextLoadPriority || [] });
     state.loads = plan.trips;
     state.loadPlan = plan;
     state.analyzed = analyzed;
@@ -1296,7 +1366,7 @@
     find("[data-route-total-trips]").textContent = orders.length ? `${plan.trips.length}${plan.unscheduled.length ? " + review" : ""}` : "—";
     find("[data-route-total-trips]").title = "Planning-target estimate only; extra trips are allowed and timing still needs review.";
     find("[data-route-freight]").textContent = `${plan.trips.reduce((sum, trip) => sum + trip.palletSpaces, 0)} pallets`;
-    find("[data-route-plan]").innerHTML = !orders.length ? `<div class="atlas-route-plan-empty"><span class="atlas-route-empty-icon">${icon("route")}</span><strong>Your delivery plan starts here</strong><p>Add orders and product specifications to see trip cards and load estimates.</p></div>` : `
+    find("[data-route-plan]").innerHTML = !orders.length ? `<div class="atlas-route-plan-empty"><span class="atlas-route-empty-icon">${icon("route")}</span><strong>Your delivery plan starts here</strong><p>Scan delivery orders on mobile and load product specifications to see trip cards and estimates.</p></div>` : `
       <div class="atlas-route-plan-banner"><span class="atlas-route-plan-icon">${icon("truck")}</span><div><strong>TRUCK LOAD PLAN</strong><p>Stops follow your chosen order · ${plan.trips.length} estimated trip${plan.trips.length === 1 ? "" : "s"}</p></div><p class="atlas-route-plan-status">Timing pending<br />Select Optimize Routes to calculate traffic and timing.</p></div>
       ${plan.warnings.length ? `<div class="atlas-route-planning-review" role="status">${plan.warnings.map((warning) => `<p>${escape(warning)}</p>`).join("")}</div>` : ""}
       ${plan.trips.map((trip, index) => `<article class="atlas-route-trip"><span class="atlas-route-trip-number">${index + 1}</span><div><header><strong>Trip ${index + 1}</strong><label class="atlas-route-assignment">Driver / vehicle<select data-route-assignment="${index}" aria-label="Driver and vehicle for trip ${index + 1}" ${trip.locked ? "disabled" : ""}>${[["Bubba:truck", "Bubba · Box Truck"], ["Bubba:van1", "Bubba · Van 1"], ["Bubba:van2", "Bubba · Van 2"], ["Achmad:van1", "Achmad · Van 1"], ["Achmad:van2", "Achmad · Van 2"]].map(([value, label]) => `<option value="${value}" ${(state.assignments[index] || "Bubba:truck") === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><span class="atlas-route-trip-stats"><b>${(state.assignments[index] || "").includes(":van") ? `${trip.palletSpaces} pallet equivalents` : `${trip.palletSpaces} / ${state.truckPalletTarget} target pallets`}</b><span>${trip.shipments.length} stop${trip.shipments.length === 1 ? "" : "s"}</span><span>Timing pending</span></span></header>${trip.locked ? `<small class="atlas-route-check-badge">Sent out ${escape(trip.sentOn)} - load locked</small>` : ""}${trip.needsWarehouseReview ? '<small class="atlas-route-check-badge">Warehouse fit review · above usual 11 pallets</small>' : ""}${trip.needsScheduleReview ? '<small class="atlas-route-check-badge">Additional trip · schedule review</small>' : ""}<p class="atlas-route-trip-path">${icon("pin")}<span>Warehouse → ${trip.shipments.map((shipment) => `${escape(shipment.customer)} (${shipment.palletSpaces})`).join(" → ")} → Warehouse</span></p>${vehicleChanges[index] ? `<p class="atlas-route-planning-review" role="status" data-route-vehicle-change="${index}">${escape(vehicleChanges[index])}</p>` : ""}${vanLoadReview(trip, index)}${loadBoxList(trip)}${trip.shipments.some((shipment) => orders.find((order) => order.id === shipment.orderId)?.checkOnDelivery) ? '<small class="atlas-route-check-badge">CHECK ON DELIVERY on this trip</small>' : ""}</div></article>`).join("")}
@@ -1329,13 +1399,13 @@
   function renderCapacity(plan, orders) {
     const panel = find("[data-route-capacity]");
     const truckTrips = plan.trips.map((trip, index) => ({ ...trip, number: index + 1 }))
-      .filter((trip) => !trip.locked && !(state.assignments[trip.number - 1] || "").includes(":van"));
-    const latest = truckTrips.at(-1), target = plan.targets.truckPalletTarget;
+      .filter((trip) => !trip.locked);
+    const latest = truckTrips[0], target = plan.targets.truckPalletTarget;
     const sentOut = orders.some((order) => (order.dispatchedOn || order.deliveredOn) && !isLockedOrder(order.id));
     const review = plan.unscheduled.length > 0 || sentOut;
     const remaining = latest ? target - latest.palletSpaces : target;
     const title = !orders.length ? `Truck target: ${target} pallets` : latest
-      ? `Latest planned truck load · Trip ${latest.number}: ${latest.palletSpaces} / ${target} target pallets`
+      ? `Next planned load · Trip ${latest.number}: ${latest.palletSpaces} / ${target} target pallets`
       : state.lockedTrips.length ? "All planned truck loads have been sent out" : "No truck load assigned";
     const detail = !orders.length ? "Add orders to track remaining pallet space." : review
       ? "Review needed before treating any space as available."
@@ -1464,7 +1534,7 @@
       if (!current() || controller.signal.aborted) return;
       const result = await window.atlasRoutingPlanner.planDay({ date: find("[data-route-date]").value, loads, orders: dayOrders(),
         reloadMinutes: Number(find("[data-route-reload]").value), lunchMinutes: window.atlasRoutingPlanner.clock(find("[data-route-lunch]").value),
-        preserveOrder: find("[data-route-preserve]").checked, geocode: connection.geocode, route: connection.route, signal: controller.signal,
+        preserveOrder: find("[data-route-preserve]").checked || !!state.nextLoadPriority?.length, geocode: connection.geocode, route: connection.route, signal: controller.signal,
         onProgress: (message) => { if (current()) status.textContent = message; },
         onUpdate: (plan) => { if (current()) renderTimedPlan(plan); },
       });
@@ -1530,7 +1600,7 @@
     state.allUrls.forEach((url) => URL.revokeObjectURL(url));
     state.allUrls.clear();
     state.orders = [];
-    state.truckPalletTarget = 11; state.dailyTripTarget = 3; state.assignments = {}; state.lockedTrips = []; state.vanConfirmed = {};
+    state.truckPalletTarget = 11; state.dailyTripTarget = 3; state.assignments = {}; state.lockedTrips = []; state.nextLoadPriority = null; state.vanConfirmed = {};
     if (find("[data-route-reload]")) find("[data-route-reload]").value = "40";
     if (find("[data-route-lunch]")) find("[data-route-lunch]").value = "12:00";
     if (find("[data-route-preserve]")) find("[data-route-preserve]").checked = false;

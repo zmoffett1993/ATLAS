@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><base href="/"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ATLAS next-load — isolated preview</title>
+
+<link rel="stylesheet" href="../atlas-routing.css?nextload=4">
+
+<style>body{margin:0;font-family:system-ui;background:#f4f7fa}#fixture-tools{position:fixed;bottom:90px;right:8px;z-index:100;background:#fff8d9;border:1px solid #e4ca86;padding:8px;border-radius:10px;font-size:11px;max-width:220px}#fixture-tools button{min-height:36px;margin:3px}#fixture-results{white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto}.atlas-routing-open #fixture-tools{display:block}</style>
+
+<details id="fixture-tools"><summary>SYNTHETIC TEST DATA</summary><button onclick="location.search='?full=1'">Full target</button><button onclick="location.search='?partial=1'">Partial load</button><pre id="fixture-results"></pre></details>
+
+<script src="../atlas-routing-core.js?nextload=4"></script><script src="../atlas-routing-planner.js"></script><script src="../atlas-routing-storage.js?nextload=4"></script><script src="../atlas-routing-notifications.js"></script><script src="../atlas-routing-intake.js"></script>
+
+<script>
+
+// Real UI/parser/storage validation; entirely synthetic auth, OCR, routes and saves.
+
+// Run from a loopback HTTP server. No credentials or network integrations.
+
+const catalog=[{model:'CGST1-95MM',caseQty:'300',boxesPerPallet:'20',caseDimensions:'17X14X11',caseWeightLb:'31',palletDimensions:'49X44X86',sourceRow:1},{model:'CGUB1-60MLV3',caseQty:'500',boxesPerPallet:'35',caseDimensions:'20X15X17',caseWeightLb:'24',palletDimensions:'50X45X85',sourceRow:2}];
+
+let actor='11111111-1111-4111-8111-111111111111',mode='clear',photoCalls=0,saves=0,slowResolve;
+
+const records=new Map(), outputs=document.querySelector('#fixture-results');
+
+const settings={truckPalletTarget:11,dailyTripTarget:3,reloadMinutes:40,lunch:'12:00',preserveOrder:false};
+
+window.AtlasAuth={getSession:()=>actor?{user:{id:actor}}:null,displayName:()=> 'Local test administrator',open(){}};
+
+window.atlasRoutingPOD={access:async()=>({capability:'office',canEdit:true}),mount(){},reset(){},hasPending:()=>false};
+
+window.atlasRoutingSavedDays={enabled:true,reset(){},load:async date=>({date,revision:records.get(date)?.revision||0,canEdit:true,document:records.get(date)?.document||{date,version:3,orders:[],catalog,settings,assignments:{},vanConfirmed:{},lockedTrips:[]}}),save:async(date,revision,doc)=>{const validated=atlasRoutingStorage.document(doc);saves++;records.set(date,{document:validated,revision:revision+1});return{revision:revision+1}}};
+
+const scannerEnabled=new URLSearchParams(location.search).has('scanner');
+
+const realMatchMedia=window.matchMedia.bind(window);
+
+window.matchMedia=query=>query.includes('max-width:750px')&&scannerEnabled?{...realMatchMedia(query),matches:true}:realMatchMedia(query);
+
+let uploadedToday=0,failUpload=false;
+
+atlasRoutingSavedDays.scannerStatus=async()=>({enabled:scannerEnabled,uploadedToday,status:'pending'});
+
+atlasRoutingSavedDays.upload=async(date,order,metadata,seed)=>{
+
+ if(failUpload)throw Error('Upload not confirmed. Retry safely.');
+
+ const existing=records.get(date),doc=existing?.document||seed;
+
+ const prior=doc.orders.find(o=>o.orderNumber===order.orderNumber);
+
+ const document=atlasRoutingStorage.document(prior?doc:{...doc,orders:[...doc.orders,order]});
+
+ const revision=prior?existing.revision:(existing?.revision||0)+1;
+
+ if(!prior){uploadedToday++;records.set(date,{document,revision});}
+
+ return {warehouse:'CA',date,revision,document,canEdit:true,order:prior||document.orders.at(-1),duplicate:!!prior};
+
+};
+
+function page({id='SO-US-999901',cases='12',weak=false}={}){
+
+ const words=[];const at=(text,x,y,w=.05,confidence=.98)=>words.push({text,x,y,w,h:.012,confidence});
+
+ at(id,.6,.10,.2);at('Bill',.1,.2);at('To',.14,.2);at('Ship',.4,.2);at('To',.45,.2);
+
+ at('Unrelated billing note',.1,.22,.2,.1);at('Sample Supply',.4,.22,.2,weak?.3:.98);
+
+ at('123 Example Street',.4,.24,.2);at('Fullerton CA 92835',.4,.26,.2);
+
+ at('Pmt Method',.1,.32,.1);at('COD',.1,.34);at('Item',.1,.4);at('Item',.5,.4,.03);at('Qty',.535,.4,.03);at('Case',.63,.4,.03);at('Qty',.665,.4,.03);
+
+ at('CGST1-95MM-0401',.1,.43,.2);at(String(Number(cases)*300),.508,.442,.04);at(cases,.648,.442,.03);
+
+ return{words,text:words.map(w=>w.text).join('\n')};
+
+}
+
+function casePackingPage(kind='complete'){const words=[],at=(text,x,y,w=.06)=>words.push({text,x,y,w,h:.012,confidence:.99});at('Packing Slip',.7,.12,.2);at('IF-59709',.79,.16,.12);at('Ship To',.1,.3,.12);at('PO4128 *coc* rec.hrs 6am-2:30pm',.1,.32,.35);at('One Up Manufacturing',.1,.34,.25);at('550 EAST AIRLINE WAY',.1,.36,.27);at('GARDENA CA 90248',.1,.38,.25);at('SO-US-68159',.73,.47,.18);at('Item',.1,.52);at('Ordered',.39,.52,.09);at('Back Ordered',.52,.52,.12);at('Item',.7,.52,.04);at('Qty.',.75,.52,.04);at('Case',.85,.52,.04);at('Qty.',.9,.52,.04);at('Shipped',.7,.54,.09);at('Shipped',.85,.54,.09);if(kind!=='noSku')at('CGUB1-60MLV3-BK',.1,.58,.25);at('60,000',.39,.588);at('0',.54,.588);at('60,000',.7,.592);if(kind==='complete')at('120',.88,.594,.04);return{words,text:'SO-US-68159\n'+words.map(w=>w.text).join('\n')};}
+
+window.atlasRoutingConnection={available:true,photoAvailable:true,clear(){},readPhoto:async(image,{signal})=>{photoCalls++;if(mode==='slow')await new Promise(resolve=>slowResolve=resolve);if(signal.aborted)throw new DOMException('Canceled','AbortError');return{pages:[new URLSearchParams(location.search).has('caseFixture')?casePackingPage(new URLSearchParams(location.search).get('caseFixture')):page({id:mode==='mixed'?'SO-US-999902':'SO-US-999901',cases:mode==='conflict'?'8':'12',weak:mode==='weak'})]}},showMap:async host=>{host.textContent='Synthetic local map · no Google requests';},drawRoutes:async()=>{}};
+
+// Stable synthetic planner response exercises the real UI without Google calls.
+
+window.atlasRoutingPlanner={...window.atlasRoutingPlanner,planDay:async ({loads,date,onUpdate})=>{
+
+ const start=`${date}T08:00:00-07:00`,end=`${date}T09:00:00-07:00`;
+
+ const trips=loads.map((l,i)=>({...l,tripIndex:i,departure:start,returnTime:end,driveSeconds:1800,distanceMeters:16093.44,visits:l.shipments.map((_,stopIndex)=>({stopIndex,arrival:start})),locations:l.shipments.map(()=>({formattedAddress:'123 Example Street, Fullerton CA 92835',location:{latitude:33.87,longitude:-117.92}}))}));
+
+ const plan={complete:true,warnings:[],unscheduled:[],trips,driveSeconds:1800,distanceMeters:16093.44,drivers:{Bubba:{trips:trips.length,utilizationPercent:13,workMinutes:60},Achmad:{trips:0}}};onUpdate(plan);return plan;
+
+}};
+
+window.addEventListener('error',e=>outputs.textContent+='\nERROR: '+e.message);
+
+window.addEventListener('unhandledrejection',e=>outputs.textContent+='\nERROR: '+e.reason?.message);
+
+</script><script src="../atlas-routing.js?nextload=4"></script>
+
+<script>
+
+const date=new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
+
+const order=(n,customer,city,pallets)=>({id:`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,orderNumber:`SO-TEST-${n}`,customer,address:`123 Example St, ${city}, CA`,city,timeWindow:'6:00 AM–2:30 PM',notes:'Synthetic test order',serviceMinutes:25,checkOnDelivery:false,invoiceNumbers:[],fulfillmentNumbers:[],dispatchedOn:null,deliveredOn:null,deliveryException:null,lines:[{sku:'CGST1-95MM-0401',caseQty:pallets*20,itemQty:null}]});
+
+const orders=[order(1,'One Up Manufacturing','Gardena',4),...(new URLSearchParams(location.search).has('full')?[order(2,'Acme Distribution','Los Angeles',7),order(3,'Coastal Supply Co.','Long Beach',3)]:[])];
+
+records.set(date,{revision:1,document:atlasRoutingStorage.document({schemaVersion:3,date,orders,catalog,settings,assignments:{},vanConfirmed:{},lockedTrips:[]})});
+
+atlasOpenRouting();
+
+</script></html>

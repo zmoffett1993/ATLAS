@@ -24,7 +24,7 @@ export function buildScannerDraft(input) {
   .map(order=>({...order,lines:[...remaining.get(order.id)].filter(([,boxes])=>boxes>0)
    .map(([sku,caseQty])=>({sku,caseQty,itemQty:null}))})).filter(order=>order.lines.length);
  const analyzed=eligible.map(order=>core.analyzeOrder(order,doc.catalog));
- const draft=core.countTruckTrips(analyzed,doc.settings);
+ const draft=core.countTruckTrips(analyzed,{...doc.settings,nextLoadPriority:doc.nextLoadPriority || []});
  // Unknown specifications remain visible as unscheduled; never invent a box allocation.
  const allocated=new Map();
  for(const trip of draft.trips)for(const shipment of trip.shipments){
@@ -56,7 +56,7 @@ export async function runScannerPlanningOnce(rpc, traffic) {
     return {...trip,driver,vehicleId,vehicle:vehicleId==='truck'?'truck':'van',palletTarget:job.document.settings.truckPalletTarget};
    });
    const timed=await planner.planDay({date:job.date,loads,orders:job.document.orders,
-    ...traffic,departureNotBefore:(traffic.now ?? Date.now())+30*60000,preserveOrder:job.document.settings.preserveOrder,reloadMinutes:job.document.settings.reloadMinutes,
+    ...traffic,departureNotBefore:(traffic.now ?? Date.now())+30*60000,preserveOrder:job.document.settings.preserveOrder || !!job.document.nextLoadPriority?.length,reloadMinutes:job.document.settings.reloadMinutes,
     lunchMinutes:planner.clock(job.document.settings.lunch)});
    // Save estimates, not driver assignments or dispatch commands. These are reviewed drafts.
    plan={...plan,timed,trips:timed.trips.map(({driver,vehicleId,vehicle,...trip})=>trip),

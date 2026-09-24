@@ -116,6 +116,15 @@
         }
       }
     }
+    if (Object.hasOwn(input, "nextLoadPriority")) {
+      if (input.schemaVersion !== 3 || !Array.isArray(input.nextLoadPriority) || input.nextLoadPriority.length > 200) fail("Review next-load priorities.");
+      const seen = new Set(), locked = new Set((result.lockedTrips || []).flatMap(t => t.shipments.map(s => s.orderId.toLowerCase())));
+      result.nextLoadPriority = input.nextLoadPriority.map(id => {
+        const order = orders.find(o => o.id === id);
+        if (!order || seen.has(id) || locked.has(id.toLowerCase()) || order.dispatchedOn || order.deliveredOn) fail("Only unsent orders on this day can be prioritized.");
+        seen.add(id); return id;
+      });
+    }
     if (new TextEncoder().encode(JSON.stringify(result)).length > 900000) fail("This day is too large to save. Contact the ATLAS administrator.");
     return result;
   }
