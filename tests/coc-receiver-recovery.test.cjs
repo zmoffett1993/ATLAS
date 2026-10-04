@@ -14,21 +14,25 @@ test('dashboard labels unfinished COCs Pending and retains Completed', () => {
   assert.equal(status({ status: 'OFFICE_COMPLETED' }), 'Completed');
 });
 
-test('receiver reports ready only after successful inbox sync, including recovery', () => {
-  const strong = {}, small = {}, copy = {}, reset = {};
+test('receiver reports ready only after successful inbox sync without offering setup recovery', () => {
+  const strong = {}, small = {}, copy = {};
   const status = { classList: { toggle() {} }, querySelector: s => s === 'strong' ? strong : small };
   const context = { connection: 'connected', inboxLoaded: false, inboxFailed: false,
-    lastSynced: null, time: String,
-    root: { querySelector: s => s === '.receiver-status' ? status : s === '[data-receiver-ready-copy]' ? copy : reset } };
-  vm.runInNewContext(extract('  function updateReceiverStatus()', '  function focusedReceiverControl()') + ';globalThis.update=updateReceiverStatus', context);
-  for (const [loaded, failed, ready] of [[false,false,false],[true,false,true],[true,true,false],[true,false,true]]) {
+    lastSynced: null, time: String, navigator: { onLine: true },
+    root: { querySelector: s => s === '.receiver-status' ? status : copy } };
+  vm.runInNewContext(extract('  function receiverStatus()', '  function focusedReceiverControl()') + ';globalThis.update=updateReceiverStatus', context);
+  for (const [loaded, failed, ready, label] of [[false,false,false,'CONNECTING'],[true,false,true,'CONNECTED · READY'],[true,true,false,'CONNECTED · SYNC DELAYED'],[true,false,true,'CONNECTED · READY']]) {
     context.inboxLoaded = loaded; context.inboxFailed = failed; context.update();
     assert.equal(strong.textContent.includes('CONNECTED · READY'), ready);
-    assert.equal(reset.hidden, ready);
-    assert.equal(copy.textContent.includes('Connection not confirmed'), !ready);
+    assert.match(strong.textContent, new RegExp(label.replace('·','\\·')));
+    assert.equal(copy.textContent.includes('checking for new reports'), !ready);
   }
   context.connection = 'offline'; context.update();
   assert.match(strong.textContent, /OFFLINE/);
+});
+
+test('receiver inbox never renders an unsolicited setup-computer control', () => {
+  assert.doesNotMatch(source, /Set up this computer|data-action="reset-pairing"|Reconnecting…|RECONNECTING…/);
 });
 
 test('heartbeat cannot advance the last inbox sync time', async () => {

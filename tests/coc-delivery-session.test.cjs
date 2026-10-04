@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '..', 'atlas-coc-delivery.js'), 'utf8');
-function fixture() {
+function fixture({ receiverMode = false } = {}) {
   let user = { id: 'synthetic-ca', app_metadata: { home_warehouse_code: 'CA' } };
   let validSession;
   let response;
@@ -12,6 +12,7 @@ function fixture() {
   const events = {};
   const session = () => user ? { user, access_token: 'synthetic-' + user.id } : null;
   const window = {
+    ATLAS_COC_RECEIVER_MODE: receiverMode,
     localStorage: { getItem: () => null },
     atlasSupabaseConfig: { url: 'https://fixture.invalid', key: 'fixture-only' },
     AtlasAuth: { getSession: session, getValidSession: () => validSession || Promise.resolve(session()) },
@@ -54,6 +55,30 @@ test('same-account token event preserves a valid warehouse request', async () =>
   f.setUser(f.session().user);
   assert.equal((await f.api.warehouseContext()).selectedWarehouse.code, 'CA');
 });
+
+test('Receiver treats an explicitly rejected saved device credential as invalid', async () => {
+  const f = fixture({ receiverMode: true });
+  f.setResponse({ ok: false, status: 403, json: async () => ({ error: 'RECEIVER_NOT_AUTHORIZED' }) });
+  const result = await f.api.verifyReceiver({ devicePublicId: 'old-device', deviceSecret: 'old-secret', stationKey: 'OFFICE_COC_01' });
+  assert.equal(result.paired, false);
+  assert.equal(result.invalid, true);
+});
+
+for (const [status, message, invalid] of [
+  [401, 'RECEIVER_CREDENTIALS_REQUIRED', true],
+  [401, 'ATLAS_AUTH_REQUIRED', false],
+  [403, 'WAREHOUSE_ACCESS_DENIED', false],
+  [503, 'RECEIVER_NOT_AUTHORIZED', false],
+  [503, 'TEMPORARY_FAILURE', false],
+]) {
+  test(`Receiver credential response ${status} ${message} preserves transient failures`, async () => {
+    const f = fixture({ receiverMode: true });
+    f.setResponse({ ok: false, status, json: async () => ({ error: message }) });
+    const request = f.api.verifyReceiver({ devicePublicId: 'synthetic-device', deviceSecret: 'synthetic-secret', stationKey: 'OFFICE_COC_01' });
+    if (invalid) assert.equal((await request).invalid, true);
+    else await assert.rejects(request, { message });
+  });
+}
 
 for(const status of ['SENT','RECEIVED','OFFICE_COMPLETED','WAREHOUSE_COMPLETE']){
  test('submission retry handles server state '+status,async()=>{
