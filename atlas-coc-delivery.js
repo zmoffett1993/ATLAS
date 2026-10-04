@@ -362,10 +362,12 @@
       return { ...result, paired: true, credentials };
     } catch (error) {
       // Receiver startup must not discard pairing on an expired session or an
-      // ambiguous service failure. The deployed service also uses
-      // RECEIVER_NOT_AUTHORIZED for database lookup errors.
+      // ambiguous service failure. Only explicit Receiver credential errors
+      // invalidate local use; the saved pairing is retained for recovery.
       if (RECEIVER_MODE) {
-        if (error.status === 401 && error.message === "RECEIVER_CREDENTIALS_REQUIRED") return { paired: false, invalid: true };
+        if ((error.status === 401 && error.message === "RECEIVER_CREDENTIALS_REQUIRED") ||
+            (error.status === 403 && error.message === "RECEIVER_NOT_AUTHORIZED"))
+          return { paired: false, invalid: true };
         throw error;
       }
       if ((error.status === 401 || error.status === 403) && userId === currentUser()?.id) {
