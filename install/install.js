@@ -21,10 +21,9 @@
         : "Open ATLAS in your browser, or use your browser’s Install app option when available.";
     button.hidden = installed || ios || !deferredPrompt;
     button.disabled = prompting;
-    byId("page-title").textContent = installed ? "ATLAS is installed" : ios ? "Install on iPhone" : android ? "Install on Android" : "Install ATLAS";
-    byId("page-intro").textContent = installed ? "Open ATLAS to access your warehouse tools." : ios ? "Follow these steps to add ATLAS to your Home Screen." : android ? "Follow these steps to add ATLAS to your Home Screen." : "Add ATLAS to your phone for quick access to warehouse tools.";
+    byId("page-title").textContent = installed ? "ATLAS is installed" : "Install ATLAS";
+    byId("page-intro").textContent = installed ? "Open ATLAS to access your warehouse tools." : "Add ATLAS to your phone for quick access to warehouse tools.";
     byId("device-copy").hidden = android && !!deferredPrompt;
-    byId("open-app").textContent = "Open ATLAS";
     byId("offline-note").hidden = navigator.onLine !== false;
   }
   window.addEventListener("beforeinstallprompt", event => {

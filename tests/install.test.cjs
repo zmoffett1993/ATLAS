@@ -30,7 +30,7 @@ for (const outcome of ['accepted', 'dismissed', 'error']) test('install prompt i
 });
 test('installed and offline states remain useful without accessing account data', () => {
   const f = fixture({ installed: true }); assert.equal(f.element('device-heading').textContent, 'ATLAS is installed');
-  assert.equal(f.element('open-app').textContent, 'Open ATLAS');
+  assert.ok(fs.readFileSync(require('node:path').join(__dirname, '../install/index.html'), 'utf8').includes('href="../index.html"'));
   f.navigator.onLine = false; f.events.offline(); assert.equal(f.element('offline-note').hidden, false);
   const fresh = fixture(); fresh.events.appinstalled(); assert.equal(fresh.element('device-heading').textContent, 'ATLAS is installed');
 });
