@@ -36,13 +36,13 @@
   const storedSession = () => parseSession(global.localStorage?.getItem(AUTH_STORAGE_KEY))
     || parseSession(global.sessionStorage?.getItem(LEGACY_DASHBOARD_KEY));
 
-  const persist = (session) => {
+  const persist = (session, boundary = "") => {
     if (!session?.access_token || !session?.user?.id) throw new Error("ATLAS sign-in did not return a valid session.");
     session.expires_at = Number(session.expires_at || 0)
       || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600);
     global.localStorage?.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
     global.sessionStorage?.setItem(LEGACY_DASHBOARD_KEY, JSON.stringify(session));
-    global.dispatchEvent(new CustomEvent("atlas-auth-changed", { detail: { session } }));
+    global.dispatchEvent(new CustomEvent("atlas-auth-changed", { detail: { session, boundary } }));
     scheduleRefresh(session);
     syncMenu();
     return session;
@@ -130,7 +130,7 @@
       email: internalEmail(loginName),
       password: String(password || ""),
     });
-    return persist(session);
+    return persist(session, "sign-in");
   };
 
   function clearSession() {

@@ -8,8 +8,12 @@ node tools/run-regressions.cjs
 
 The runner discovers all top-level tests/*.test.cjs and tests/*.test.mjs files,
 runs them with Node's test runner, and returns a failing exit code if any test
-fails. Fixtures use synthetic data and mocked services. No packages, production
-credentials, database writes or deployments are required.
+fails. Fixtures use synthetic data, mocked services, and isolated local databases.
+The dashboard backend isolation test requires the existing `@electric-sql/pglite`
+dependency. If it is available in another checkout's `tools/delivery-pod/node_modules`,
+set `NODE_PATH` to that directory before running the suite. Missing dependencies
+are a verification blocker; do not install them without authorization. No production
+credentials, production database writes or deployments are required.
 
 The consolidated testing branch includes current main-branch account, login,
 COC isolation, scanner-access and cache tests, together with routing, photo

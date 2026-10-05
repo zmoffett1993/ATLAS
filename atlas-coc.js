@@ -4077,18 +4077,14 @@
       if (isLegacyDraftModal()) modal = null;
       renderAll(); return;
     }
-    if (event.key === "atlas-selected-warehouse-v1") {
-      resetDraftContext(); renderAll(); restoreFromCloud(); return;
-    }
     if (event.key !== draftContextKey) return;
     readSession();
     if (!session) workflowView = "landing";
     renderAll();
   });
-  document.addEventListener("change", (event) => {
-    if (!event.target?.matches?.("[data-warehouse-selector]")) return;
-    // The dashboard stores the new selection in its change handler first.
-    queueMicrotask(() => { resetDraftContext(); renderAll(); restoreFromCloud(); });
+  window.addEventListener("atlas-warehouse-changed", (event) => {
+    if (event.detail?.userId !== Delivery.getAuthSession()?.user?.id) return;
+    resetDraftContext(); renderAll(); restoreFromCloud();
   });
   window.addEventListener("online", () => scheduleCloudSync());
   window.addEventListener("online", () => flushClosedDrafts().catch(() => {}));

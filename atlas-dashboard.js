@@ -4,7 +4,7 @@
   const API_URL = "https://dwrrbpiprcmajfyronlf.supabase.co";
   const PUBLIC_KEY = "sb_publishable_akr0opK3RV0Mg5CQpF2woQ_hBFyRIJa";
   const SESSION_KEY = "atlas-dashboard-session-v1";
-  const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v1";
+  const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v2";
   const COC_EDIT_SEEN_KEY = "atlas-dashboard-seen-coc-edits-v1";
   const COC_PAGE_SIZE = 8;
   const COC_FETCH_PAGE_SIZE = 50;
@@ -123,16 +123,58 @@
     accessRequired: false,
     error: "",
   };
+  const initialDashboardState = JSON.parse(JSON.stringify(state));
   const cocWorkbookCache = new Map();
+  const workbookGenerations = new Map();
   let cocSearchTimer = null;
   let dashboardRequestSequence = 0;
   let adminRequestSequence = 0;
   let accountSessionSequence = 0;
   let cocRequestSequence = 0;
   let scannerRequestSequence = 0;
+  let warehouseEpoch = 0;
+  let detailRequestSequence = 0;
   let dashboardPointerActive = false;
   let backgroundRenderPending = false;
   let backgroundRenderTimer = null;
+
+  // Epochs reject A → B → A responses as well as ordinary account/warehouse changes.
+  const captureContext = ({ warehouse = true, detail = false } = {}) => ({
+    userId: state.session?.user?.id || "", accountEpoch: accountSessionSequence,
+    warehouseEpoch, warehouseId: state.selectedWarehouse?.id || "",
+    warehouseCode: state.selectedWarehouse?.code || "", warehouse,
+    detail: detail === "current" ? detailRequestSequence : detail ? ++detailRequestSequence : null,
+  });
+  const contextCurrent = (context) => context.accountEpoch === accountSessionSequence
+    && context.userId === (state.session?.user?.id || "")
+    && (!window.AtlasAuth?.getSession || context.userId === (window.AtlasAuth.getSession()?.user?.id || ""))
+    && context.warehouseEpoch === warehouseEpoch
+    && (!context.warehouse || (context.warehouseId === (state.selectedWarehouse?.id || "")
+      && context.warehouseCode === (state.selectedWarehouse?.code || "")))
+    && (context.detail === null || context.detail === detailRequestSequence);
+  const assertContext = (context) => { if (!contextCurrent(context)) throw new Error("DASHBOARD_CONTEXT_CHANGED"); };
+  const validWarehouseId = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id || ""));
+  const requireWarehouse = () => {
+    const warehouse = state.selectedWarehouse;
+    if (!state.session?.user?.id || !validWarehouseId(warehouse?.id)
+      || !["CA", "TX"].includes(warehouse?.code)
+      || !state.warehouses.some(item => item.id === warehouse.id && item.code === warehouse.code && item.active !== false))
+      throw new Error("WAREHOUSE_CONTEXT_REQUIRED");
+    return warehouse;
+  };
+  const resetProtectedState = ({ account = false } = {}) => {
+    ++warehouseEpoch; ++dashboardRequestSequence; ++adminRequestSequence;
+    ++cocRequestSequence; ++scannerRequestSequence; ++detailRequestSequence;
+    if (account) ++accountSessionSequence;
+    const keep = new Set(["mounted", "open", "session", "productImages", "productImagesLoading", "refreshTimer"]);
+    if (!account) for (const key of ["warehouses", "currentProfile", "view"]) keep.add(key);
+    for (const [key, value] of Object.entries(initialDashboardState))
+      if (!keep.has(key)) state[key] = JSON.parse(JSON.stringify(value));
+    cocWorkbookCache.clear();
+    workbookGenerations.clear();
+    window.clearTimeout(cocSearchTimer); cocSearchTimer = null;
+    cancelBackgroundRender();
+  };
 
   const escapeHtml = (value) =>
     String(value ?? "").replace(
@@ -369,7 +411,7 @@
 
   const getSession = () => {
     const shared = window.AtlasAuth?.getSession?.();
-    if (shared) return shared;
+    if (window.AtlasAuth?.getSession) return shared || null;
     try {
       const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
       if (!saved?.access_token) return null;
@@ -382,15 +424,19 @@
   };
 
   const api = async (path, { token = state.session?.access_token, method = "GET", body } = {}) => {
+    const context = captureContext();
     let activeToken = token;
     if (activeToken && window.AtlasAuth?.getValidSession) {
       const validSession = await window.AtlasAuth.getValidSession();
+      assertContext(context);
+      if (validSession?.user?.id !== context.userId) throw new Error("ATLAS_AUTH_REQUIRED");
       if (validSession?.access_token) {
         state.session = validSession;
         activeToken = validSession.access_token;
       }
     }
     const send = async (requestToken) => {
+      assertContext(context);
       const response = await fetch(`${API_URL}${path}`, {
         method,
         cache: "no-store",
@@ -404,6 +450,7 @@
       return { response, payload: await response.json().catch(() => null) };
     };
     let { response, payload } = await send(activeToken);
+    assertContext(context);
     const failureText = String(payload?.message || payload?.error_description || payload?.error || "");
     if (
       activeToken
@@ -411,12 +458,15 @@
       && window.AtlasAuth?.getValidSession
     ) {
       const refreshedSession = await window.AtlasAuth.getValidSession({ forceRefresh: true });
+      assertContext(context);
+      if (refreshedSession?.user?.id !== context.userId) throw new Error("ATLAS_AUTH_REQUIRED");
       if (refreshedSession?.access_token && refreshedSession.access_token !== activeToken) {
         state.session = refreshedSession;
         activeToken = refreshedSession.access_token;
         ({ response, payload } = await send(activeToken));
       }
     }
+    assertContext(context);
     if (!response.ok) {
       const error = new Error(payload?.message || payload?.error_description || payload?.error || payload?.hint || `Request failed (${response.status})`);
       error.status = response.status;
@@ -426,6 +476,7 @@
   };
 
   const readTable = async (name, token, { warehouse = false, warehouseId = state.selectedWarehouse?.id } = {}) => {
+    if (warehouse && !validWarehouseId(warehouseId)) throw new Error("WAREHOUSE_CONTEXT_REQUIRED");
     const warehouseFilter = warehouse && warehouseId
       ? `&warehouse_id=eq.${encodeURIComponent(warehouseId)}`
       : "";
@@ -481,17 +532,21 @@
       body: { action, ...payload },
     });
 
-  const cocApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") =>
-    api("/functions/v1/coc-dashboard", {
+  const cocApi = (action, payload = {}, warehouseCode = requireWarehouse().code) => {
+    if (requireWarehouse().code !== warehouseCode) return Promise.reject(new Error("WAREHOUSE_CONTEXT_REQUIRED"));
+    return api("/functions/v1/coc-dashboard", {
       method: "POST",
       body: { action, warehouseCode, ...payload },
     });
+  };
 
-  const cocRevisionApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") =>
-    api("/functions/v1/coc-workbook-revisions", {
+  const cocRevisionApi = (action, payload = {}, warehouseCode = requireWarehouse().code) => {
+    if (requireWarehouse().code !== warehouseCode) return Promise.reject(new Error("WAREHOUSE_CONTEXT_REQUIRED"));
+    return api("/functions/v1/coc-workbook-revisions", {
       method: "POST",
       body: { action, warehouseCode, ...payload },
     });
+  };
 
   const freshCocRevision = () => ({
     step: "preview",
@@ -505,9 +560,12 @@
     historyOpen: false,
   });
 
+  const seenCocEditKey = () => state.session?.user?.id && state.selectedWarehouse?.id
+    ? COC_EDIT_SEEN_KEY + ":" + state.session.user.id + ":" + state.selectedWarehouse.id : null;
   const readSeenCocEditIds = () => {
+    if (!seenCocEditKey()) return [];
     try {
-      const stored = JSON.parse(localStorage.getItem(COC_EDIT_SEEN_KEY) || "[]");
+      const stored = JSON.parse(localStorage.getItem(seenCocEditKey()) || "[]");
       return Array.isArray(stored) ? stored.map(String).slice(0, 250) : [];
     } catch {
       return [];
@@ -516,10 +574,10 @@
 
   const rememberCocEdit = (revisionId) => {
     const id = String(revisionId || "");
-    if (!id) return;
+    if (!id || !seenCocEditKey()) return;
     const ids = [id, ...readSeenCocEditIds().filter((value) => value !== id)].slice(0, 250);
     state.cocSeenEditIds = ids;
-    try { localStorage.setItem(COC_EDIT_SEEN_KEY, JSON.stringify(ids)); } catch {}
+    try { localStorage.setItem(seenCocEditKey(), JSON.stringify(ids)); } catch {}
   };
 
   const canReviseOfficialCoc = () => Boolean(state.session?.user?.id);
@@ -545,8 +603,9 @@
   };
 
   const canViewScannerIntelligence = () => state.currentProfile?.role === "admin";
-  const scannerApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code || "CA") => {
+  const scannerApi = (action, payload = {}, warehouseCode = state.selectedWarehouse?.code) => {
     if (!canViewScannerIntelligence()) return Promise.reject(new Error("Administrator access is required for Scanner Intelligence."));
+    if (requireWarehouse().code !== warehouseCode) return Promise.reject(new Error("WAREHOUSE_CONTEXT_REQUIRED"));
     return api("/functions/v1/scanner-intelligence", {
       method: "POST",
       body: { action, warehouseCode, ...payload },
@@ -700,7 +759,8 @@
     }
     return rightTime - leftTime;
   });
-  const loadFilteredCocList = async (warehouseCode) => {
+  const loadFilteredCocList = async (warehouseCode, generation = cocRequestSequence) => {
+    const context = captureContext();
     const records = [];
     const seenRecordIds = new Set();
     let page = 1;
@@ -713,6 +773,7 @@
         search: "",
         sort: "newest",
       }, warehouseCode);
+      if (!contextCurrent(context) || generation !== cocRequestSequence) return;
       const batch = Array.isArray(response.deliveries) ? response.deliveries : [];
       let newlyAdded = 0;
       batch.forEach((record) => {
@@ -726,6 +787,8 @@
       if (!batch.length || !newlyAdded || batch.length < COC_FETCH_PAGE_SIZE || (reportedTotal != null && records.length >= reportedTotal)) break;
       page += 1;
     }
+    assertContext(context);
+    if (generation !== cocRequestSequence) return;
     const bounds = cocPeriodBounds(warehouseCode);
     const query = state.cocSearch.trim().toLowerCase();
     const filtered = records.filter((record) => {
@@ -871,6 +934,7 @@
   };
 
   const loadCocData = async ({ background = false, warehouseCode = state.selectedWarehouse?.code || "CA" } = {}) => {
+    const context = captureContext();
     if (!state.session?.access_token || !["supervisor", "admin"].includes(state.currentProfile?.role)) return;
     const requestedWarehouseCode = String(warehouseCode || "CA").toUpperCase();
     const requestId = ++cocRequestSequence;
@@ -879,14 +943,14 @@
     if (!background) renderPreservingScroll();
     try {
       const [list, metrics, editAlerts] = await Promise.all([
-        loadFilteredCocList(requestedWarehouseCode),
+        loadFilteredCocList(requestedWarehouseCode, requestId),
         cocApi("metrics", {
           dayStart: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
           performanceRange: state.cocPerformanceRange,
         }, requestedWarehouseCode),
-        loadCocEditAlerts(requestedWarehouseCode).catch(() => state.cocEditAlerts),
+        loadCocEditAlerts(requestedWarehouseCode).catch(() => []),
       ]);
-      if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      if (!contextCurrent(context) || requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocRecords = Array.isArray(list.deliveries) ? list.deliveries : [];
       state.cocEditAlerts = Array.isArray(editAlerts) ? editAlerts : [];
       state.cocSeenEditIds = readSeenCocEditIds();
@@ -923,10 +987,10 @@
         if (refreshed) state.cocSelected = refreshed;
       }
     } catch (error) {
-      if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      if (!contextCurrent(context) || requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocError = error instanceof Error ? error.message : "COC records could not be loaded.";
     } finally {
-      if (requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      if (!contextCurrent(context) || requestId !== cocRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.cocLoading = false;
       const previewLocked = state.cocSelected && state.cocPreview.status === "ready";
       if (!background) renderPreservingScroll();
@@ -935,6 +999,7 @@
   };
 
   const loadScannerData = async ({ background = false, warehouseCode = state.selectedWarehouse?.code || "CA" } = {}) => {
+    const context = captureContext();
     if (!state.session?.access_token || !canViewScannerIntelligence()) return;
     const requestedWarehouseCode = String(warehouseCode || "CA").toUpperCase();
     const requestId = ++scannerRequestSequence;
@@ -950,7 +1015,7 @@
           pageSize: 12,
         }, requestedWarehouseCode),
       ]);
-      if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      if (!contextCurrent(context) || requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.scannerData = metrics;
       state.scannerCorrections = Array.isArray(corrections.items) ? corrections.items : [];
       state.scannerTotal = Number(corrections.total || 0);
@@ -960,10 +1025,10 @@
         if (refreshed) state.scannerSelected = { ...state.scannerSelected, ...refreshed };
       }
     } catch (error) {
-      if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      if (!contextCurrent(context) || requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.scannerError = error instanceof Error ? error.message : "Scanner intelligence could not be loaded.";
     } finally {
-      if (requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
+      if (!contextCurrent(context) || requestId !== scannerRequestSequence || state.selectedWarehouse?.code !== requestedWarehouseCode) return;
       state.scannerLoading = false;
       if (background) requestBackgroundRender();
       else renderPreservingScroll();
@@ -971,41 +1036,59 @@
   };
 
   const loadScannerCorrection = async (attemptId) => {
+    const context = captureContext({ detail: true });
     if (!canViewScannerIntelligence()) return;
     state.scannerSelected = state.scannerCorrections.find((item) => item.id === attemptId) || { id: attemptId };
     state.scannerLoading = true;
     render();
     try {
       const result = await scannerApi("correction-detail", { attemptId });
+      if (!contextCurrent(context)) return;
       if (state.scannerSelected?.id === attemptId) state.scannerSelected = result.item;
     } catch (error) {
+      if (!contextCurrent(context)) return;
       state.scannerError = error instanceof Error ? error.message : "Correction detail could not be loaded.";
     } finally {
+      if (!contextCurrent(context)) return;
       state.scannerLoading = false;
       render();
     }
   };
 
+  const invalidateCocWorkbook = (id) => {
+    workbookGenerations.set(id, (workbookGenerations.get(id) || 0) + 1);
+    cocWorkbookCache.clear();
+  };
+  const cocWorkbookKey = (id) => {
+    const record = state.cocSelected?.id === id ? state.cocSelected : state.cocRecords.find(item => item.id === id);
+    const revision = state.cocSelected?.id === id ? state.cocRevision.currentRevision : null;
+    return JSON.stringify([state.session?.user?.id, state.selectedWarehouse?.id, id,
+      revision?.id, revision?.revisionNumber, record?.updated_at, workbookGenerations.get(id) || 0,
+      cocEditsForDelivery(id).map(item => [item.id, item.revisionNumber, item.approvedAt])]);
+  };
   const loadCocWorkbook = async (id) => {
-    if (cocWorkbookCache.has(id)) return cocWorkbookCache.get(id);
+    const context = captureContext();
+    requireWarehouse();
+    const key = cocWorkbookKey(id);
+    if (cocWorkbookCache.has(key)) return cocWorkbookCache.get(key);
     const result = await cocApi("download-workbook", { deliveryId: id });
+    assertContext(context);
     const response = await fetch(result.downloadUrl, { cache: "no-store" });
+    assertContext(context);
     if (!response.ok) throw new Error("The Official COC workbook could not be opened.");
-    const record = state.cocSelected?.id === id
-      ? state.cocSelected
-      : state.cocRecords.find((item) => item.id === id);
+    const record = state.cocSelected?.id === id ? state.cocSelected : state.cocRecords.find(item => item.id === id);
     const snapshot = record?.report_snapshot || {};
-    const fileName = window.AtlasCocExcel?.outputFileName?.(
-      snapshot.customerName,
-      snapshot.invoiceNumber,
-      snapshot.ifNumber,
-    ) || String(result.fileName || "Official COC.xlsx").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+    const fileName = window.AtlasCocExcel?.outputFileName?.(snapshot.customerName, snapshot.invoiceNumber, snapshot.ifNumber)
+      || String(result.fileName || "Official COC.xlsx").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
     const workbook = { blob: await response.blob(), fileName };
-    cocWorkbookCache.set(id, workbook);
+    assertContext(context);
+    if (key !== cocWorkbookKey(id)) throw new Error("COC_WORKBOOK_REVISION_CHANGED");
+    cocWorkbookCache.set(key, workbook);
     return workbook;
   };
 
   const openDashboardCocPreview = async (id, { historyOpen = false } = {}) => {
+    const context = captureContext({ detail: true });
     if (!id) return;
     state.cocRevision = freshCocRevision();
     state.cocRevision.historyOpen = Boolean(historyOpen);
@@ -1013,19 +1096,24 @@
     render();
     try {
       const workbook = await loadCocWorkbook(id);
+      if (!contextCurrent(context)) return;
       const html = await window.AtlasCocExcel.renderOfficialWorkbookPreview(workbook.blob);
+      if (!contextCurrent(context)) return;
       if (state.cocSelected?.id !== id) return;
       state.cocPreview = { status: "ready", html, error: "", id };
       if (canReviseOfficialCoc()) void loadCocRevisionStatus(id);
     } catch (error) {
+      if (!contextCurrent(context)) return;
       state.cocPreview = { status: "error", html: "", error: error instanceof Error ? error.message : "The Official COC could not be opened.", id };
     }
     render();
   };
 
   const downloadDashboardCoc = async (id) => {
+    const context = captureContext({ detail: "current" });
     try {
       const workbook = await loadCocWorkbook(id);
+      if (!contextCurrent(context)) return;
       const url = URL.createObjectURL(workbook.blob);
       const link = document.createElement("a");
       link.href = url;
@@ -1036,6 +1124,7 @@
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       return true;
     } catch (error) {
+      if (!contextCurrent(context)) return;
       state.cocError = error instanceof Error ? error.message : "The Official COC could not be downloaded.";
       render();
       return false;
@@ -1052,14 +1141,17 @@
   };
 
   const loadCocRevisionStatus = async (id, { renderAfter = true } = {}) => {
+    const context = captureContext({ detail: true });
     if (!id || !canReviseOfficialCoc()) return;
     try {
       const result = await cocRevisionApi("status", { deliveryId: id });
+      if (!contextCurrent(context)) return;
       if (state.cocSelected?.id !== id) return;
       state.cocRevision.currentRevision = result.currentRevision || null;
       state.cocRevision.revisions = Array.isArray(result.revisions) ? result.revisions : [];
       state.cocRevision.error = "";
     } catch (error) {
+      if (!contextCurrent(context)) return;
       if (state.cocSelected?.id !== id) return;
       state.cocRevision.error = cocRevisionErrorMessage(error, "Workbook revision history is unavailable.");
     }
@@ -1074,10 +1166,12 @@
 
   const downloadCocForRevision = async (id) => {
     if (!id || state.cocRevision.loading) return;
+    const context = captureContext({ detail: true });
     state.cocRevision.loading = true;
     state.cocRevision.error = "";
     render();
     const downloaded = await downloadDashboardCoc(id);
+    if (!contextCurrent(context)) return;
     if (!downloaded) {
       state.cocRevision.loading = false;
       state.cocRevision.error = state.cocError || "The workbook could not be downloaded for editing.";
@@ -1089,6 +1183,8 @@
   };
 
   const stageCocWorkbookRevision = async (form) => {
+    if (state.cocRevision.loading) return;
+    const context = captureContext({ detail: true });
     const record = state.cocSelected;
     const file = state.cocRevision.file;
     const message = form.querySelector("[data-coc-revision-error]");
@@ -1109,18 +1205,22 @@
         window.AtlasCocExcel.renderOfficialWorkbookPreview(file),
         window.AtlasCocExcel.readOfficialWorkbookData(file),
       ]);
+      if (!contextCurrent(context)) return;
       const fileName = window.AtlasCocExcel.outputFileName(
         workbookData.customerName,
         workbookData.invoiceNumber,
         workbookData.ifNumber,
       );
+      const workbookBase64 = await blobToBase64(file);
+      if (!contextCurrent(context)) return;
       const result = await cocRevisionApi("stage-revision", {
         deliveryId: record.id,
         fileName,
-        workbookBase64: await blobToBase64(file),
+        workbookBase64,
         reason: form.elements.reason.value,
         note: form.elements.note.value,
       });
+      if (!contextCurrent(context)) return;
       if (state.cocSelected?.id !== record.id) return;
       state.cocRevision = {
         ...state.cocRevision,
@@ -1133,6 +1233,7 @@
       render();
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     } catch (error) {
+      if (!contextCurrent(context)) return;
       state.cocRevision.loading = false;
       state.cocRevision.error = cocRevisionErrorMessage(error, "The revised workbook could not be validated.");
       if (message) message.textContent = state.cocRevision.error;
@@ -1144,6 +1245,7 @@
     const record = state.cocSelected;
     const candidate = state.cocRevision.candidate;
     if (!record || !candidate?.id || state.cocRevision.loading) return;
+    const context = captureContext({ detail: true });
     state.cocRevision.loading = true;
     state.cocRevision.error = "";
     render();
@@ -1152,9 +1254,13 @@
         deliveryId: record.id,
         revisionId: candidate.id,
       });
-      cocWorkbookCache.delete(record.id);
+      if (!contextCurrent(context)) return;
+      invalidateCocWorkbook(record.id);
+      state.cocRevision.currentRevision = result.approved || candidate;
       const workbook = await loadCocWorkbook(record.id);
+      if (!contextCurrent(context)) return;
       const html = await window.AtlasCocExcel.renderOfficialWorkbookPreview(workbook.blob);
+      if (!contextCurrent(context)) return;
       state.cocPreview = { status: "ready", html, error: "", id: record.id };
       state.cocRevision = {
         ...state.cocRevision,
@@ -1167,6 +1273,7 @@
       render();
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     } catch (error) {
+      if (!contextCurrent(context)) return;
       state.cocRevision.loading = false;
       state.cocRevision.error = cocRevisionErrorMessage(error, "The revision could not be approved.");
       render();
@@ -1242,7 +1349,9 @@
       }
       const feed = document.querySelector(".atlas-dashboard-feed");
       const feedScrollTop = feed?.scrollTop || 0;
+      const context = captureContext({ warehouse: false });
       void loadData().then(() => {
+        if (!contextCurrent(context)) return;
         const refreshedFeed = document.querySelector(".atlas-dashboard-feed");
         if (refreshedFeed) refreshedFeed.scrollTop = feedScrollTop;
       });
@@ -1288,6 +1397,8 @@
 
   const loadData = async ({ force = false, warehouseCode = state.selectedWarehouse?.code || "", warehouseContext: suppliedWarehouseContext = null } = {}) => {
     if (state.loading && !force) return;
+    if (warehouseCode && state.selectedWarehouse?.code && warehouseCode !== state.selectedWarehouse.code) resetProtectedState();
+    const context = captureContext({ warehouse: false });
     const requestId = ++dashboardRequestSequence;
     const requestedWarehouseCode = String(warehouseCode || "").toUpperCase();
     state.loading = true;
@@ -1296,17 +1407,25 @@
     if (state.accountModal) requestBackgroundRender();
     else renderPreservingScroll();
     const token = state.session?.access_token;
+    let warehouseValidated = false;
     try {
-      const warehouseContext = suppliedWarehouseContext || await window.AtlasCocDelivery?.warehouseContext?.({
+      if (!state.session?.user?.id) throw Object.assign(new Error("ATLAS_AUTH_REQUIRED"), { status: 401 });
+      if (!window.AtlasCocDelivery?.warehouseContext) throw new Error("WAREHOUSE_CONTEXT_REQUIRED");
+      const warehouseContext = suppliedWarehouseContext || await window.AtlasCocDelivery.warehouseContext({
         force: true,
         ...(requestedWarehouseCode ? { warehouseCode: requestedWarehouseCode } : {}),
       });
-      if (requestId !== dashboardRequestSequence) return;
-      state.warehouses = warehouseContext?.accessibleWarehouses || [];
-      state.selectedWarehouse = state.warehouses.find((warehouse) => warehouse.code === requestedWarehouseCode)
-        || warehouseContext?.selectedWarehouse
-        || state.warehouses[0]
-        || { code: "CA", display_name: "California Warehouse" };
+      if (!contextCurrent(context) || requestId !== dashboardRequestSequence) return;
+      const selected = warehouseContext?.selectedWarehouse;
+      const accessible = warehouseContext?.accessibleWarehouses;
+      if (!validWarehouseId(selected?.id) || !["CA", "TX"].includes(selected?.code)
+        || (requestedWarehouseCode && selected.code !== requestedWarehouseCode)
+        || !Array.isArray(accessible) || !accessible.some(item => item.id === selected.id && item.code === selected.code && item.active !== false)
+        || (warehouseContext.profile?.userId && warehouseContext.profile.userId !== context.userId))
+        throw new Error("WAREHOUSE_CONTEXT_REQUIRED");
+      warehouseValidated = true;
+      state.warehouses = accessible;
+      state.selectedWarehouse = selected;
       const warehouseId = state.selectedWarehouse?.id;
       const [
         skusResult,
@@ -1321,11 +1440,11 @@
         readTable("locations", token, { warehouse: true, warehouseId }),
         readTable("inventory_activity", token, { warehouse: true, warehouseId }),
         readTable("location_history", token, { warehouse: true, warehouseId }),
-        token ? readTable("profiles", token) : Promise.resolve([]),
+        token ? readTable("profiles", token, { warehouse: true, warehouseId }) : Promise.resolve([]),
         token ? readTable("atlas_undo_snapshots", token, { warehouse: true, warehouseId }) : Promise.resolve([]),
         token ? readTable("sku_delete_requests", token, { warehouse: true, warehouseId }) : Promise.resolve([]),
       ]);
-      if (requestId !== dashboardRequestSequence) return;
+      if (!contextCurrent(context) || requestId !== dashboardRequestSequence) return;
       if (skusResult.status !== "fulfilled") throw skusResult.reason;
       if (locationsResult.status !== "fulfilled") throw locationsResult.reason;
       state.skus = skusResult.value || [];
@@ -1340,7 +1459,7 @@
         || (state.session?.user?.id ? {
           user_id: state.session.user.id,
           display_name: state.session.user.user_metadata?.display_name || state.session.user.app_metadata?.login_name || "ATLAS user",
-          role: state.session.user.app_metadata?.atlas_role || state.session.user.app_metadata?.role || "picker",
+          role: warehouseContext.profile?.role || state.session.user.app_metadata?.atlas_role || state.session.user.app_metadata?.role || "picker",
           warehouse_id: state.selectedWarehouse?.id,
         } : null);
       if (state.currentProfile && !["supervisor", "admin"].includes(state.currentProfile.role)) {
@@ -1350,7 +1469,9 @@
         state.view = "operations";
       }
       if (["supervisor", "admin"].includes(state.currentProfile?.role)) {
-        state.cocEditAlerts = await loadCocEditAlerts(state.selectedWarehouse?.code || "CA").catch(() => state.cocEditAlerts);
+        const editAlerts = await loadCocEditAlerts(state.selectedWarehouse.code).catch(() => []);
+        if (!contextCurrent(context) || requestId !== dashboardRequestSequence) return;
+        state.cocEditAlerts = editAlerts;
         state.cocSeenEditIds = readSeenCocEditIds();
       } else {
         state.cocEditAlerts = [];
@@ -1390,7 +1511,11 @@
       state.normalized.forEach((row) => { row.snapshotId = snapshotBySource.get(row.id)?.id || null; });
       state.lastSync = new Date();
     } catch (error) {
-      if (requestId !== dashboardRequestSequence) return;
+      if (!contextCurrent(context) || requestId !== dashboardRequestSequence) return;
+      if (!warehouseValidated || /WAREHOUSE_/.test(String(error?.message || ""))) {
+        resetProtectedState();
+        state.warehouses = []; state.currentProfile = null;
+      }
       const errorText = String(error?.message || error || "");
       const sessionRole = state.currentProfile?.role
         || state.session?.user?.app_metadata?.atlas_role
@@ -1410,8 +1535,10 @@
         state.accessRequired = true;
         state.error = "";
       } else state.error = error instanceof Error ? error.message : "The dashboard data could not be loaded.";
+      state.loading = false;
+      renderPreservingScroll();
     } finally {
-      if (requestId !== dashboardRequestSequence) return;
+      if (!contextCurrent(context) || requestId !== dashboardRequestSequence) return;
       state.loading = false;
       if (state.accountModal) requestBackgroundRender();
       else renderPreservingScroll();
@@ -1419,6 +1546,7 @@
   };
 
   const loadAdminUsers = async ({ preserveNotice = false, anchorViewportTop = null, anchorScrollTop = null } = {}) => {
+    const context = captureContext();
     if (state.adminLoading || state.currentProfile?.role !== "admin") return;
     const requestId = ++adminRequestSequence;
     const preserveTabsAnchor = Number.isFinite(Number(anchorViewportTop));
@@ -1440,16 +1568,16 @@
     renderAdminState();
     try {
       const result = await adminApi("list");
-      if (requestId !== adminRequestSequence) return;
+      if (!contextCurrent(context) || requestId !== adminRequestSequence) return;
       state.adminUsers = (result.users || []).sort((left, right) =>
         String(left.display_name || left.login_name).localeCompare(String(right.display_name || right.login_name)),
       );
       state.adminUsersLoaded = true;
     } catch (error) {
-      if (requestId !== adminRequestSequence) return;
+      if (!contextCurrent(context) || requestId !== adminRequestSequence) return;
       state.adminError = error instanceof Error ? error.message : "ATLAS accounts could not be loaded.";
     } finally {
-      if (requestId !== adminRequestSequence) return;
+      if (!contextCurrent(context) || requestId !== adminRequestSequence) return;
       state.adminLoading = false;
       renderAdminState();
     }
@@ -1651,7 +1779,7 @@
     const unreadEdits = rows.filter((row) => row.notificationType === "coc-edit" && !row.seen).length;
     return `<div class="atlas-dashboard-notification-scrim" data-notifications-close></div>
       <section class="atlas-dashboard-notification-panel" role="dialog" aria-label="ATLAS notifications">
-        <header><div><p class="atlas-dashboard-eyebrow">NOTIFICATIONS</p><h2>ATLAS Notifications</h2><span>${unreadEdits ? `${unreadEdits} unread COC ${unreadEdits === 1 ? "edit" : "edits"} · ` : ""}${escapeHtml(state.selectedWarehouse?.code || "CA")} warehouse</span></div><button type="button" class="atlas-dashboard-notification-close" data-notifications-close aria-label="Close notifications">×</button></header>
+        <header><div><p class="atlas-dashboard-eyebrow">NOTIFICATIONS</p><h2>ATLAS Notifications</h2><span>${unreadEdits ? `${unreadEdits} unread COC ${unreadEdits === 1 ? "edit" : "edits"} · ` : ""}${escapeHtml(state.selectedWarehouse?.code || "Unresolved")} warehouse</span></div><button type="button" class="atlas-dashboard-notification-close" data-notifications-close aria-label="Close notifications">×</button></header>
         ${pendingReview ? `<div class="atlas-dashboard-notification-attention"><span aria-hidden="true">!</span><strong>Deletion review pending</strong><small>Open Warehouse Status to review the request.</small></div>` : ""}
         <div class="atlas-dashboard-notification-list">${content}</div>
       </section>`;
@@ -1940,7 +2068,7 @@
       snap.customerName,
       snap.invoiceNumber,
       snap.ifNumber,
-    ) || String(current?.fileName || cocWorkbookCache.get(record.id)?.fileName || "Official COC.xlsx").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+    ) || String(current?.fileName || cocWorkbookCache.get(cocWorkbookKey(record.id))?.fileName || "Official COC.xlsx").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
     return `<section class="atlas-dashboard-coc-detail atlas-dashboard-coc-revision">
       <button class="atlas-dashboard-coc-back" type="button" data-coc-revision-cancel>‹ Official COC</button>
       ${renderCocRevisionProgress("handoff")}
@@ -2225,7 +2353,7 @@
       <header class="atlas-dashboard-header">
         <div class="atlas-dashboard-heading"><p class="atlas-dashboard-eyebrow">ATLAS CONTROL CENTER</p><h1>${title}</h1><p class="atlas-dashboard-subtitle">${subtitle}</p></div>
         <div class="atlas-dashboard-header-actions">
-          ${state.warehouses.length > 1 && isAdmin ? `<div class="atlas-dashboard-warehouse-switch"><span>Warehouse</span>${renderPremiumSelect({ value: state.selectedWarehouse?.code || "CA", options: warehouseSelectOptions(), ariaLabel: "Select warehouse", dataAttribute: "data-warehouse-selector", className: "atlas-premium-select--header" })}</div>` : `<span class="atlas-dashboard-warehouse-badge">${escapeHtml(state.selectedWarehouse?.code || "CA")} · ${escapeHtml(state.selectedWarehouse?.display_name || "California Warehouse")}</span>`}
+          ${state.warehouses.length > 1 && isAdmin ? `<div class="atlas-dashboard-warehouse-switch"><span>Warehouse</span>${renderPremiumSelect({ value: state.selectedWarehouse?.code || "CA", options: warehouseSelectOptions(), ariaLabel: "Select warehouse", dataAttribute: "data-warehouse-selector", className: "atlas-premium-select--header" })}</div>` : `<span class="atlas-dashboard-warehouse-badge">${escapeHtml(state.selectedWarehouse?.code || "Unresolved")} · ${escapeHtml(state.selectedWarehouse?.display_name || "Warehouse unavailable")}</span>`}
           ${accessView ? `<button class="atlas-dashboard-button" type="button" data-account-refresh>Refresh Accounts</button><button class="atlas-dashboard-button atlas-dashboard-button--primary" type="button" data-account-add>+ Add Account</button>` : cocView ? `${renderNotificationBell(notifications)}<button class="atlas-dashboard-button" type="button" data-coc-refresh>Refresh COCs</button>` : `${canViewNotifications ? renderNotificationBell(notifications) : ""}<div class="atlas-dashboard-date-control"><select class="atlas-dashboard-range" data-range aria-label="Dashboard date range">
             <option value="today" ${state.range === "today" ? "selected" : ""}>Today</option>
             <option value="week" ${state.range === "week" ? "selected" : ""}>This Week</option>
@@ -2237,7 +2365,7 @@
         </div>
       </header>
       ${canViewNotifications ? `<nav class="atlas-dashboard-tabs" aria-label="Dashboard sections"><button type="button" data-dashboard-view="operations" class="${!accessView && !cocView ? "is-active" : ""}">Operations</button><button type="button" data-dashboard-view="cocs" class="${cocView ? "is-active" : ""}">COC Operations</button>${isAdmin ? `<button type="button" data-dashboard-view="access" class="${accessView ? "is-active" : ""}">Access Management</button>` : ""}</nav>` : ""}
-      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : cocView ? state.cocLoading && !state.cocLoaded ? `Loading ${escapeHtml(state.selectedWarehouse?.code || "CA")} COC data…` : `Live COC data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}` : `Live data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}`}</span></div>`;
+      <div class="atlas-dashboard-statusline"><span class="atlas-dashboard-status-dot is-live"></span><span>${accessView ? "Protected administrator controls" : cocView ? state.cocLoading && !state.cocLoaded ? `Loading ${escapeHtml(state.selectedWarehouse?.code || "Unresolved")} COC data…` : `Live COC data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}` : `Live data · ${escapeHtml(state.lastSync ? "Updated just now" : "Ready")}`}</span></div>`;
     if (accessView) return `${header}${renderAccessManagement()}`;
     if (cocView) return `${header}${renderCocOversight()}${renderNotificationCenter(notifications)}`;
     return `${header}
@@ -2433,6 +2561,7 @@
       state.view = ["access", "cocs"].includes(view) ? view : "operations";
       if (state.view === "access") state.accountWarehouseFilter = state.selectedWarehouse?.code || "CA";
       state.accountModal = null;
+      ++detailRequestSequence;
       state.cocSelected = null;
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
       state.cocRevision = freshCocRevision();
@@ -2450,6 +2579,7 @@
       const currentTop = currentPageScrollTop();
       const tabsTop = button.closest(".atlas-coc-workspace-tabs")?.getBoundingClientRect().top;
       state.cocWorkspace = button.dataset.cocWorkspace || "operations";
+      ++detailRequestSequence;
       state.cocSelected = null;
       state.cocRevision = freshCocRevision();
       state.scannerSelected = null;
@@ -2468,6 +2598,7 @@
       const currentTop = currentPageScrollTop();
       const tabsTop = button.closest(".atlas-scanner-tabs")?.getBoundingClientRect().top;
       state.scannerView = button.dataset.scannerView || "performance";
+      ++detailRequestSequence;
       state.scannerSelected = null;
       render();
       restoreDashboardAnchor(".atlas-scanner-tabs", tabsTop, currentTop);
@@ -2475,6 +2606,7 @@
       state.scannerView = "review";
       void loadScannerCorrection(button.dataset.scannerCorrection);
     } else if (button.matches("[data-scanner-detail-back]")) {
+      ++detailRequestSequence;
       state.scannerSelected = null;
       state.scannerNotice = "";
       render();
@@ -2485,6 +2617,7 @@
         loadScannerData();
       }
     } else if (button.matches("[data-scanner-open-coc]")) {
+      ++detailRequestSequence;
       state.scannerSelected = null;
       state.cocWorkspace = "operations";
       state.cocSearch = button.dataset.scannerOpenCoc || "";
@@ -2497,6 +2630,7 @@
     } else if (button.matches("[data-coc-section]")) {
       state.cocSection = button.dataset.cocSection;
       state.cocPage = 1;
+      ++detailRequestSequence;
       state.cocSelected = null;
       state.cocNotice = "";
       loadCocData();
@@ -2547,6 +2681,7 @@
       state.cocRevision = freshCocRevision();
       render();
     } else if (button.matches("[data-coc-detail-back]")) {
+      ++detailRequestSequence;
       state.cocSelected = null;
       state.cocPreview = { status: "idle", html: "", error: "", id: "" };
       state.cocRevision = freshCocRevision();
@@ -2650,6 +2785,7 @@
     const accountForm = event.target.closest?.("[data-account-create], [data-account-update]");
     if (accountForm && ["role", "warehouse_code"].includes(event.target.name)) { syncReceiverIdentity(accountForm); return; }
     if (event.target.matches("[data-coc-revision-file]")) {
+      ++detailRequestSequence;
       const file = event.target.files?.[0] || null;
       state.cocRevision.error = "";
       if (file && !/\.xlsx$/i.test(file.name)) {
@@ -2666,61 +2802,22 @@
     }
     if (event.target.matches("[data-warehouse-selector]")) {
       const code = String(event.target.value || "").toUpperCase();
-      localStorage.setItem(WAREHOUSE_SELECTION_KEY, code);
-      state.selectedWarehouse = state.warehouses.find((warehouse) => warehouse.code === code) || state.selectedWarehouse;
+      const selected = state.warehouses.find(warehouse => warehouse.code === code && warehouse.active !== false);
+      if (!selected || !validWarehouseId(selected.id)) return;
+      resetProtectedState();
+      state.selectedWarehouse = selected;
       state.accountWarehouseFilter = code;
-      cocRequestSequence += 1;
-      scannerRequestSequence += 1;
-      state.skus = [];
-      state.locations = [];
-      state.activities = [];
-      state.history = [];
-      state.normalized = [];
-      state.cocRecords = [];
-      state.cocTotal = 0;
-      state.cocMetrics = { total: 0, awaiting: 0, receivedToday: 0, completedToday: 0 };
-      state.cocPerformance = {
-        completionSamples: 0,
-        averageActiveDurationMs: 0,
-        medianActiveDurationMs: 0,
-        scanAttempts: 0,
-        scanSuccesses: 0,
-        scanCanceled: 0,
-        distinctLots: 0,
-        manualLots: 0,
-        scannerReviewedLots: 0,
-        scannerExactLots: 0,
-        scannerCorrectedLots: 0,
-        scannerEditDistanceTotal: 0,
-        scannerComparedCharacters: 0,
-        scannerOneOrTwoCharacterCorrections: 0,
-      };
-      state.cocLoading = state.view === "cocs";
-      state.cocLoaded = false;
-      state.cocError = "";
-      state.cocNotice = "";
-      state.cocSelected = null;
-      state.cocPreview = { status: "idle", html: "", error: "", id: "" };
-      state.cocRevision = freshCocRevision();
-      state.cocDelete = null;
-      state.cocPage = 1;
-      state.scannerData = null;
-      state.scannerCorrections = [];
-      state.scannerTotal = 0;
-      state.scannerPage = 1;
-      state.scannerSelected = null;
-      state.scannerLoaded = false;
-      state.scannerLoading = state.view === "cocs";
-      state.scannerError = "";
-      state.scannerNotice = "";
-      state.lastSync = null;
-      cocWorkbookCache.clear();
+      if (window.AtlasCocDelivery?.selectWarehouse) window.AtlasCocDelivery.selectWarehouse(code);
+      else localStorage.setItem(WAREHOUSE_SELECTION_KEY + ":" + state.session.user.id, code);
       render();
-      if (state.view === "cocs") {
-        void loadCocData({ warehouseCode: code });
-        if (state.cocWorkspace === "scanner") void loadScannerData({ warehouseCode: code });
-      }
-      void loadData({ force: true, warehouseCode: code });
+      const context = captureContext();
+      void loadData({ force: true, warehouseCode: code }).then(() => {
+        if (!contextCurrent(context) || state.error || state.accessRequired) return;
+        if (state.view === "cocs") {
+          void loadCocData({ warehouseCode: code });
+          if (state.cocWorkspace === "scanner") void loadScannerData({ warehouseCode: code });
+        }
+      });
       return;
     }
     if (event.target.matches("[data-range]")) state.range = event.target.value;
@@ -2833,6 +2930,8 @@
   const signIn = async (form) => {
     const message = form.querySelector("[data-access-message]");
     const submit = form.querySelector('button[type="submit"]');
+    resetProtectedState({ account: true });
+    const loginEpoch = accountSessionSequence;
     message.textContent = "";
     submit.disabled = true;
     submit.textContent = "Signing in…";
@@ -2844,11 +2943,14 @@
           method: "POST",
           body: { email: window.AtlasLogin.identity(form.elements.login_name.value).key + "@users.atlas.invalid", password: form.elements.password.value },
         });
+      if (window.AtlasAuth?.getSession && window.AtlasAuth.getSession()?.user?.id !== payload?.user?.id) return;
+      if (!window.AtlasAuth && accountSessionSequence !== loginEpoch) return;
       state.session = payload;
       state.accessRequired = false;
       state.skus = [];
       await loadData();
     } catch (error) {
+      if (accountSessionSequence !== loginEpoch) return;
       message.textContent = error instanceof Error ? error.message : "Sign in failed.";
       submit.disabled = false;
       submit.textContent = "Sign In & Open Dashboard";
@@ -2857,42 +2959,19 @@
 
   const signOut = async () => {
     const token = state.session?.access_token;
-    if (window.AtlasAuth) await window.AtlasAuth.signOut();
-    else sessionStorage.removeItem(SESSION_KEY);
+    resetProtectedState({ account: true });
     state.session = null;
-    state.skus = [];
-    state.locations = [];
-    state.activities = [];
-    state.history = [];
-    state.normalized = [];
-      state.currentProfile = null;
-    state.warehouses = [];
-    state.selectedWarehouse = null;
-    state.view = "operations";
-    state.adminUsers = [];
-    state.adminUsersLoaded = false;
-    state.accountModal = null;
-    state.accountDeleteError = "";
-    state.cocRecords = [];
-    state.cocEditAlerts = [];
-    state.cocSeenEditIds = [];
-    state.cocLoaded = false;
-    state.cocSelected = null;
-    state.cocDelete = null;
-    state.cocPreview = { status: "idle", html: "", error: "", id: "" };
-    state.cocRevision = freshCocRevision();
-    state.cocWorkspace = "operations";
-    state.scannerData = null;
-    state.scannerCorrections = [];
-    state.scannerSelected = null;
-    state.scannerLoaded = false;
-    state.scannerError = "";
-    cocWorkbookCache.clear();
-    if (token && !window.AtlasAuth) api("/auth/v1/logout", { token, method: "POST" }).catch(() => {});
-    await loadData();
+    state.accessRequired = true;
+    render();
+    if (window.AtlasAuth) await window.AtlasAuth.signOut();
+    else {
+      sessionStorage.removeItem(SESSION_KEY);
+      if (token) api("/auth/v1/logout", { token, method: "POST" }).catch(() => {});
+    }
   };
 
   const runAdminAction = async (action, payload, form = null) => {
+    const context = captureContext();
     if (state.adminLoading) return;
     const actorSession = accountSessionSequence;
     const message = form?.querySelector("[data-account-message]");
@@ -2917,15 +2996,18 @@
         if (action === "update") payload.expected_revision = state.accountModal?.expectedRevision;
       }
       const result = await adminApi(action, payload);
-      if (accountSessionSequence !== actorSession) return;
+      if (!contextCurrent(context) || accountSessionSequence !== actorSession) return;
       state.adminNotice = result.message || "The ATLAS account was updated.";
       state.accountModal = null;
       state.adminLoading = false;
       await loadAdminUsers({ preserveNotice: true });
+      if (!contextCurrent(context)) return;
       await loadData();
+      if (!contextCurrent(context)) return;
     } catch (error) {
+      if (!contextCurrent(context)) return;
       const text = error instanceof Error ? error.message : "The account change could not be completed.";
-      if (accountSessionSequence !== actorSession) return;
+      if (!contextCurrent(context) || accountSessionSequence !== actorSession) return;
       state.adminError = text;
       if (message) message.textContent = text;
       if (submit) {
@@ -2938,6 +3020,7 @@
   };
 
   const deleteAdminAccount = async (userId) => {
+    const context = captureContext();
     if (state.adminLoading || !userId) return;
     const actorSession = accountSessionSequence;
     const target = state.adminUsers.find((user) => user.id === userId);
@@ -2947,7 +3030,7 @@
     render();
     try {
       const result = await adminApi("delete", { user_id: userId, preserve_history: true });
-      if (accountSessionSequence !== actorSession) return;
+      if (!contextCurrent(context) || accountSessionSequence !== actorSession) return;
       state.adminUsers = state.adminUsers.filter((user) => user.id !== userId);
       state.adminUsersLoaded = true;
       state.accountModal = null;
@@ -2955,10 +3038,13 @@
       state.adminNotice = result.message || `${target?.display_name || "The account"} was deleted.`;
       render();
       await loadAdminUsers({ preserveNotice: true });
+      if (!contextCurrent(context)) return;
       await loadData({ force: true });
+      if (!contextCurrent(context)) return;
     } catch (error) {
+      if (!contextCurrent(context)) return;
       const raw = error instanceof Error ? error.message : "The account could not be deleted.";
-      if (accountSessionSequence !== actorSession) return;
+      if (!contextCurrent(context) || accountSessionSequence !== actorSession) return;
       state.adminLoading = false;
       state.accountDeleteError = /database error deleting user|foreign key|still referenced|violates/i.test(raw)
         ? "This account is linked to protected ATLAS history. The account-deletion server update must be deployed before it can be removed safely."
@@ -2968,18 +3054,23 @@
   };
 
   const runProtectedAction = async (action, payload) => {
+    const context = captureContext();
     try {
       const result = await adminApi(action, payload);
+      if (!contextCurrent(context)) return;
       state.drawer = null;
       state.adminNotice = result.message || "ATLAS recorded the update.";
       await loadData();
+      if (!contextCurrent(context)) return;
     } catch (error) {
+      if (!contextCurrent(context)) return;
       state.error = error instanceof Error ? error.message : "The protected action could not be completed.";
       render();
     }
   };
 
   const saveScannerReview = async (form, { exclude = false } = {}) => {
+    const context = captureContext();
     if (!canViewScannerIntelligence()) return;
     const submit = form.querySelector('button[type="submit"]');
     const message = form.querySelector("[data-scanner-review-error]");
@@ -2993,14 +3084,17 @@
         retainForTraining: data.get("retain_training") === "on",
         exclude,
       });
+      if (!contextCurrent(context)) return;
       state.scannerSelected = result.item || null;
       state.scannerNotice = exclude
         ? "Correction evidence was excluded from scanner improvement."
         : "Correction review and training decision were saved.";
       await loadScannerData({ background: true });
+      if (!contextCurrent(context)) return;
       state.scannerSelected = null;
       render();
     } catch (error) {
+      if (!contextCurrent(context)) return;
       if (message) message.textContent = error instanceof Error ? error.message : "The review could not be saved.";
       if (submit) { submit.disabled = false; submit.textContent = "Save Review"; }
     }
@@ -3027,8 +3121,10 @@
       }
       submit.disabled = true;
       submit.textContent = "Deleting…";
+      const context = captureContext();
       cocApi("delete-coc", { deliveryId: record.id, reason }).then(async () => {
-        cocWorkbookCache.delete(record.id);
+        if (!contextCurrent(context)) return;
+        invalidateCocWorkbook(record.id);
         state.cocDelete = null;
         state.cocSelected = null;
         state.cocPreview = { status: "idle", html: "", error: "", id: "" };
@@ -3036,6 +3132,7 @@
         state.cocNotice = "";
         await loadCocData();
       }).catch((error) => {
+        if (!contextCurrent(context)) return;
         message.textContent = error instanceof Error ? error.message : "The COC could not be deleted.";
         submit.disabled = false;
         submit.textContent = "Permanently Delete COC";
@@ -3101,24 +3198,14 @@
     connectMenu();
   });
   window.addEventListener("atlas-auth-changed", (event) => {
-    if (state.session?.user?.id !== event.detail?.session?.user?.id) {
-      ++accountSessionSequence;
-      ++adminRequestSequence;
-      ++dashboardRequestSequence;
-      state.adminUsers = [];
-      state.adminUsersLoaded = false;
-      state.adminLoading = false;
-      state.adminError = "";
-      state.adminNotice = "";
-      state.accountModal = null;
-      state.accountDeleteError = "";
-      state.currentProfile = null;
-      state.loading = false;
+    const next = event.detail?.session || null;
+    const changed = state.session?.user?.id !== next?.user?.id || event.detail?.boundary === "sign-in";
+    if (changed) resetProtectedState({ account: true });
+    state.session = next;
+    if (changed) {
+      render();
+      if (state.open) void loadData({ force: true });
     }
-    state.session = event.detail?.session || null;
-    state.skus = [];
-    state.locations = [];
-    if (state.open) loadData();
   });
   window.atlasOpenDashboard = openDashboard;
 })();
