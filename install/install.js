@@ -7,28 +7,29 @@
   const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const android = /Android/i.test(navigator.userAgent);
+  const desktop = !ios && !android;
+  const mac = /Mac/.test(navigator.platform);
   let deferredPrompt = null;
   let installed = standalone.matches || navigator.standalone === true;
   let prompting = false;
   function render() {
+    byId("install-shell").classList.toggle("is-desktop", desktop);
     byId("iphone").hidden = installed || !ios;
     byId("android").hidden = installed || !android || ios;
     byId("browser-guidance").hidden = installed || ios || android;
     byId("device-heading").textContent = installed ? "ATLAS is installed" : ios ? "Install on iPhone" : android ? "Install on Android" : "Install on your device";
-    byId("device-copy").textContent = android && deferredPrompt
-      ? "Tap the button below to install ATLAS on your Android device."
-      : android ? "Follow the steps below to open this install link in Chrome."
-        : "Open ATLAS in your browser, or use your browser’s Install app option when available.";
-    button.hidden = installed || ios || !deferredPrompt;
+    button.hidden = installed || ios || desktop || !deferredPrompt;
     button.disabled = prompting;
-    byId("page-title").textContent = installed ? "ATLAS is installed" : "Install ATLAS";
-    byId("page-intro").textContent = installed ? "Open ATLAS to access your warehouse tools." : "Add ATLAS to your phone for quick access to warehouse tools.";
-    byId("device-copy").hidden = android && !!deferredPrompt;
+    byId("page-title").textContent = installed ? "ATLAS is installed" : desktop ? "ATLAS on your computer" : "Install ATLAS";
+    byId("page-intro").textContent = installed ? "Open ATLAS to access your warehouse tools." : desktop ? "Save ATLAS to your browser’s top bar for quick access." : "Add ATLAS to your phone for quick access to warehouse tools.";
+    byId("account-footer").textContent = desktop ? "Use your assigned ATLAS login." : "You’ll need your assigned ATLAS login. Installing the app does not create an account or change your warehouse access.";
+    byId("desktop-show-bar").textContent = mac ? "Press Command + Shift + B if it’s hidden." : "Press Ctrl + Shift + B if it’s hidden.";
+    byId("desktop-save").textContent = mac ? "Press Command + D, choose Favorites or Bookmarks Bar, then save." : "Press Ctrl + D, choose Favorites bar or Bookmarks bar, then click Done.";
     byId("offline-note").hidden = navigator.onLine !== false;
   }
   window.addEventListener("beforeinstallprompt", event => {
     event.preventDefault();
-    if (installed || ios) return;
+    if (installed || ios || desktop) return;
     deferredPrompt = event;
     status.textContent = "ATLAS is ready to install.";
     render();

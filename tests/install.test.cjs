@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../install/install.js'), 'utf8');
 function fixture(options = {}) {
   const elements = {}, events = {}, calls = [];
-  const element = id => elements[id] ||= { hidden: false, textContent: '', addEventListener(name, fn) { this[name] = fn; } };
+  const element = id => elements[id] ||= { hidden: false, textContent: '', classList: { toggle() {} }, addEventListener(name, fn) { this[name] = fn; } };
   const navigator = { userAgent: options.ua || 'Android', platform: options.platform || '', maxTouchPoints: options.touch || 0, onLine: true,
     serviceWorker: { getRegistration: async scope => { calls.push(['lookup', scope]); return options.existing ? { scope, update: async () => calls.push(['update']) } : undefined; },
       register: async (...args) => calls.push(['register', ...args]) } };
@@ -63,5 +63,19 @@ test('offline installation navigation uses its public page, while main and Recei
     let response;
     events.fetch({ request: { url: 'https://fixture.invalid/ATLAS/' + path, method: 'GET', mode: 'navigate' }, respondWith: value => response = value });
     assert.equal(await (await response).text(), expected);
+  }
+});
+
+
+test('desktop invitation shows bookmark guidance without a competing install action', () => {
+  for (const platform of ['Win32', 'MacIntel']) {
+    const f = fixture({ ua: 'Desktop', platform });
+    assert.equal(f.element('browser-guidance').hidden, false);
+    assert.equal(f.element('page-title').textContent, 'ATLAS on your computer');
+    assert.equal(f.element('account-footer').textContent, 'Use your assigned ATLAS login.');
+    assert.ok(f.element('desktop-show-bar').textContent.includes(platform === 'MacIntel' ? 'Command' : 'Ctrl'));
+    f.events.beforeinstallprompt({ preventDefault() {} });
+    assert.equal(f.element('install-button').hidden, true);
+    assert.equal(f.element('install-status').textContent, '');
   }
 });

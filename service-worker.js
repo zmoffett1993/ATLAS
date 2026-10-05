@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v398-invitation-redesign";
+const VERSION = "atlas-pwa-v399-desktop-invitation";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -6,8 +6,8 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./install/index.html",
-  "./install/install.css?v=5",
-  "./install/install.js?v=5",
+  "./install/install.css?v=6",
+  "./install/install.js?v=6",
   "./atlas-dashboard.css?v=172",
   "./atlas-coc-references.js?v=2",
   "./atlas-dashboard.js?v=191",
