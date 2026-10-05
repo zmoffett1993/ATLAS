@@ -1,0 +1,98 @@
+[
+  {
+    "slug": "coc-dashboard",
+    "version": 15,
+    "path": "supabase/functions/coc-dashboard/index.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "27499bd7e2eb4a55557c40d077eec8c84d583037bc980e77bafd47e931847f24"
+  },
+  {
+    "slug": "coc-dashboard",
+    "version": 15,
+    "path": "supabase/functions/_shared/coc.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "acf9467109e0822bcd930df24c500d600082b39a0d5dba3187fd5b41dcddb95f"
+  },
+  {
+    "slug": "submit-coc-to-office",
+    "version": 17,
+    "path": "supabase/functions/submit-coc-to-office/index.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "6a29697487bc1f8b6c222d92fe7f16a555760fa05356b929a9adab9b41ab0105"
+  },
+  {
+    "slug": "submit-coc-to-office",
+    "version": 17,
+    "path": "supabase/functions/_shared/coc.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "acf9467109e0822bcd930df24c500d600082b39a0d5dba3187fd5b41dcddb95f"
+  },
+  {
+    "slug": "scanner-intelligence",
+    "version": 14,
+    "path": "supabase/functions/scanner-intelligence/index.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "20fec1d5a218b0bdda6c192f2bb3bd9170675c6529559d8a4818165fe0deb1b2"
+  },
+  {
+    "slug": "coc-receiver",
+    "version": 25,
+    "path": "supabase/functions/coc-receiver/index.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "1230881eca54cbff4e1e555134174b2ce8ffe1fc67138835160cb4ad62d2ea3c"
+  },
+  {
+    "slug": "coc-receiver",
+    "version": 25,
+    "path": "supabase/functions/_shared/coc.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "265218aff0a2197cf5d27733cee88c25d79da4f0cf492cef7718b5b45d09cf18"
+  },
+  {
+    "slug": "coc-workbook-revisions",
+    "version": 15,
+    "path": "supabase/functions/coc-workbook-revisions/index.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "5a1ab5547c8eed2996f8679c17bec2b9f66e9710ba8f09d25843223072ca4d2a"
+  },
+  {
+    "slug": "coc-workbook-revisions",
+    "version": 15,
+    "path": "supabase/functions/_shared/coc.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "265218aff0a2197cf5d27733cee88c25d79da4f0cf492cef7718b5b45d09cf18"
+  },
+  {
+    "slug": "atlas-user-admin",
+    "version": 32,
+    "path": "supabase/functions/atlas-user-admin/index.ts",
+    "exact": false,
+    "normalized": true,
+    "sha256": "cd6ab563ed425034a4e0bc5d0f0da52cd3953f4b13b7c55aca86dcab144a0ca5"
+  },
+  {
+    "slug": "atlas-user-admin",
+    "version": 32,
+    "path": "supabase/functions/atlas-user-admin/handler.mjs",
+    "exact": false,
+    "normalized": true,
+    "sha256": "5088912487c81709d27b7a17bbab754a2f62e858a70fc2dc61149173870d4ed1"
+  },
+  {
+    "slug": "atlas-user-admin",
+    "version": 32,
+    "path": "atlas-login.js",
+    "exact": false,
+    "normalized": true,
+    "sha256": "ecab0f475432dd647279a5afcffd42e91f39f8ae1c37884e51f1a59e089242d5"
+  }
+]

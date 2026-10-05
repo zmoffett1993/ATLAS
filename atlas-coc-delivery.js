@@ -2,7 +2,7 @@
   "use strict";
 
   const DEFAULT_WAREHOUSE_CODE = "CA";
-  const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v1";
+  const WAREHOUSE_SELECTION_KEY = "atlas-selected-warehouse-v2";
   const RECEIVER_WAREHOUSE_KEY = "atlas-coc-receiver-warehouse-v1";
   const RECEIVER_MODE = global.ATLAS_COC_RECEIVER_MODE === true;
   const PROJECT_REF = "dwrrbpiprcmajfyronlf";
@@ -13,13 +13,15 @@
   const clean = (value, maximum = 240) => String(value ?? "").trim().slice(0, maximum);
   let cachedWarehouseContext = null;
   let authGeneration = 0;
+  let activeWarehousePreference = null;
   let authUserId = currentUser()?.id || "";
-  global.addEventListener?.("atlas-auth-changed", () => {
+  global.addEventListener?.("atlas-auth-changed", (event) => {
     const nextUserId = currentUser()?.id || "";
-    if (nextUserId !== authUserId) {
+    if (nextUserId !== authUserId || event?.detail?.boundary === "sign-in") {
       authGeneration += 1;
       authUserId = nextUserId;
       cachedWarehouseContext = null;
+      activeWarehousePreference = null;
     }
   });
 
@@ -42,7 +44,26 @@
       return ["CA", "TX"].includes(bound) ? bound : home;
     }
     if (!["admin", "administrator"].some((role) => roles.has(role))) return home;
-    return clean(global.localStorage?.getItem(WAREHOUSE_SELECTION_KEY) || home, 8).toUpperCase();
+    if (activeWarehousePreference === null) {
+      const saved = global.localStorage?.getItem(warehousePreferenceKey());
+      activeWarehousePreference = ["CA", "TX"].includes(saved) ? saved : home;
+    }
+    return activeWarehousePreference;
+  }
+
+  function warehousePreferenceKey() {
+    return currentUser()?.id ? WAREHOUSE_SELECTION_KEY + ":" + currentUser().id : "";
+  }
+
+  function selectWarehouse(code) {
+    if (RECEIVER_MODE) return;
+    const selected = clean(code, 8).toUpperCase();
+    const context = cachedWarehouseContext;
+    if (!currentUser()?.id || !context?.accessibleWarehouses?.some(item => item.code === selected && item.active !== false))
+      throw new Error("WAREHOUSE_ACCESS_DENIED");
+    activeWarehousePreference = selected;
+    global.localStorage?.setItem(warehousePreferenceKey(), selected);
+    global.dispatchEvent?.(new CustomEvent("atlas-warehouse-changed", { detail: { userId: currentUser().id, warehouseCode: selected } }));
   }
 
   function bindReceiverWarehouse(credentials, userId = currentUser()?.id) {
@@ -125,7 +146,7 @@
 
   function getAuthSession() {
     const shared = global.AtlasAuth?.getSession?.();
-    if (shared) return shared;
+    if (global.AtlasAuth?.getSession) return shared || null;
     const direct = parseStoredSession(global.localStorage?.getItem(AUTH_STORAGE_KEY));
     if (direct) return direct;
     for (let index = 0; index < (global.localStorage?.length || 0); index += 1) {
@@ -524,6 +545,8 @@
     isOfficeUser,
     warehouseContext,
     requestedWarehouseCode,
+    selectWarehouse,
+    warehousePreferenceKey,
     activeStationKey,
     activeStationName,
     stationKeyForWarehouse,

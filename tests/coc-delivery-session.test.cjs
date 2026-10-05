@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '..', 'atlas-coc-delivery.js'), 'utf8');
-function fixture({ receiverMode = false } = {}) {
+function fixture({ receiverMode = false, storage = new Map() } = {}) {
   let user = { id: 'synthetic-ca', app_metadata: { home_warehouse_code: 'CA' } };
   let validSession;
   let response;
@@ -13,7 +13,7 @@ function fixture({ receiverMode = false } = {}) {
   const session = () => user ? { user, access_token: 'synthetic-' + user.id } : null;
   const window = {
     ATLAS_COC_RECEIVER_MODE: receiverMode,
-    localStorage: { getItem: () => null },
+    localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
     atlasSupabaseConfig: { url: 'https://fixture.invalid', key: 'fixture-only' },
     AtlasAuth: { getSession: session, getValidSession: () => validSession || Promise.resolve(session()) },
     addEventListener: (name, listener) => { events[name] = listener; },
@@ -22,7 +22,7 @@ function fixture({ receiverMode = false } = {}) {
     calls.push({ url, body: JSON.parse(options.body) });
     return response || { ok: true, json: async () => ({ selectedWarehouse: { code: 'CA' } }) };
   } });
-  return { api: window.AtlasCocDelivery, calls,
+  return { api: window.AtlasCocDelivery, calls, storage,
     setUser(value) { user = value; events['atlas-auth-changed']?.(); },
     setValidSession(value) { validSession = value; },
     setResponse(value) { response = value; }, session,
@@ -91,3 +91,16 @@ for(const status of ['SENT','RECEIVED','OFFICE_COMPLETED','WAREHOUSE_COMPLETE'])
   else assert.equal((await result).status,status);
  });
 }
+
+
+test('administrator preference is account-owned, ignores legacy state and remains instance-local',async()=>{
+ const storage=new Map([['atlas-selected-warehouse-v1','TX']]);
+ const admin=(id,home)=>({id,app_metadata:{role:'admin',home_warehouse_code:home}});
+ const a=fixture({storage}),b=fixture({storage});a.setUser(admin('manager-A','CA'));b.setUser(admin('manager-B','TX'));
+ assert.equal(a.api.requestedWarehouseCode(),'CA');assert.equal(b.api.requestedWarehouseCode(),'TX');
+ const response={ok:true,json:async()=>({selectedWarehouse:{code:'CA'},accessibleWarehouses:[{code:'CA'},{code:'TX'}]})};a.setResponse(response);b.setResponse(response);await a.api.warehouseContext();await b.api.warehouseContext();
+ a.api.selectWarehouse('TX');b.api.selectWarehouse('CA');assert.equal(a.api.requestedWarehouseCode(),'TX');assert.equal(b.api.requestedWarehouseCode(),'CA');
+ assert.equal(storage.get('atlas-selected-warehouse-v2:manager-A'),'TX');assert.equal(storage.get('atlas-selected-warehouse-v2:manager-B'),'CA');
+ const same=fixture({storage});same.setUser(admin('manager-A','CA'));assert.equal(same.api.requestedWarehouseCode(),'TX');same.setResponse(response);await same.api.warehouseContext();same.api.selectWarehouse('CA');assert.equal(a.api.requestedWarehouseCode(),'TX');
+ a.setUser(admin('new-account','CA'));assert.equal(a.api.requestedWarehouseCode(),'CA');
+});

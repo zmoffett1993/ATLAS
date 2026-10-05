@@ -1,4 +1,4 @@
-const VERSION = "atlas-pwa-v399-desktop-invitation";
+const VERSION = "atlas-pwa-v400-dashboard-isolation";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-warehouse-data`;
 
@@ -10,10 +10,10 @@ const APP_SHELL = [
   "./install/install.js?v=6",
   "./atlas-dashboard.css?v=172",
   "./atlas-coc-references.js?v=2",
-  "./atlas-dashboard.js?v=191",
+  "./atlas-dashboard.js?v=192",
   "./atlas-auth.css?v=4",
   "./atlas-login.js?v=1",
-  "./atlas-auth.js?v=8",
+  "./atlas-auth.js?v=9",
   "./atlas-coc.css?v=68",
   "./atlas-zxing-browser.min.js?v=1",
   "./atlas-coc-scanner.js?v=7",
@@ -22,9 +22,9 @@ const APP_SHELL = [
   "./atlas-coc-core.js?v=23",
   "./atlas-jszip.min.js?v=1",
   "./atlas-coc-storage.js?v=5",
-  "./atlas-coc-delivery.js?v=17",
+  "./atlas-coc-delivery.js?v=18",
   "./atlas-coc-excel.js?v=20",
-  "./atlas-coc.js?v=87",
+  "./atlas-coc.js?v=88",
   "./coc-receiver/index.html",
   "./coc-receiver/coc-receiver-favicon.svg?v=4",
   "./coc-receiver/coc-receiver-favicon-16.png?v=4",

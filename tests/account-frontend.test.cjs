@@ -10,7 +10,7 @@ function fixture(){
   let renders=0,html='',now=0,id=0,gate=null,failAdmin=false;
   const timers=new Map(),events={};
   const session={access_token:'fixture-only',user:{id:'actor',app_metadata:{role:'admin'}}};
-  const warehouses=[{id:'ca',code:'CA',display_name:'California'},{id:'tx',code:'TX',display_name:'Texas'}];
+  const warehouses=[{id:'00000000-0000-4000-8000-000000000001',code:'CA',display_name:'California'},{id:'00000000-0000-4000-8000-000000000002',code:'TX',display_name:'Texas'}];
   const content={contains:()=>false,querySelector:()=>null,get innerHTML(){return html;},set innerHTML(value){renders++;html=value;}};
   const dashboard={querySelector:()=>null,contains:()=>false};
   const document={visibilityState:'visible',activeElement:null,documentElement:{scrollTop:0},addEventListener(){},querySelector:selector=>selector==='[data-dashboard-content]'?content:null,getElementById:()=>dashboard};
@@ -23,7 +23,7 @@ function fixture(){
     requests.push({url,body:options.body?JSON.parse(options.body):null});
     if(failAdmin&&url.includes('atlas-user-admin')&&JSON.parse(options.body||'{}').action!=='list')throw new Error('synthetic transport failure');
     if(gate&&url.includes(gate.match))await gate.promise;
-    const payload=url.includes('/profiles?')?[{user_id:'actor',role:'admin',display_name:'Test administrator',warehouse_id:'ca'}]:url.includes('atlas-user-admin')?{users:[]}:url.includes('/rest/')?[]:{};
+    const payload=url.includes('/profiles?')?[{user_id:'actor',role:'admin',display_name:'Test administrator',warehouse_id:'00000000-0000-4000-8000-000000000001'}]:url.includes('atlas-user-admin')?{users:[]}:url.includes('/rest/')?[]:{};
     return {ok:true,status:200,json:async()=>payload};
   };
   const context=vm.createContext({window,document,fetch,MutationObserver:class{observe(){}},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null},Intl,URL,Date,console,Map,Set});
@@ -138,7 +138,7 @@ test('all APP_SHELL assets exist and modified HTML asset versions match',()=>{
     }
     assert.match(html,/atlas-routing-worker.mjs\?v=281/);
   }
-  assert.match(sw,/atlas-pwa-v399-desktop-invitation/);
+  assert.match(sw,/atlas-pwa-v400-dashboard-isolation/);
 });
 
 for(const code of ['CA','TX'])test(code+' Office Receiver form synchronizes names without replacing account UUID',()=>{

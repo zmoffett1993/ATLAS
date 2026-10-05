@@ -1,0 +1,62 @@
+REVIEW ONLY: CA/TX account and warehouse isolation
+No SQL or Edge Function change in this directory has been applied.
+
+Reason and proposed impact
+- profiles: add a restrictive authenticated SELECT boundary. Existing own-profile
+  access remains; supervisor reads are limited by trusted warehouse membership.
+- locations: add an authenticated SELECT boundary. Anonymous active-SKU inventory
+  lookup remains public as explicitly requested. Public lookup is not confidential
+  CA/TX isolation; these are intentionally different access paths.
+- atlas_undo_snapshots: add an authenticated SELECT membership boundary.
+- Revoke TRUNCATE, REFERENCES and TRIGGER from anon/authenticated on the six
+  explicitly named tables. SELECT/INSERT/UPDATE/DELETE grants remain unchanged.
+- scanner-intelligence.proposed.ts: require current profile role and active
+  memberships. A dual-warehouse administrator retains CA, TX and ALL. ALL for a
+  single-warehouse administrator is narrowed to that warehouse. Bind event
+  deduplication to employee/warehouse and correction updates to the validated row.
+
+Preserved
+Both existing administrators' dual CA/TX memberships, home warehouses, account
+assignment triggers/protocol, receiver records and secrets, pending requests,
+drafts, workbook data, normal authentication/session architecture and anonymous
+inventory lookup. No new permission is granted for deletion-review reads.
+
+Evidence
+live-metadata.json contains read-only policy/grant/helper snapshots and aggregate
+administrator membership evidence, not account passwords or receiver credentials.
+source-alignment.json records deployed function versions and normalized hashes.
+The recovered coc-dashboard and submit-coc-to-office files match deployed source.
+They restore missing local canonical source; they are not proposed behavior changes.
+
+Validation and limitations
+tests/dashboard-isolation-backend.test.cjs reproduces the broad policies in an
+isolated PGlite PostgreSQL database, applies proposed-up.sql, checks synthetic
+roles/warehouse reads and writes, then exercises rollback. Scanner tests execute
+the proposed handler with synthetic services. These are not a full Supabase
+deployment, PostgREST integration test, or production proof. Existing assignment
+triggers were inspected read-only; this proposal does not replace them.
+
+Before any approved backend release
+Refresh the policy/grant/source snapshots and compare production drift. Confirm
+the three new policy names are unused. Test the SQL and scanner handler together
+in an authorized isolated staging environment with both managers, CA/TX staff and
+anonymous lookup. Do not run production-writing test runners.
+The SQL is kept outside supabase/migrations and the handler outside
+supabase/functions/scanner-intelligence so routine deployment does not pick up
+these proposals. Publication/application requires explicit approval.
+
+Rollback
+proposed-rollback.sql removes only these three policies and restores the exact
+three grants seen on the six tables. Recheck pre-release grant snapshots before
+using it: rollback intentionally reopens the previous broad access.
+Scanner rollback is the unchanged canonical
+supabase/functions/scanner-intelligence/index.ts, verified against deployed v14.
+Frontend rollback is the reviewed diff against cb892ea5ad42b00fe61da025e51feeaa5eb4eb43.
+No stored legacy preferences, draft records, pairing or warehouse data are deleted.
+
+Other findings, not silently repaired
+The UI references undo_inventory_activity and review_sku_delete_request actions
+that the inspected atlas-user-admin handler does not implement. Adding privileged
+actions requires separate design/approval and server validation.
+Additional broad grants on the pallet-guide table are outside this handoff's
+six-table proposal. Review separately before changing unrelated features.
