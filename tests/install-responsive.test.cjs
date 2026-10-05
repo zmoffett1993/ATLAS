@@ -10,7 +10,7 @@ test('invitation selects device guidance, preserves controls and stays reachable
  if(name==='ipad')await page.addInitScript(()=>{Object.defineProperty(navigator,'platform',{value:'MacIntel'});Object.defineProperty(navigator,'maxTouchPoints',{value:5});});
  await page.goto('http://127.0.0.1:'+server.address().port+'/install/');
  for(let i=0;i<2;i++){for(const id of ['iphone','android','browser-guidance'])assert.equal(await page.locator('#'+id).isVisible(),id===expected,name+': '+id);if(!i)await page.reload();}
- assert.equal(await page.locator('#page-title').textContent(),'Install ATLAS');assert.equal(await page.locator('#install-button').isVisible(),false);
+ assert.equal(await page.locator('#page-title').textContent(),expected==='browser-guidance'?'ATLAS on your computer':'Install ATLAS');assert.equal(await page.locator('#install-button').isVisible(),false);
  assert.equal(await page.locator('.install-link').textContent(),'https://zmoffett1993.github.io/ATLAS/install/');assert.equal(await page.locator('#open-app').getAttribute('href'),'../index.html');assert.equal(await page.locator('#open-app span').isVisible(),true);
  if(name==='android-prompt'){
  await page.evaluate(()=>{const event=new Event('beforeinstallprompt');event.prompt=async()=>{};event.userChoice=Promise.resolve({outcome:'dismissed'});window.dispatchEvent(event);});

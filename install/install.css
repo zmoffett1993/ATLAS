@@ -47,3 +47,19 @@ footer{text-align:center;line-height:1.5;padding:18px 4px 0}
 @media(max-width:374px) and (max-height:740px){.brand{width:180px;margin-bottom:8px}header{padding-bottom:10px}.steps{gap:9px;margin-bottom:10px}.install-card{margin-bottom:10px}.share-card{padding:10px}.share-card h2{margin-bottom:6px}footer{padding-top:8px}.install-shell{padding-top:max(8px,env(safe-area-inset-top))}}
 
 @media(min-width:351px){.install-card:has(#install-button:not([hidden])){display:grid;grid-template-columns:1fr 1fr;column-gap:10px}.install-card:has(#install-button:not([hidden]))>*{grid-column:1/-1}.install-card:has(#install-button:not([hidden]))>#install-button{grid-column:1;margin-top:0;padding:12px 8px}.install-card:has(#install-button:not([hidden]))>#open-app{grid-column:2;grid-row:4;margin-top:0;padding:12px 8px}.install-card:has(#install-button:not([hidden]))>#install-button{grid-row:4}.install-card:has(#install-button:not([hidden])) .primary span,.install-card:has(#install-button:not([hidden])) .open-app span{display:none}#install-button:not([hidden])+.status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}}
+
+@media(min-width:700px){
+  .install-shell.is-desktop{width:min(100%,640px);padding-top:40px;padding-bottom:28px}
+  .is-desktop header{padding-bottom:30px}
+  .is-desktop .brand{width:230px;margin-bottom:26px}
+  .is-desktop h1{font-size:2rem}
+  .is-desktop .intro{font-size:1rem}
+  .is-desktop .steps{gap:26px;margin-bottom:28px}
+  .is-desktop .steps li{gap:22px}
+  .is-desktop .steps li>span{font-size:1.25rem}
+  .is-desktop .steps strong{font-size:1.125rem}
+  .is-desktop .steps p{font-size:1rem}
+  .is-desktop .install-card{margin-bottom:24px}
+  .is-desktop .share-card{padding:18px}
+  .is-desktop footer{padding-top:24px}
+}
